@@ -1,0 +1,23 @@
+{
+  "name": "fluid",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Fluid — a Smalltalk-inspector-inspired web UI: explore and shape your GraphQL data through reusable, LLM-generated dashboard views.",
+  "license": "MIT",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "backend-demo": "pnpm --filter @fluid/backend-demo",
+    "frontend": "pnpm --filter @fluid/frontend"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3"
+  }
+}

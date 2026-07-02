@@ -1,0 +1,28 @@
+# Local development stack for fluid.
+# Starts a PostgreSQL instance shared by @fluid/backend-demo (bank) and @fluid/bff (views).
+#
+# Usage:
+#   docker compose up -d
+#   # then per package: pnpm --filter @fluid/backend-demo prisma:migrate && ... prisma:seed && ... dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fluid-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fluid
+      POSTGRES_PASSWORD: fluid
+      POSTGRES_DB: fluid
+    ports:
+      - "5432:5432"
+    volumes:
+      - fluid-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fluid -d fluid"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  fluid-pgdata:

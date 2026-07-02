@@ -1,0 +1,36 @@
+{
+  "name": "@fluid/backend-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Demo bank GraphQL API (GraphQL Yoga + Pothos + Prisma) for fluid.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:push": "prisma db push",
+    "prisma:studio": "prisma studio",
+    "seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@pothos/core": "^4.3.0",
+    "@pothos/plugin-prisma": "^4.4.0",
+    "@prisma/client": "^5.22.0",
+    "graphql": "^16.9.0",
+    "graphql-scalars": "^1.24.0",
+    "graphql-yoga": "^5.10.0"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^9.2.0",
+    "@types/node": "^22.9.0",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

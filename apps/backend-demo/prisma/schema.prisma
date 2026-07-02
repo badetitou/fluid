@@ -1,0 +1,155 @@
+// fluid — demo bank domain
+// See src/ for the Pothos/Yoga GraphQL layer built on top of these models.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator pothos {
+  provider     = "prisma-pothos-types"
+  clientOutput = "@prisma/client"
+  output       = "../src/generated/pothos-types.ts"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+}
+
+enum AccountStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum TransactionType {
+  DEBIT
+  CREDIT
+}
+
+enum CardNetwork {
+  VISA
+  MASTERCARD
+  AMEX
+}
+
+enum CardType {
+  DEBIT
+  CREDIT
+}
+
+enum CardStatus {
+  ACTIVE
+  BLOCKED
+  EXPIRED
+}
+
+enum TransferStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String    @unique
+  phone     String?
+  birthDate DateTime?
+  city      String?
+  country   String?
+  createdAt DateTime  @default(now())
+
+  accounts      Account[]
+  beneficiaries Beneficiary[]
+}
+
+model Account {
+  id       String        @id @default(cuid())
+  iban     String        @unique
+  label    String
+  type     AccountType
+  status   AccountStatus @default(ACTIVE)
+  currency String        @default("EUR")
+  balance  Float         @default(0)
+  openedAt DateTime      @default(now())
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  transactions Transaction[]
+  cards        Card[]
+  transfers    Transfer[]
+
+  @@index([customerId])
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  amount      Float
+  currency    String          @default("EUR")
+  type        TransactionType
+  category    String?
+  description String
+  merchant    String?
+  date        DateTime
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+  @@index([date])
+}
+
+model Card {
+  id      String     @id @default(cuid())
+  last4   String
+  network CardNetwork
+  type    CardType
+  status  CardStatus @default(ACTIVE)
+  expiry  DateTime
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+}
+
+model Beneficiary {
+  id       String  @id @default(cuid())
+  name     String
+  iban     String
+  bankName String?
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  transfers Transfer[]
+
+  @@index([customerId])
+}
+
+model Transfer {
+  id          String         @id @default(cuid())
+  amount      Float
+  currency    String         @default("EUR")
+  reference   String?
+  status      TransferStatus @default(COMPLETED)
+  scheduledAt DateTime?
+  executedAt  DateTime
+
+  fromAccountId String
+  fromAccount   Account @relation(fields: [fromAccountId], references: [id])
+
+  beneficiaryId String
+  beneficiary   Beneficiary @relation(fields: [beneficiaryId], references: [id])
+
+  @@index([fromAccountId])
+  @@index([beneficiaryId])
+}
