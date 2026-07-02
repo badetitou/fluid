@@ -74,12 +74,14 @@ export interface GenerateViewResponse {
   spec: ViewSpec;
   provider: LlmProvider;
   model: string;
+  reasoning?: string[];
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = init?.body ? { 'content-type': 'application/json' } : undefined;
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'content-type': 'application/json' },
     ...init,
+    ...(headers ? { headers } : {}),
   });
   if (!res.ok) {
     let detail = '';

@@ -3,7 +3,18 @@ import type { ChatMessage, ConceptSchemaInfo, GenerateViewInput } from './types'
 // The system prompt pins the JSON contract (the ViewSpec *draft*) and biases the
 // model toward dashboards: tables, statistics and charts, with little prose.
 
-const CONTRACT = `You output ONE JSON object only — no markdown fences, no comments, no prose around it.
+const CONTRACT = `You output a response with TWO SECTIONS:
+
+1. REASONING (optional - help the user understand your thinking):
+   Start with a "THINKING:" line, then list your reasoning steps. Each step starts with "- ".
+   For example:
+   THINKING:
+   - The user wants X, so I need to query Y
+   - I should include a chart showing Z
+   - The timestamp field should be formatted as datetime
+
+2. JSON OBJECT (required):
+   Then, output ONE JSON object only — no markdown fences, no comments, no prose around it.
 
 The JSON is a Fluid "view draft" with this exact shape:
 {

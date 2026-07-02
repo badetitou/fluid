@@ -60,4 +60,5 @@ export interface GenerateViewResult {
   draft: ViewSpecDraft;
   provider: LlmProvider;
   model: string;
+  reasoning?: string[];
 }

@@ -11,6 +11,7 @@ import {
   Modal,
   Space,
   Tag,
+  Timeline,
   Typography,
 } from 'antd';
 import { RobotOutlined, SettingOutlined, ThunderboltOutlined } from '@ant-design/icons';
@@ -33,6 +34,9 @@ interface ViewAssistantModalProps {
   onSaved: (view: SavedView) => void;
   onOpenJson: (spec: ViewSpec) => void;
   onOpenSettings: () => void;
+  editingViewId?: string;
+  initialSpec?: ViewSpec;
+  editingIsDefault?: boolean;
 }
 
 export function ViewAssistantModal({
@@ -43,35 +47,43 @@ export function ViewAssistantModal({
   onSaved,
   onOpenJson,
   onOpenSettings,
+  editingViewId,
+  initialSpec,
+  editingIsDefault,
 }: ViewAssistantModalProps) {
   const { message } = AntdApp.useApp();
   const settings = useLlmSettings();
   const [prompt, setPrompt] = useState('');
   const [history, setHistory] = useState<ChatMessage[]>([]);
-  const [spec, setSpec] = useState<ViewSpec | null>(null);
+  const [spec, setSpec] = useState<ViewSpec | null>(initialSpec ?? null);
   const [meta, setMeta] = useState<{ provider: string; model: string } | null>(null);
+  const [reasoning, setReasoning] = useState<string[] | null>(null);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [isDefault, setIsDefault] = useState(false);
+  const [isDefault, setIsDefault] = useState(editingIsDefault ?? false);
   const [error, setError] = useState<string | null>(null);
+
+  const isEditing = !!editingViewId;
 
   useEffect(() => {
     if (!open) return;
     setPrompt('');
     setHistory([]);
-    setSpec(null);
+    setSpec(initialSpec ?? null);
     setMeta(null);
+    setReasoning(null);
     setGenerating(false);
     setSaving(false);
-    setIsDefault(false);
+    setIsDefault(editingIsDefault ?? false);
     setError(null);
-  }, [open]);
+  }, [open, initialSpec, editingIsDefault]);
 
   const handleGenerate = async () => {
     const trimmed = prompt.trim();
     if (!trimmed) return;
     setGenerating(true);
     setError(null);
+    setReasoning(null);
     try {
       const res = await bffClient.generateView({
         concept,
@@ -82,6 +94,7 @@ export function ViewAssistantModal({
       });
       setSpec(res.spec);
       setMeta({ provider: res.provider, model: res.model });
+      setReasoning(res.reasoning ?? null);
       setHistory((h) => [
         ...h,
         { role: 'user', content: trimmed },
@@ -100,9 +113,16 @@ export function ViewAssistantModal({
     setSaving(true);
     setError(null);
     try {
-      const saved = await bffClient.createView(spec, isDefault);
-      message.success('View saved');
-      onSaved(saved);
+      if (isEditing) {
+        await bffClient.updateView(editingViewId, { spec, isDefault });
+        message.success('View updated');
+        const saved = await bffClient.getView(editingViewId);
+        onSaved(saved);
+      } else {
+        const saved = await bffClient.createView(spec, isDefault);
+        message.success('View saved');
+        onSaved(saved);
+      }
       onClose();
     } catch (err) {
       setError((err as Error).message);
@@ -118,7 +138,7 @@ export function ViewAssistantModal({
       title={
         <Space>
           <RobotOutlined />
-          <span>Create a view with the assistant — {concept}</span>
+          <span>{isEditing ? 'Edit' : 'Create'} a view with the assistant — {concept}</span>
         </Space>
       }
       open={open}
@@ -137,15 +157,16 @@ export function ViewAssistantModal({
           Open in JSON editor
         </Button>,
         <Button key="save" type="primary" onClick={handleSave} loading={saving} disabled={!spec}>
-          Save view
+          {isEditing ? 'Update view' : 'Save view'}
         </Button>,
       ]}
     >
       <Space direction="vertical" size={12} style={{ width: '100%', marginTop: 8 }}>
         <Flex align="center" justify="space-between" wrap gap={8}>
           <Typography.Text type="secondary">
-            Describe the dashboard you want (tables, stats, charts). The assistant returns a view
-            you can preview, refine, then save.
+            {isEditing
+              ? 'Refine this view with prompts, then update it.'
+              : 'Describe the dashboard you want (tables, stats, charts). The assistant returns a view you can preview, refine, then save.'}
           </Typography.Text>
           <Tag icon={<ThunderboltOutlined />} color="blue">
             {settings.provider}
@@ -157,7 +178,7 @@ export function ViewAssistantModal({
           <Space direction="vertical" size={2} style={{ width: '100%' }}>
             {userTurns.map((t, i) => (
               <Typography.Text key={i} type="secondary" style={{ fontSize: 12 }}>
-                <RobotOutlined /> “{t.content}”
+                <RobotOutlined /> "{t.content}"
               </Typography.Text>
             ))}
           </Space>
@@ -190,6 +211,23 @@ export function ViewAssistantModal({
         >
           {spec ? 'Refine' : 'Generate'}
         </Button>
+
+        {reasoning && reasoning.length > 0 && (
+          <Alert
+            type="info"
+            showIcon
+            message="LLM Reasoning"
+            description={
+              <Timeline
+                items={reasoning.map((step) => ({
+                  label: null,
+                  children: <Typography.Text>{step}</Typography.Text>,
+                }))}
+                style={{ marginTop: 8 }}
+              />
+            }
+          />
+        )}
 
         {error && (
           <Alert

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { ThemeMode } from './theme';
 
 export type NavbarSide = 'left' | 'right';
 
@@ -24,6 +25,9 @@ interface PreferencesState {
   navbarSide: NavbarSide;
   setNavbarSide: (side: NavbarSide) => void;
   toggleNavbarSide: () => void;
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
+  toggleThemeMode: () => void;
 }
 
 export const usePreferences = create<PreferencesState>()(
@@ -33,6 +37,10 @@ export const usePreferences = create<PreferencesState>()(
       setNavbarSide: (side) => set({ navbarSide: side }),
       toggleNavbarSide: () =>
         set({ navbarSide: get().navbarSide === 'left' ? 'right' : 'left' }),
+      themeMode: 'light',
+      setThemeMode: (mode) => set({ themeMode: mode }),
+      toggleThemeMode: () =>
+        set({ themeMode: get().themeMode === 'light' ? 'dark' : 'light' }),
     }),
     { name: 'fluid-preferences' },
   ),

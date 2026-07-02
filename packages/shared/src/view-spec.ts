@@ -96,6 +96,15 @@ export const columnSchema = z.object({
   /** Currency code for `format: "currency"` (defaults to EUR). */
   currency: z.string().optional(),
   width: z.number().int().positive().optional(),
+  /** Navigation configuration: concept to navigate to and optional field for the ID parameter. */
+  linkTo: z
+    .object({
+      /** Target concept name. */
+      concept: z.string().min(1),
+      /** Dot path to the ID value (defaults to "id"). */
+      idField: z.string().optional(),
+    })
+    .optional(),
 });
 export type Column = z.infer<typeof columnSchema>;
 
@@ -144,6 +153,15 @@ export const descriptionsWidgetSchema = z.object({
       key: z.string().min(1),
       format: formatKindSchema.optional(),
       currency: z.string().optional(),
+      /** Navigation configuration: concept to navigate to and optional field for the ID parameter. */
+      linkTo: z
+        .object({
+          /** Target concept name. */
+          concept: z.string().min(1),
+          /** Dot path to the ID value (defaults to "id"). */
+          idField: z.string().optional(),
+        })
+        .optional(),
     }),
   ),
   columns: z.number().int().min(1).max(4).optional(),

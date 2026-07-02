@@ -1,11 +1,10 @@
 import { useEffect, useMemo } from 'react';
-import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Button, Layout, Menu, Space, Tooltip, Typography, theme } from 'antd';
+import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { Button, Layout, Menu, Typography, theme } from 'antd';
 import {
-  DisconnectOutlined,
-  SwapOutlined,
   ThunderboltOutlined,
   TableOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { useConnection, usePreferences, type NavbarSide } from '../store';
 import { useConcepts } from '../hooks/useConcepts';
@@ -14,7 +13,6 @@ import { bffClient } from '../bff/client';
 const { Header, Sider, Content } = Layout;
 
 export function AppLayout() {
-  const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
   const { token } = theme.useToken();
@@ -22,7 +20,6 @@ export function AppLayout() {
   const navbarSide = usePreferences((s) => s.navbarSide);
   const setNavbarSide = usePreferences((s) => s.setNavbarSide);
   const graphqlUrl = useConnection((s) => s.graphqlUrl);
-  const disconnect = useConnection((s) => s.disconnect);
 
   const { concepts } = useConcepts();
 
@@ -33,8 +30,9 @@ export function AppLayout() {
     bffClient
       .getPrefs()
       .then((prefs) => {
+        if (cancelled) return;
         const side = prefs.navbarSide;
-        if (!cancelled && (side === 'left' || side === 'right')) {
+        if (side === 'left' || side === 'right') {
           setNavbarSide(side as NavbarSide);
         }
       })
@@ -45,14 +43,6 @@ export function AppLayout() {
       cancelled = true;
     };
   }, [setNavbarSide]);
-
-  const handleToggleNavbar = () => {
-    const next: NavbarSide = navbarSide === 'left' ? 'right' : 'left';
-    setNavbarSide(next);
-    bffClient.putPrefs({ navbarSide: next }).catch(() => {
-      /* non-fatal: preference still persisted locally */
-    });
-  };
 
   const selectedKey = params.name ? `concept:${params.name}` : location.pathname === '/' ? 'home' : '';
 
@@ -96,11 +86,6 @@ export function AppLayout() {
     </Sider>
   );
 
-  const handleDisconnect = () => {
-    disconnect();
-    navigate('/connect', { replace: true });
-  };
-
   return (
     <Layout style={{ minHeight: '100vh' }} hasSider>
       {navbarSide === 'left' && sider}
@@ -117,16 +102,9 @@ export function AppLayout() {
           <Typography.Text type="secondary" ellipsis style={{ maxWidth: '50%' }}>
             {graphqlUrl}
           </Typography.Text>
-          <Space>
-            <Tooltip title={`Move navbar to the ${navbarSide === 'left' ? 'right' : 'left'}`}>
-              <Button icon={<SwapOutlined />} onClick={handleToggleNavbar}>
-                Navbar: {navbarSide}
-              </Button>
-            </Tooltip>
-            <Button icon={<DisconnectOutlined />} onClick={handleDisconnect}>
-              Disconnect
-            </Button>
-          </Space>
+          <Link to="/settings">
+            <Button icon={<SettingOutlined />} />
+          </Link>
         </Header>
         <Content style={{ padding: 24, background: token.colorBgLayout }}>
           <Outlet />

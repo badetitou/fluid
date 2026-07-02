@@ -7,7 +7,8 @@ import type { GenerateViewInput } from '../llm/types';
 
 // LLM-assisted view generation. The BFF builds the prompt from the concept
 // schema the frontend sends, calls the configured provider (or the offline
-// mock), validates the JSON as a view draft, and returns a full ViewSpec.
+// mock), validates the JSON as a view draft, and returns a full ViewSpec
+// along with optional reasoning steps.
 
 export async function llmRoutes(app: FastifyInstance) {
   app.get('/api/llm/config', async () => describeLlmConfig());
@@ -20,7 +21,12 @@ export async function llmRoutes(app: FastifyInstance) {
 
     try {
       const result = await generateView(parsed.data as GenerateViewInput);
-      return { spec: result.spec, provider: result.provider, model: result.model };
+      return {
+        spec: result.spec,
+        provider: result.provider,
+        model: result.model,
+        reasoning: result.reasoning,
+      };
     } catch (err) {
       if (err instanceof LlmValidationError) {
         return reply

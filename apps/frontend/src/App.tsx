@@ -7,6 +7,8 @@ import { AppLayout } from './components/AppLayout';
 import { ConnectPage } from './pages/ConnectPage';
 import { HomePage } from './pages/HomePage';
 import { ConceptPage } from './pages/ConceptPage';
+import { ItemPage } from './pages/ItemPage';
+import { SettingsPage } from './pages/SettingsPage';
 
 export function App() {
   const graphqlUrl = useConnection((s) => s.graphqlUrl);
@@ -28,7 +30,9 @@ export function App() {
           }
         >
           <Route index element={<HomePage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="concept/:name" element={<ConceptPage />} />
+          <Route path="concept/:conceptName/item/:itemId" element={<ItemPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       ) : (

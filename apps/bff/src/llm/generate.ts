@@ -3,7 +3,7 @@ import { finalizeViewSpec, safeParseViewSpecDraft, type ViewSpecDraft } from '@f
 import type { GenerateViewInput, GenerateViewResult } from './types';
 import { resolveLlmConfig } from './config';
 import { buildMessages, buildRepairMessage } from './prompt';
-import { chatCompletion, extractJson } from './client';
+import { chatCompletion, extractJson, extractReasoning } from './client';
 import { mockDraft } from './mock';
 import { LlmValidationError } from './errors';
 
@@ -29,6 +29,7 @@ function validateDraft(
  * Generate a view for a concept. The `mock` provider returns a deterministic
  * draft; real providers call the LLM, validate the JSON, and get one repair
  * attempt before failing. The validated draft is finalized into a full ViewSpec.
+ * Also extracts and returns reasoning steps if the LLM provides them.
  */
 export async function generateView(input: GenerateViewInput): Promise<GenerateViewResult> {
   const config = resolveLlmConfig(input.config);
@@ -40,22 +41,26 @@ export async function generateView(input: GenerateViewInput): Promise<GenerateVi
       spec: finalizeViewSpec(draft, { concept: input.concept, id: `gen-${randomUUID().slice(0, 8)}` }),
       provider: config.provider,
       model: config.model,
+      reasoning: undefined,
     };
   }
 
   const messages = buildMessages(input);
-  let content = await chatCompletion(config, messages);
+  let fullContent = await chatCompletion(config, messages);
+  const { reasoning, content } = extractReasoning(fullContent);
+
   let result = validateDraft(content);
 
   if (!result.ok) {
     const repair = buildRepairMessage(result.errorText, content);
-    content = await chatCompletion(config, [
+    fullContent = await chatCompletion(config, [
       ...messages,
-      { role: 'assistant', content },
+      { role: 'assistant', content: fullContent },
       repair,
     ]);
-    const retry = validateDraft(content);
-    if (!retry.ok) throw new LlmValidationError(retry.errorText, content);
+    const { content: repairedContent } = extractReasoning(fullContent);
+    const retry = validateDraft(repairedContent);
+    if (!retry.ok) throw new LlmValidationError(retry.errorText, repairedContent);
     result = retry;
   }
 
@@ -67,5 +72,6 @@ export async function generateView(input: GenerateViewInput): Promise<GenerateVi
     }),
     provider: config.provider,
     model: config.model,
+    reasoning: reasoning.length > 0 ? reasoning : undefined,
   };
 }

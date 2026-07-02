@@ -72,6 +72,7 @@ export function ConceptPage() {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [modalInitial, setModalInitial] = useState<ViewEditorInitial | null>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantEditingId, setAssistantEditingId] = useState<string | undefined>(undefined);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -112,6 +113,12 @@ export function ConceptPage() {
       editingId: selected.saved.id,
     });
     setModalOpen(true);
+  };
+
+  const openEditWithAssistant = () => {
+    if (!selected?.saved) return;
+    setAssistantEditingId(selected.saved.id);
+    setAssistantOpen(true);
   };
 
   // Hand a generated spec off to the JSON editor for fine-tuning before saving.
@@ -272,6 +279,15 @@ export function ConceptPage() {
               <Button icon={<EditOutlined />} onClick={openEdit}>
                 Edit
               </Button>
+              <Tooltip title={bffAvailable ? 'Edit with assistant' : 'Fluid BFF unavailable'}>
+                <Button
+                  icon={<RobotOutlined />}
+                  onClick={openEditWithAssistant}
+                  disabled={!bffAvailable}
+                >
+                  Edit with assistant
+                </Button>
+              </Tooltip>
               <Popconfirm
                 title="Delete this view?"
                 description="This removes the saved view for everyone."
@@ -295,7 +311,10 @@ export function ConceptPage() {
             <Button
               type="primary"
               icon={<RobotOutlined />}
-              onClick={() => setAssistantOpen(true)}
+              onClick={() => {
+                setAssistantEditingId(undefined);
+                setAssistantOpen(true);
+              }}
               disabled={!bffAvailable}
             >
               Assistant
@@ -411,13 +430,27 @@ export function ConceptPage() {
           open={assistantOpen}
           concept={concept.name}
           schema={schemaPayload}
-          onClose={() => setAssistantOpen(false)}
+          onClose={() => {
+            setAssistantOpen(false);
+            setAssistantEditingId(undefined);
+          }}
           onSaved={(view) => {
             refetch();
             setPicked(view.id);
           }}
           onOpenJson={openJsonWithSpec}
           onOpenSettings={() => setSettingsOpen(true)}
+          editingViewId={assistantEditingId}
+          initialSpec={
+            assistantEditingId
+              ? entries.find((e) => e.saved?.id === assistantEditingId)?.spec
+              : undefined
+          }
+          editingIsDefault={
+            assistantEditingId
+              ? entries.find((e) => e.saved?.id === assistantEditingId)?.saved?.isDefault
+              : false
+          }
         />
       )}
 

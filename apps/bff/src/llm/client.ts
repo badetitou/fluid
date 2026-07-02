@@ -2,6 +2,41 @@ import type { ChatMessage, LlmConfig } from './types';
 import { LlmError } from './errors';
 
 /**
+ * Extract reasoning steps from an LLM response that starts with "THINKING:"
+ * Returns { reasoning: string[], content: string } where content is the remainder
+ */
+export function extractReasoning(text: string): { reasoning: string[]; content: string } {
+  const lines = text.split('\n');
+  const reasoning: string[] = [];
+  let thinkingStart = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim().startsWith('THINKING:')) {
+      thinkingStart = i;
+      break;
+    }
+  }
+
+  if (thinkingStart === -1) {
+    return { reasoning: [], content: text };
+  }
+
+  let contentStart = thinkingStart + 1;
+  for (let i = thinkingStart + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.startsWith('- ')) {
+      reasoning.push(line.slice(2).trim());
+    } else if (line.length > 0 && !line.startsWith('-')) {
+      contentStart = i;
+      break;
+    }
+  }
+
+  const content = lines.slice(contentStart).join('\n');
+  return { reasoning, content };
+}
+
+/**
  * Minimal client for the OpenAI-compatible Chat Completions API. Works for both
  * OpenAI (api.openai.com) and Ollama (localhost:11434/v1) since both expose the
  * same `/chat/completions` shape with a JSON response mode.

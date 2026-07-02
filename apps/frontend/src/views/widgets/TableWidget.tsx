@@ -1,5 +1,6 @@
 import { Table } from 'antd';
 import type { TableColumnsType } from 'antd';
+import { Link } from 'react-router-dom';
 import type { Column, TableWidget as TableWidgetSpec } from '@fluid/shared';
 import { getPath } from '../data';
 import { formatValue } from '../format';
@@ -32,8 +33,22 @@ export function TableWidget({ widget, rows }: { widget: TableWidgetSpec; rows: R
     key: col.key,
     title: col.title ?? humanize(col.key),
     width: col.width,
-    render: (_value: unknown, record: Row) =>
-      formatValue(getPath(record, col.key), col.format, { currency: col.currency }),
+    render: (_value: unknown, record: Row) => {
+      const value = getPath(record, col.key);
+      const formatted = formatValue(value, col.format, { currency: col.currency });
+
+      // If the column has a linkTo config, render as a link
+      if (col.linkTo) {
+        const idValue = getPath(record, col.linkTo.idField ?? 'id');
+        if (idValue) {
+          return (
+            <Link to={`/concept/${col.linkTo.concept}/item/${idValue}`}>{formatted}</Link>
+          );
+        }
+      }
+
+      return formatted;
+    },
   }));
 
   const dataSource = rows.map((row, index) => ({
