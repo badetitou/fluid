@@ -32,16 +32,26 @@ Each Widget is one of these discriminated shapes (field "type"):
     "value": { "op": "count"|"sum"|"avg"|"min"|"max", "field"?: string }, "format"?: Format, "precision"?: number }
 - { "id": string, "type": "table", "title"?: string, "span"?: 1..24,
     "data": { "query": ..., "path"?: ..., "transform"?: Transform },
-    "columns": [ { "key": string, "title"?: string, "format"?: Format } ], "pageSize"?: number }
+    "columns": [ { "key": string, "title"?: string, "format"?: Format, "linkTo"?: LinkConfig } ], "pageSize"?: number }
 - { "id": string, "type": "descriptions", "title"?: string, "span"?: 1..24,
     "data": { "query": ..., "path"?: ... },
-    "items": [ { "label": string, "key": string, "format"?: Format } ] }
+    "items": [ { "label": string, "key": string, "format"?: Format, "linkTo"?: LinkConfig } ] }
 - { "id": string, "type": "line"|"area"|"bar", "title"?: string, "span"?: 1..24,
     "data": { "query": ..., "path"?: ..., "transform"?: Transform },
     "xField": string, "yField": string, "seriesField"?: string, "height"?: number }   // "bar" renders vertical columns
 - { "id": string, "type": "pie", "title"?: string, "span"?: 1..24,
     "data": { "query": ..., "path"?: ..., "transform"?: Transform },
     "angleField": string, "colorField": string, "height"?: number }
+
+LinkConfig (FEATURE: Infinite Navigation - enables Miller list-style drilling):
+  "linkTo": { "concept": "<target concept name>", "idField"?: "<dot path to ID>" }
+  - "concept": The target concept to navigate to (e.g., "Customer", "Order", "Product")
+  - "idField": Optional dot path to extract the ID (defaults to "id"). Supports nested paths like "customer.id"
+  - When a column or item has linkTo, users can click it to navigate to "/concept/{concept}/item/{id}"
+  - This enables INFINITE NAVIGATION: explore related objects by clicking links in tables or descriptions
+  - Examples:
+    * {"concept": "Customer"} → uses "id" field, navigates to /concept/Customer/item/ACC-001
+    * {"concept": "Customer", "idField": "customer.id"} → navigates to /concept/Customer/item/CUST-001
 
 Transform (optional) reshapes an array before rendering:
 { "groupBy"?: "<field>", "aggregate"?: { "field"?: "<numeric field>" },
@@ -57,6 +67,10 @@ Rules:
 - Pass a $take variable (e.g. 200) when the list query supports it.
 - "path" is the dot path from the query result to the array/object (usually the list query field name).
 - Build a DASHBOARD: a couple of statistics, one table, and one or two charts. Minimal descriptive text.
+- NAVIGATION: When showing lists or details, add "linkTo" on ID columns and related-object fields to enable exploration
+  * On table columns that contain IDs, add linkTo pointing to that concept
+  * On description items that show related objects, add linkTo pointing to the related concept
+  * Use nested idField like "customer.id" to point to the ID field within nested objects
 - Use double quotes everywhere. Output valid JSON and nothing else.`;
 
 function renderSchema(schema: ConceptSchemaInfo): string {
@@ -92,6 +106,8 @@ export function buildMessages(input: GenerateViewInput): ChatMessage[] {
   const system = [
     'You are Fluid\'s dashboard view generator. Given a GraphQL concept and a user request,',
     'you design a compact, useful dashboard as a JSON view draft.',
+    'You can make the dashboard INTERACTIVE by adding "linkTo" to table columns and description items,',
+    'enabling users to navigate infinitely between related objects (Miller list style).',
     '',
     CONTRACT,
     '',

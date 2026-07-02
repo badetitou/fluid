@@ -9,6 +9,7 @@ import { HomePage } from './pages/HomePage';
 import { ConceptPage } from './pages/ConceptPage';
 import { ItemPage } from './pages/ItemPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { NavigationFeatureDemo } from './pages/NavigationFeatureDemo';
 
 export function App() {
   const graphqlUrl = useConnection((s) => s.graphqlUrl);
@@ -20,6 +21,7 @@ export function App() {
   return (
     <Routes>
       <Route path="/connect" element={<ConnectPage />} />
+      <Route path="/demo" element={<NavigationFeatureDemo />} />
       {client ? (
         <Route
           path="/"
