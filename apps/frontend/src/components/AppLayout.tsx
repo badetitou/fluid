@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button, Layout, Menu, Space, Tooltip, Typography, theme } from 'antd';
 import {
@@ -7,8 +7,9 @@ import {
   ThunderboltOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { useConnection, usePreferences } from '../store';
+import { useConnection, usePreferences, type NavbarSide } from '../store';
 import { useConcepts } from '../hooks/useConcepts';
+import { bffClient } from '../bff/client';
 
 const { Header, Sider, Content } = Layout;
 
@@ -19,11 +20,39 @@ export function AppLayout() {
   const { token } = theme.useToken();
 
   const navbarSide = usePreferences((s) => s.navbarSide);
-  const toggleNavbarSide = usePreferences((s) => s.toggleNavbarSide);
+  const setNavbarSide = usePreferences((s) => s.setNavbarSide);
   const graphqlUrl = useConnection((s) => s.graphqlUrl);
   const disconnect = useConnection((s) => s.disconnect);
 
   const { concepts } = useConcepts();
+
+  // The BFF is the shared source of truth for preferences when reachable;
+  // localStorage (zustand persist) stays the offline fallback.
+  useEffect(() => {
+    let cancelled = false;
+    bffClient
+      .getPrefs()
+      .then((prefs) => {
+        const side = prefs.navbarSide;
+        if (!cancelled && (side === 'left' || side === 'right')) {
+          setNavbarSide(side as NavbarSide);
+        }
+      })
+      .catch(() => {
+        /* BFF unavailable — keep the local preference */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [setNavbarSide]);
+
+  const handleToggleNavbar = () => {
+    const next: NavbarSide = navbarSide === 'left' ? 'right' : 'left';
+    setNavbarSide(next);
+    bffClient.putPrefs({ navbarSide: next }).catch(() => {
+      /* non-fatal: preference still persisted locally */
+    });
+  };
 
   const selectedKey = params.name ? `concept:${params.name}` : location.pathname === '/' ? 'home' : '';
 
@@ -90,7 +119,7 @@ export function AppLayout() {
           </Typography.Text>
           <Space>
             <Tooltip title={`Move navbar to the ${navbarSide === 'left' ? 'right' : 'left'}`}>
-              <Button icon={<SwapOutlined />} onClick={toggleNavbarSide}>
+              <Button icon={<SwapOutlined />} onClick={handleToggleNavbar}>
                 Navbar: {navbarSide}
               </Button>
             </Tooltip>

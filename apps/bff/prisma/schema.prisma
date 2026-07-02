@@ -1,0 +1,33 @@
+// fluid BFF — persistence for dashboard views and user preferences.
+// Uses a custom client output (src/generated/prisma) so this client never
+// collides with the demo bank's Prisma client in the pnpm store.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// A persisted dashboard view (the JSON ViewSpec plus a little metadata).
+model View {
+  id        String   @id @default(cuid())
+  concept   String
+  title     String
+  spec      Json
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([concept])
+}
+
+/// A simple key/value store for app preferences (mono-user demo).
+model Preference {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}

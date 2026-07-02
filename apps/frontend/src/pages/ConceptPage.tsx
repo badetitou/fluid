@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
+  App as AntdApp,
   Alert,
   Breadcrumb,
   Button,
@@ -8,6 +9,8 @@ import {
   Collapse,
   Descriptions,
   Flex,
+  Popconfirm,
+  Segmented,
   Skeleton,
   Space,
   Table,
@@ -15,19 +18,119 @@ import {
   Tooltip,
   Typography,
 } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import {
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  StarFilled,
+  StarOutlined,
+} from '@ant-design/icons';
+import type { ViewSpec } from '@fluid/shared';
 import { useConcepts } from '../hooks/useConcepts';
+import { useViews, type ViewEntry, type ViewSource } from '../hooks/useViews';
 import type { ConceptField } from '../graphql/introspection';
-import { getViewsForConcept } from '../views/registry';
 import { ViewRenderer } from '../views/ViewRenderer';
+import { ViewEditorModal, type ViewEditorInitial } from '../components/ViewEditorModal';
+import { bffClient } from '../bff/client';
+
+const SOURCE_META: Record<ViewSource, { label: string; color: string }> = {
+  saved: { label: 'saved', color: 'green' },
+  curated: { label: 'curated', color: 'blue' },
+  auto: { label: 'auto', color: 'geekblue' },
+};
+
+/** Prefill for a brand-new view: clone the current spec with a fresh id + title. */
+function newViewInitial(concept: string, from: ViewSpec | undefined): ViewEditorInitial {
+  const base: ViewSpec = from
+    ? { ...from, id: `${concept.toLowerCase()}-view-${Date.now().toString(36)}`, concept }
+    : {
+        version: 1,
+        id: `${concept.toLowerCase()}-view-${Date.now().toString(36)}`,
+        concept,
+        title: `${concept} view`,
+        queries: {},
+        widgets: [],
+      };
+  return { title: `${concept} view`, spec: base, isDefault: false };
+}
 
 export function ConceptPage() {
   const { name } = useParams<{ name: string }>();
   const { conceptByName, fetching, error } = useConcepts();
+  const { message } = AntdApp.useApp();
 
   const concept = name ? conceptByName.get(name) : undefined;
-  const views = useMemo(() => (concept ? getViewsForConcept(concept) : []), [concept]);
-  const primary = views[0];
+  const { entries, defaultKey, loading: viewsLoading, bffAvailable, refetch } = useViews(concept);
+
+  const [picked, setPicked] = useState<string | undefined>(undefined);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [modalInitial, setModalInitial] = useState<ViewEditorInitial | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Reset the explicit pick when switching concepts so the new concept's
+  // default view is honoured.
+  useEffect(() => {
+    setPicked(undefined);
+  }, [concept?.name]);
+
+  // The active view follows the concept's default until the user explicitly
+  // picks one; a stale pick (e.g. after a delete) also falls back to default.
+  const activeKey =
+    picked && entries.some((e) => e.key === picked) ? picked : defaultKey;
+
+  const selected: ViewEntry | undefined = useMemo(
+    () => entries.find((e) => e.key === activeKey) ?? entries[0],
+    [entries, activeKey],
+  );
+
+  const openCreate = () => {
+    setModalMode('create');
+    setModalInitial(newViewInitial(concept!.name, selected?.spec));
+    setModalOpen(true);
+  };
+
+  const openEdit = () => {
+    if (!selected?.saved) return;
+    setModalMode('edit');
+    setModalInitial({
+      title: selected.saved.title,
+      spec: selected.saved.spec,
+      isDefault: selected.saved.isDefault,
+      editingId: selected.saved.id,
+    });
+    setModalOpen(true);
+  };
+
+  const handleSetDefault = async () => {
+    if (!selected?.saved) return;
+    setBusyId(selected.saved.id);
+    try {
+      await bffClient.updateView(selected.saved.id, { isDefault: true });
+      message.success('Default view updated');
+      refetch();
+    } catch (err) {
+      message.error((err as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selected?.saved) return;
+    const id = selected.saved.id;
+    setBusyId(id);
+    try {
+      await bffClient.deleteView(id);
+      message.success('View deleted');
+      setPicked(undefined);
+      refetch();
+    } catch (err) {
+      message.error((err as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   if (error) {
     return (
@@ -94,7 +197,21 @@ export function ConceptPage() {
     },
   ];
 
-  const isAuto = primary?.id.startsWith('auto:');
+  const isSaved = selected?.source === 'saved';
+  const isDefaultView = Boolean(selected?.saved?.isDefault);
+
+  const segmentedOptions = entries.map((entry) => ({
+    value: entry.key,
+    label: (
+      <Space size={6}>
+        <span>{entry.title}</span>
+        <Tag color={SOURCE_META[entry.source].color} style={{ marginInlineEnd: 0 }}>
+          {SOURCE_META[entry.source].label}
+        </Tag>
+        {entry.saved?.isDefault && <StarFilled style={{ color: '#faad14' }} />}
+      </Space>
+    ),
+  }));
 
   return (
     <Flex vertical gap={20}>
@@ -104,31 +221,98 @@ export function ConceptPage() {
         <div>
           <Space align="center" size="small">
             <Typography.Title level={3} style={{ marginBottom: 4 }}>
-              {primary ? primary.title : concept.name}
+              {selected ? selected.title : concept.name}
             </Typography.Title>
-            {isAuto && <Tag color="geekblue">auto</Tag>}
+            {selected && (
+              <Tag color={SOURCE_META[selected.source].color}>
+                {SOURCE_META[selected.source].label}
+              </Tag>
+            )}
+            {isDefaultView && <Tag color="gold">default</Tag>}
           </Space>
           <div>
             <Typography.Text type="secondary">
-              {primary?.description ?? concept.description ?? 'No description provided.'}
+              {selected?.spec.description ?? concept.description ?? 'No description provided.'}
             </Typography.Text>
           </div>
         </div>
-        <Tooltip title="Creating views with the assistant arrives in an upcoming phase">
-          <Button type="primary" icon={<PlusOutlined />} disabled>
-            New view
-          </Button>
-        </Tooltip>
+
+        <Space wrap>
+          {isSaved && (
+            <>
+              <Tooltip title={isDefaultView ? 'Already the default' : 'Make this the default view'}>
+                <Button
+                  icon={isDefaultView ? <StarFilled /> : <StarOutlined />}
+                  onClick={handleSetDefault}
+                  disabled={isDefaultView || busyId === selected?.saved?.id}
+                >
+                  Set default
+                </Button>
+              </Tooltip>
+              <Button icon={<EditOutlined />} onClick={openEdit}>
+                Edit
+              </Button>
+              <Popconfirm
+                title="Delete this view?"
+                description="This removes the saved view for everyone."
+                okText="Delete"
+                okButtonProps={{ danger: true }}
+                onConfirm={handleDelete}
+              >
+                <Button danger icon={<DeleteOutlined />} loading={busyId === selected?.saved?.id}>
+                  Delete
+                </Button>
+              </Popconfirm>
+            </>
+          )}
+          <Tooltip
+            title={
+              bffAvailable
+                ? 'Create a new view (prefilled from the current one)'
+                : 'Fluid BFF unavailable — start the BFF to save views'
+            }
+          >
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreate}
+              disabled={!bffAvailable}
+            >
+              {isSaved ? 'New view' : 'Save a copy'}
+            </Button>
+          </Tooltip>
+        </Space>
       </Flex>
 
-      {primary ? (
-        <ViewRenderer spec={primary} />
+      {entries.length > 1 && (
+        <Segmented
+          options={segmentedOptions}
+          value={selected?.key}
+          onChange={(val) => setPicked(val as string)}
+        />
+      )}
+
+      {!bffAvailable && (
+        <Alert
+          type="warning"
+          showIcon
+          message="Fluid BFF unavailable"
+          description="Showing curated and auto-generated views only. Start the BFF to load and save persisted views."
+        />
+      )}
+
+      {viewsLoading && entries.length === 0 ? (
+        <Card>
+          <Skeleton active paragraph={{ rows: 4 }} />
+        </Card>
+      ) : selected ? (
+        <ViewRenderer key={selected.key} spec={selected.spec} />
       ) : (
         <Alert
           type="info"
           showIcon
           message="No view available for this concept"
-          description="This concept has no root list query to build a default dashboard from."
+          description="This concept has no root list query to build a default dashboard from. Use “Save a copy” once the BFF is running to craft one."
         />
       )}
 
@@ -173,6 +357,20 @@ export function ConceptPage() {
           },
         ]}
       />
+
+      {modalInitial && (
+        <ViewEditorModal
+          open={modalOpen}
+          mode={modalMode}
+          concept={concept.name}
+          initial={modalInitial}
+          onClose={() => setModalOpen(false)}
+          onSaved={(view) => {
+            refetch();
+            setPicked(view.id);
+          }}
+        />
+      )}
     </Flex>
   );
 }
