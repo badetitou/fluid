@@ -22,6 +22,59 @@ export interface UpdateViewPatch {
   isDefault?: boolean;
 }
 
+export type LlmProvider = 'openai' | 'ollama' | 'mock';
+
+export interface LlmConfigOverrides {
+  provider?: LlmProvider;
+  model?: string;
+  baseUrl?: string;
+  apiKey?: string;
+}
+
+export interface LlmCapabilities {
+  defaultProvider: LlmProvider;
+  providers: {
+    openai: { configured: boolean; model: string; baseUrl: string };
+    ollama: { model: string; baseUrl: string };
+    mock: { available: boolean };
+  };
+}
+
+export interface ConceptSchemaPayload {
+  name: string;
+  description?: string | null;
+  listQuery?: string | null;
+  byIdQuery?: string | null;
+  fields: {
+    name: string;
+    typeName: string;
+    typeKind: string;
+    isList?: boolean;
+    isScalar?: boolean;
+    description?: string | null;
+  }[];
+  related?: { name: string; fields?: string[] }[];
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface GenerateViewPayload {
+  concept: string;
+  schema: ConceptSchemaPayload;
+  prompt: string;
+  history?: ChatMessage[];
+  config?: LlmConfigOverrides;
+}
+
+export interface GenerateViewResponse {
+  spec: ViewSpec;
+  provider: LlmProvider;
+  model: string;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'content-type': 'application/json' },
@@ -65,5 +118,11 @@ export const bffClient = {
     request<Record<string, unknown>>('/api/prefs', {
       method: 'PUT',
       body: JSON.stringify(prefs),
+    }),
+  getLlmConfig: () => request<LlmCapabilities>('/api/llm/config'),
+  generateView: (payload: GenerateViewPayload) =>
+    request<GenerateViewResponse>('/api/llm/generate-view', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     }),
 };

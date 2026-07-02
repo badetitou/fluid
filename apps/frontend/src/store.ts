@@ -37,3 +37,30 @@ export const usePreferences = create<PreferencesState>()(
     { name: 'fluid-preferences' },
   ),
 );
+
+export type LlmProvider = 'openai' | 'ollama' | 'mock';
+
+interface LlmSettingsState {
+  provider: LlmProvider;
+  model: string;
+  apiKey: string;
+  baseUrl: string;
+  update: (
+    patch: Partial<Pick<LlmSettingsState, 'provider' | 'model' | 'apiKey' | 'baseUrl'>>,
+  ) => void;
+}
+
+// LLM connection settings live only in the browser (localStorage) and are sent
+// to the BFF per request — the API key is never persisted server-side.
+export const useLlmSettings = create<LlmSettingsState>()(
+  persist(
+    (set) => ({
+      provider: 'mock',
+      model: '',
+      apiKey: '',
+      baseUrl: '',
+      update: (patch) => set(patch),
+    }),
+    { name: 'fluid-llm-settings' },
+  ),
+);

@@ -91,7 +91,7 @@ export type Aggregation = z.infer<typeof aggregationSchema>;
 export const columnSchema = z.object({
   /** Dot path into each row, e.g. "iban" or "customer.fullName". */
   key: z.string().min(1),
-  title: z.string().min(1),
+  title: z.string().min(1).optional(),
   format: formatKindSchema.optional(),
   /** Currency code for `format: "currency"` (defaults to EUR). */
   currency: z.string().optional(),
@@ -234,4 +234,37 @@ export function parseViewSpec(input: unknown): ViewSpec {
 /** Safe variant: returns a zod SafeParseReturnType. */
 export function safeParseViewSpec(input: unknown) {
   return viewSpecSchema.safeParse(input);
+}
+
+// -----------------------------------------------------------------------------
+// Draft spec — the LLM generation target
+// -----------------------------------------------------------------------------
+// When an assistant generates a view it only produces the *authored* part:
+// the title/description, the named queries and the widgets. The server-managed
+// fields (version, stable id, bound concept) are filled in afterwards by
+// `finalizeViewSpec`, so the model never has to invent them.
+
+export const viewSpecDraftSchema = viewSpecSchema.omit({
+  version: true,
+  id: true,
+  concept: true,
+});
+export type ViewSpecDraft = z.infer<typeof viewSpecDraftSchema>;
+
+/** Parse an unknown value as a draft view spec (returns a SafeParseReturnType). */
+export function safeParseViewSpecDraft(input: unknown) {
+  return viewSpecDraftSchema.safeParse(input);
+}
+
+/** Turn a validated draft into a full, renderable/persistable ViewSpec. */
+export function finalizeViewSpec(
+  draft: ViewSpecDraft,
+  meta: { concept: string; id: string },
+): ViewSpec {
+  return {
+    version: VIEW_SPEC_VERSION,
+    id: meta.id,
+    concept: meta.concept,
+    ...draft,
+  };
 }

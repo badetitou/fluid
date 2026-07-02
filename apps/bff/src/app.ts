@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { viewRoutes } from './routes/views';
 import { prefRoutes } from './routes/prefs';
+import { llmRoutes } from './routes/llm';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -12,6 +13,7 @@ export function buildApp() {
 
   app.register(viewRoutes);
   app.register(prefRoutes);
+  app.register(llmRoutes);
 
   return app;
 }

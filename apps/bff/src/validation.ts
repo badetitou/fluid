@@ -20,3 +20,48 @@ export const updateViewBody = z
     message: 'Provide at least one of: spec, title, isDefault.',
   });
 export type UpdateViewBody = z.infer<typeof updateViewBody>;
+
+// -----------------------------------------------------------------------------
+// LLM view generation request
+// -----------------------------------------------------------------------------
+
+const chatMessage = z.object({
+  role: z.enum(['system', 'user', 'assistant']),
+  content: z.string(),
+});
+
+const conceptSchemaInfo = z.object({
+  name: z.string().min(1),
+  description: z.string().nullish(),
+  listQuery: z.string().nullish(),
+  byIdQuery: z.string().nullish(),
+  fields: z.array(
+    z.object({
+      name: z.string(),
+      typeName: z.string(),
+      typeKind: z.string(),
+      isList: z.boolean().optional(),
+      isScalar: z.boolean().optional(),
+      description: z.string().nullish(),
+    }),
+  ),
+  related: z
+    .array(z.object({ name: z.string(), fields: z.array(z.string()).optional() }))
+    .optional(),
+});
+
+export const generateViewBody = z.object({
+  concept: z.string().min(1),
+  schema: conceptSchemaInfo,
+  prompt: z.string().min(1),
+  history: z.array(chatMessage).optional(),
+  config: z
+    .object({
+      provider: z.enum(['openai', 'ollama', 'mock']).optional(),
+      model: z.string().optional(),
+      baseUrl: z.string().optional(),
+      apiKey: z.string().optional(),
+    })
+    .optional(),
+});
+export type GenerateViewBody = z.infer<typeof generateViewBody>;

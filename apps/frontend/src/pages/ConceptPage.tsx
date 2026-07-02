@@ -22,6 +22,8 @@ import {
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
+  RobotOutlined,
+  SettingOutlined,
   StarFilled,
   StarOutlined,
 } from '@ant-design/icons';
@@ -31,6 +33,9 @@ import { useViews, type ViewEntry, type ViewSource } from '../hooks/useViews';
 import type { ConceptField } from '../graphql/introspection';
 import { ViewRenderer } from '../views/ViewRenderer';
 import { ViewEditorModal, type ViewEditorInitial } from '../components/ViewEditorModal';
+import { ViewAssistantModal } from '../components/ViewAssistantModal';
+import { LlmSettingsModal } from '../components/LlmSettingsModal';
+import { buildConceptSchemaPayload } from '../llm/conceptSchema';
 import { bffClient } from '../bff/client';
 
 const SOURCE_META: Record<ViewSource, { label: string; color: string }> = {
@@ -66,7 +71,14 @@ export function ConceptPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [modalInitial, setModalInitial] = useState<ViewEditorInitial | null>(null);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  const schemaPayload = useMemo(
+    () => (concept ? buildConceptSchemaPayload(concept, conceptByName) : null),
+    [concept, conceptByName],
+  );
 
   // Reset the explicit pick when switching concepts so the new concept's
   // default view is honoured.
@@ -99,6 +111,14 @@ export function ConceptPage() {
       isDefault: selected.saved.isDefault,
       editingId: selected.saved.id,
     });
+    setModalOpen(true);
+  };
+
+  // Hand a generated spec off to the JSON editor for fine-tuning before saving.
+  const openJsonWithSpec = (spec: ViewSpec) => {
+    setAssistantOpen(false);
+    setModalMode('create');
+    setModalInitial({ title: spec.title, spec, isDefault: false });
     setModalOpen(true);
   };
 
@@ -268,18 +288,32 @@ export function ConceptPage() {
           <Tooltip
             title={
               bffAvailable
-                ? 'Create a new view (prefilled from the current one)'
-                : 'Fluid BFF unavailable — start the BFF to save views'
+                ? 'Generate a view from a prompt (tables, charts, stats)'
+                : 'Fluid BFF unavailable — start the BFF to use the assistant'
             }
           >
             <Button
               type="primary"
-              icon={<PlusOutlined />}
-              onClick={openCreate}
+              icon={<RobotOutlined />}
+              onClick={() => setAssistantOpen(true)}
               disabled={!bffAvailable}
             >
-              {isSaved ? 'New view' : 'Save a copy'}
+              Assistant
             </Button>
+          </Tooltip>
+          <Tooltip
+            title={
+              bffAvailable
+                ? 'Create a view by editing its JSON (prefilled from the current one)'
+                : 'Fluid BFF unavailable — start the BFF to save views'
+            }
+          >
+            <Button icon={<PlusOutlined />} onClick={openCreate} disabled={!bffAvailable}>
+              {isSaved ? 'New view (JSON)' : 'Save a copy'}
+            </Button>
+          </Tooltip>
+          <Tooltip title="Assistant (LLM) settings">
+            <Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)} />
           </Tooltip>
         </Space>
       </Flex>
@@ -371,6 +405,23 @@ export function ConceptPage() {
           }}
         />
       )}
+
+      {schemaPayload && (
+        <ViewAssistantModal
+          open={assistantOpen}
+          concept={concept.name}
+          schema={schemaPayload}
+          onClose={() => setAssistantOpen(false)}
+          onSaved={(view) => {
+            refetch();
+            setPicked(view.id);
+          }}
+          onOpenJson={openJsonWithSpec}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+      )}
+
+      <LlmSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </Flex>
   );
 }
