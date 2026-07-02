@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Card, Flex, Form, Input, Typography, theme } from 'antd';
 import { ApiOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { useConnection } from '../store';
+import { DEFAULT_GRAPHQL_URL } from '../runtime-config';
 
-const DEFAULT_URL = import.meta.env.VITE_DEFAULT_GRAPHQL_URL ?? 'http://localhost:4000/graphql';
+const DEFAULT_URL = DEFAULT_GRAPHQL_URL;
 
 export function ConnectPage() {
   const navigate = useNavigate();

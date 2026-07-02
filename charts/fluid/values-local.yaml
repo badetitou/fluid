@@ -1,0 +1,37 @@
+# Local cluster values (kind / minikube) using locally-built images.
+#
+# 1. Build the images (from the repo root):
+#      docker build -f apps/backend-demo/Dockerfile -t fluid-backend-demo:dev .
+#      docker build -f apps/bff/Dockerfile           -t fluid-bff:dev .
+#      docker build -f apps/frontend/Dockerfile      -t fluid-frontend:dev .
+# 2. Load them into the cluster:
+#      kind:     kind load docker-image fluid-backend-demo:dev fluid-bff:dev fluid-frontend:dev
+#      minikube: minikube image load fluid-backend-demo:dev && ... (repeat)
+# 3. Install:
+#      helm install fluid charts/fluid -f charts/fluid/values-local.yaml
+# 4. Map the host (kind/minikube ingress):
+#      echo "127.0.0.1 fluid.local" | sudo tee -a /etc/hosts   # kind + extraPortMappings
+#      # minikube: use `minikube tunnel` or the minikube ip
+
+image:
+  registry: ""
+  tag: "dev"
+  # Images are loaded into the node, so never try to pull them from a registry.
+  pullPolicy: IfNotPresent
+
+postgres:
+  enabled: true
+  persistence:
+    # Keep it simple on ephemeral local clusters.
+    enabled: false
+
+backendDemo:
+  seed:
+    enabled: true
+
+ingress:
+  enabled: true
+  className: nginx
+  host: fluid.local
+  tls:
+    enabled: false

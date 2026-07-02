@@ -1,10 +1,11 @@
 import type { ViewSpec } from '@fluid/shared';
+import { BFF_URL } from '../runtime-config';
 
 // Thin fetch wrapper around the Fluid BFF REST API (view persistence + prefs).
 // Every call is resilient at the call site: the UI treats a rejected promise as
 // "BFF unavailable" and falls back to curated/auto views + localStorage prefs.
 
-const BASE = (import.meta.env.VITE_BFF_URL ?? 'http://localhost:4001').replace(/\/$/, '');
+const BASE = BFF_URL;
 
 export interface SavedView {
   id: string;

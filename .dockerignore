@@ -1,0 +1,28 @@
+# Keep Docker build contexts small and free of host-only / generated artifacts.
+**/node_modules
+**/dist
+**/build
+**/*.tsbuildinfo
+
+# env & secrets (images get config via env vars at runtime, never baked in)
+**/.env
+**/.env.*
+!**/.env.example
+
+# generated Prisma clients & pothos types (regenerated during the build)
+**/src/generated
+**/prisma/generated
+
+# local database data
+**/.pgdata
+
+# vcs / editor / OS noise
+.git
+.github
+**/.DS_Store
+**/*.log
+
+# docs & charts are not needed inside application images
+charts
+*.md
+!README.md

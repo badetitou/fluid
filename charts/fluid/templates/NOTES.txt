@@ -1,0 +1,34 @@
+✅ fluid has been deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Components:
+  • frontend      {{ include "fluid.frontend.fullname" . }} (nginx SPA + reverse proxy)
+  {{- if .Values.bff.enabled }}
+  • bff           {{ include "fluid.bff.fullname" . }} (views/prefs + LLM proxy)
+  {{- end }}
+  {{- if .Values.backendDemo.enabled }}
+  • backend-demo  {{ include "fluid.backendDemo.fullname" . }} (demo bank GraphQL)
+  {{- end }}
+  {{- if .Values.postgres.enabled }}
+  • postgres      {{ include "fluid.postgres.fullname" . }}
+  {{- end }}
+
+How to reach the app:
+{{- if .Values.ingress.enabled }}
+  http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.host }}/
+
+  Make sure {{ .Values.ingress.host }} resolves to your ingress controller
+  (for kind/minikube add it to /etc/hosts).
+{{- else }}
+  Ingress is disabled. Port-forward the frontend:
+
+    kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "fluid.frontend.fullname" . }} 8080:{{ .Values.frontend.service.port }}
+
+  then open http://localhost:8080/
+{{- end }}
+
+The connect screen is pre-filled with "{{ .Values.frontend.runtimeConfig.defaultGraphqlUrl }}",
+which nginx proxies to the demo bank. Click Connect and start exploring.
+{{- if .Values.backendDemo.seed.enabled }}
+
+A one-off Job seeds the demo bank with faker data (post-install hook).
+{{- end }}

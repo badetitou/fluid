@@ -1,0 +1,21 @@
+apiVersion: v2
+name: fluid
+description: >-
+  Fluid — a Smalltalk-inspector-inspired web UI to explore and shape GraphQL
+  data through reusable, LLM-generated dashboard views. Deploys the frontend,
+  the BFF, the demo bank GraphQL API and (optionally) a PostgreSQL instance.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.23.0-0"
+keywords:
+  - graphql
+  - dashboard
+  - react
+  - ant-design
+  - smalltalk
+home: https://github.com/OWNER/fluid
+sources:
+  - https://github.com/OWNER/fluid
+maintainers:
+  - name: fluid

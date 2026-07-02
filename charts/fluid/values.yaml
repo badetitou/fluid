@@ -1,0 +1,150 @@
+# Default values for the fluid chart.
+# This is a YAML-formatted file. Override with -f values-local.yaml / values-cloud.yaml.
+
+# -- Registry/tag shared by all images unless a component overrides them.
+# In CI these are published as ghcr.io/<owner>/fluid-<component>.
+image:
+  # e.g. "ghcr.io/OWNER" — leave empty to use locally-built images (kind/minikube).
+  registry: ""
+  # Global tag; defaults to the chart appVersion when empty.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# -- Optional imagePullSecrets for private registries (list of {name: ...}).
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# --- Bundled PostgreSQL (shared by the demo bank and the BFF) ---------------
+postgres:
+  enabled: true
+  image:
+    # Third-party image — NOT prefixed with the global image.registry.
+    registry: ""
+    repository: postgres
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+  auth:
+    username: fluid
+    password: fluid
+    database: fluid
+  service:
+    port: 5432
+  persistence:
+    enabled: true
+    size: 1Gi
+    # storageClass: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+# --- External database (used when postgres.enabled = false) -----------------
+externalDatabase:
+  host: ""
+  port: 5432
+  username: fluid
+  password: ""
+  database: fluid
+
+# --- Demo bank GraphQL API --------------------------------------------------
+backendDemo:
+  enabled: true
+  image:
+    repository: fluid-backend-demo
+    tag: ""
+  replicas: 1
+  # Prisma schema used inside the shared database.
+  dbSchema: public
+  service:
+    port: 4000
+  # Seed the bank with faker data via a post-install Job.
+  seed:
+    enabled: true
+    # Also run the (destructive) seed on `helm upgrade`. Off by default so
+    # upgrades keep existing data.
+    onUpgrade: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+# --- Fluid BFF (views/preferences persistence + LLM proxy) ------------------
+bff:
+  enabled: true
+  image:
+    repository: fluid-bff
+    tag: ""
+  replicas: 1
+  dbSchema: fluid_app
+  service:
+    port: 4001
+  # LLM configuration. The frontend also sends per-request overrides, so this
+  # is only needed if you want a server-side default provider/key.
+  llm:
+    # one of: "", "openai", "ollama", "mock" ("" => openai if a key is set, else mock)
+    provider: ""
+    openai:
+      # Provide the key to enable server-side OpenAI; stored in a Secret.
+      apiKey: ""
+      model: ""
+      baseUrl: ""
+    ollama:
+      model: ""
+      baseUrl: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+# --- Frontend (nginx: static SPA + reverse proxy to BFF/backend) ------------
+frontend:
+  enabled: true
+  image:
+    repository: fluid-frontend
+    tag: ""
+  replicas: 1
+  service:
+    # External service port; container listens on 8080.
+    port: 80
+  # Browser-facing runtime config written to /config.js at container start.
+  # Empty bffUrl => same origin (nginx proxies /api). "/graphql" => same origin.
+  runtimeConfig:
+    bffUrl: ""
+    defaultGraphqlUrl: "/graphql"
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: "500m"
+      memory: 256Mi
+
+# --- Ingress (single host in front of the frontend) -------------------------
+ingress:
+  enabled: false
+  className: nginx
+  host: fluid.local
+  # Extra annotations, e.g. cert-manager or nginx tuning.
+  annotations: {}
+  tls:
+    enabled: false
+    secretName: fluid-tls
+    # When using cert-manager, set annotations.cert-manager.io/cluster-issuer.
+
+# --- Pod-level defaults -----------------------------------------------------
+podSecurityContext: {}
+securityContext: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

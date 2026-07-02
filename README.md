@@ -30,9 +30,10 @@ Shared types (view spec, zod schemas) live in `packages/shared`.
 
 ## Requirements
 
-- Node.js >= 20
-- pnpm (`npm install -g pnpm`)
+- Node.js >= 22 (required by pnpm 11)
+- pnpm (`npm install -g pnpm`, or via Corepack)
 - Docker (e.g. via [Colima](https://github.com/abiosoft/colima) on macOS) for local PostgreSQL
+- For Kubernetes: `helm`, `kubectl`, and a cluster (e.g. `kind` / `minikube`)
 
 ## Getting started
 
@@ -56,19 +57,63 @@ pre-fills this URL on its connection screen.
 
 ## Deployment
 
-A single parameterizable **Helm chart** deploys the frontend, BFF, backend-demo, and PostgreSQL, with
-example values for local clusters (kind/minikube) and cloud. Images are built and pushed to GHCR by
-GitHub Actions. *(Added in a later phase.)*
+Everything is containerized and deployed by a single parameterizable **Helm chart**
+(`charts/fluid`) that runs the frontend, the BFF, the demo bank, and PostgreSQL.
+
+### Images
+
+Three images are built from the repo root (multi-stage; the frontend is served by nginx,
+which also reverse-proxies `/api` → BFF and `/graphql` → backend-demo so the whole app
+lives on one origin):
+
+```bash
+docker build -f apps/backend-demo/Dockerfile -t fluid-backend-demo:dev .
+docker build -f apps/bff/Dockerfile           -t fluid-bff:dev .
+docker build -f apps/frontend/Dockerfile      -t fluid-frontend:dev .
+```
+
+GitHub Actions publishes them to GHCR as `ghcr.io/<owner>/fluid-{frontend,bff,backend-demo}`
+on pushes to `main` and version tags (`v*`); the `CI` workflow runs typecheck, frontend
+build, `helm lint`, and manifest validation.
+
+### Local cluster (kind / minikube)
+
+```bash
+# build (above), then load the images into the cluster
+kind load docker-image fluid-backend-demo:dev fluid-bff:dev fluid-frontend:dev
+
+helm install fluid charts/fluid -f charts/fluid/values-local.yaml \
+  --set ingress.enabled=false --namespace fluid --create-namespace
+
+kubectl port-forward -n fluid svc/fluid-frontend 8080:80
+# open http://localhost:8080/  (Connect is pre-filled with /graphql)
+```
+
+A post-install Job seeds the demo bank; init-containers run `prisma migrate deploy`
+before each service starts.
+
+### Cloud
+
+`charts/fluid/values-cloud.yaml` pulls images from GHCR and enables an ingress with TLS via
+cert-manager. Point it at your registry and host:
+
+```bash
+helm install fluid charts/fluid -f charts/fluid/values-cloud.yaml \
+  --set image.registry=ghcr.io/<owner> --set ingress.host=fluid.example.com
+```
+
+The browser-facing URLs are configured at container start (`FLUID_BFF_URL`,
+`FLUID_DEFAULT_GRAPHQL_URL` → `/config.js`), so one frontend image works for any deployment.
 
 ## Status
 
-Early work in progress. Build order:
+MVP complete. Build order:
 
-1. ✅/🚧 Monorepo scaffold + demo bank backend + concept introspection & explorer
-2. Declarative view engine + widget catalog
-3. Multi-view selector + persistence (BFF)
-4. LLM view generation (OpenAI + Ollama)
-5. Dockerfiles + Helm chart + CI (GHCR)
+1. ✅ Monorepo scaffold + demo bank backend + concept introspection & explorer
+2. ✅ Declarative view engine + widget catalog
+3. ✅ Multi-view selector + persistence (BFF)
+4. ✅ LLM view generation (OpenAI + Ollama + offline mock)
+5. ✅ Dockerfiles + Helm chart + CI (GHCR)
 
 ## License
 

@@ -1,0 +1,127 @@
+{{- if .Values.bff.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fluid.bff.fullname" . }}
+  labels:
+    {{- include "fluid.labels" . | nindent 4 }}
+    app.kubernetes.io/component: bff
+spec:
+  replicas: {{ .Values.bff.replicas }}
+  selector:
+    matchLabels:
+      {{- include "fluid.selectorLabels" (list . "bff") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "fluid.labels" . | nindent 8 }}
+        app.kubernetes.io/component: bff
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: migrate
+          image: {{ include "fluid.image" (list . .Values.bff.image) | quote }}
+          imagePullPolicy: {{ .Values.bff.image.pullPolicy | default .Values.image.pullPolicy }}
+          command: ["sh", "-c", "until node_modules/.bin/prisma migrate deploy; do echo 'waiting for database...'; sleep 3; done"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fluid.db.secretName" . }}
+                  key: app-url
+      containers:
+        - name: bff
+          image: {{ include "fluid.image" (list . .Values.bff.image) | quote }}
+          imagePullPolicy: {{ .Values.bff.image.pullPolicy | default .Values.image.pullPolicy }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 4001
+          env:
+            - name: PORT
+              value: "4001"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fluid.db.secretName" . }}
+                  key: app-url
+            {{- if .Values.bff.llm.provider }}
+            - name: LLM_PROVIDER
+              value: {{ .Values.bff.llm.provider | quote }}
+            {{- end }}
+            {{- if .Values.bff.llm.openai.apiKey }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fluid.llm.secretName" . }}
+                  key: openai-api-key
+            {{- end }}
+            {{- if .Values.bff.llm.openai.model }}
+            - name: OPENAI_MODEL
+              value: {{ .Values.bff.llm.openai.model | quote }}
+            {{- end }}
+            {{- if .Values.bff.llm.openai.baseUrl }}
+            - name: OPENAI_BASE_URL
+              value: {{ .Values.bff.llm.openai.baseUrl | quote }}
+            {{- end }}
+            {{- if .Values.bff.llm.ollama.model }}
+            - name: OLLAMA_MODEL
+              value: {{ .Values.bff.llm.ollama.model | quote }}
+            {{- end }}
+            {{- if .Values.bff.llm.ollama.baseUrl }}
+            - name: OLLAMA_BASE_URL
+              value: {{ .Values.bff.llm.ollama.baseUrl | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.bff.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fluid.bff.fullname" . }}
+  labels:
+    {{- include "fluid.labels" . | nindent 4 }}
+    app.kubernetes.io/component: bff
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.bff.service.port }}
+      targetPort: http
+  selector:
+    {{- include "fluid.selectorLabels" (list . "bff") | nindent 4 }}
+{{- end }}

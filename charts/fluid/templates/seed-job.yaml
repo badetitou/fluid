@@ -1,0 +1,44 @@
+{{- if and .Values.backendDemo.enabled .Values.backendDemo.seed.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "fluid.backendDemo.fullname" . }}-seed
+  labels:
+    {{- include "fluid.labels" . | nindent 4 }}
+    app.kubernetes.io/component: seed
+  annotations:
+    "helm.sh/hook": {{ if .Values.backendDemo.seed.onUpgrade }}post-install,post-upgrade{{ else }}post-install{{ end }}
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  # Clean up finished seed Jobs automatically (requires TTL controller).
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        {{- include "fluid.labels" . | nindent 8 }}
+        app.kubernetes.io/component: seed
+    spec:
+      restartPolicy: Never
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: seed
+          image: {{ include "fluid.image" (list . .Values.backendDemo.image) | quote }}
+          imagePullPolicy: {{ .Values.backendDemo.image.pullPolicy | default .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - "until node_modules/.bin/prisma migrate deploy; do echo 'waiting for database...'; sleep 3; done; node node_modules/tsx/dist/cli.mjs prisma/seed.ts"
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fluid.db.secretName" . }}
+                  key: bank-url
+          resources:
+            {{- toYaml .Values.backendDemo.resources | nindent 12 }}
+{{- end }}

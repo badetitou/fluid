@@ -1,0 +1,58 @@
+# Cloud values: images pulled from GHCR, ingress + TLS via cert-manager.
+#
+#   helm install fluid charts/fluid -f charts/fluid/values-cloud.yaml \
+#     --set image.registry=ghcr.io/<your-org> \
+#     --set ingress.host=fluid.example.com
+#
+# Replace OWNER below with your GitHub organisation / username. Images are
+# published by CI as ghcr.io/<owner>/fluid-<component>:<tag>.
+
+image:
+  registry: ghcr.io/OWNER
+  # Empty => chart appVersion. Pin a released version or an immutable sha tag.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# Uncomment if the GHCR packages are private:
+# imagePullSecrets:
+#   - name: ghcr-pull-secret
+
+postgres:
+  # For production prefer a managed database: set enabled=false and fill in
+  # externalDatabase below.
+  enabled: true
+  persistence:
+    enabled: true
+    size: 5Gi
+    # storageClass: gp3
+
+# externalDatabase:
+#   host: my-postgres.internal
+#   port: 5432
+#   username: fluid
+#   password: "change-me"
+#   database: fluid
+
+backendDemo:
+  seed:
+    enabled: true
+    onUpgrade: false
+
+bff:
+  llm:
+    # Set to "openai" to enable server-side generation with the key below.
+    provider: ""
+    openai:
+      apiKey: ""
+      model: ""
+      baseUrl: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  host: fluid.example.com
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    enabled: true
+    secretName: fluid-tls
