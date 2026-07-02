@@ -77,6 +77,40 @@ export async function viewRoutes(app: FastifyInstance) {
     return updated;
   });
 
+  // Update a single widget in a view
+  app.patch('/api/views/:id/widgets/:widgetId', async (req, reply) => {
+    const { id, widgetId } = req.params as { id: string; widgetId: string };
+    const { widget } = req.body as { widget: any };
+
+    if (!widget) {
+      return reply.code(400).send({ error: 'Missing widget in request body' });
+    }
+
+    const existing = await prisma.view.findUnique({ where: { id } });
+    if (!existing) return reply.code(404).send({ error: 'View not found' });
+
+    const spec = existing.spec as any;
+    const widgetIndex = spec.widgets.findIndex((w: any) => w.id === widgetId);
+    if (widgetIndex === -1) {
+      return reply.code(404).send({ error: 'Widget not found in view' });
+    }
+
+    // Replace the widget, preserving the ID
+    spec.widgets[widgetIndex] = {
+      ...widget,
+      id: widgetId,
+    };
+
+    const updated = await prisma.view.update({
+      where: { id },
+      data: {
+        spec: spec as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    return updated;
+  });
+
   app.delete('/api/views/:id', async (req, reply) => {
     const { id } = req.params as { id: string };
     try {

@@ -5,6 +5,8 @@ import {
   ThunderboltOutlined,
   TableOutlined,
   SettingOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from '@ant-design/icons';
 import { useConnection, usePreferences, type NavbarSide } from '../store';
 import { useConcepts } from '../hooks/useConcepts';
@@ -19,6 +21,8 @@ export function AppLayout() {
 
   const navbarSide = usePreferences((s) => s.navbarSide);
   const setNavbarSide = usePreferences((s) => s.setNavbarSide);
+  const collapsed = usePreferences((s) => s.navbarCollapsed);
+  const setCollapsed = usePreferences((s) => s.setNavbarCollapsed);
   const graphqlUrl = useConnection((s) => s.graphqlUrl);
 
   const { concepts } = useConcepts();
@@ -59,31 +63,52 @@ export function AppLayout() {
       ...concepts.map((concept) => ({
         key: `concept:${concept.name}`,
         icon: <TableOutlined />,
-        label: <Link to={`/concept/${concept.name}`}>{concept.name}</Link>,
+        label: <Link to={`/miller/${concept.name}`}>{concept.name}</Link>,
       })),
     ],
     [concepts],
   );
 
   const sider = (
-    <Sider width={240} theme="dark" breakpoint="lg" collapsedWidth={0}>
+    <Sider
+      width={240}
+      collapsible
+      collapsed={collapsed}
+      onCollapse={setCollapsed}
+      trigger={null}
+      collapsedWidth={64}
+      theme="dark"
+    >
       <div
         style={{
           height: 56,
           display: 'flex',
           alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'flex-start',
           gap: 10,
-          padding: '0 20px',
+          padding: collapsed ? 0 : '0 20px',
           color: '#fff',
+          overflow: 'hidden',
         }}
       >
         <ThunderboltOutlined style={{ fontSize: 20 }} />
-        <Typography.Text strong style={{ color: '#fff', fontSize: 18 }}>
-          fluid
-        </Typography.Text>
+        {!collapsed && (
+          <Typography.Text strong style={{ color: '#fff', fontSize: 18 }}>
+            fluid
+          </Typography.Text>
+        )}
       </div>
       <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems} />
     </Sider>
+  );
+
+  const toggleButton = (
+    <Button
+      type="text"
+      aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+      icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+      onClick={() => setCollapsed(!collapsed)}
+    />
   );
 
   return (
@@ -95,16 +120,23 @@ export function AppLayout() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: 12,
             padding: '0 20px',
             borderBottom: `1px solid ${token.colorBorderSecondary}`,
           }}
         >
-          <Typography.Text type="secondary" ellipsis style={{ maxWidth: '50%' }}>
-            {graphqlUrl}
-          </Typography.Text>
-          <Link to="/settings">
-            <Button icon={<SettingOutlined />} />
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+            {navbarSide === 'left' && toggleButton}
+            <Typography.Text type="secondary" ellipsis style={{ flex: 1, minWidth: 0 }}>
+              {graphqlUrl}
+            </Typography.Text>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Link to="/settings">
+              <Button icon={<SettingOutlined />} />
+            </Link>
+            {navbarSide === 'right' && toggleButton}
+          </div>
         </Header>
         <Content style={{ padding: 24, background: token.colorBgLayout }}>
           <Outlet />

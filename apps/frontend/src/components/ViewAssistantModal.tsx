@@ -15,7 +15,7 @@ import {
   Typography,
 } from 'antd';
 import { RobotOutlined, SettingOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import type { ViewSpec } from '@fluid/shared';
+import type { ViewSpec, ViewScope } from '@fluid/shared';
 import { ViewRenderer } from '../views/ViewRenderer';
 import { useLlmSettings } from '../store';
 import {
@@ -37,6 +37,8 @@ interface ViewAssistantModalProps {
   editingViewId?: string;
   initialSpec?: ViewSpec;
   editingIsDefault?: boolean;
+  /** Scope to associate a newly created view with (list vs detail column). */
+  scope?: ViewScope;
 }
 
 export function ViewAssistantModal({
@@ -50,6 +52,7 @@ export function ViewAssistantModal({
   editingViewId,
   initialSpec,
   editingIsDefault,
+  scope,
 }: ViewAssistantModalProps) {
   const { message } = AntdApp.useApp();
   const settings = useLlmSettings();
@@ -112,14 +115,17 @@ export function ViewAssistantModal({
     if (!spec) return;
     setSaving(true);
     setError(null);
+    // Associate the view with the column it was created from; keep an existing
+    // association when refining an already-scoped view.
+    const specToSave: ViewSpec = { ...spec, scope: spec.scope ?? scope };
     try {
       if (isEditing) {
-        await bffClient.updateView(editingViewId, { spec, isDefault });
+        await bffClient.updateView(editingViewId, { spec: specToSave, isDefault });
         message.success('View updated');
         const saved = await bffClient.getView(editingViewId);
         onSaved(saved);
       } else {
-        const saved = await bffClient.createView(spec, isDefault);
+        const saved = await bffClient.createView(specToSave, isDefault);
         message.success('View saved');
         onSaved(saved);
       }
@@ -162,6 +168,13 @@ export function ViewAssistantModal({
       ]}
     >
       <Space direction="vertical" size={12} style={{ width: '100%', marginTop: 8 }}>
+        <Alert
+          type="info"
+          showIcon
+          message="💡 Tip: Ask for navigation links"
+          description="Request clickable elements in your prompt like: 'Create a table with clickable IDs that navigate to details' or 'Add links to related customers'. This enables infinite navigation between objects!"
+          style={{ marginBottom: 8 }}
+        />
         <Flex align="center" justify="space-between" wrap gap={8}>
           <Typography.Text type="secondary">
             {isEditing
@@ -191,7 +204,7 @@ export function ViewAssistantModal({
             placeholder={
               spec
                 ? 'Refine, e.g. "add a pie chart of balances by currency"'
-                : 'e.g. "totals per account type, a chart of balances over time, and a table"'
+                : 'e.g. "Create a table with clickable IDs to navigate to details" or "Show accounts with links to related customers"'
             }
             autoSize={{ minRows: 2, maxRows: 5 }}
             onPressEnter={(e) => {

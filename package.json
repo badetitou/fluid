@@ -13,6 +13,7 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
+    "test": "pnpm -r --if-present test",
     "backend-demo": "pnpm --filter @fluid/backend-demo",
     "frontend": "pnpm --filter @fluid/frontend"
   },

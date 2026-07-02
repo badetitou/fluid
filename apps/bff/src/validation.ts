@@ -65,3 +65,22 @@ export const generateViewBody = z.object({
     .optional(),
 });
 export type GenerateViewBody = z.infer<typeof generateViewBody>;
+
+// Widget generation request schema
+export const generateWidgetBody = z.object({
+  concept: z.string().min(1),
+  schema: conceptSchemaInfo,
+  prompt: z.string().min(1),
+  existingWidget: z.unknown().optional(), // Will be validated as Widget if provided
+  viewQueries: z.record(z.string()).optional(),
+  history: z.array(chatMessage).optional(),
+  config: z
+    .object({
+      provider: z.enum(['openai', 'ollama', 'mock']).optional(),
+      model: z.string().optional(),
+      baseUrl: z.string().optional(),
+      apiKey: z.string().optional(),
+    })
+    .optional(),
+});
+export type GenerateWidgetBody = z.infer<typeof generateWidgetBody>;

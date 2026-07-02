@@ -25,6 +25,9 @@ interface PreferencesState {
   navbarSide: NavbarSide;
   setNavbarSide: (side: NavbarSide) => void;
   toggleNavbarSide: () => void;
+  navbarCollapsed: boolean;
+  setNavbarCollapsed: (collapsed: boolean) => void;
+  toggleNavbarCollapsed: () => void;
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
   toggleThemeMode: () => void;
@@ -37,6 +40,9 @@ export const usePreferences = create<PreferencesState>()(
       setNavbarSide: (side) => set({ navbarSide: side }),
       toggleNavbarSide: () =>
         set({ navbarSide: get().navbarSide === 'left' ? 'right' : 'left' }),
+      navbarCollapsed: false,
+      setNavbarCollapsed: (collapsed) => set({ navbarCollapsed: collapsed }),
+      toggleNavbarCollapsed: () => set({ navbarCollapsed: !get().navbarCollapsed }),
       themeMode: 'light',
       setThemeMode: (mode) => set({ themeMode: mode }),
       toggleThemeMode: () =>

@@ -28,7 +28,7 @@ function guessFormat(field: ConceptField): FormatKind | undefined {
   }
 }
 
-/** Build a reasonable default dashboard for a concept from its introspected shape. */
+/** Build a compact, navigable list for a concept from its introspected shape. */
 export function buildDefaultView(concept: Concept): ViewSpec | null {
   const listField = concept.queries.list?.field;
   if (!listField) return null;
@@ -36,37 +36,48 @@ export function buildDefaultView(concept: Concept): ViewSpec | null {
   const scalars = concept.scalarFields;
   if (scalars.length === 0) return null;
 
-  const selection = scalars.map((f) => f.name).join('\n            ');
+  const hasId = scalars.some((f) => f.name === 'id');
+  const idField = hasId ? 'id' : scalars[0].name;
+
+  // Prefer a human-friendly primary column; fall back to the first non-id scalar.
+  const LABELISH = ['name', 'title', 'label', 'fullName', 'displayName', 'email', 'reference', 'iban'];
+  const primary =
+    scalars.find((f) => LABELISH.includes(f.name)) ??
+    scalars.find((f) => f.name !== 'id') ??
+    scalars[0];
+
+  // Keep the list compact: the primary column plus up to two more scalars.
+  const extras = scalars.filter((f) => f.name !== primary.name).slice(0, 2);
+  const chosen = [primary, ...extras];
+
+  // Clicking the primary column drills into that item's detail column.
+  const canDrill = Boolean(concept.queries.byId);
+
+  const selection = Array.from(new Set([idField, ...chosen.map((f) => f.name)])).join('\n            ');
   const query = `query FluidAuto_${concept.name}($take: Int) {
           ${listField}(take: $take) {
             ${selection}
           }
         }`;
 
-  const columns: Column[] = scalars.slice(0, 8).map((field) => ({
+  const columns: Column[] = chosen.map((field, index) => ({
     key: field.name,
     title: humanize(field.name),
     format: guessFormat(field),
+    ...(index === 0 && canDrill ? { linkTo: { concept: concept.name, idField } } : {}),
   }));
 
   return {
     version: 1,
     id: `auto:${concept.name}`,
     concept: concept.name,
-    title: `${concept.name} overview`,
-    description: `Auto-generated overview of ${concept.name}.`,
+    scope: 'list',
+    title: `${concept.name} list`,
+    description: `Auto-generated list of ${concept.name}.`,
     queries: {
-      rows: { query, variables: { take: 200 } },
+      rows: { query, variables: { take: 100 } },
     },
     widgets: [
-      {
-        id: 'count',
-        type: 'statistic',
-        title: `Total ${concept.name}`,
-        span: 8,
-        data: { query: 'rows', path: listField },
-        value: { op: 'count' },
-      },
       {
         id: 'list',
         type: 'table',
@@ -74,7 +85,53 @@ export function buildDefaultView(concept: Concept): ViewSpec | null {
         span: 24,
         data: { query: 'rows', path: listField },
         columns,
-        pageSize: 10,
+        pageSize: 8,
+      },
+    ],
+  };
+}
+
+/**
+ * Build a compact detail view for a single entity, bound to the concept's by-id
+ * query. Used as the default perspective when a Miller column is drilled into a
+ * specific item (the caller injects the id into the query variables).
+ */
+export function buildDetailView(concept: Concept): ViewSpec | null {
+  const byIdField = concept.queries.byId?.field;
+  if (!byIdField) return null;
+
+  const scalars = concept.scalarFields;
+  if (scalars.length === 0) return null;
+
+  const selection = scalars.map((f) => f.name).join('\n            ');
+  const query = `query FluidAutoDetail_${concept.name}($id: ID!) {
+          ${byIdField}(id: $id) {
+            ${selection}
+          }
+        }`;
+
+  return {
+    version: 1,
+    id: `auto-detail:${concept.name}`,
+    concept: concept.name,
+    scope: 'detail',
+    title: `${concept.name} detail`,
+    description: `Auto-generated detail of a single ${concept.name}.`,
+    queries: {
+      [byIdField]: { query, variables: {} },
+    },
+    widgets: [
+      {
+        id: 'detail',
+        type: 'descriptions',
+        title: humanize(concept.name),
+        span: 24,
+        data: { query: byIdField, path: byIdField },
+        items: scalars.slice(0, 12).map((f) => ({
+          label: humanize(f.name),
+          key: f.name,
+          format: guessFormat(f),
+        })),
       },
     ],
   };

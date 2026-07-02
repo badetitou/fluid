@@ -1,9 +1,10 @@
 import { Descriptions, Empty } from 'antd';
 import type { DescriptionsProps } from 'antd';
-import { Link } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { DescriptionsWidget as DescriptionsWidgetSpec } from '@fluid/shared';
 import { getPath } from '../data';
 import { formatValue } from '../format';
+import { getNavigationId } from '../../navigation/linkExtractor';
 
 export function DescriptionsWidget({
   widget,
@@ -12,6 +13,9 @@ export function DescriptionsWidget({
   widget: DescriptionsWidgetSpec;
   object: Record<string, unknown> | null;
 }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
   if (!object) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No data" />;
 
   const items: DescriptionsProps['items'] = widget.items.map((item) => {
@@ -20,15 +24,20 @@ export function DescriptionsWidget({
 
     // If the item has a linkTo config, render as a link
     if (item.linkTo) {
-      const idValue = getPath(object, item.linkTo.idField ?? 'id');
+      const idFieldPath = item.linkTo.idField ?? 'id';
+      const idValue = getNavigationId(object, idFieldPath);
+      
       if (idValue) {
+        // Always in Miller view: append to the current path
+        const href = `${location.pathname}/${item.linkTo.concept}/${idValue}`;
+
         return {
           key: item.key,
           label: item.label,
           children: (
-            <Link to={`/concept/${item.linkTo.concept}/item/${idValue}`}>
+            <a onClick={() => navigate(href)} style={{ cursor: 'pointer' }}>
               {formatted}
-            </Link>
+            </a>
           ),
         };
       }

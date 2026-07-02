@@ -7,6 +7,8 @@ import {
   type IntrospectionSchema,
 } from '../graphql/introspection';
 
+export type { Concept };
+
 export interface UseConceptsResult {
   concepts: Concept[];
   conceptByName: Map<string, Concept>;

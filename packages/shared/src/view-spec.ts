@@ -230,12 +230,23 @@ export const WIDGET_TYPES = [
   'pie',
 ] as const;
 
+/** Whether a view targets a concept's list (many rows) or the detail of a single item. */
+export const viewScopeSchema = z.enum(['list', 'detail']);
+export type ViewScope = z.infer<typeof viewScopeSchema>;
+
 export const viewSpecSchema = z.object({
   version: z.literal(VIEW_SPEC_VERSION).default(VIEW_SPEC_VERSION),
   /** Stable identifier of the view. */
   id: z.string().min(1),
   /** Concept (GraphQL object type) this view is bound to. */
   concept: z.string().min(1),
+  /**
+   * The concrete target this view is associated with: the concept's list (many
+   * rows) or the detail of a single item. Distinguishes, e.g., "Account list"
+   * from "Account detail" so a view created in one context never leaks into the
+   * other. Optional for backward compatibility with pre-scope saved views.
+   */
+  scope: viewScopeSchema.optional(),
   title: z.string().min(1),
   description: z.string().optional(),
   /** Named GraphQL queries widgets pull their data from. */
@@ -284,5 +295,44 @@ export function finalizeViewSpec(
     id: meta.id,
     concept: meta.concept,
     ...draft,
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Widget generation (single widget modification)
+// -----------------------------------------------------------------------------
+// A "widget draft" is the LLM-generated widget without a stable id.
+// The frontend or server assigns the id based on context (new or replacing existing).
+
+// Widget-specific schemas without id field
+const tableWidgetDraftSchema = tableWidgetSchema.omit({ id: true });
+const statisticWidgetDraftSchema = statisticWidgetSchema.omit({ id: true });
+const descriptionsWidgetDraftSchema = descriptionsWidgetSchema.omit({ id: true });
+const lineWidgetDraftSchema = lineWidgetSchema.omit({ id: true });
+const barWidgetDraftSchema = barWidgetSchema.omit({ id: true });
+const areaWidgetDraftSchema = areaWidgetSchema.omit({ id: true });
+const pieWidgetDraftSchema = pieWidgetSchema.omit({ id: true });
+
+export const widgetDraftSchema = z.discriminatedUnion('type', [
+  tableWidgetDraftSchema,
+  statisticWidgetDraftSchema,
+  descriptionsWidgetDraftSchema,
+  lineWidgetDraftSchema,
+  barWidgetDraftSchema,
+  areaWidgetDraftSchema,
+  pieWidgetDraftSchema,
+]);
+export type WidgetDraft = z.infer<typeof widgetDraftSchema>;
+
+/** Parse an unknown value as a draft widget (returns a SafeParseReturnType). */
+export function safeParseWidgetDraft(input: unknown) {
+  return widgetDraftSchema.safeParse(input);
+}
+
+/** Turn a validated widget draft into a full widget. */
+export function finalizeWidget(draft: WidgetDraft, id: string): Widget {
+  return {
+    ...draft,
+    id,
   };
 }

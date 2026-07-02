@@ -1,7 +1,10 @@
-import type { ChatMessage, ConceptSchemaInfo, GenerateViewInput } from './types';
+import type { ChatMessage, ConceptSchemaInfo, GenerateViewInput, GenerateWidgetInput } from './types';
+import { detectLinkCandidates, formatLinkCandidatesForPrompt } from './linkDetection';
 
 // The system prompt pins the JSON contract (the ViewSpec *draft*) and biases the
 // model toward dashboards: tables, statistics and charts, with little prose.
+// CRITICAL: The prompt emphasizes creating INTERACTIVE tables with clickable links
+// for Miller-list style navigation between related entities.
 
 const CONTRACT = `You output a response with TWO SECTIONS:
 
@@ -32,7 +35,9 @@ Each Widget is one of these discriminated shapes (field "type"):
     "value": { "op": "count"|"sum"|"avg"|"min"|"max", "field"?: string }, "format"?: Format, "precision"?: number }
 - { "id": string, "type": "table", "title"?: string, "span"?: 1..24,
     "data": { "query": ..., "path"?: ..., "transform"?: Transform },
-    "columns": [ { "key": string, "title"?: string, "format"?: Format, "linkTo"?: LinkConfig } ], "pageSize"?: number }
+    "columns": [ { "key": string, "title"?: string, "format"?: Format, "linkTo"?: LinkConfig, "width"?: number } ], "pageSize"?: number }
+    ⭐ TABLE WIDGET IS THE PRIMARY WIDGET FOR INTERACTIVE NAVIGATION ⭐
+    ⭐ EVERY TABLE COLUMN REPRESENTING AN ID OR RELATIONSHIP MUST HAVE linkTo ⭐
 - { "id": string, "type": "descriptions", "title"?: string, "span"?: 1..24,
     "data": { "query": ..., "path"?: ... },
     "items": [ { "label": string, "key": string, "format"?: Format, "linkTo"?: LinkConfig } ] }
@@ -66,11 +71,20 @@ Rules:
 - GraphQL selections may ONLY use fields listed in the concept schema below. Prefer the concept's list query.
 - Pass a $take variable (e.g. 200) when the list query supports it.
 - "path" is the dot path from the query result to the array/object (usually the list query field name).
+- WIDGET TYPE SELECTION (CRITICAL - read user request carefully):
+  * If request mentions "table", "list", "all items", "multiple", or "show all" → CREATE TABLE WIDGET with list query
+  * If request mentions "detail", "single item", "this", "show relationships" → CREATE DESCRIPTIONS widget
+  * If request asks for "links" or "clickable" → add linkTo to TABLE columns (not descriptions)
+  * When in doubt, default to TABLE (lists with links are more useful for navigation)
 - Build a DASHBOARD: a couple of statistics, one table, and one or two charts. Minimal descriptive text.
-- NAVIGATION: When showing lists or details, add "linkTo" on ID columns and related-object fields to enable exploration
-  * On table columns that contain IDs, add linkTo pointing to that concept
-  * On description items that show related objects, add linkTo pointing to the related concept
-  * Use nested idField like "customer.id" to point to the ID field within nested objects
+- **ALWAYS ADD NAVIGATION LINKS (linkTo) - THIS IS ESSENTIAL FOR MILLER LIST INTERACTION**:
+  * For TABLE widgets: EVERY column that displays an ID or represents a relationship MUST have linkTo
+  * Example: A "customers" table MUST have linkTo on the "id" column: { "concept": "Customer" }
+  * For columns referencing related entities: use nested idField like "customer.id" to point to the ID
+  * Use simple "linkTo": { "concept": "ConceptName" } for direct IDs
+  * Use "linkTo": { "concept": "ConceptName", "idField": "field.path.to.id" } for nested relationships
+  * THIS IS CRUCIAL: Adding linkTo makes columns clickable and enables users to navigate between related objects
+  * Miller list navigation (split-view columns) is ONLY possible when you include linkTo in table columns
 - Use double quotes everywhere. Output valid JSON and nothing else.`;
 
 function renderSchema(schema: ConceptSchemaInfo): string {
@@ -121,9 +135,34 @@ export function buildMessages(input: GenerateViewInput): ChatMessage[] {
       if (m.role === 'user' || m.role === 'assistant') messages.push(m);
     }
   }
+  
+  // Detect and format link candidates from schema
+  const linkCandidates = detectLinkCandidates(input.schema);
+  const linkCandidatesText = formatLinkCandidatesForPrompt(linkCandidates);
+  
   messages.push({
     role: 'user',
-    content: `Create a dashboard view for the "${input.concept}" concept. Request: ${input.prompt}`,
+    content: [
+      `Create a dashboard view for the "${input.concept}" concept.`,
+      '',
+      '🎯 PRIMARY GOAL: Create a TABLE widget with clickable links for navigation.',
+      '',
+      'TABLE WIDGET RULES:',
+      '- If request mentions "table", "list", "all items", "multiple", "show all", or "work list" → CREATE TABLE WIDGET',
+      '- The table MUST include relevant columns that allow users to click and navigate to related entities',
+      '- ALWAYS add "linkTo" configuration to ID columns or relationship columns',
+      '- Make columns clickable so users can drill down into details (Miller list navigation)',
+      '',
+      'LINK CONFIGURATION (Critical for navigation):',
+      '- Every ID column should have: "linkTo": { "concept": "<related concept name>" }',
+      '- For relationship fields, use: "linkTo": { "concept": "<target concept>", "idField": "<path.to.id>" }',
+      '- Example table column:',
+      '  { "key": "customerId", "title": "Customer", "linkTo": { "concept": "Customer", "idField": "customerId" } }',
+      '',
+      linkCandidatesText,
+      '',
+      `Request: ${input.prompt}`,
+    ].join('\n'),
   });
   return messages;
 }
@@ -140,6 +179,108 @@ export function buildRepairMessage(errorText: string, previous: string): ChatMes
       previous.slice(0, 4000),
       '',
       'Return a corrected JSON object that satisfies the contract. Output only the JSON.',
+    ].join('\n'),
+  };
+}
+
+// Widget-specific contract and prompt building
+
+const WIDGET_CONTRACT = `You output a response with TWO SECTIONS:
+
+1. REASONING (optional - help the user understand your thinking):
+   Start with a "THINKING:" line, then list your reasoning steps. Each step starts with "- ".
+
+2. JSON OBJECT (required):
+   Then, output ONE JSON widget object only — no markdown fences, no comments, no prose around it.
+
+The JSON is a Fluid "widget draft" with one of these discriminated shapes (field "type"):
+- { "type": "statistic", "title"?: string, "span"?: 1..24,
+    "data": { "query": "<query key>", "path"?: "<dot path>", "transform"?: Transform },
+    "value": { "op": "count"|"sum"|"avg"|"min"|"max", "field"?: string }, "format"?: Format, "precision"?: number }
+- { "type": "table", "title"?: string, "span"?: 1..24,
+    "data": { "query": "<query key>", "path"?: "<dot path>", "transform"?: Transform },
+    "columns": [ { "key": string, "title"?: string, "format"?: Format, "linkTo"?: LinkConfig, "width"?: number } ], "pageSize"?: number }
+- { "type": "descriptions", "title"?: string, "span"?: 1..24,
+    "data": { "query": "<query key>", "path"?: "<dot path>" },
+    "items": [ { "label": string, "key": string, "format"?: Format, "linkTo"?: LinkConfig } ] }
+- { "type": "line"|"area"|"bar", "title"?: string, "span"?: 1..24,
+    "data": { "query": "<query key>", "path"?: "<dot path>", "transform"?: Transform },
+    "xField": string, "yField": string, "colorField"?: string, "height"?: number }
+- { "type": "pie", "title"?: string, "span"?: 1..24,
+    "data": { "query": "<query key>", "path"?: "<dot path>", "transform"?: Transform },
+    "angleField": string, "colorField": string, "height"?: number }
+
+Transform: { "groupBy"?: string, "aggregate"?: { "field"?: string }, "sort"?: { "by": string, "dir": "asc"|"desc" }, "limit"?: number }
+Format: "text"|"number"|"currency"|"percent"|"date"|"datetime"|"tag"|"boolean"
+LinkConfig: { "concept": string, "idField"?: string }
+
+Important:
+- Do NOT include an "id" field in the widget — it will be assigned by the system.
+- WIDGET.data.query must reference an available query key.
+- Use double quotes everywhere. Output valid JSON and nothing else.`;
+
+export function buildWidgetMessages(input: GenerateWidgetInput): ChatMessage[] {
+  const system = [
+    'You are Fluid\'s widget generator. Given a GraphQL concept and a user request, you generate a single dashboard widget as a JSON widget draft.',
+    'You can make the widget INTERACTIVE by adding "linkTo" to table columns, enabling users to navigate between related objects (Miller list style).',
+    '',
+    WIDGET_CONTRACT,
+    '',
+    'Concept schema:',
+    renderSchema(input.schema),
+  ].join('\n');
+
+  const messages: ChatMessage[] = [{ role: 'system', content: system }];
+  if (input.history?.length) {
+    for (const m of input.history) {
+      if (m.role === 'user' || m.role === 'assistant') messages.push(m);
+    }
+  }
+
+  // Detect and format link candidates from schema
+  const linkCandidates = detectLinkCandidates(input.schema);
+  const linkCandidatesText = formatLinkCandidatesForPrompt(linkCandidates);
+
+  // Build user prompt with context
+  const contextParts: string[] = [];
+
+  if (input.existingWidget) {
+    contextParts.push('EXISTING WIDGET (current state):');
+    contextParts.push(JSON.stringify(input.existingWidget, null, 2));
+    contextParts.push('');
+  }
+
+  if (input.viewQueries && Object.keys(input.viewQueries).length > 0) {
+    contextParts.push('AVAILABLE QUERIES IN THE VIEW:');
+    for (const [key, query] of Object.entries(input.viewQueries)) {
+      contextParts.push(`  "${key}": ${query}`);
+    }
+    contextParts.push('');
+  }
+
+  contextParts.push(linkCandidatesText);
+  contextParts.push('');
+  contextParts.push(`Request: ${input.prompt}`);
+
+  messages.push({
+    role: 'user',
+    content: contextParts.join('\n'),
+  });
+  return messages;
+}
+
+/** Follow-up message asking the model to fix an invalid widget draft. */
+export function buildWidgetRepairMessage(errorText: string, previous: string): ChatMessage {
+  return {
+    role: 'user',
+    content: [
+      'Your previous output was not a valid widget draft. Validation errors:',
+      errorText,
+      '',
+      'Here is what you returned:',
+      previous.slice(0, 4000),
+      '',
+      'Return a corrected JSON widget object that satisfies the contract. Do NOT include an "id" field. Output only the JSON.',
     ].join('\n'),
   };
 }

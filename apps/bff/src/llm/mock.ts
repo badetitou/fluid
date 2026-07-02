@@ -1,5 +1,5 @@
-import type { FormatKind, ViewSpecDraft } from '@fluid/shared';
-import type { ConceptFieldInfo, GenerateViewInput } from './types';
+import type { FormatKind, ViewSpecDraft, WidgetDraft } from '@fluid/shared';
+import type { ConceptFieldInfo, GenerateViewInput, GenerateWidgetInput } from './types';
 
 function humanize(name: string): string {
   const spaced = name
@@ -109,5 +109,34 @@ export function mockDraft(input: GenerateViewInput): ViewSpecDraft {
     description: `Mock-generated dashboard for ${concept}. Prompt: ${prompt}`.slice(0, 200),
     queries,
     widgets,
+  };
+}
+
+/**
+ * Mock single widget draft for the offline `mock` provider. Returns a simple
+ * statistic widget that demonstrates the widget generation capability.
+ */
+export function mockWidgetDraft(input: GenerateWidgetInput): WidgetDraft {
+  const { schema, concept } = input;
+  const listField = schema.listQuery ?? undefined;
+
+  // Return a simple count statistic widget
+  if (listField) {
+    return {
+      type: 'statistic',
+      title: `Total ${concept}`,
+      span: 8,
+      data: { query: 'rows', path: listField },
+      value: { op: 'count' },
+    };
+  }
+
+  // Fallback: if no list query, return a basic statistic
+  return {
+    type: 'statistic',
+    title: `${concept} count`,
+    span: 8,
+    data: { query: 'rows' },
+    value: { op: 'count' },
   };
 }

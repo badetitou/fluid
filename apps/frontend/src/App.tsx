@@ -6,10 +6,8 @@ import { useConnection } from './store';
 import { AppLayout } from './components/AppLayout';
 import { ConnectPage } from './pages/ConnectPage';
 import { HomePage } from './pages/HomePage';
-import { ConceptPage } from './pages/ConceptPage';
-import { ItemPage } from './pages/ItemPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { NavigationFeatureDemo } from './pages/NavigationFeatureDemo';
+import { MillerListPage } from './pages/MillerListPage';
 
 export function App() {
   const graphqlUrl = useConnection((s) => s.graphqlUrl);
@@ -21,7 +19,6 @@ export function App() {
   return (
     <Routes>
       <Route path="/connect" element={<ConnectPage />} />
-      <Route path="/demo" element={<NavigationFeatureDemo />} />
       {client ? (
         <Route
           path="/"
@@ -33,8 +30,7 @@ export function App() {
         >
           <Route index element={<HomePage />} />
           <Route path="settings" element={<SettingsPage />} />
-          <Route path="concept/:name" element={<ConceptPage />} />
-          <Route path="concept/:conceptName/item/:itemId" element={<ItemPage />} />
+          <Route path="miller/*" element={<MillerListPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       ) : (

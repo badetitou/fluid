@@ -44,7 +44,7 @@ export function HomePage() {
         <Row gutter={[16, 16]}>
           {concepts.map((concept) => (
             <Col key={concept.name} xs={24} sm={12} lg={8} xxl={6}>
-              <Link to={`/concept/${concept.name}`}>
+              <Link to={`/miller/${concept.name}`}>
                 <Card
                   hoverable
                   title={

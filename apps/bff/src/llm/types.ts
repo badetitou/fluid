@@ -1,4 +1,4 @@
-import type { ViewSpec, ViewSpecDraft } from '@fluid/shared';
+import type { ViewSpec, ViewSpecDraft, Widget, WidgetDraft } from '@fluid/shared';
 
 export type LlmProvider = 'openai' | 'ollama' | 'mock';
 
@@ -58,6 +58,26 @@ export interface GenerateViewInput {
 export interface GenerateViewResult {
   spec: ViewSpec;
   draft: ViewSpecDraft;
+  provider: LlmProvider;
+  model: string;
+  reasoning?: string[];
+}
+
+export interface GenerateWidgetInput {
+  concept: string;
+  schema: ConceptSchemaInfo;
+  prompt: string;
+  /** Optional existing widget to provide context for modifications. */
+  existingWidget?: Widget;
+  /** Named queries available in the current view for context. */
+  viewQueries?: Record<string, string>;
+  history?: ChatMessage[];
+  config?: LlmConfigOverrides;
+}
+
+export interface GenerateWidgetResult {
+  widget: Widget;
+  draft: WidgetDraft;
   provider: LlmProvider;
   model: string;
   reasoning?: string[];

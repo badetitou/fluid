@@ -77,6 +77,23 @@ export interface GenerateViewResponse {
   reasoning?: string[];
 }
 
+export interface GenerateWidgetPayload {
+  concept: string;
+  schema: ConceptSchemaPayload;
+  prompt: string;
+  existingWidget?: any;
+  viewQueries?: Record<string, string>;
+  history?: ChatMessage[];
+  config?: LlmConfigOverrides;
+}
+
+export interface GenerateWidgetResponse {
+  widget: any;
+  provider: LlmProvider;
+  model: string;
+  reasoning?: string[];
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = init?.body ? { 'content-type': 'application/json' } : undefined;
   const res = await fetch(`${BASE}${path}`, {
@@ -127,5 +144,15 @@ export const bffClient = {
     request<GenerateViewResponse>('/api/llm/generate-view', {
       method: 'POST',
       body: JSON.stringify(payload),
+    }),
+  generateWidget: (payload: GenerateWidgetPayload) =>
+    request<GenerateWidgetResponse>('/api/llm/generate-widget', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateViewWidget: (viewId: string, widgetId: string, widget: any) =>
+    request<SavedView>(`/api/views/${encodeURIComponent(viewId)}/widgets/${encodeURIComponent(widgetId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ widget }),
     }),
 };
