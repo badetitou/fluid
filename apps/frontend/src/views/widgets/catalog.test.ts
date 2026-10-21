@@ -11,7 +11,7 @@ describe('widget catalog', () => {
     for (const view of ALL_EXAMPLE_VIEWS) expect(safeParseViewSpec(view).success).toBe(true);
   });
 
-  it.each(['tree', 'richtext'])('shows the %s widget in a curated example', (type) => {
+  it.each(['tree', 'richtext', 'scatter'])('shows the %s widget in a curated example', (type) => {
     expect(ALL_EXAMPLE_VIEWS.some((v) => v.widgets.some((w) => w.type === type))).toBe(true);
   });
 });
