@@ -160,7 +160,9 @@ export function renderRelationPaths(schema: ConceptSchemaInfo): string {
   return schema.paths
     .map(
       (p) =>
-        `  - ${p.path} (${p.typeName}${p.isList ? '[]' : ''})${p.fields.length ? `: ${p.fields.join(', ')}` : ''}`,
+        `  - ${p.path} (${p.typeName}${p.isList ? '[]' : ''}${p.recursive ? `, recursive: ${p.typeName} → ${p.typeName}` : ''})${
+          p.fields.length ? `: ${p.fields.join(', ')}` : ''
+        }`,
     )
     .join('\n');
 }

@@ -95,6 +95,8 @@ export interface RelationPathInfo {
   isList: boolean;
   /** Scalar fields of the target, as "name: Type". */
   fields: string[];
+  /** The relation links a type to itself (parent/child versions, sub-folders…). */
+  recursive?: boolean;
 }
 
 export interface GenerateViewInput {

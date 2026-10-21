@@ -156,6 +156,18 @@ export function orderChildrenFirst(nodes: HistoryNode[]): HistoryNode[] {
   return out;
 }
 
+/**
+ * Why several versions are drawn without any link between them, when they are:
+ * no link field is configured, or the configured ones are empty in every row
+ * (usually because the query does not select them).
+ */
+export function missingLinksHint(nodes: HistoryNode[], opts: Pick<HistoryWidget, 'parentsField' | 'childrenField'>): string | undefined {
+  if (nodes.length < 2 || nodes.some((n) => n.parents.length > 0)) return undefined;
+  const fields = [opts.parentsField, opts.childrenField].filter((f): f is string => f !== undefined);
+  if (fields.length === 0) return 'No links between versions: set "parentsField" or "childrenField" to draw the graph.';
+  return `No links between versions in ${fields.map((f) => `"${f}"`).join(' or ')}: check that the query selects them.`;
+}
+
 /** A short form of long ids (hashes): their first 7 characters. */
 export function shortId(key: string): string {
   return /^[0-9a-f]{12,}$/i.test(key) ? key.slice(0, 7) : key;

@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { buildNodes, idOf, initials, listOf, orderChildrenFirst, relativeTime, shortId, type HistoryNode } from './historyModel';
+import {
+  buildNodes,
+  idOf,
+  initials,
+  listOf,
+  missingLinksHint,
+  orderChildrenFirst,
+  relativeTime,
+  shortId,
+  type HistoryNode,
+} from './historyModel';
 
 const node = (key: string, parents: string[] = [], time?: number): HistoryNode => ({ key, parents, label: key, row: {}, time, refs: [] });
 const keys = (nodes: HistoryNode[]) => nodes.map((n) => n.key);
@@ -136,6 +146,19 @@ describe('orderChildrenFirst', () => {
   it('breaks cycles instead of looping', () => {
     const nodes = [node('a', ['b']), node('b', ['a'])];
     expect(keys(orderChildrenFirst(nodes)).sort()).toEqual(['a', 'b']);
+  });
+});
+
+describe('missingLinksHint', () => {
+  it('explains a history of several versions without any link', () => {
+    const unlinked = [node('a'), node('b')];
+    expect(missingLinksHint(unlinked, {})).toMatch(/set "parentsField" or "childrenField"/);
+    expect(missingLinksHint(unlinked, { parentsField: 'parentCommits' })).toMatch(/in "parentCommits": check that the query selects them/);
+  });
+
+  it('says nothing when a version is linked, even outside the rows, or alone', () => {
+    expect(missingLinksHint([node('a', ['gone']), node('b')], { parentsField: 'parents' })).toBeUndefined();
+    expect(missingLinksHint([node('a')], {})).toBeUndefined();
   });
 });
 

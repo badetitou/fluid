@@ -52,6 +52,20 @@ describe('buildRelationPaths', () => {
     });
   });
 
+  it('lists relations of a type to itself as recursive, without walking them', () => {
+    const repository = concept('Repository', [field('name', 'String'), field('commits', 'Commit', { isList: true })]);
+    const commit = concept('Commit', [
+      field('message', 'String'),
+      field('parentCommits', 'Commit', { isList: true }),
+      field('repository', 'Repository'),
+    ]);
+    const paths = buildRelationPaths(repository, new Map([repository, commit].map((c) => [c.name, c])));
+    expect(paths).toEqual([
+      { path: 'commits', typeName: 'Commit', isList: true, fields: ['message: String'] },
+      { path: 'commits.parentCommits', typeName: 'Commit', isList: true, fields: ['message: String'], recursive: true },
+    ]);
+  });
+
   it('honours the depth limit', () => {
     expect(buildRelationPaths(customer, byName, 1).map((p) => p.path)).toEqual(['accounts']);
   });

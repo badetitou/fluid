@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { ALL_EXAMPLE_VIEWS, historyWidgetExample, safeParseViewSpec, WIDGET_TYPES, widgetSchema } from '@fluid/shared';
+import {
+  ALL_EXAMPLE_VIEWS,
+  historyWidgetExample,
+  safeParseViewSpec,
+  safeParseWidgetDraft,
+  WIDGET_TYPES,
+  widgetSchema,
+} from '@fluid/shared';
 import { WIDGET_RENDERERS } from './catalog';
 
 describe('widget catalog', () => {
@@ -19,5 +26,13 @@ describe('widget catalog', () => {
   it('has a valid reference config for the history widget, without curated view', () => {
     expect(widgetSchema.safeParse(historyWidgetExample).success).toBe(true);
     expect(ALL_EXAMPLE_VIEWS.some((v) => v.widgets.some((w) => w.type === 'history'))).toBe(false);
+  });
+
+  it('rejects a history without links between versions, generated or not', () => {
+    const { parentsField: _parents, ...unlinked } = historyWidgetExample;
+    const { id: _id, ...draft } = unlinked;
+    expect(widgetSchema.safeParse(unlinked).error?.issues[0].path).toEqual(['parentsField']);
+    expect(safeParseWidgetDraft(draft).success).toBe(false);
+    expect(safeParseWidgetDraft({ ...draft, childrenField: 'children' }).success).toBe(true);
   });
 });

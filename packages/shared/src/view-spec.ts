@@ -7,7 +7,7 @@ import {
   widgetBase,
 } from './widgets/common';
 import { codeWidgetSchema } from './widgets/code';
-import { historyWidgetSchema } from './widgets/history';
+import { historyWidgetDraftSchema, historyWidgetSchema } from './widgets/history';
 import { richTextWidgetSchema } from './widgets/richtext';
 import { scatterWidgetSchema } from './widgets/scatter';
 import { treeWidgetSchema } from './widgets/tree';
@@ -264,7 +264,6 @@ const pieWidgetDraftSchema = pieWidgetSchema.omit({ id: true });
 const treeWidgetDraftSchema = treeWidgetSchema.omit({ id: true });
 const richTextWidgetDraftSchema = richTextWidgetSchema.omit({ id: true });
 const scatterWidgetDraftSchema = scatterWidgetSchema.omit({ id: true });
-const historyWidgetDraftSchema = historyWidgetSchema.omit({ id: true });
 const codeWidgetDraftSchema = codeWidgetSchema.omit({ id: true });
 
 export const widgetDraftSchema = z.discriminatedUnion('type', [

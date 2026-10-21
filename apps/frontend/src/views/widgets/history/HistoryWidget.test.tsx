@@ -73,4 +73,12 @@ describe('HistoryWidget', () => {
     const { container } = renderWidget(spec, []);
     expect(container.querySelector('.ant-empty-description')?.textContent).toBe('No data');
   });
+
+  it('warns when the versions are not linked to each other', () => {
+    renderWidget({ ...spec, parentsField: 'parentCommits' });
+    expect(screen.getByText(/No links between versions in "parentCommits"/).getAttribute('role')).toBe('status');
+    cleanup();
+    renderWidget(spec);
+    expect(screen.queryByText(/No links between versions/)).toBeNull();
+  });
 });

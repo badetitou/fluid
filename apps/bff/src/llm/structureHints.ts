@@ -1,7 +1,7 @@
 import type { ConceptSchemaInfo } from './types';
 
 // Hints about the shape of a concept's data, so the model picks the widgets made
-// for it: a tree for hierarchies, richtext / Format "markdown"|"code" for long text.
+// for it: a tree for hierarchies, a history for versions linked to each other, richtext / Format "markdown"|"code" for long text.
 
 const MARKDOWN_NAMES = /(markdown|readme|body|content|bodyText|changelog|notes|description)$/i;
 const CODE_NAMES = /(sourceCode|snippet|script|codeSnippet|codeBlock|sql|stylesheet|dockerfile|json|yaml)$/i;
@@ -15,6 +15,17 @@ function hierarchyHints(schema: ConceptSchemaInfo): string[] {
       ? `"${f.name}" lists more ${schema.name} (parent → children): show it with a "tree" widget, "childrenField": "${f.name}", selecting it 3-4 levels deep.`
       : `"${f.name}" points to the parent ${schema.name}: a "tree" widget over the list with "parentField": "${f.name}.id" builds the hierarchy.`,
   );
+}
+
+/** Relations of a related type to itself, e.g. `commits.parentCommits`: versions or nested items. */
+function recursiveRelationHints(schema: ConceptSchemaInfo): string[] {
+  return (schema.paths ?? [])
+    .filter((p) => p.recursive && p.path.includes('.'))
+    .map((p) => {
+      const items = p.path.slice(0, p.path.lastIndexOf('.'));
+      const link = p.path.slice(items.length + 1);
+      return `"${p.path}" links ${p.typeName} items to each other: for versions (commits, revisions…) a "history" widget over "${items}" with "parentsField" or "childrenField": "${link}" (select "${link} { id }"); for nested items a "tree".`;
+    });
 }
 
 function textHints(schema: ConceptSchemaInfo): string[] {
@@ -34,6 +45,6 @@ function textHints(schema: ConceptSchemaInfo): string[] {
 
 /** Structure hints for the prompt, or null when the concept has nothing special. */
 export function renderStructureHints(schema: ConceptSchemaInfo): string | null {
-  const hints = [...hierarchyHints(schema), ...textHints(schema)];
+  const hints = [...hierarchyHints(schema), ...recursiveRelationHints(schema), ...textHints(schema)];
   return hints.length ? ['Structure hints:', ...hints.map((h) => `  - ${h}`)].join('\n') : null;
 }

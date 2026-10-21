@@ -11,7 +11,9 @@ const MAX_PATH_FIELDS = 12;
  * Walk the relation graph breadth-first from the concept, up to `maxDepth`
  * hops, so a view can select and display data several levels deep (e.g.
  * Customer → accounts → transactions). A type already on the current path is
- * not re-entered, which skips back-references and cycles.
+ * not re-entered, which skips back-references and cycles. A relation from a
+ * type to itself (commit → parentCommits, folder → children) is listed, marked
+ * `recursive`, but not walked: version histories and hierarchies need it.
  */
 export function buildRelationPaths(
   concept: Concept,
@@ -24,7 +26,8 @@ export function buildRelationPaths(
     const next: typeof frontier = [];
     for (const node of frontier) {
       for (const rf of node.concept.relationFields) {
-        if (rf.hasRequiredArgs || node.ancestors.has(rf.typeName)) continue;
+        const recursive = rf.typeName === node.concept.name;
+        if (rf.hasRequiredArgs || (node.ancestors.has(rf.typeName) && !recursive)) continue;
         const target = conceptByName.get(rf.typeName);
         if (!target) continue;
         if (out.length >= MAX_RELATION_PATHS) return out;
@@ -38,8 +41,9 @@ export function buildRelationPaths(
             .filter((f) => !f.hasRequiredArgs)
             .slice(0, MAX_PATH_FIELDS)
             .map((f) => `${f.name}: ${f.typeName}${f.isList ? '[]' : ''}`),
+          ...(recursive && { recursive: true }),
         });
-        next.push({ concept: target, path, isList, ancestors: new Set([...node.ancestors, rf.typeName]) });
+        if (!recursive) next.push({ concept: target, path, isList, ancestors: new Set([...node.ancestors, rf.typeName]) });
       }
     }
     frontier = next;
