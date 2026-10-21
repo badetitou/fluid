@@ -69,6 +69,75 @@ describe('buildDetailView', () => {
   it('returns null without a by-id query', () => {
     expect(buildDetailView(makeConcept({ queries: { list: { field: 'accounts' } } }))).toBeNull();
   });
+  describe('with related concepts', () => {
+    const relation = (name: string, typeName: string, isList = false): ConceptField => ({
+      name,
+      description: null,
+      typeName,
+      typeKind: 'OBJECT',
+      isList,
+      isScalar: false,
+    });
+    const character = makeConcept({
+      name: 'Character',
+      scalarFields: [field('id', 'ID'), field('name')],
+      relationFields: [
+        relation('origin', 'Location'),
+        relation('episode', 'Episode', true),
+        relation('stats', 'Stats'),
+        { ...relation('friends', 'Character', true), hasRequiredArgs: true },
+      ],
+      queries: { byId: { field: 'character' } },
+    });
+    const related = {
+      conceptByName: new Map<string, Concept>([
+        ['Location', makeConcept({ name: 'Location', scalarFields: [field('id', 'ID'), field('name')] })],
+        [
+          'Episode',
+          makeConcept({
+            name: 'Episode',
+            scalarFields: [field('id', 'ID'), field('name'), field('episode'), field('air_date')],
+          }),
+        ],
+        ['Stats', makeConcept({ name: 'Stats', scalarFields: [field('score', 'Int')] })],
+        ['Character', character],
+      ]),
+      queriesByType: new Map([
+        ['Location', { byId: { field: 'location' } }],
+        ['Episode', { byId: { field: 'episode' } }],
+        ['Character', { byId: { field: 'character' } }],
+      ]),
+    };
+
+    it('lists single relations in the descriptions, linking navigable ones', () => {
+      const view = buildDetailView(character, related)!;
+      const detail = view.widgets[0];
+      if (detail.type !== 'descriptions') throw new Error('expected descriptions');
+      const origin = detail.items.find((i) => i.key === 'origin.name');
+      expect(origin?.linkTo).toEqual({ concept: 'Location', idField: 'origin.id' });
+      // Stats has no id nor by-id query: shown, but not a link.
+      const stats = detail.items.find((i) => i.key === 'stats.score');
+      expect(stats).toBeDefined();
+      expect(stats?.linkTo).toBeUndefined();
+    });
+
+    it('gives each list relation a table whose rows link to the target', () => {
+      const view = buildDetailView(character, related)!;
+      const table = view.widgets.find((w) => w.id === 'rel-episode');
+      if (table?.type !== 'table') throw new Error('expected a table');
+      expect(table.data).toEqual({ query: 'character', path: 'character.episode' });
+      expect(table.columns?.map((c) => c.key)).toEqual(['name', 'episode']);
+      expect(table.columns?.[0].linkTo).toEqual({ concept: 'Episode', idField: 'id' });
+    });
+
+    it('selects the relations in the by-id query, skipping fields with required args', () => {
+      const query = buildDetailView(character, related)!.queries.character.query;
+      expect(query).toContain('origin { id name }');
+      expect(query).toContain('episode { id name episode }');
+      expect(query).toContain('stats { score }');
+      expect(query).not.toContain('friends');
+    });
+  });
 });
 
 describe('buildDefaultView with a paginated list query', () => {

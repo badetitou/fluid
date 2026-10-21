@@ -1,5 +1,5 @@
-import { EXAMPLE_VIEWS, type Column, type FormatKind, type ViewSpec } from '@fluid/shared';
-import type { Concept, ConceptField } from '../graphql/introspection';
+import { EXAMPLE_VIEWS, type Column, type FormatKind, type ViewSpec, type Widget } from '@fluid/shared';
+import type { Concept, ConceptField, ConceptQueries } from '../graphql/introspection';
 
 // Resolves the views available for a concept: curated examples that ship with
 // Fluid, plus an auto-generated "overview" built from the introspected schema so
@@ -28,6 +28,18 @@ function guessFormat(field: ConceptField): FormatKind | undefined {
   }
 }
 
+// Human-friendly fields, in order of preference, to label an entity.
+const LABELISH = ['name', 'title', 'label', 'fullName', 'displayName', 'email', 'reference', 'iban'];
+
+/** The field that best names an entity: a label-ish scalar, else the first non-id one. */
+function pickLabelField(scalars: ConceptField[]): ConceptField {
+  return (
+    scalars.find((f) => LABELISH.includes(f.name)) ??
+    scalars.find((f) => f.name !== 'id') ??
+    scalars[0]
+  );
+}
+
 /** Build a compact, navigable list for a concept from its introspected shape. */
 export function buildDefaultView(concept: Concept): ViewSpec | null {
   const list = concept.queries.list;
@@ -41,11 +53,7 @@ export function buildDefaultView(concept: Concept): ViewSpec | null {
   const idField = hasId ? 'id' : scalars[0].name;
 
   // Prefer a human-friendly primary column; fall back to the first non-id scalar.
-  const LABELISH = ['name', 'title', 'label', 'fullName', 'displayName', 'email', 'reference', 'iban'];
-  const primary =
-    scalars.find((f) => LABELISH.includes(f.name)) ??
-    scalars.find((f) => f.name !== 'id') ??
-    scalars[0];
+  const primary = pickLabelField(scalars);
 
   // Keep the list compact: the primary column plus up to two more scalars.
   const extras = scalars.filter((f) => f.name !== primary.name).slice(0, 2);
@@ -98,24 +106,125 @@ export function buildDefaultView(concept: Concept): ViewSpec | null {
   };
 }
 
+/** What the detail view needs to know about the concepts a concept relates to. */
+export interface RelatedConcepts {
+  /** Introspected related types, by name. */
+  conceptByName: Map<string, Concept>;
+  /** Root queries per type: a related type is navigable when it has a by-id query. */
+  queriesByType: Map<string, ConceptQueries>;
+}
+
+// Keep the detail column readable on entities with many relations.
+const MAX_SCALAR_ITEMS = 12;
+const MAX_LIST_RELATIONS = 4;
+
+interface ResolvedRelation {
+  field: ConceptField;
+  target: Concept;
+  label: ConceptField;
+  /** Set when the target can be opened in its own column (it has an id and a by-id query). */
+  navigable: boolean;
+}
+
+/** Relations whose target is introspected and can be shown inline (no required args). */
+function resolveRelations(concept: Concept, related?: RelatedConcepts): ResolvedRelation[] {
+  if (!related) return [];
+  const resolved: ResolvedRelation[] = [];
+  for (const field of concept.relationFields) {
+    if (field.hasRequiredArgs) continue;
+    const target = related.conceptByName.get(field.typeName);
+    // Pagination wrappers / connections have no scalars of their own to show.
+    if (!target || target.scalarFields.length === 0) continue;
+    const hasId = target.scalarFields.some((f) => f.name === 'id');
+    resolved.push({
+      field,
+      target,
+      label: pickLabelField(target.scalarFields),
+      navigable: hasId && Boolean(related.queriesByType.get(target.name)?.byId),
+    });
+  }
+  return resolved;
+}
+
+function relationSelection(r: ResolvedRelation, extra: ConceptField[] = []): string {
+  const names = new Set([...(r.navigable ? ['id'] : []), r.label.name, ...extra.map((f) => f.name)]);
+  return `${r.field.name} { ${[...names].join(' ')} }`;
+}
+
 /**
  * Build a compact detail view for a single entity, bound to the concept's by-id
  * query. Used as the default perspective when a Miller column is drilled into a
  * specific item (the caller injects the id into the query variables).
+ *
+ * When the related types are known, single relations (e.g. `origin`) are listed
+ * with the scalars and link to their own column, and list relations (e.g.
+ * `episode`) each get a small table whose rows link the same way.
  */
-export function buildDetailView(concept: Concept): ViewSpec | null {
+export function buildDetailView(concept: Concept, related?: RelatedConcepts): ViewSpec | null {
   const byIdField = concept.queries.byId?.field;
   if (!byIdField) return null;
 
   const scalars = concept.scalarFields;
   if (scalars.length === 0) return null;
 
-  const selection = scalars.map((f) => f.name).join('\n            ');
+  const relations = resolveRelations(concept, related);
+  const singles = relations.filter((r) => !r.field.isList);
+  const lists = relations.filter((r) => r.field.isList).slice(0, MAX_LIST_RELATIONS);
+  // One extra column for list relations, when the target has another scalar.
+  const listExtra = (r: ResolvedRelation) =>
+    r.target.scalarFields.filter((f) => f.name !== 'id' && f.name !== r.label.name).slice(0, 1);
+
+  const selection = [
+    ...scalars.map((f) => f.name),
+    ...singles.map((r) => relationSelection(r)),
+    ...lists.map((r) => relationSelection(r, listExtra(r))),
+  ].join('\n            ');
   const query = `query FluidAutoDetail_${concept.name}($id: ID!) {
           ${byIdField}(id: $id) {
             ${selection}
           }
         }`;
+
+  const widgets: Widget[] = [
+    {
+      id: 'detail',
+      type: 'descriptions',
+      title: humanize(concept.name),
+      span: 24,
+      data: { query: byIdField, path: byIdField },
+      items: [
+        ...scalars.slice(0, MAX_SCALAR_ITEMS).map((f) => ({
+          label: humanize(f.name),
+          key: f.name,
+          format: guessFormat(f),
+        })),
+        ...singles.map((r) => ({
+          label: humanize(r.field.name),
+          key: `${r.field.name}.${r.label.name}`,
+          format: guessFormat(r.label),
+          ...(r.navigable
+            ? { linkTo: { concept: r.target.name, idField: `${r.field.name}.id` } }
+            : {}),
+        })),
+      ],
+    },
+    ...lists.map(
+      (r): Widget => ({
+        id: `rel-${r.field.name}`,
+        type: 'table',
+        title: `${humanize(r.field.name)} (${r.target.name})`,
+        span: 24,
+        data: { query: byIdField, path: `${byIdField}.${r.field.name}` },
+        columns: [r.label, ...listExtra(r)].map((f, index) => ({
+          key: f.name,
+          title: humanize(f.name),
+          format: guessFormat(f),
+          ...(index === 0 && r.navigable ? { linkTo: { concept: r.target.name, idField: 'id' } } : {}),
+        })),
+        pageSize: 5,
+      }),
+    ),
+  ];
 
   return {
     version: 1,
@@ -127,20 +236,7 @@ export function buildDetailView(concept: Concept): ViewSpec | null {
     queries: {
       [byIdField]: { query, variables: {} },
     },
-    widgets: [
-      {
-        id: 'detail',
-        type: 'descriptions',
-        title: humanize(concept.name),
-        span: 24,
-        data: { query: byIdField, path: byIdField },
-        items: scalars.slice(0, 12).map((f) => ({
-          label: humanize(f.name),
-          key: f.name,
-          format: guessFormat(f),
-        })),
-      },
-    ],
+    widgets,
   };
 }
 

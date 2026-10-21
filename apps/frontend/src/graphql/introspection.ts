@@ -141,6 +141,8 @@ export interface ConceptField {
   typeKind: string;
   isList: boolean;
   isScalar: boolean;
+  /** True when the field cannot be selected without passing some argument. */
+  hasRequiredArgs?: boolean;
 }
 
 export interface ListQuery {
@@ -289,6 +291,7 @@ export function buildConcept(
       typeKind: u.kind,
       isList: u.isList,
       isScalar: LEAF_KINDS.has(u.kind),
+      hasRequiredArgs: hasRequiredArgs(f),
     };
   });
 

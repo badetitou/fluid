@@ -1,10 +1,12 @@
 import { Table } from 'antd';
 import type { TableColumnsType } from 'antd';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { RightOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import type { Column, TableWidget as TableWidgetSpec } from '@fluid/shared';
 import { getPath } from '../data';
 import { formatValue } from '../format';
 import { getNavigationId } from '../../navigation/linkExtractor';
+import { useNavigationHref } from '../../navigation/columnPath';
 
 type Row = Record<string, unknown>;
 
@@ -29,8 +31,8 @@ function inferColumns(rows: Row[]): Column[] {
 
 export function TableWidget({ widget, rows }: { widget: TableWidgetSpec; rows: Row[] }) {
   const navigate = useNavigate();
-  const location = useLocation();
-  
+  const hrefFor = useNavigationHref();
+
   const specs = widget.columns && widget.columns.length > 0 ? widget.columns : inferColumns(rows);
 
   const columns: TableColumnsType<Row> = specs.map((col) => ({
@@ -47,11 +49,10 @@ export function TableWidget({ widget, rows }: { widget: TableWidgetSpec; rows: R
         const idValue = getNavigationId(record, idFieldPath);
         
         if (idValue) {
-          // Always in Miller view: append to the current path
-          const href = `${location.pathname}/${col.linkTo.concept}/${idValue}`;
+          const href = hrefFor(col.linkTo.concept, idValue);
           return (
             <a onClick={() => navigate(href)} style={{ cursor: 'pointer' }}>
-              {formatted}
+              {formatted} <RightOutlined style={{ fontSize: 10 }} />
             </a>
           );
         }

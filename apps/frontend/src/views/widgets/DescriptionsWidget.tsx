@@ -1,10 +1,12 @@
 import { Descriptions, Empty } from 'antd';
 import type { DescriptionsProps } from 'antd';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { RightOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import type { DescriptionsWidget as DescriptionsWidgetSpec } from '@fluid/shared';
 import { getPath } from '../data';
 import { formatValue } from '../format';
 import { getNavigationId } from '../../navigation/linkExtractor';
+import { useNavigationHref } from '../../navigation/columnPath';
 
 export function DescriptionsWidget({
   widget,
@@ -14,8 +16,8 @@ export function DescriptionsWidget({
   object: Record<string, unknown> | null;
 }) {
   const navigate = useNavigate();
-  const location = useLocation();
-  
+  const hrefFor = useNavigationHref();
+
   if (!object) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No data" />;
 
   const items: DescriptionsProps['items'] = widget.items.map((item) => {
@@ -28,15 +30,14 @@ export function DescriptionsWidget({
       const idValue = getNavigationId(object, idFieldPath);
       
       if (idValue) {
-        // Always in Miller view: append to the current path
-        const href = `${location.pathname}/${item.linkTo.concept}/${idValue}`;
+        const href = hrefFor(item.linkTo.concept, idValue);
 
         return {
           key: item.key,
           label: item.label,
           children: (
             <a onClick={() => navigate(href)} style={{ cursor: 'pointer' }}>
-              {formatted}
+              {formatted} <RightOutlined style={{ fontSize: 10 }} />
             </a>
           ),
         };

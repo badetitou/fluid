@@ -1,23 +1,48 @@
-import { Children, type ReactNode } from 'react';
-import { Empty, Flex, theme } from 'antd';
+import { Children, isValidElement, useState, type ReactNode } from 'react';
+import { Button, Empty, Flex, Tooltip, theme } from 'antd';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import { ErrorBoundary } from './ErrorBoundary';
 
 interface MillerListLayoutProps {
   /** One node per navigation level. Each already renders its own header + body. */
   children: ReactNode;
+  /** Number of consecutive columns shown at once. */
+  visibleCount?: number;
+  /** Optional label per column, shown as a tooltip on the pager. */
+  labels?: string[];
 }
 
 /**
- * Lays out Miller navigation columns side by side. Columns keep a comfortable
- * minimum width and the row scrolls horizontally once they no longer fit, rather
- * than shrinking every column into an unreadable sliver. Each column is wrapped
- * in an error boundary so a single failing perspective cannot blank the screen.
+ * Lays out Miller navigation columns side by side, showing a sliding window of
+ * `visibleCount` consecutive columns (two by default). When navigation opens a
+ * new column the window follows it, so the last two levels are always on screen.
+ *
+ * A small pager at the bottom (in the spirit of the Pharo/GT inspector pager)
+ * shows one box per column, highlights the visible ones, and lets the user jump
+ * to any level. Columns outside the window stay mounted (just hidden) so their
+ * local state — selected perspective, pagination — survives scrolling back.
+ *
+ * Each column is wrapped in an error boundary so a single failing perspective
+ * cannot blank the screen.
  */
-export function MillerListLayout({ children }: MillerListLayoutProps) {
+export function MillerListLayout({ children, visibleCount = 2, labels }: MillerListLayoutProps) {
   const { token } = theme.useToken();
   const columns = Children.toArray(children);
+  const count = columns.length;
+  const windowSize = Math.max(1, Math.min(visibleCount, count));
+  const maxStart = Math.max(0, count - windowSize);
 
-  if (columns.length === 0) {
+  const [start, setStart] = useState(maxStart);
+  const [prevCount, setPrevCount] = useState(count);
+  // Follow navigation: when columns are added, slide to show the newest ones.
+  if (count !== prevCount) {
+    setPrevCount(count);
+    if (count > prevCount) setStart(maxStart);
+  }
+  const first = Math.min(start, maxStart);
+  const last = first + windowSize - 1;
+
+  if (count === 0) {
     return (
       <Flex align="center" justify="center" style={{ height: '100%' }}>
         <Empty description="Nothing to show" />
@@ -25,35 +50,106 @@ export function MillerListLayout({ children }: MillerListLayoutProps) {
     );
   }
 
+  /** Slides the window the minimum amount needed to bring `index` into view. */
+  const reveal = (index: number) => {
+    if (index < first) setStart(index);
+    else if (index > last) setStart(index - windowSize + 1);
+  };
+
   return (
     <Flex
+      vertical
       style={{
         height: '100%',
         width: '100%',
         background: token.colorBgLayout,
         borderRadius: token.borderRadius,
-        overflowX: 'auto',
-        overflowY: 'hidden',
       }}
     >
-      {columns.map((column, index) => (
-        <div
-          key={index}
+      <Flex style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {columns.map((column, index) => {
+          const shown = index >= first && index <= last;
+          return (
+            <div
+              key={isValidElement(column) && column.key != null ? column.key : index}
+              style={{
+                flex: '1 1 0',
+                minWidth: 0,
+                borderRight:
+                  index < last ? `1px solid ${token.colorBorderSecondary}` : 'none',
+                display: shown ? 'flex' : 'none',
+                flexDirection: 'column',
+                overflow: 'hidden',
+              }}
+            >
+              <ErrorBoundary>{column}</ErrorBoundary>
+            </div>
+          );
+        })}
+      </Flex>
+
+      {count > windowSize && (
+        <Flex
+          align="center"
+          justify="center"
+          gap={6}
           style={{
-            flex: '1 0 340px',
-            minWidth: 320,
-            borderRight:
-              index < columns.length - 1
-                ? `1px solid ${token.colorBorderSecondary}`
-                : 'none',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
+            padding: '6px 12px',
+            borderTop: `1px solid ${token.colorBorderSecondary}`,
+            background: token.colorBgContainer,
           }}
         >
-          <ErrorBoundary>{column}</ErrorBoundary>
-        </div>
-      ))}
+          <Button
+            type="text"
+            size="small"
+            icon={<LeftOutlined />}
+            disabled={first === 0}
+            onClick={() => setStart(first - 1)}
+            aria-label="Previous column"
+          />
+          <Flex
+            gap={4}
+            style={{
+              padding: 3,
+              borderRadius: token.borderRadiusSM,
+              background: token.colorFillTertiary,
+              overflowX: 'auto',
+            }}
+          >
+            {columns.map((_, index) => {
+              const shown = index >= first && index <= last;
+              return (
+                <Tooltip key={index} title={labels?.[index]} mouseEnterDelay={0.4}>
+                  <button
+                    type="button"
+                    aria-label={labels?.[index] ?? `Column ${index + 1}`}
+                    aria-current={shown}
+                    onClick={() => reveal(index)}
+                    style={{
+                      width: 14,
+                      height: 20,
+                      padding: 0,
+                      flexShrink: 0,
+                      cursor: 'pointer',
+                      borderRadius: 2,
+                      border: `1px solid ${shown ? token.colorPrimary : token.colorBorder}`,
+                      background: shown ? token.colorPrimaryBg : 'transparent',
+                    }}
+                  />
+                </Tooltip>
+              );
+            })}
+          </Flex>
+          <Button
+            type="text"
+            size="small"
+            icon={<RightOutlined />}
+            disabled={first === maxStart}
+            onClick={() => setStart(first + 1)}
+            aria-label="Next column"
+          />
+        </Flex>
+      )}
     </Flex>
   );
 }

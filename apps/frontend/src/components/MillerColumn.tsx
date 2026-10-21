@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
   Alert,
   App as AntdApp,
@@ -6,10 +6,9 @@ import {
   Dropdown,
   Empty,
   Flex,
-  Select,
   Skeleton,
   Space,
-  Tag,
+  Tooltip,
   Typography,
   theme,
   type MenuProps,
@@ -39,6 +38,7 @@ import {
 import { useViews, type ViewEntry, type ViewSource } from '../hooks/useViews';
 import { ViewRenderer } from '../views/ViewRenderer';
 import { buildDetailView } from '../views/registry';
+import { MillerColumnPathContext } from '../navigation/columnPath';
 import { getViewScope, withScope, type ColumnKind } from '../views/viewScope';
 import { ViewAssistantModal } from './ViewAssistantModal';
 import { ViewEditorModal, type ViewEditorInitial } from './ViewEditorModal';
@@ -76,6 +76,8 @@ interface MillerColumnProps {
   conceptName: string;
   /** Present for drill-in (detail) columns; injects the id into the by-id query. */
   itemId?: string;
+  /** Miller path of this column; links inside it open the next column after it. */
+  path: string;
   title: string;
   subtitle: string;
   onClose?: () => void;
@@ -88,7 +90,7 @@ interface MillerColumnProps {
  * A single Miller navigation column bound to one concept. It introspects the
  * concept's type on demand, then hands over to the column body.
  */
-export function MillerColumn({ conceptName, ...rest }: MillerColumnProps) {
+export function MillerColumn({ conceptName, path, ...rest }: MillerColumnProps) {
   const { concept, fetching, error } = useConcept(conceptName);
 
   if (error || concept === null || (!fetching && !concept)) {
@@ -112,10 +114,14 @@ export function MillerColumn({ conceptName, ...rest }: MillerColumnProps) {
     );
   }
 
-  return <MillerColumnBody concept={concept} {...rest} />;
+  return (
+    <MillerColumnPathContext.Provider value={path}>
+      <MillerColumnBody concept={concept} {...rest} />
+    </MillerColumnPathContext.Provider>
+  );
 }
 
-type MillerColumnBodyProps = Omit<MillerColumnProps, 'conceptName'> & { concept: Concept };
+type MillerColumnBodyProps = Omit<MillerColumnProps, 'conceptName' | 'path'> & { concept: Concept };
 
 /**
  * The column body for a loaded concept. It resolves the
@@ -176,13 +182,14 @@ function MillerColumnBody({
 
   // For a drilled-in column, offer a compact detail perspective (bound to the
   // by-id query) as the default, ahead of the concept's list/curated/saved views.
+  // It also lists the relations, linking to their own column when navigable.
   const detailEntry = useMemo<ViewEntry | null>(() => {
     if (!itemId) return null;
-    const detailSpec = buildDetailView(concept);
+    const detailSpec = buildDetailView(concept, { conceptByName, queriesByType });
     return detailSpec
       ? { key: detailSpec.id, title: `${concept.name} detail`, source: 'auto', spec: detailSpec }
       : null;
-  }, [itemId, concept]);
+  }, [itemId, concept, conceptByName, queriesByType]);
 
   // A perspective belongs to this column when its scope matches the column kind.
   // Detail columns also get the auto detail perspective as the default.
@@ -271,9 +278,9 @@ function MillerColumnBody({
     }
   };
 
-  const handleDelete = () => {
-    if (!selected?.saved) return;
-    const id = selected.saved.id;
+  const handleDelete = (entry: ViewEntry | undefined = selected) => {
+    if (!entry?.saved) return;
+    const id = entry.saved.id;
     modal.confirm({
       title: 'Delete this perspective?',
       content: 'This removes the saved view for everyone.',
@@ -284,7 +291,7 @@ function MillerColumnBody({
         try {
           await bffClient.deleteView(id);
           message.success('Perspective deleted');
-          setPicked(undefined);
+          if (entry.key === activeKey) setPicked(undefined);
           refetch();
         } catch (err) {
           message.error((err as Error).message);
@@ -328,7 +335,7 @@ function MillerColumnBody({
       ? [{ key: 'default', icon: <StarOutlined />, label: 'Set as default', onClick: handleSetDefault }]
       : []),
     ...(isSaved
-      ? [{ key: 'delete', icon: <DeleteOutlined />, danger: true, label: 'Delete', onClick: handleDelete }]
+      ? [{ key: 'delete', icon: <DeleteOutlined />, danger: true, label: 'Delete', onClick: () => handleDelete() }]
       : []),
     ...(pinnable.length > 0
       ? [
@@ -352,18 +359,68 @@ function MillerColumnBody({
     { key: 'settings', icon: <SettingOutlined />, label: 'LLM settings', onClick: () => setSettingsOpen(true) },
   ];
 
-  const perspectiveOptions = allEntries.map((e) => ({
-    value: e.key,
-    label: (
-      <Space size={6}>
-        <span>{e.title}</span>
-        <Tag color={SOURCE_META[e.source].color} style={{ marginInlineEnd: 0 }}>
-          {SOURCE_META[e.source].label}
-        </Tag>
-        {e.saved?.isDefault && <StarFilled style={{ color: token.colorWarning }} />}
-      </Space>
-    ),
-  }));
+  // Floating pills: one per perspective. The active saved one can be deleted
+  // from its pill, and "+" creates a new one with the assistant.
+  const pillBase: CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 5,
+    flexShrink: 0,
+    height: 22,
+    padding: '0 9px',
+    borderRadius: 999,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    background: token.colorBgContainer,
+    color: token.colorTextSecondary,
+    fontSize: 12,
+    lineHeight: '20px',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    transition: `all ${token.motionDurationMid}`,
+  };
+  const activePill: CSSProperties = {
+    borderColor: token.colorPrimaryBorder,
+    background: token.colorPrimaryBg,
+    color: token.colorPrimaryText,
+    boxShadow: token.boxShadowTertiary,
+  };
+
+  const perspectivePills = allEntries.map((e) => {
+    const active = e.key === selected?.key;
+    return (
+      <Tooltip key={e.key} title={`${SOURCE_META[e.source].label} perspective`} mouseEnterDelay={0.6}>
+        <span
+          role="tab"
+          aria-selected={active}
+          tabIndex={0}
+          onClick={() => setPicked(e.key)}
+          onKeyDown={(ev) => (ev.key === 'Enter' || ev.key === ' ') && setPicked(e.key)}
+          style={active ? { ...pillBase, ...activePill } : pillBase}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: token[`${SOURCE_META[e.source].color}6` as keyof typeof token] as string,
+            }}
+          />
+          {e.title}
+          {e.saved?.isDefault && <StarFilled style={{ color: token.colorWarning, fontSize: 10 }} />}
+          {active && e.source === 'saved' && bffAvailable && (
+            <CloseOutlined
+              aria-label="Delete perspective"
+              style={{ fontSize: 9, marginInlineStart: 2 }}
+              onClick={(ev) => {
+                ev.stopPropagation();
+                handleDelete(e);
+              }}
+            />
+          )}
+        </span>
+      </Tooltip>
+    );
+  });
 
   return (
     <>
@@ -403,17 +460,25 @@ function MillerColumnBody({
           </Space>
         </Flex>
         {allEntries.length > 0 && (
-          <Select
-            size="small"
-            style={{ width: '100%' }}
-            value={selected?.key}
-            options={perspectiveOptions}
-            onChange={(v) => setPicked(v)}
-            disabled={allEntries.length <= 1}
-          />
+          <div role="tablist" style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '2px 0 4px' }}>
+            {perspectivePills}
+            {bffAvailable && (
+              <Tooltip title="New perspective with assistant">
+                <span
+                  role="button"
+                  aria-label="New perspective"
+                  tabIndex={0}
+                  onClick={openAssistantCreate}
+                  onKeyDown={(ev) => ev.key === 'Enter' && openAssistantCreate()}
+                  style={{ ...pillBase, padding: 0, width: 22, justifyContent: 'center', borderStyle: 'dashed' }}
+                >
+                  <PlusOutlined style={{ fontSize: 10 }} />
+                </span>
+              </Tooltip>
+            )}
+          </div>
         )}
       </div>
-
       <div style={{ flex: 1, overflow: 'auto' }}>
         {spec ? (
           <div style={{ padding: 12 }}>

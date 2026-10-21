@@ -66,7 +66,7 @@ export function ViewAssistantModal({
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isDefault, setIsDefault] = useState(editingIsDefault ?? false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ title: string; message: string } | null>(null);
   // Live output streamed by the provider while generating (Claude Code only).
   const [live, setLive] = useState<{ thinking: string; text: string } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -136,7 +136,7 @@ export function ViewAssistantModal({
       ]);
       setPrompt('');
     } catch (err) {
-      if (!controller.signal.aborted) setError((err as Error).message);
+      if (!controller.signal.aborted) setError({ title: 'Generation failed', message: (err as Error).message });
     } finally {
       if (abortRef.current === controller) abortRef.current = null;
       setGenerating(false);
@@ -163,7 +163,7 @@ export function ViewAssistantModal({
       }
       onClose();
     } catch (err) {
-      setError((err as Error).message);
+      setError({ title: 'Save failed', message: (err as Error).message });
     } finally {
       setSaving(false);
     }
@@ -308,8 +308,8 @@ export function ViewAssistantModal({
           <Alert
             type="error"
             showIcon
-            title="Generation failed"
-            description={<pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{error}</pre>}
+            title={error.title}
+            description={<pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{error.message}</pre>}
           />
         )}
 
