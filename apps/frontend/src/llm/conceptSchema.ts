@@ -29,6 +29,8 @@ export function buildConceptSchemaPayload(
     listItemsPath: concept.queries.list?.itemsPath ?? null,
     listLimitArg: concept.queries.list?.limitArg ?? null,
     byIdQuery: concept.queries.byId?.field ?? null,
+    byIdArgName: concept.queries.byId?.idArg ?? null,
+    byIdArgType: concept.queries.byId?.idType ?? null,
     fields: concept.fields.map((f) => ({
       name: f.name,
       typeName: f.typeName,

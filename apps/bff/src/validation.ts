@@ -37,6 +37,8 @@ const conceptSchemaInfo = z.object({
   listItemsPath: z.string().nullish(),
   listLimitArg: z.string().nullish(),
   byIdQuery: z.string().nullish(),
+  byIdArgName: z.string().nullish(),
+  byIdArgType: z.string().nullish(),
   fields: z.array(
     z.object({
       name: z.string(),

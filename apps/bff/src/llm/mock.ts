@@ -61,7 +61,7 @@ export function mockDraft(input: GenerateViewInput): ViewSpecDraft {
   if (input.scope === 'detail' && byIdField && scalars.length) {
     const selection = scalars.map((f) => f.name).join('\n      ');
     queries[byIdField] = {
-      query: `query MockDetail_${concept}($id: ID!) {\n  ${byIdField}(id: $id) {\n      ${selection}\n  }\n}`,
+      query: `query MockDetail_${concept}($id: ${schema.byIdArgType ?? 'ID!'}) {\n  ${byIdField}(${schema.byIdArgName ?? 'id'}: $id) {\n      ${selection}\n  }\n}`,
     };
     widgets.push({
       id: 'detail',

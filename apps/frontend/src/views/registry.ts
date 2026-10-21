@@ -1,5 +1,5 @@
 import { EXAMPLE_VIEWS, type Column, type FormatKind, type ViewSpec, type Widget } from '@fluid/shared';
-import type { Concept, ConceptField, ConceptQueries } from '../graphql/introspection';
+import { keyFieldOf, type Concept, type ConceptField, type ConceptQueries } from '../graphql/introspection';
 
 // Resolves the views available for a concept: curated examples that ship with
 // Fluid, plus an auto-generated "overview" built from the introspected schema so
@@ -53,8 +53,9 @@ export function buildDefaultView(concept: Concept): ViewSpec | null {
   const scalars = concept.scalarFields;
   if (scalars.length === 0) return null;
 
-  const hasId = scalars.some((f) => f.name === 'id');
-  const idField = hasId ? 'id' : scalars[0].name;
+  // Rows are drilled into by the by-id query's key (`id`, or e.g. `code`).
+  const key = keyFieldOf(concept.queries);
+  const idField = scalars.some((f) => f.name === key) ? key : scalars[0].name;
 
   // Prefer a human-friendly primary column; fall back to the first non-id scalar.
   const primary = pickLabelField(scalars);
@@ -126,8 +127,10 @@ interface ResolvedRelation {
   field: ConceptField;
   target: Concept;
   label: ConceptField;
-  /** Set when the target can be opened in its own column (it has an id and a by-id query). */
+  /** Set when the target can be opened in its own column (it has a key and a by-id query). */
   navigable: boolean;
+  /** The target's key field (`id`, or e.g. `code`). */
+  key: string;
 }
 
 /** Relations whose target is introspected and can be shown inline (no required args). */
@@ -139,19 +142,22 @@ function resolveRelations(concept: Concept, related?: RelatedConcepts): Resolved
     const target = related.conceptByName.get(field.typeName);
     // Pagination wrappers / connections have no scalars of their own to show.
     if (!target || target.scalarFields.length === 0) continue;
-    const hasId = target.scalarFields.some((f) => f.name === 'id');
+    const targetQueries = related.queriesByType.get(target.name);
+    const key = keyFieldOf(targetQueries);
+    const hasKey = target.scalarFields.some((f) => f.name === key);
     resolved.push({
       field,
       target,
       label: pickLabelField(target.scalarFields),
-      navigable: hasId && Boolean(related.queriesByType.get(target.name)?.byId),
+      navigable: hasKey && Boolean(targetQueries?.byId),
+      key,
     });
   }
   return resolved;
 }
 
 function relationSelection(r: ResolvedRelation, extra: ConceptField[] = []): string {
-  const names = new Set([...(r.navigable ? ['id'] : []), r.label.name, ...extra.map((f) => f.name)]);
+  const names = new Set([...(r.navigable ? [r.key] : []), r.label.name, ...extra.map((f) => f.name)]);
   return `${r.field.name} { ${[...names].join(' ')} }`;
 }
 
@@ -176,15 +182,16 @@ export function buildDetailView(concept: Concept, related?: RelatedConcepts): Vi
   const lists = relations.filter((r) => r.field.isList).slice(0, MAX_LIST_RELATIONS);
   // One extra column for list relations, when the target has another scalar.
   const listExtra = (r: ResolvedRelation) =>
-    r.target.scalarFields.filter((f) => f.name !== 'id' && f.name !== r.label.name).slice(0, 1);
+    r.target.scalarFields.filter((f) => f.name !== r.key && f.name !== r.label.name).slice(0, 1);
 
   const selection = [
     ...scalars.map((f) => f.name),
     ...singles.map((r) => relationSelection(r)),
     ...lists.map((r) => relationSelection(r, listExtra(r))),
   ].join('\n            ');
-  const query = `query FluidAutoDetail_${concept.name}($id: ID!) {
-          ${byIdField}(id: $id) {
+  const idType = concept.queries.byId?.idType ?? 'ID!';
+  const query = `query FluidAutoDetail_${concept.name}($id: ${idType}) {
+          ${byIdField}(${keyFieldOf(concept.queries)}: $id) {
             ${selection}
           }
         }`;
@@ -207,7 +214,7 @@ export function buildDetailView(concept: Concept, related?: RelatedConcepts): Vi
           key: `${r.field.name}.${r.label.name}`,
           format: guessFormat(r.label),
           ...(r.navigable
-            ? { linkTo: { concept: r.target.name, idField: `${r.field.name}.id` } }
+            ? { linkTo: { concept: r.target.name, idField: `${r.field.name}.${r.key}` } }
             : {}),
         })),
       ],
@@ -223,7 +230,7 @@ export function buildDetailView(concept: Concept, related?: RelatedConcepts): Vi
           key: f.name,
           title: humanize(f.name),
           format: guessFormat(f),
-          ...(index === 0 && r.navigable ? { linkTo: { concept: r.target.name, idField: 'id' } } : {}),
+          ...(index === 0 && r.navigable ? { linkTo: { concept: r.target.name, idField: r.key } } : {}),
         })),
         pageSize: 5,
       }),

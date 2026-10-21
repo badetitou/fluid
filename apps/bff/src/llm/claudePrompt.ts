@@ -84,7 +84,7 @@ function renderSchema(schema: ConceptSchemaInfo): string {
     `Concept: ${schema.name}`,
     schema.description ? `Description: ${schema.description}` : null,
     `List query: ${describeListQuery(schema)}`,
-    `By-id query: ${schema.byIdQuery ? `${schema.byIdQuery}(id: ID!)` : '(none)'}`,
+    `By-id query: ${schema.byIdQuery ? `${schema.byIdQuery}(${schema.byIdArgName ?? 'id'}: ${schema.byIdArgType ?? 'ID!'})` : '(none)'}`,
     'Fields:',
     fields || '  (none)',
     'Related concepts (selectable fields):',

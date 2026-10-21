@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useClient, useQuery } from 'urql';
 import {
   ROOT_TYPE_QUERY,
-  TYPE_QUERY,
   buildConcept,
   buildRootQueries,
   buildWrapperTypesQuery,
   findWrapperCandidates,
+  typeQuery,
   type Concept,
+  type IntrospectionDepth,
   type ConceptQueries,
   type IntrospectionType,
   type RootTypeResult,
@@ -30,6 +31,8 @@ export interface UseRootConceptsResult {
   /** Root concepts first (sorted), then pinned deeper concepts in pin order. */
   concepts: ConceptEntry[];
   queriesByType: Map<string, ConceptQueries>;
+  /** Introspection depth this source accepts (see `IntrospectionDepth`). */
+  depth: IntrospectionDepth;
   fetching: boolean;
   error?: Error;
   reexecute: () => void;
@@ -42,20 +45,34 @@ export interface UseRootConceptsResult {
  * a pagination wrapper (`characters: Characters { info, results }`) get their
  * wrapper type introspected too, in one aliased query, so the wrapper's rows
  * become the item concept's list query.
+ *
+ * The root type is first introspected deeply; a source rejecting that query
+ * (e.g. a depth limit) switches every introspection of this source to shallow.
  */
 export function useRootConcepts(): UseRootConceptsResult {
   const [rootResult, reexecuteRoot] = useQuery<RootTypeResult>({ query: ROOT_TYPE_QUERY });
   const rootTypeName = rootResult.data?.__schema.queryType?.name;
 
-  const [typeResult, reexecuteType] = useQuery<TypeResult>({
-    query: TYPE_QUERY,
+  const [deepResult, reexecuteDeep] = useQuery<TypeResult>({
+    query: typeQuery('deep'),
     variables: { name: rootTypeName ?? '' },
     pause: !rootTypeName,
   });
+  const depth: IntrospectionDepth = deepResult.error ? 'shallow' : 'deep';
+  const [shallowResult, reexecuteShallow] = useQuery<TypeResult>({
+    query: typeQuery('shallow'),
+    variables: { name: rootTypeName ?? '' },
+    pause: !rootTypeName || depth === 'deep',
+  });
+  const typeResult = depth === 'deep' ? deepResult : shallowResult;
+  const reexecuteType = depth === 'deep' ? reexecuteDeep : reexecuteShallow;
 
   const rootType = typeResult.data?.__type ?? null;
   const wrapperNames = useMemo(() => [...findWrapperCandidates(rootType).keys()], [rootType]);
-  const wrappersQuery = useMemo(() => buildWrapperTypesQuery(wrapperNames), [wrapperNames]);
+  const wrappersQuery = useMemo(
+    () => buildWrapperTypesQuery(wrapperNames, depth),
+    [wrapperNames, depth],
+  );
   const [wrappersResult, reexecuteWrappers] = useQuery<Record<string, IntrospectionType | null>>({
     query: wrappersQuery ?? ROOT_TYPE_QUERY,
     pause: !wrappersQuery,
@@ -85,6 +102,7 @@ export function useRootConcepts(): UseRootConceptsResult {
   return {
     concepts,
     queriesByType,
+    depth,
     fetching:
       rootResult.fetching ||
       typeResult.fetching ||
@@ -110,11 +128,12 @@ export interface UseConceptResult {
 
 /** Introspects a single concept's type on demand (cached by urql per type name). */
 export function useConcept(name: string | undefined): UseConceptResult {
-  const { queriesByType, fetching: rootFetching, error: rootError } = useRootConcepts();
+  const { queriesByType, depth, fetching: rootFetching, error: rootError } = useRootConcepts();
+  // Wait for the root so the source's accepted depth is known.
   const [result] = useQuery<TypeResult>({
-    query: TYPE_QUERY,
+    query: typeQuery(depth),
     variables: { name: name ?? '' },
-    pause: !name,
+    pause: !name || rootFetching,
   });
 
   const queries = name ? queriesByType.get(name) : undefined;
@@ -137,13 +156,14 @@ export function useConcept(name: string | undefined): UseConceptResult {
  */
 export function useConceptsByName(names: string[]): Map<string, Concept> {
   const client = useClient();
+  const { depth, fetching: rootFetching } = useRootConcepts();
   const [byName, setByName] = useState<Map<string, Concept>>(() => new Map());
   const key = useMemo(() => [...new Set(names)].sort().join(','), [names]);
 
   const load = useCallback(
     async (list: string[]) => {
       const results = await Promise.all(
-        list.map((name) => client.query<TypeResult>(TYPE_QUERY, { name }).toPromise()),
+        list.map((name) => client.query<TypeResult>(typeQuery(depth), { name }).toPromise()),
       );
       const map = new Map<string, Concept>();
       for (const r of results) {
@@ -152,10 +172,11 @@ export function useConceptsByName(names: string[]): Map<string, Concept> {
       }
       return map;
     },
-    [client],
+    [client, depth],
   );
 
   useEffect(() => {
+    if (rootFetching) return;
     let cancelled = false;
     const list = key ? key.split(',') : [];
     load(list).then((map) => {
@@ -164,7 +185,7 @@ export function useConceptsByName(names: string[]): Map<string, Concept> {
     return () => {
       cancelled = true;
     };
-  }, [key, load]);
+  }, [key, load, rootFetching]);
 
   return byName;
 }

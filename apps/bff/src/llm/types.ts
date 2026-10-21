@@ -58,6 +58,10 @@ export interface ConceptSchemaInfo {
   /** Row-limit argument of the list query (e.g. "take"), when it has one. */
   listLimitArg?: string | null;
   byIdQuery?: string | null;
+  /** Key argument of the by-id query when it is not `id` (e.g. "code"). */
+  byIdArgName?: string | null;
+  /** GraphQL type of the by-id query's key argument (defaults to "ID!"). */
+  byIdArgType?: string | null;
   fields: ConceptFieldInfo[];
   related?: RelatedConceptInfo[];
 }

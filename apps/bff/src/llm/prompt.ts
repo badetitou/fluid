@@ -146,15 +146,17 @@ function renderSchema(schema: ConceptSchemaInfo): string {
  * Rules that depend on whether the view is generated for a list column (many
  * rows) or a detail column (one item). Detail columns only inject the selected
  * item's id into the query keyed by the concept's by-id field, so the model
- * must use exactly that key and a `$id: ID!` variable.
+ * must use exactly that key and an `$id` variable of the by-id argument's type.
  */
 export function scopeInstructions(input: Pick<GenerateViewInput, 'scope' | 'schema'>): string {
   const { schema } = input;
   if (input.scope === 'detail' && schema.byIdQuery) {
+    const idType = schema.byIdArgType ?? 'ID!';
+    const idArg = schema.byIdArgName ?? 'id';
     return [
       `This view is a DETAIL view: it is shown for ONE selected ${schema.name}.`,
-      `- Declare the query under the key "${schema.byIdQuery}" exactly, using the by-id query with a "$id: ID!" variable:`,
-      `  "${schema.byIdQuery}": { "query": "query($id: ID!) { ${schema.byIdQuery}(id: $id) { ... } }" }`,
+      `- Declare the query under the key "${schema.byIdQuery}" exactly, using the by-id query with a "$id: ${idType}" variable:`,
+      `  "${schema.byIdQuery}": { "query": "query($id: ${idType}) { ${schema.byIdQuery}(${idArg}: $id) { ... } }" }`,
       '- Do NOT set "id" in "variables": the application injects the selected item\'s id at runtime.',
       `- Widgets read the item with "path": "${schema.byIdQuery}" (descriptions) or a nested list such as "${schema.byIdQuery}.<relation>" (tables, charts, statistics).`,
       '- Select related objects and lists through nested selections of that single query.',

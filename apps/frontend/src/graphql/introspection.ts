@@ -14,13 +14,26 @@ export const ROOT_TYPE_QUERY = /* GraphQL */ `
   }
 `;
 
-// Kept shallow on purpose (depth 4): a single `ofType` level resolves `X`,
-// `X!`, `[X]` and `[X]!`-style wrappers on one hop; deeper wrappers such as
-// `[X!]!` surface as an unknown type rather than failing the whole query.
-export const TYPE_QUERY = /* GraphQL */ `
-  query FluidType($name: String!) {
-    __type(name: $name) {
-      kind
+/**
+ * How far type references are unwrapped. "deep" resolves up to `[X!]!` (and
+ * typed arguments such as `id: Int!`); sources enforcing a query depth limit
+ * reject it, so we fall back to "shallow" (depth 4): one `ofType` hop resolves
+ * `X`, `X!`, `[X]` and `[X]!`, while deeper wrappers surface as an unknown type
+ * rather than failing the whole query.
+ */
+export type IntrospectionDepth = 'deep' | 'shallow';
+
+const TYPE_REF: Record<IntrospectionDepth, string> = {
+  deep: 'kind name ofType { kind name ofType { kind name ofType { kind name } } }',
+  shallow: 'kind name ofType { kind name }',
+};
+const ARG_TYPE_REF: Record<IntrospectionDepth, string> = {
+  deep: 'kind name ofType { kind name ofType { kind name } }',
+  shallow: 'kind name',
+};
+
+function typeSelection(depth: IntrospectionDepth): string {
+  return `kind
       name
       description
       fields(includeDeprecated: false) {
@@ -28,50 +41,42 @@ export const TYPE_QUERY = /* GraphQL */ `
         description
         args {
           name
-          type {
-            kind
-            name
-          }
+          type { ${ARG_TYPE_REF[depth]} }
         }
-        type {
-          kind
-          name
-          ofType {
-            kind
-            name
-          }
-        }
-      }
+        type { ${TYPE_REF[depth]} }
+      }`;
+}
+
+const TYPE_QUERIES: Record<IntrospectionDepth, string> = {
+  deep: `query FluidTypeDeep($name: String!) {
+    __type(name: $name) {
+      ${typeSelection('deep')}
     }
-  }
-`;
+  }`,
+  shallow: `query FluidType($name: String!) {
+    __type(name: $name) {
+      ${typeSelection('shallow')}
+    }
+  }`,
+};
+
+/** Introspection of one type's fields, at the given depth. */
+export function typeQuery(depth: IntrospectionDepth): string {
+  return TYPE_QUERIES[depth];
+}
 
 /**
  * One aliased query introspecting several types' fields at once (used for the
  * pagination wrappers returned by root fields). Null when there is nothing to ask.
  */
-export function buildWrapperTypesQuery(names: string[]): string | null {
+export function buildWrapperTypesQuery(
+  names: string[],
+  depth: IntrospectionDepth = 'shallow',
+): string | null {
   if (names.length === 0) return null;
   const parts = names.map(
     (name, i) => `t${i}: __type(name: ${JSON.stringify(name)}) {
-      kind
-      name
-      description
-      fields(includeDeprecated: false) {
-        name
-        description
-        args {
-          name
-        }
-        type {
-          kind
-          name
-          ofType {
-            kind
-            name
-          }
-        }
-      }
+      ${typeSelection(depth)}
     }`,
   );
   return `query FluidWrapperTypes {\n    ${parts.join('\n    ')}\n  }`;
@@ -86,8 +91,8 @@ export interface TypeRef {
 export interface IntrospectionField {
   name: string;
   description: string | null;
-  /** The arg type is only present when introspected with `TYPE_QUERY`. */
-  args: { name: string; type?: { kind: string; name: string | null } }[];
+  /** The arg type is only present when introspected with `typeQuery`. */
+  args: { name: string; type?: TypeRef }[];
   type: TypeRef;
 }
 
@@ -159,7 +164,12 @@ export interface ListQuery {
 
 export interface ConceptQueries {
   list?: ListQuery;
-  byId?: { field: string };
+  /**
+   * Single-item query. `idArg` names its key argument when it is not `id`
+   * (e.g. `country(code: ID!)`); `idType` is that argument's GraphQL type
+   * (e.g. "Int!"), when introspected.
+   */
+  byId?: { field: string; idArg?: string; idType?: string };
 }
 
 export interface Concept {
@@ -174,6 +184,38 @@ export interface Concept {
 const LIMIT_ARGS = ['take', 'first', 'limit', 'pageSize', 'size'];
 // Preferred names for the rows field of a pagination wrapper, in order.
 const ITEMS_FIELDS = ['results', 'items', 'nodes', 'data', 'records', 'list'];
+
+/** Render a fully resolved type ref as GraphQL (e.g. `Int!`); undefined when truncated. */
+export function typeRefToString(ref: TypeRef | null | undefined): string | undefined {
+  if (!ref) return undefined;
+  if (ref.kind === 'NON_NULL') {
+    const inner = typeRefToString(ref.ofType);
+    return inner ? `${inner}!` : undefined;
+  }
+  if (ref.kind === 'LIST') {
+    const inner = typeRefToString(ref.ofType);
+    return inner ? `[${inner}]` : undefined;
+  }
+  return ref.name ?? undefined;
+}
+
+/**
+ * The key argument of a single-item root field: `id` when only it is required,
+ * otherwise its sole required scalar argument (e.g. `country(code: ID!)`).
+ */
+function byIdKeyArg(field: IntrospectionField): IntrospectionField['args'][number] | undefined {
+  const required = field.args.filter((a) => a.type?.kind === 'NON_NULL');
+  const idArg = field.args.find((a) => a.name === 'id');
+  if (idArg && required.every((a) => a.name === 'id')) return idArg;
+  if (required.length !== 1) return undefined;
+  const rendered = typeRefToString(required[0].type);
+  return rendered?.startsWith('[') ? undefined : required[0];
+}
+
+/** Name of the field identifying an item for its by-id query (`id` unless stated). */
+export function keyFieldOf(queries: ConceptQueries | undefined): string {
+  return queries?.byId?.idArg ?? 'id';
+}
 
 function hasRequiredArgs(field: IntrospectionField, except: string[] = []): boolean {
   return field.args.some((a) => a.type?.kind === 'NON_NULL' && !except.includes(a.name));
@@ -259,8 +301,13 @@ export function buildRootQueries(
       continue;
     }
 
-    if (field.args.some((a) => a.name === 'id') && !hasRequiredArgs(field, ['id'])) {
-      entry(u.name).byId = { field: field.name };
+    const keyArg = byIdKeyArg(field);
+    if (keyArg) {
+      entry(u.name).byId = {
+        field: field.name,
+        ...(keyArg.name !== 'id' ? { idArg: keyArg.name } : {}),
+        idType: typeRefToString(keyArg.type),
+      };
     } else if (!hasRequiredArgs(field)) {
       // Kept as an explorable concept even without a usable list / by-id query.
       entry(u.name);
