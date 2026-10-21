@@ -1,4 +1,5 @@
-import { lazy, type ComponentType } from 'react';
+import { lazy, Suspense, type ComponentType } from 'react';
+import { Skeleton } from 'antd';
 import type { DataBinding, Widget, WidgetType } from '@fluid/shared';
 import { asObject, asRows } from '../data';
 import { DescriptionsWidget } from './DescriptionsWidget';
@@ -9,6 +10,7 @@ import { LazyRichTextWidget } from './richtext/lazy';
 import { ScatterWidget } from './scatter/ScatterWidget';
 import { HistoryWidget } from './history/HistoryWidget';
 import { LazyCodeWidget } from './code/lazy';
+import { AccordionWidget } from './accordion/AccordionWidget';
 
 /** Props every widget renderer receives: its spec and its resolved data binding. */
 export interface WidgetRendererProps<W extends Widget = Widget> {
@@ -47,7 +49,20 @@ export const WIDGET_RENDERERS: { [T in WidgetType]: Renderer<T> } = {
   scatter: ({ widget, data, fitHeight }) => <ScatterWidget widget={widget} rows={asRows(data)} fitHeight={fitHeight} />,
   history: ({ widget, data, fitHeight }) => <HistoryWidget widget={widget} rows={asRows(data)} fitHeight={fitHeight} />,
   code: ({ widget, data, resolve }) => <LazyCodeWidget widget={widget} data={data} resolve={resolve} />,
+  accordion: ({ widget, data, resolve }) => (
+    <AccordionWidget widget={widget} data={data} resolve={resolve} Nested={NestedWidget} />
+  ),
 };
+
+/** A widget nested in another one (accordion panels), rendered from its parent's resolver. */
+function NestedWidget({ widget, resolve }: { widget: Widget; resolve: (binding: DataBinding) => unknown }) {
+  const Render = WIDGET_RENDERERS[widget.type] as ComponentType<WidgetRendererProps>;
+  return (
+    <Suspense fallback={<Skeleton active />}>
+      <Render widget={widget} data={resolve(widget.data)} resolve={resolve} />
+    </Suspense>
+  );
+}
 
 /** Widget types drawn as charts: they size themselves to their cell instead of scrolling. */
 export const CHART_TYPES: ReadonlySet<WidgetType> = new Set(['line', 'bar', 'area', 'pie', 'scatter']);

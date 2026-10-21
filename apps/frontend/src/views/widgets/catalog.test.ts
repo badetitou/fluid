@@ -18,8 +18,16 @@ describe('widget catalog', () => {
     for (const view of ALL_EXAMPLE_VIEWS) expect(safeParseViewSpec(view).success).toBe(true);
   });
 
-  it.each(['tree', 'richtext', 'scatter', 'code'])('shows the %s widget in a curated example', (type) => {
+  it.each(['tree', 'richtext', 'scatter', 'code', 'accordion'])('shows the %s widget in a curated example', (type) => {
     expect(ALL_EXAMPLE_VIEWS.some((v) => v.widgets.some((w) => w.type === type))).toBe(true);
+  });
+
+  it('validates the widgets nested in an accordion, recursively', () => {
+    const accordion = { id: 'a', type: 'accordion', data: { query: 'q' }, widgets: [] };
+    const nested = { ...accordion, widgets: [{ ...accordion, id: 'b', widgets: [{ id: 'c', type: 'code' }] }] };
+    expect(widgetSchema.safeParse({ ...accordion, widgets: [{ ...accordion, id: 'b' }] }).success).toBe(true);
+    expect(widgetSchema.safeParse(nested).success).toBe(false);
+    expect(safeParseWidgetDraft({ type: 'accordion', data: { query: 'q' }, widgets: [] }).success).toBe(true);
   });
 
   // Version histories are shaped differently in every API: no curated view, only a reference config.
