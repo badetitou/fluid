@@ -1,5 +1,6 @@
 import type { ViewSpec } from './view-spec';
 import { postBodyExample } from './widgets/richtext';
+import { countryScatterExample } from './widgets/scatter';
 import { continentTreeExample } from './widgets/tree';
 
 // -----------------------------------------------------------------------------
@@ -250,6 +251,7 @@ export const EXAMPLE_VIEWS: Record<string, ViewSpec[]> = {
   Transaction: [transactionAnalytics],
   Continent: [continentTreeExample],
   Post: [postBodyExample],
+  Country: [countryScatterExample],
 };
 
 /** All curated views as a flat list. */
