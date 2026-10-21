@@ -1,6 +1,6 @@
 import { memo, Suspense, type ComponentType } from 'react';
 import { Skeleton } from 'antd';
-import type { Widget } from '@fluid/shared';
+import type { DataBinding, Widget } from '@fluid/shared';
 import { resolveBinding } from './data';
 import type { ViewData } from './useViewData';
 import { WIDGET_RENDERERS, type WidgetRendererProps } from './widgets/catalog';
@@ -16,9 +16,10 @@ interface WidgetBodyProps {
 export const WidgetBody = memo(function WidgetBody({ widget, view, fitHeight }: WidgetBodyProps) {
   const Render = WIDGET_RENDERERS[widget.type] as ComponentType<WidgetRendererProps> | undefined;
   if (!Render) return null;
+  const resolve = (binding: DataBinding) => resolveBinding(binding, view.results);
   return (
     <Suspense fallback={<Skeleton active />}>
-      <Render widget={widget} data={resolveBinding(widget.data, view.results)} fitHeight={fitHeight} />
+      <Render widget={widget} data={resolve(widget.data)} resolve={resolve} fitHeight={fitHeight} />
     </Suspense>
   );
 });

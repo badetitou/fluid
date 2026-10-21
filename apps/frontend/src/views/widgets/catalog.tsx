@@ -1,5 +1,5 @@
 import { lazy, type ComponentType } from 'react';
-import type { Widget, WidgetType } from '@fluid/shared';
+import type { DataBinding, Widget, WidgetType } from '@fluid/shared';
 import { asObject, asRows } from '../data';
 import { DescriptionsWidget } from './DescriptionsWidget';
 import { StatisticWidget } from './StatisticWidget';
@@ -7,11 +7,14 @@ import { TableWidget } from './TableWidget';
 import { TreeWidget } from './tree/TreeWidget';
 import { LazyRichTextWidget } from './richtext/lazy';
 import { ScatterWidget } from './scatter/ScatterWidget';
+import { LazyCodeWidget } from './code/lazy';
 
 /** Props every widget renderer receives: its spec and its resolved data binding. */
 export interface WidgetRendererProps<W extends Widget = Widget> {
   widget: W;
   data: unknown;
+  /** Resolves another binding of the widget (e.g. a second source to compare). */
+  resolve: (binding: DataBinding) => unknown;
   /** Height to fill exactly (grid layout); charts honour it. */
   fitHeight?: number;
 }
@@ -41,6 +44,7 @@ export const WIDGET_RENDERERS: { [T in WidgetType]: Renderer<T> } = {
   tree: ({ widget, data }) => <TreeWidget widget={widget} data={data} />,
   richtext: ({ widget, data }) => <LazyRichTextWidget widget={widget} data={data} />,
   scatter: ({ widget, data, fitHeight }) => <ScatterWidget widget={widget} rows={asRows(data)} fitHeight={fitHeight} />,
+  code: ({ widget, data, resolve }) => <LazyCodeWidget widget={widget} data={data} resolve={resolve} />,
 };
 
 /** Widget types drawn as charts: they size themselves to their cell instead of scrolling. */

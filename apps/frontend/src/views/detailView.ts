@@ -121,16 +121,26 @@ export function buildDetailView(concept: Concept, related?: RelatedConcepts): Vi
       ],
     },
     ...rich.map(
-      (f): Widget => ({
-        id: `text-${f.name}`,
-        type: 'richtext',
-        title: humanize(f.name),
-        span: 24,
-        data: { query: byIdField, path: byIdField },
-        field: f.name,
-        format: textKindOf(f),
-        language: textKindOf(f) === 'code' ? codeLanguageOf(f) : undefined,
-      }),
+      (f): Widget =>
+        textKindOf(f) === 'code'
+          ? {
+              id: `text-${f.name}`,
+              type: 'code',
+              title: humanize(f.name),
+              span: 24,
+              data: { query: byIdField, path: byIdField },
+              field: f.name,
+              language: codeLanguageOf(f),
+            }
+          : {
+              id: `text-${f.name}`,
+              type: 'richtext',
+              title: humanize(f.name),
+              span: 24,
+              data: { query: byIdField, path: byIdField },
+              field: f.name,
+              format: textKindOf(f),
+            },
     ),
     ...(tree ? [tree.widget] : []),
     ...lists.map(

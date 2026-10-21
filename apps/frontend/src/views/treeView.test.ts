@@ -105,15 +105,13 @@ describe('buildDetailView with structure', () => {
     expect(treeOf(view.widgets)?.data.path).toBe('folder.children');
   });
 
-  it('gives Markdown and code properties a richtext widget of their own', () => {
+  it('gives Markdown properties a richtext widget, and code a code widget, of their own', () => {
     const scalars = [scalar('id', 'ID'), scalar('title'), scalar('body'), scalar('sourceCode'), scalar('code')];
     const post = { ...concept('Post', []), fields: scalars, scalarFields: scalars, queries: { byId: { field: 'post' } } };
     const view = parseViewSpec(buildDetailView(post));
     const details = view.widgets[0];
     expect(details.type === 'descriptions' && details.items.map((i) => i.key)).toEqual(['id', 'title', 'code']);
-    expect(view.widgets.filter((w) => w.type === 'richtext')).toMatchObject([
-      { field: 'body', format: 'markdown' },
-      { field: 'sourceCode', format: 'code' },
-    ]);
+    expect(view.widgets.filter((w) => w.type === 'richtext')).toMatchObject([{ field: 'body', format: 'markdown' }]);
+    expect(view.widgets.filter((w) => w.type === 'code')).toMatchObject([{ field: 'sourceCode' }]);
   });
 });

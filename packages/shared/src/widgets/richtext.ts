@@ -27,8 +27,8 @@ export type RichTextWidget = z.infer<typeof richTextWidgetSchema>;
 export const richTextWidgetDoc = `- { "id": string, "type": "richtext", "title"?: string, "span"?: 1..24,
     "data": { "query": ..., "path"?: "<dot path to the object>" }, "field"?: "<text field>",
     "format"?: "auto"|"markdown"|"code"|"plain", "language"?: string }
-    Use it for LONG TEXT properties: Markdown bodies/descriptions/READMEs ("markdown") and source code,
-    scripts, queries or JSON documents ("code", with "language" e.g. "json", "sql", "python").
+    Use it for LONG TEXT properties: Markdown bodies/descriptions/READMEs ("markdown"), or short JSON
+    documents ("code", with "language"). For source code, use the "code" widget instead.
     For short values inside a table or descriptions, use the Format "markdown" or "code" instead.`;
 
 /** A curated detail view showing the widget on the public GraphQLZero API. */

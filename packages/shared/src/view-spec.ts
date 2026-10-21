@@ -6,10 +6,12 @@ import {
   linkToSchema,
   widgetBase,
 } from './widgets/common';
+import { codeWidgetSchema } from './widgets/code';
 import { richTextWidgetSchema } from './widgets/richtext';
 import { scatterWidgetSchema } from './widgets/scatter';
 import { treeWidgetSchema } from './widgets/tree';
 
+export * from './widgets/code';
 export * from './widgets/common';
 export * from './widgets/richtext';
 export * from './widgets/scatter';
@@ -154,6 +156,7 @@ export const widgetSchema = z.discriminatedUnion('type', [
   treeWidgetSchema,
   richTextWidgetSchema,
   scatterWidgetSchema,
+  codeWidgetSchema,
 ]);
 export type Widget = z.infer<typeof widgetSchema>;
 export type WidgetType = Widget['type'];
@@ -169,6 +172,7 @@ export const WIDGET_TYPES = [
   'tree',
   'richtext',
   'scatter',
+  'code',
 ] as const;
 
 /** Whether a view targets a concept's list (many rows) or the detail of a single item. */
@@ -256,6 +260,7 @@ const pieWidgetDraftSchema = pieWidgetSchema.omit({ id: true });
 const treeWidgetDraftSchema = treeWidgetSchema.omit({ id: true });
 const richTextWidgetDraftSchema = richTextWidgetSchema.omit({ id: true });
 const scatterWidgetDraftSchema = scatterWidgetSchema.omit({ id: true });
+const codeWidgetDraftSchema = codeWidgetSchema.omit({ id: true });
 
 export const widgetDraftSchema = z.discriminatedUnion('type', [
   tableWidgetDraftSchema,
@@ -268,6 +273,7 @@ export const widgetDraftSchema = z.discriminatedUnion('type', [
   treeWidgetDraftSchema,
   richTextWidgetDraftSchema,
   scatterWidgetDraftSchema,
+  codeWidgetDraftSchema,
 ]);
 export type WidgetDraft = z.infer<typeof widgetDraftSchema>;
 

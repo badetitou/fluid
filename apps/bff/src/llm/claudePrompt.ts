@@ -1,5 +1,5 @@
 import type { ChatMessage, ConceptSchemaInfo, GenerateViewInput } from './types';
-import { richTextWidgetDoc, scatterWidgetDoc, treeWidgetDoc } from '@fluid/shared';
+import { codeWidgetDoc, richTextWidgetDoc, scatterWidgetDoc, treeWidgetDoc } from '@fluid/shared';
 import { detectLinkCandidates } from './linkDetection';
 import { renderStructureHints } from './structureHints';
 import {
@@ -50,6 +50,7 @@ Widget types:
 ${treeWidgetDoc}
 ${richTextWidgetDoc}
 ${scatterWidgetDoc}
+${codeWidgetDoc}
 
 Format: "text"|"number"|"currency"|"percent"|"date"|"datetime"|"tag"|"boolean"|"image"|"markdown"|"code"
   "image" only for String fields holding a picture URL (avatar, portrait, photo, logo…); the user must click to load it.

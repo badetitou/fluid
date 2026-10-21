@@ -23,7 +23,7 @@ function textHints(schema: ConceptSchemaInfo): string[] {
     .flatMap((f) => {
       const desc = f.description ?? '';
       if (TEXT_SCALARS.test(f.typeName) || CODE_NAMES.test(f.name) || /source code|code snippet/i.test(desc)) {
-        return [`"${f.name}" holds code: a "richtext" widget with "format": "code" (or Format "code" in a table).`];
+        return [`"${f.name}" holds code: a "code" widget (or Format "code" in a table); add "compare"/"annotations" when the API has another version or findings about it.`];
       }
       if (f.typeName === 'String' && (MARKDOWN_NAMES.test(f.name) || /markdown/i.test(desc))) {
         return [`"${f.name}" holds long text, likely Markdown: a "richtext" widget with "format": "markdown".`];
