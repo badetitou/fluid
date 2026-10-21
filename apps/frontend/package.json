@@ -21,9 +21,12 @@
     "@urql/core": "^6.0.3",
     "antd": "^6.6.7",
     "graphql": "^17.0.2",
+    "prism-react-renderer": "2.4.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-markdown": "10.1.0",
     "react-router-dom": "^7.18.4",
+    "remark-gfm": "4.0.1",
     "urql": "^5.0.4",
     "zustand": "^5.0.15"
   },

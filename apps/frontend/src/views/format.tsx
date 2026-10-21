@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { Tag, Typography } from 'antd';
 import type { FormatKind } from '@fluid/shared';
 import { SafeImage } from './widgets/SafeImage';
+import { LazyCodeBlock, LazyMarkdown } from './widgets/richtext/lazy';
 
 // Value formatting shared by table cells, descriptions and (text parts of) widgets.
 
@@ -50,6 +51,8 @@ export function formatValue(value: unknown, kind?: FormatKind, options?: FormatO
     return kind === 'boolean' ? formatBoolean(value) : empty;
   }
 
+  if (kind === 'markdown' || kind === 'code') return formatText(value, kind);
+
   // A key crossing a nested list (e.g. "accounts.iban") resolves to many values.
   if (Array.isArray(value) && kind !== 'image') {
     if (value.length === 0) return empty;
@@ -89,4 +92,18 @@ export function formatValue(value: unknown, kind?: FormatKind, options?: FormatO
 function formatBoolean(value: unknown): ReactNode {
   const truthy = value === true || value === 'true' || value === 1;
   return <Tag color={truthy ? 'green' : 'default'}>{truthy ? 'Yes' : 'No'}</Tag>;
+}
+
+/** Markdown, or code: inline when it fits on one line, else a highlighted block. */
+function formatText(value: unknown, kind: 'markdown' | 'code'): ReactNode {
+  const values = Array.isArray(value) ? value : [value];
+  const text = values
+    .map((v) => (v != null && typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v ?? '')))
+    .join(kind === 'markdown' ? '\n\n' : '\n');
+  if (kind === 'code' && !text.includes('\n')) return <Typography.Text code>{text}</Typography.Text>;
+  return (
+    <Suspense fallback={text}>
+      {kind === 'markdown' ? <LazyMarkdown text={text} inline /> : <LazyCodeBlock code={text} />}
+    </Suspense>
+  );
 }

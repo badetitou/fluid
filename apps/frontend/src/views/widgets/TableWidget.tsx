@@ -1,12 +1,7 @@
 import { Table } from 'antd';
 import type { TableColumnsType } from 'antd';
-import { RightOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
 import type { Column, TableWidget as TableWidgetSpec } from '@fluid/shared';
-import { getPath } from '../data';
-import { formatValue } from '../format';
-import { getNavigationId } from '../../navigation/linkExtractor';
-import { useNavigationHref } from '../../navigation/columnPath';
+import { useCellRenderer } from './useCellRenderer';
 import { compareRows, filterOptions, humanize, inferColumns, matchesFilter, type Row } from './tableModel';
 
 const EMPTY_LABEL = '(empty)';
@@ -25,8 +20,7 @@ function interactions(col: Column, rows: Row[], widget: TableWidgetSpec): Partia
 }
 
 export function TableWidget({ widget, rows }: { widget: TableWidgetSpec; rows: Row[] }) {
-  const navigate = useNavigate();
-  const hrefFor = useNavigationHref();
+  const renderCell = useCellRenderer();
 
   const specs = widget.columns && widget.columns.length > 0 ? widget.columns : inferColumns(rows);
 
@@ -35,27 +29,7 @@ export function TableWidget({ widget, rows }: { widget: TableWidgetSpec; rows: R
     title: col.title ?? humanize(col.key),
     width: col.width,
     ...interactions(col, rows, widget),
-    render: (_value: unknown, record: Row) => {
-      const value = getPath(record, col.key);
-      const formatted = formatValue(value, col.format, { currency: col.currency });
-
-      // If the column has a linkTo config, render as a link
-      if (col.linkTo) {
-        const idFieldPath = col.linkTo.idField ?? 'id';
-        const idValue = getNavigationId(record, idFieldPath);
-
-        if (idValue) {
-          const href = hrefFor(col.linkTo.concept, idValue);
-          return (
-            <a onClick={() => navigate(href)} style={{ cursor: 'pointer' }}>
-              {formatted} <RightOutlined style={{ fontSize: 10 }} />
-            </a>
-          );
-        }
-      }
-
-      return formatted;
-    },
+    render: (_value: unknown, record: Row) => renderCell(col, record),
   }));
 
   const dataSource = rows.map((row, index) => ({

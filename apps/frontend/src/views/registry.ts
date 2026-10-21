@@ -3,6 +3,7 @@ import { keyFieldOf, type Concept } from '../graphql/introspection';
 import { guessFormat, humanize, pickLabelField } from './fieldHeuristics';
 
 export { buildDetailView, type RelatedConcepts } from './detailView';
+export { buildTreeView } from './treeView';
 
 // Resolves the views available for a concept: curated examples that ship with
 // Fluid, plus an auto-generated "overview" built from the introspected schema so

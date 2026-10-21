@@ -42,3 +42,32 @@ export function pickLabelField(scalars: ConceptField[]): ConceptField {
     scalars[0]
   );
 }
+
+/** How a long text property is best shown in full: Markdown or source code. */
+export type TextKind = 'markdown' | 'code';
+
+// Custom scalars and field names that announce Markdown or code. Plain `code`
+// is left out on purpose: it is usually a short identifier (country code…).
+const MARKDOWN_SCALARS = /^(markdown|md|richtext)$/i;
+const CODE_SCALARS = /^(json|jsonobject|jsonstring|code|sourcecode|yaml)$/i;
+const MARKDOWN_NAMES = /(markdown|readme|body|content|bodyText|changelog|notes)$/i;
+const CODE_NAMES = /(sourceCode|snippet|script|codeSnippet|codeBlock|sql|stylesheet|dockerfile|json|yaml)$/i;
+
+/** Whether a String-like scalar holds Markdown or code, from its type, name and description. */
+export function textKindOf(field: ConceptField): TextKind | undefined {
+  if (!field.isScalar || field.isList) return undefined;
+  if (MARKDOWN_SCALARS.test(field.typeName)) return 'markdown';
+  if (CODE_SCALARS.test(field.typeName)) return 'code';
+  if (field.typeName !== 'String') return undefined;
+  if (/\bmarkdown\b/i.test(field.description ?? '')) return 'markdown';
+  if (/\b(source code|code snippet)\b/i.test(field.description ?? '')) return 'code';
+  if (CODE_NAMES.test(field.name)) return 'code';
+  if (MARKDOWN_NAMES.test(field.name)) return 'markdown';
+  return undefined;
+}
+
+/** Code language implied by a field, when its type or name tells it. */
+export function codeLanguageOf(field: ConceptField): string | undefined {
+  const hint = `${field.typeName} ${field.name}`.toLowerCase();
+  return ['json', 'yaml', 'sql', 'graphql', 'python', 'css'].find((lang) => hint.includes(lang));
+}

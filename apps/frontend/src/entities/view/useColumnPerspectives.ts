@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { ViewSpec } from '@fluid/shared';
 import type { Concept, ConceptQueries } from '../../graphql/introspection';
-import { buildDetailView } from '../../views/registry';
+import { buildDetailView, buildTreeView } from '../../views/registry';
 import type { ColumnKind } from '../../views/viewScope';
 import { columnEntries, injectItemId, resolveActiveKey } from './model';
 import { useViews, type ViewEntry } from './useViews';
@@ -51,9 +51,16 @@ export function useColumnPerspectives(
       : null;
   }, [itemId, concept, conceptByName, queriesByType]);
 
+  // Concepts whose data forms a hierarchy also get a tree perspective in list columns.
+  const treeEntry = useMemo<ViewEntry | null>(() => {
+    if (itemId) return null;
+    const treeSpec = buildTreeView(concept, { conceptByName, queriesByType });
+    return treeSpec ? { key: treeSpec.id, title: treeSpec.title, source: 'auto', spec: treeSpec } : null;
+  }, [itemId, concept, conceptByName, queriesByType]);
+
   const entries = useMemo(
-    () => columnEntries(views.entries, columnKind, byIdField, detailEntry),
-    [views.entries, columnKind, byIdField, detailEntry],
+    () => columnEntries(treeEntry ? [...views.entries, treeEntry] : views.entries, columnKind, byIdField, detailEntry),
+    [views.entries, treeEntry, columnKind, byIdField, detailEntry],
   );
 
   const pickedKey = picked.concept === concept.name ? picked.key : undefined;
