@@ -50,7 +50,7 @@ export function AppHeader() {
         </Typography.Text>
       </div>
       <div className={styles.tools}>
-        <Tooltip title={compact ? 'Comfortable density' : 'Compact density'}>
+        <Tooltip placement="bottomRight" title={compact ? 'Comfortable density' : 'Compact density'}>
           <Button
             aria-label="Toggle density"
             size={size}
@@ -58,7 +58,7 @@ export function AppHeader() {
             onClick={toggleDensity}
           />
         </Tooltip>
-        <Tooltip title={themeMode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}>
+        <Tooltip placement="bottomRight" title={themeMode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}>
           <Button
             aria-label="Toggle theme"
             size={size}
@@ -66,7 +66,7 @@ export function AppHeader() {
             onClick={toggleThemeMode}
           />
         </Tooltip>
-        <Tooltip title={settings.open ? 'Close settings' : 'Settings'}>
+        <Tooltip placement="bottomRight" title={settings.open ? 'Close settings' : 'Settings'}>
           <Button
             size={size}
             aria-label={settings.open ? 'Close settings' : 'Settings'}
