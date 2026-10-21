@@ -61,17 +61,25 @@ export function resolveActiveKey(
   return has(preferred) ? preferred : entries[0]?.key;
 }
 
+/** Whether a GraphQL document declares an `$id` variable. */
+const DECLARES_ID = /\$id\s*:/;
+
 /**
- * Inject a drilled-in item id into the by-id query, but only when the view
- * actually reads from it (avoids firing an unused query for list views).
+ * Inject a drilled-in item id into the queries that read it: the by-id query,
+ * and any other query declaring an `$id` variable it was not given. Views that
+ * read neither are returned untouched (avoids firing an unused query for list views).
  */
 export function injectItemId(spec: ViewSpec, byIdField: string | undefined, itemId: string | undefined): ViewSpec {
-  if (!itemId || !byIdField || !spec.queries[byIdField]) return spec;
-  const query = spec.queries[byIdField];
-  return {
-    ...spec,
-    queries: { ...spec.queries, [byIdField]: { ...query, variables: { ...query.variables, id: itemId } } },
+  if (!itemId) return spec;
+  const reads = (key: string) => {
+    const query = spec.queries[key];
+    return key === byIdField || (DECLARES_ID.test(query.query) && query.variables?.id === undefined);
   };
+  const keys = Object.keys(spec.queries).filter(reads);
+  if (keys.length === 0) return spec;
+  const queries = { ...spec.queries };
+  for (const key of keys) queries[key] = { ...queries[key], variables: { ...queries[key].variables, id: itemId } };
+  return { ...spec, queries };
 }
 
 /** Widgets the new spec kept (same id) stay where they were arranged in `previous`. */

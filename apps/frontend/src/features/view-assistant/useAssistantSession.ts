@@ -12,6 +12,10 @@ export interface AssistantTarget {
   schema: ConceptSchemaPayload;
   /** List or detail column the view is made for. */
   scope?: ViewScope;
+  /** Item the column was opened on: the preview reads its data. */
+  itemId?: string;
+  /** Concept query reading one item by id (receives `itemId`). */
+  byIdField?: string;
 }
 
 /** A prompt sent to the model whose answer has not arrived yet. */

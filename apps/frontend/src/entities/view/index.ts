@@ -4,6 +4,7 @@ export { useViewMutations, type ViewMutations } from './useViewMutations';
 export { useSaveView, type SaveViewOptions, type SavedView } from './useSaveView';
 export { updateViewWidget } from './api';
 export {
+  injectItemId,
   newViewDraft,
   newViewId,
   preserveLayouts,

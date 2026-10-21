@@ -109,6 +109,20 @@ describe('injectItemId', () => {
     expect(injectItemId(byId, 'customer', '42')).toBe(byId);
     expect(injectItemId(byId, 'account', undefined)).toBe(byId);
   });
+
+  it('also fills queries declaring an unset $id variable', () => {
+    const view = spec('d', {
+      queries: {
+        added: { query: 'query A($id: ID!) { commit(id: $id) { added } }' },
+        fixed: { query: 'query B($id: ID!) { commit(id: $id) { x } }', variables: { id: '7' } },
+        list: { query: '{ commits { id } }' },
+      },
+    });
+    const { queries } = injectItemId(view, 'commit', '42');
+    expect(queries.added.variables).toEqual({ id: '42' });
+    expect(queries.fixed.variables).toEqual({ id: '7' });
+    expect(queries.list.variables).toBeUndefined();
+  });
 });
 
 describe('preserveLayouts', () => {

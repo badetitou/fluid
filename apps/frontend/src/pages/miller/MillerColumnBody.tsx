@@ -101,7 +101,7 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
       </div>
       <ColumnDialogs
         dialogs={c.dialogs}
-        target={{ concept: concept.name, schema: c.schema, scope: columnKind }}
+        target={{ concept: concept.name, schema: c.schema, scope: columnKind, itemId, byIdField: concept.queries.byId?.field }}
         onSaved={c.onSaved}
       />
     </>

@@ -93,7 +93,7 @@ export function ViewAssistantModal({ target, editing, onClose, onSaved, onOpenJs
         <Splitter.Panel min={360}>
           <AssistantPreview
             session={session}
-            concept={target.concept}
+            target={target}
             isDefault={isDefault}
             onDefaultChange={setIsDefault}
             saveError={error}
