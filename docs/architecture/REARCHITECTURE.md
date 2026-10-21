@@ -1,6 +1,7 @@
 # Réarchitecture de fluid : vers des mini composants
 
-> Statut : **proposition** (2026-10-21). Rien n'est migré. Ce document fixe la cible, les règles,
+> Statut : **en cours** (2026-10-21). Frontend migré (étapes 0 partielle, 1, 3, 4, 5 ; 2 côté frontend) —
+> voir `health-log.md`. Restent : CI/ESLint, catalogue côté shared/BFF, BFF en modules. Ce document fixe la cible, les règles,
 > et l'ordre de migration. Les règles applicables au quotidien sont résumées dans `CLAUDE.md`,
 > qu'utilise l'agent `practices-guardian` (`.claude/agents/practices-guardian.md`).
 

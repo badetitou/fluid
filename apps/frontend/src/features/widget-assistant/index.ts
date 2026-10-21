@@ -1,0 +1,1 @@
+export { WidgetAssistantAction } from './WidgetAssistantAction';

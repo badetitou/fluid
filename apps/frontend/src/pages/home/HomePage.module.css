@@ -1,0 +1,11 @@
+.title {
+  margin-bottom: 4px !important;
+}
+
+.card {
+  height: 100%;
+}
+
+.description {
+  min-height: 44px;
+}

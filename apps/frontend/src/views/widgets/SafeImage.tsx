@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button, Checkbox, Image, Popconfirm, Space, Tooltip, Typography } from 'antd';
 import { PictureOutlined, WarningOutlined } from '@ant-design/icons';
 import { checkImageUrl, isHostTrusted, trustHost } from '../imageSafety';
+import styles from './SafeImage.module.css';
 
 const SIZE = 96;
 
@@ -21,9 +22,9 @@ export function SafeImage({ value }: { value: unknown }) {
     return (
       <Space size={4}>
         <Tooltip title={`Image blocked: ${check.reason}`}>
-          <WarningOutlined style={{ color: 'var(--ant-color-warning, #faad14)' }} />
+          <WarningOutlined className={styles.warning} />
         </Tooltip>
-        <Typography.Text type="secondary" style={{ wordBreak: 'break-all' }}>
+        <Typography.Text type="secondary" className={styles.breakAll}>
           {String(value)}
         </Typography.Text>
       </Space>
@@ -37,8 +38,8 @@ export function SafeImage({ value }: { value: unknown }) {
       <Popconfirm
         title={`Load an image from ${host}?`}
         description={
-          <Space direction="vertical" size={4} style={{ maxWidth: 280 }}>
-            <Typography.Text type="secondary" style={{ wordBreak: 'break-all' }}>
+          <Space orientation="vertical" size={4} className={styles.prompt}>
+            <Typography.Text type="secondary" className={styles.breakAll}>
               {href}
             </Typography.Text>
             <Typography.Text type="secondary">
@@ -65,7 +66,7 @@ export function SafeImage({ value }: { value: unknown }) {
 
   if (failed) {
     return (
-      <Typography.Text type="secondary" style={{ wordBreak: 'break-all' }}>
+      <Typography.Text type="secondary" className={styles.breakAll}>
         {href}
       </Typography.Text>
     );
@@ -77,7 +78,7 @@ export function SafeImage({ value }: { value: unknown }) {
       alt=""
       width={SIZE}
       height={SIZE}
-      style={{ objectFit: 'cover', borderRadius: 6 }}
+      className={styles.image}
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
     />

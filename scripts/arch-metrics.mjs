@@ -68,10 +68,22 @@ const styleHeavy = src.filter((f) => f.inlineStyles > LIMITS.inlineStylesPerFile
 const bffLeaks = src.filter(
   (f) => f.importsBffClient && f.path.startsWith('apps/frontend/') && !BFF_CLIENT_ALLOWED.some((p) => f.path.startsWith(p)),
 );
-// Layering: the view rendering engine must not reach back into app components.
-const layerViolations = src.filter(
-  (f) => f.path.startsWith('apps/frontend/src/views/') && f.imports.some((i) => i.includes('/components/')),
-);
+// Layering (CLAUDE.md rule 2): app → pages → features → entities → engine → shared,
+// imports go down only. `views/` is today's engine; `components/` is the legacy UI folder.
+const FRONTEND = 'apps/frontend/src/';
+const FORBIDDEN_IMPORTS = {
+  'views/': ['/components/', '/features/', '/pages/', '/app/', '/entities/'],
+  'entities/': ['/components/', '/features/', '/pages/', '/app/'],
+  'features/': ['/pages/', '/app/'],
+  'pages/': ['/app/'],
+  'shared/': ['/components/', '/features/', '/pages/', '/app/', '/entities/', '/views/'],
+};
+const layerViolations = src.filter((f) => {
+  if (!f.path.startsWith(FRONTEND)) return false;
+  const rel = f.path.slice(FRONTEND.length);
+  const layer = Object.keys(FORBIDDEN_IMPORTS).find((l) => rel.startsWith(l));
+  return layer && f.imports.some((i) => FORBIDDEN_IMPORTS[layer].some((bad) => `/${i}`.includes(bad)));
+});
 
 const frontendSrc = src.filter((f) => f.path.startsWith('apps/frontend/'));
 const testedRatio =
@@ -110,7 +122,7 @@ if (process.argv.includes('--json')) {
   console.log(`  oversized files ......... ${t.oversizedFiles}  (tsx > ${LIMITS.componentLines}, ts > ${LIMITS.moduleLines})`);
   console.log(`  style-heavy files ....... ${t.styleHeavyFiles}  (${t.inlineStyles} inline style objects)`);
   console.log(`  bffClient in components . ${t.bffClientLeaks}`);
-  console.log(`  views/ → components/ .... ${t.layerViolations}`);
+  console.log(`  layer violations ........ ${t.layerViolations}`);
   console.log(`  explicit any ............ ${t.anys}`);
   console.log(`  TODO/FIXME .............. ${t.todos}`);
   console.log(`  frontend test ratio ..... ${t.frontendTestRatio}`);
@@ -118,5 +130,5 @@ if (process.argv.includes('--json')) {
   list('Oversized:', report.oversized.map((f) => `${f.path} (${f.lines})`));
   list('Style-heavy:', report.styleHeavy.map((f) => `${f.path} (${f.inlineStyles})`));
   list('bffClient outside hooks/entities:', report.bffClientLeaks);
-  list('views/ importing components/:', report.layerViolations);
+  list('Imports going up a layer:', report.layerViolations);
 }

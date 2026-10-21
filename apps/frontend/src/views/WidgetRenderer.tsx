@@ -1,47 +1,24 @@
+import { memo, Suspense, type ComponentType } from 'react';
+import { Skeleton } from 'antd';
 import type { Widget } from '@fluid/shared';
-import { asObject, asRows, resolveBinding } from './data';
+import { resolveBinding } from './data';
 import type { ViewData } from './useViewData';
-import { TableWidget } from './widgets/TableWidget';
-import { StatisticWidget } from './widgets/StatisticWidget';
-import { DescriptionsWidget } from './widgets/DescriptionsWidget';
-import {
-  AreaChartWidget,
-  BarChartWidget,
-  LineChartWidget,
-  PieChartWidget,
-} from './widgets/charts';
+import { WIDGET_RENDERERS, type WidgetRendererProps } from './widgets/catalog';
 
-/**
- * Resolves a widget's data binding and renders the matching widget component.
- * `fitHeight` makes charts fill a fixed-size grid cell.
- */
-export function WidgetBody({
-  widget,
-  view,
-  fitHeight,
-}: {
+interface WidgetBodyProps {
   widget: Widget;
   view: ViewData;
+  /** Makes charts fill a fixed-size grid cell. */
   fitHeight?: number;
-}) {
-  const resolved = resolveBinding(widget.data, view.results);
-
-  switch (widget.type) {
-    case 'table':
-      return <TableWidget widget={widget} rows={asRows(resolved)} />;
-    case 'statistic':
-      return <StatisticWidget widget={widget} data={resolved} />;
-    case 'descriptions':
-      return <DescriptionsWidget widget={widget} object={asObject(resolved)} />;
-    case 'line':
-      return <LineChartWidget widget={widget} rows={asRows(resolved)} fitHeight={fitHeight} />;
-    case 'bar':
-      return <BarChartWidget widget={widget} rows={asRows(resolved)} fitHeight={fitHeight} />;
-    case 'area':
-      return <AreaChartWidget widget={widget} rows={asRows(resolved)} fitHeight={fitHeight} />;
-    case 'pie':
-      return <PieChartWidget widget={widget} rows={asRows(resolved)} fitHeight={fitHeight} />;
-    default:
-      return null;
-  }
 }
+
+/** Resolves a widget's data binding and renders it with the catalog's renderer for its type. */
+export const WidgetBody = memo(function WidgetBody({ widget, view, fitHeight }: WidgetBodyProps) {
+  const Render = WIDGET_RENDERERS[widget.type] as ComponentType<WidgetRendererProps> | undefined;
+  if (!Render) return null;
+  return (
+    <Suspense fallback={<Skeleton active />}>
+      <Render widget={widget} data={resolveBinding(widget.data, view.results)} fitHeight={fitHeight} />
+    </Suspense>
+  );
+});

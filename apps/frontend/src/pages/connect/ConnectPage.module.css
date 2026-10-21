@@ -1,0 +1,41 @@
+.page {
+  min-height: 100vh;
+  padding: 24px;
+  background: linear-gradient(135deg, var(--ant-color-primary) 0%, #0b1021 100%);
+}
+
+.card {
+  width: 500px;
+  max-width: 100%;
+}
+
+.intro {
+  margin-bottom: 24px;
+}
+
+.logo {
+  font-size: 28px;
+  color: var(--ant-color-primary);
+}
+
+.title {
+  margin: 0 !important;
+}
+
+.divider {
+  margin: 20px 0 16px !important;
+}
+
+.steps {
+  margin: 0;
+  padding-inline-start: 20px;
+  color: var(--ant-color-text-secondary);
+}
+
+.tag {
+  margin-inline-end: 0;
+}
+
+.small {
+  font-size: 12px;
+}

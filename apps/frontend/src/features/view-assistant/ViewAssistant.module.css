@@ -1,0 +1,116 @@
+.splitter {
+  height: 72vh;
+  margin-top: 8px;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-right: 12px;
+}
+
+.toolbar {
+  padding-bottom: 8px;
+}
+
+.tag {
+  margin-inline-end: 0;
+}
+
+.scroll {
+  flex: 1;
+  overflow: auto;
+  padding-block: 4px;
+}
+
+.full {
+  width: 100%;
+}
+
+.composer {
+  padding-top: 8px;
+}
+
+.hint {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.tallButton {
+  height: auto !important;
+}
+
+.pre {
+  white-space: pre-wrap;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.tiny {
+  font-size: 11px;
+}
+
+.block {
+  display: block;
+}
+
+.error {
+  white-space: pre-wrap;
+  font-size: 12px;
+}
+
+.live {
+  margin: 8px 0 0;
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 11px;
+}
+
+.thinking {
+  color: var(--ant-color-text-tertiary);
+  font-style: italic;
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  padding-left: 12px;
+}
+
+.canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--ant-color-border-secondary);
+  transition: opacity 0.3s;
+}
+
+.dimmed {
+  opacity: 0.6;
+}
+
+.centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+/* Hides the animated beam (antd's own class would otherwise win on order). */
+.hidden {
+  display: none !important;
+}
+
+.versionSelect {
+  min-width: 140px;
+}

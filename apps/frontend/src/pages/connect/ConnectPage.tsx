@@ -1,0 +1,61 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button, Card, Divider, Flex, Form, Input, Typography } from 'antd';
+import { ApiOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { DEFAULT_GRAPHQL_URL } from '../../runtime-config';
+import { useConnection } from '../../store';
+import { DemoPicker } from './DemoPicker';
+import styles from './ConnectPage.module.css';
+
+/** Entry screen: connect to a GraphQL endpoint, or to one of the demo sources. */
+export function ConnectPage() {
+  const navigate = useNavigate();
+  const connect = useConnection((s) => s.connect);
+  const [url, setUrl] = useState(DEFAULT_GRAPHQL_URL);
+
+  const connectTo = (target: string) => {
+    if (!target.trim()) return;
+    connect(target);
+    navigate('/', { replace: true });
+  };
+
+  return (
+    <Flex align="center" justify="center" className={styles.page}>
+      <Card className={styles.card} variant="borderless">
+        <Flex vertical gap={8} className={styles.intro}>
+          <Flex align="center" gap={12}>
+            <ThunderboltOutlined className={styles.logo} />
+            <Typography.Title level={2} className={styles.title}>
+              fluid
+            </Typography.Title>
+          </Flex>
+          <Typography.Text type="secondary">
+            Connect to a GraphQL source and explore its concepts — no pre-built screens, just your data.
+          </Typography.Text>
+        </Flex>
+
+        <Form layout="vertical" onFinish={() => connectTo(url)}>
+          <Form.Item label="GraphQL endpoint" required>
+            <Input
+              size="large"
+              prefix={<ApiOutlined />}
+              placeholder="https://example.com/graphql"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              autoFocus
+            />
+          </Form.Item>
+          <Button type="primary" size="large" htmlType="submit" block disabled={!url.trim()}>
+            Connect
+          </Button>
+        </Form>
+
+        <Divider plain className={styles.divider}>
+          New to Fluid? Try a demo
+        </Divider>
+
+        <DemoPicker onConnect={connectTo} />
+      </Card>
+    </Flex>
+  );
+}

@@ -1,0 +1,74 @@
+.root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--ant-border-radius);
+  background: var(--ant-color-bg-layout);
+}
+
+.columns {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+.column {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.divided {
+  border-right: 1px solid var(--ant-color-border-secondary);
+}
+
+.hidden {
+  display: none;
+}
+
+.pager {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 2px 4px;
+  border-radius: 999px;
+  background: var(--ant-color-bg-elevated);
+  box-shadow: var(--ant-box-shadow-tertiary);
+  opacity: 0.45;
+  transform: translateX(-50%);
+  transition: opacity var(--ant-motion-duration-mid);
+}
+
+.pager:hover {
+  opacity: 1;
+}
+
+.boxes {
+  display: flex;
+  gap: 3px;
+  max-width: 60vw;
+  overflow-x: auto;
+}
+
+.box {
+  flex-shrink: 0;
+  width: 10px;
+  height: 14px;
+  padding: 0;
+  border-radius: 2px;
+  border: 1px solid var(--ant-color-border);
+  background: transparent;
+  cursor: pointer;
+}
+
+.shown {
+  border-color: var(--ant-color-primary);
+  background: var(--ant-color-primary-bg);
+}

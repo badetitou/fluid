@@ -1,0 +1,22 @@
+.page {
+  max-width: 800px;
+}
+
+.full {
+  width: 100%;
+}
+
+.url {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.grow {
+  flex: 1;
+}
+
+.control {
+  margin-top: 8px;
+}

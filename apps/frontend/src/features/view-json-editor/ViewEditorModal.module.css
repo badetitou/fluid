@@ -1,0 +1,16 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.code {
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.error {
+  margin: 0;
+  white-space: pre-wrap;
+}

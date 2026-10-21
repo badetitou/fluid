@@ -1,0 +1,67 @@
+import { Alert, BorderBeam, Checkbox, Empty, Flex, Space, Typography } from 'antd';
+import { LoadingOutlined } from '@ant-design/icons';
+import { ViewRenderer } from '../../views/ViewRenderer';
+import type { AssistantSession } from './useAssistantSession';
+import { VersionSelect } from './VersionSelect';
+import styles from './ViewAssistant.module.css';
+
+interface AssistantPreviewProps {
+  session: AssistantSession;
+  concept: string;
+  isDefault: boolean;
+  onDefaultChange: (isDefault: boolean) => void;
+  saveError: string | null;
+}
+
+/** Right pane of the assistant: the selected version rendered live. */
+export function AssistantPreview({ session, concept, isDefault, onDefaultChange, saveError }: AssistantPreviewProps) {
+  const { spec, specs, activeVersion, latestVersion } = session;
+  const generating = session.pending !== null;
+
+  return (
+    <div className={styles.preview}>
+      <Flex align="center" justify="space-between" gap={8} wrap>
+        <Space size={8}>
+          <Typography.Text strong>Preview</Typography.Text>
+          {activeVersion !== null && (
+            <VersionSelect
+              versions={[...specs.keys()]}
+              value={activeVersion}
+              latest={latestVersion}
+              onChange={session.select}
+            />
+          )}
+          {generating && (
+            <Typography.Text type="secondary" className={styles.small}>
+              <LoadingOutlined /> generating a new version…
+            </Typography.Text>
+          )}
+        </Space>
+        {spec && (
+          <Checkbox checked={isDefault} onChange={(e) => onDefaultChange(e.target.checked)}>
+            Default view for {concept}
+          </Checkbox>
+        )}
+      </Flex>
+      {saveError && <Alert type="error" showIcon title="Save failed" description={saveError} />}
+      <BorderBeam className={generating ? undefined : styles.hidden} lineWidth={2}>
+        <div className={`${styles.canvas} ${generating ? styles.dimmed : ''}`}>
+          {spec ? (
+            <ViewRenderer key={`${activeVersion}-${spec.id}`} spec={spec} />
+          ) : (
+            <div className={styles.centered}>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  generating
+                    ? 'The assistant is building your view…'
+                    : 'No preview yet — describe a view in the chat.'
+                }
+              />
+            </div>
+          )}
+        </div>
+      </BorderBeam>
+    </div>
+  );
+}

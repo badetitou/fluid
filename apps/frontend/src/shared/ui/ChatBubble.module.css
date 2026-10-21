@@ -1,0 +1,46 @@
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.user {
+  justify-content: flex-end;
+}
+
+.avatar {
+  margin-top: 8px;
+  color: var(--ant-color-text-tertiary);
+}
+
+.assistantAvatar {
+  margin-top: 8px;
+  color: var(--ant-color-primary);
+}
+
+.bubble {
+  position: relative;
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--ant-color-border-secondary);
+  background: var(--ant-color-fill-quaternary);
+}
+
+.user .bubble {
+  border-color: var(--ant-color-primary-border);
+  background: var(--ant-color-primary-bg);
+}
+
+.active {
+  border-color: var(--ant-color-primary-border);
+}
+
+.error {
+  border-color: var(--ant-color-error-border);
+  background: var(--ant-color-error-bg);
+}
+
+.grow {
+  flex: 1;
+}

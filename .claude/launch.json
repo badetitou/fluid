@@ -9,6 +9,27 @@
         "dev"
       ],
       "port": 3000
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@fluid/frontend",
+        "exec",
+        "vite",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "bff",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@fluid/bff", "run", "dev"],
+      "port": 4001,
+      "autoPort": false
     }
   ]
 }
