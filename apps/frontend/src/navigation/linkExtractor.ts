@@ -67,12 +67,16 @@ export function extractDescriptionLinks(widget: DescriptionsWidget): Map<string,
  * getNestedValue({ customer: { id: '123' } }, 'customer.id') // '123'
  * getNestedValue({ accounts: [{ id: 'A1' }] }, 'accounts[0].id') // 'A1'
  */
-export function getNestedValue(obj: any, path: string): any {
+export function getNestedValue(obj: unknown, path: string): unknown {
   return path
     .replace(/\[(\w+)\]/g, '.$1')
     .split('.')
     .filter(Boolean)
-    .reduce((current, prop) => current?.[prop], obj);
+    .reduce<unknown>(
+      (current, prop) =>
+        current != null && typeof current === 'object' ? (current as Record<string, unknown>)[prop] : undefined,
+      obj,
+    );
 }
 
 /**

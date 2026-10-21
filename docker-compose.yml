@@ -1,9 +1,8 @@
 # Local development stack for fluid.
-# Starts a PostgreSQL instance shared by @fluid/backend-demo (bank) and @fluid/bff (views).
+# Starts the PostgreSQL instance used by @fluid/bff (views, preferences).
 #
 # Usage:
 #   docker compose up -d
-#   # then per package: pnpm --filter @fluid/backend-demo prisma:migrate && ... prisma:seed && ... dev
 
 services:
   postgres:

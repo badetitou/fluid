@@ -1,0 +1,27 @@
+.card {
+  height: 100%;
+}
+
+.fillCard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chartBody,
+.scrollBody {
+  flex: 1;
+  min-height: 0;
+}
+
+.chartBody {
+  overflow: hidden;
+}
+
+.scrollBody {
+  overflow: auto;
+}
+
+.warning {
+  margin-bottom: 16px;
+}

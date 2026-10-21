@@ -16,7 +16,7 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-# --- Bundled PostgreSQL (shared by the demo bank and the BFF) ---------------
+# --- Bundled PostgreSQL (used by the BFF) ------------------------------------
 postgres:
   enabled: true
   image:
@@ -51,31 +51,6 @@ externalDatabase:
   password: ""
   database: fluid
 
-# --- Demo bank GraphQL API --------------------------------------------------
-backendDemo:
-  enabled: true
-  image:
-    repository: fluid-backend-demo
-    tag: ""
-  replicas: 1
-  # Prisma schema used inside the shared database.
-  dbSchema: public
-  service:
-    port: 4000
-  # Seed the bank with faker data via a post-install Job.
-  seed:
-    enabled: true
-    # Also run the (destructive) seed on `helm upgrade`. Off by default so
-    # upgrades keep existing data.
-    onUpgrade: false
-  resources:
-    requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      cpu: "1"
-      memory: 512Mi
-
 # --- Fluid BFF (views/preferences persistence + LLM proxy) ------------------
 bff:
   enabled: true
@@ -107,7 +82,7 @@ bff:
       cpu: "1"
       memory: 512Mi
 
-# --- Frontend (nginx: static SPA + reverse proxy to BFF/backend) ------------
+# --- Frontend (nginx: static SPA + reverse proxy to the BFF) ---------------
 frontend:
   enabled: true
   image:
@@ -118,10 +93,10 @@ frontend:
     # External service port; container listens on 8080.
     port: 80
   # Browser-facing runtime config written to /config.js at container start.
-  # Empty bffUrl => same origin (nginx proxies /api). "/graphql" => same origin.
+  # Empty bffUrl => same origin (nginx proxies /api).
   runtimeConfig:
     bffUrl: ""
-    defaultGraphqlUrl: "/graphql"
+    defaultGraphqlUrl: "https://rickandmortyapi.com/graphql"
     # Hosts the "image" format may load pictures from ("*.domain" for subdomains).
     # Empty => any https host; images are always loaded only after a user click.
     imageHosts: []

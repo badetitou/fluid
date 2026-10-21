@@ -1,0 +1,23 @@
+.full {
+  width: 100%;
+}
+
+.spaced {
+  margin-top: 8px;
+}
+
+.proposal {
+  padding: 12px;
+  border-radius: 4px;
+  background: var(--ant-color-fill-tertiary);
+}
+
+.json {
+  margin-top: 8px;
+  max-height: 300px;
+  overflow: auto;
+}
+
+.trigger {
+  cursor: pointer;
+}

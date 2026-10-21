@@ -24,7 +24,6 @@ extensible widget catalog built on [Ant Design](https://ant.design/) and
 | --- | --- | --- |
 | `apps/frontend` (`@fluid/frontend`) | React + Vite + TypeScript, Ant Design, @ant-design/plots, urql, react-router | Connect to GraphQL → explore concepts → render views → LLM view-builder chat |
 | `apps/bff` (`@fluid/bff`) | Node + TypeScript, Prisma | LLM proxy (OpenAI + Ollama), view persistence, preferences |
-| `apps/backend-demo` (`@fluid/backend-demo`) | GraphQL Yoga + Pothos + Prisma | Demo **bank** GraphQL API (Customer, Account, Transaction, Card, Beneficiary, Transfer) seeded with faker |
 
 Shared types (view spec, zod schemas) live in `packages/shared`.
 
@@ -41,19 +40,19 @@ Shared types (view spec, zod schemas) live in `packages/shared`.
 # 1. install dependencies
 pnpm install
 
-# 2. start PostgreSQL (shared by backend-demo and bff)
+# 2. start PostgreSQL (used by the bff)
 docker compose up -d
 
-# 3. set up the demo bank database
-pnpm --filter @fluid/backend-demo prisma:migrate
-pnpm --filter @fluid/backend-demo seed
+# 3. create the bff tables
+pnpm --filter @fluid/bff prisma:migrate
 
 # 4. run everything in dev mode
 pnpm dev
 ```
 
-The demo GraphQL API defaults to <http://localhost:4000/graphql> (GraphiQL enabled). The frontend
-pre-fills this URL on its connection screen.
+fluid has no GraphQL backend of its own: the connection screen is pre-filled with the public
+[Rick and Morty API](https://rickandmortyapi.com/graphql) and offers a few other public demo
+sources. Any CORS-enabled GraphQL endpoint with introspection works.
 
 ## Generating views with your Claude subscription
 
@@ -76,21 +75,19 @@ This provider is meant for local use: the container images do not include the CL
 ## Deployment
 
 Everything is containerized and deployed by a single parameterizable **Helm chart**
-(`charts/fluid`) that runs the frontend, the BFF, the demo bank, and PostgreSQL.
+(`charts/fluid`) that runs the frontend, the BFF, and PostgreSQL.
 
 ### Images
 
-Three images are built from the repo root (multi-stage; the frontend is served by nginx,
-which also reverse-proxies `/api` → BFF and `/graphql` → backend-demo so the whole app
-lives on one origin):
+Two images are built from the repo root (multi-stage; the frontend is served by nginx,
+which also reverse-proxies `/api` → BFF so the whole app lives on one origin):
 
 ```bash
-docker build -f apps/backend-demo/Dockerfile -t fluid-backend-demo:dev .
-docker build -f apps/bff/Dockerfile           -t fluid-bff:dev .
-docker build -f apps/frontend/Dockerfile      -t fluid-frontend:dev .
+docker build -f apps/bff/Dockerfile      -t fluid-bff:dev .
+docker build -f apps/frontend/Dockerfile -t fluid-frontend:dev .
 ```
 
-GitHub Actions publishes them to GHCR as `ghcr.io/<owner>/fluid-{frontend,bff,backend-demo}`
+GitHub Actions publishes them to GHCR as `ghcr.io/<owner>/fluid-{frontend,bff}`
 on pushes to `main` and version tags (`v*`); the `CI` workflow runs typecheck, frontend
 build, `helm lint`, and manifest validation.
 
@@ -98,17 +95,16 @@ build, `helm lint`, and manifest validation.
 
 ```bash
 # build (above), then load the images into the cluster
-kind load docker-image fluid-backend-demo:dev fluid-bff:dev fluid-frontend:dev
+kind load docker-image fluid-bff:dev fluid-frontend:dev
 
 helm install fluid charts/fluid -f charts/fluid/values-local.yaml \
   --set ingress.enabled=false --namespace fluid --create-namespace
 
 kubectl port-forward -n fluid svc/fluid-frontend 8080:80
-# open http://localhost:8080/  (Connect is pre-filled with /graphql)
+# open http://localhost:8080/
 ```
 
-A post-install Job seeds the demo bank; init-containers run `prisma migrate deploy`
-before each service starts.
+An init-container runs `prisma migrate deploy` before the BFF starts.
 
 ### Cloud
 

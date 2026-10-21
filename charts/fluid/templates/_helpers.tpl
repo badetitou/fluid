@@ -24,7 +24,6 @@ Fully qualified release name.
 {{/* Per-component resource names. */}}
 {{- define "fluid.frontend.fullname" -}}{{ include "fluid.fullname" . }}-frontend{{- end -}}
 {{- define "fluid.bff.fullname" -}}{{ include "fluid.fullname" . }}-bff{{- end -}}
-{{- define "fluid.backendDemo.fullname" -}}{{ include "fluid.fullname" . }}-backend-demo{{- end -}}
 {{- define "fluid.postgres.fullname" -}}{{ include "fluid.fullname" . }}-postgres{{- end -}}
 {{- define "fluid.db.secretName" -}}{{ include "fluid.fullname" . }}-db{{- end -}}
 {{- define "fluid.llm.secretName" -}}{{ include "fluid.fullname" . }}-llm{{- end -}}

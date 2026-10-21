@@ -1,0 +1,16 @@
+.warning {
+  color: var(--ant-color-warning, #faad14);
+}
+
+.breakAll {
+  word-break: break-all;
+}
+
+.prompt {
+  max-width: 280px;
+}
+
+.image {
+  object-fit: cover;
+  border-radius: 6px;
+}

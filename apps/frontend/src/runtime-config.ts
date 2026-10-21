@@ -40,7 +40,7 @@ export const BFF_URL = pick(
 export const DEFAULT_GRAPHQL_URL = pick(
   runtime.defaultGraphqlUrl,
   import.meta.env.VITE_DEFAULT_GRAPHQL_URL,
-  'http://localhost:4000/graphql',
+  'https://rickandmortyapi.com/graphql',
 );
 
 export const IMAGE_HOSTS: string[] = Array.isArray(runtime.imageHosts)

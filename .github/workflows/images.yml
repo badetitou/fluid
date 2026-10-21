@@ -29,8 +29,6 @@ jobs:
             dockerfile: apps/frontend/Dockerfile
           - component: bff
             dockerfile: apps/bff/Dockerfile
-          - component: backend-demo
-            dockerfile: apps/backend-demo/Dockerfile
     steps:
       - uses: actions/checkout@v4
 

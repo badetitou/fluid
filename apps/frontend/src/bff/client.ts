@@ -1,4 +1,4 @@
-import type { ViewScope, ViewSpec } from '@fluid/shared';
+import type { ViewScope, ViewSpec, Widget } from '@fluid/shared';
 import { BFF_URL } from '../runtime-config';
 
 // Thin fetch wrapper around the Fluid BFF REST API (view persistence + prefs).
@@ -105,14 +105,15 @@ export interface GenerateWidgetPayload {
   concept: string;
   schema: ConceptSchemaPayload;
   prompt: string;
-  existingWidget?: any;
+  existingWidget?: Widget;
   viewQueries?: Record<string, string>;
   history?: ChatMessage[];
   config?: LlmConfigOverrides;
 }
 
 export interface GenerateWidgetResponse {
-  widget: any;
+  /** Unvalidated: parse it with `widgetSchema` before use. */
+  widget: unknown;
   provider: LlmProvider;
   model: string;
   reasoning?: string[];
@@ -227,7 +228,7 @@ export const bffClient = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
-  updateViewWidget: (viewId: string, widgetId: string, widget: any) =>
+  updateViewWidget: (viewId: string, widgetId: string, widget: Widget) =>
     request<SavedView>(`/api/views/${encodeURIComponent(viewId)}/widgets/${encodeURIComponent(widgetId)}`, {
       method: 'PATCH',
       body: JSON.stringify({ widget }),
