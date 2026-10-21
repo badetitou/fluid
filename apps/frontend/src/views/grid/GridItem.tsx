@@ -12,6 +12,9 @@ export interface GridItemEditing {
   onKeyDown: (e: React.KeyboardEvent) => void;
   onRemove: () => void;
   onResize: (w: number, h: number) => void;
+  /** Whether its options are being edited. */
+  selected: boolean;
+  onSelect: () => void;
 }
 
 interface GridItemProps {
@@ -47,6 +50,7 @@ export function GridItem({ label, rect, editing, children }: GridItemProps) {
     styles.editable,
     dragMode && styles.dragged,
     dragMode === 'move' && styles.lifted,
+    editing.selected && styles.selected,
   ]
     .filter(Boolean)
     .join(' ');
@@ -57,7 +61,9 @@ export function GridItem({ label, rect, editing, children }: GridItemProps) {
         className={className}
         role="group"
         aria-label={`Widget ${label}`}
+        aria-selected={editing.selected}
         tabIndex={0}
+        onClick={editing.onSelect}
         onPointerDown={(e) => editing.onPointerDown(e, 'move')}
         onKeyDown={editing.onKeyDown}
         style={rect}

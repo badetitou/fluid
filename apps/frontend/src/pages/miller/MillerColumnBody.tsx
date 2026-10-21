@@ -2,6 +2,7 @@ import type { Concept } from '../../entities/concept';
 import { LayoutEditToolbar, LayoutHint } from '../../features/layout-editor';
 import { PerspectiveMenu } from '../../features/perspective-menu';
 import { PerspectivePills } from '../../features/perspective-switcher';
+import { WidgetSidePanel } from '../../features/widget-builder';
 import { usePreferences } from '../../store';
 import { ViewRenderer } from '../../views/ViewRenderer';
 import { ColumnActions } from './ColumnActions';
@@ -61,7 +62,7 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
     <LayoutEditToolbar editor={layout} busy={mutations.busy} compact={compact} />
   ) : (
     <ColumnActions
-      onEditLayout={spec && bffAvailable && spec.widgets.length > 0 ? () => layout.start(spec.widgets) : undefined}
+      onEditLayout={spec && bffAvailable ? () => layout.start(spec.widgets) : undefined}
       menu={
         <PerspectiveMenu
           state={{ selected, bffAvailable, concept: concept.name, pinnable: c.pinning.pinnable }}
@@ -75,6 +76,27 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
     />
   );
 
+  const shown = spec && layout.widgets ? { ...spec, widgets: layout.widgets } : spec;
+  const body = (
+    <div className={styles.body}>
+      {shown ? (
+        <div className={styles.padded}>
+          <ViewRenderer
+            key={selected?.key}
+            spec={shown}
+            editingLayout={layout.editing}
+            onWidgetsChange={layout.change}
+            selectedWidgetId={layout.selected?.id}
+            onSelectWidget={layout.select}
+            renderWidgetActions={c.renderWidgetActions}
+          />
+        </div>
+      ) : (
+        <ColumnEmpty loading={loading} onCreate={createWithAssistant} />
+      )}
+    </div>
+  );
+
   return (
     <>
       <ColumnHeader
@@ -84,21 +106,14 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
         actions={actions}
         page={mode === 'page'}
       />
-      <div className={styles.body}>
-        {spec ? (
-          <div className={styles.padded}>
-            <ViewRenderer
-              key={selected?.key}
-              spec={layout.widgets ? { ...spec, widgets: layout.widgets } : spec}
-              editingLayout={layout.editing}
-              onWidgetsChange={layout.change}
-              renderWidgetActions={c.renderWidgetActions}
-            />
-          </div>
-        ) : (
-          <ColumnEmpty loading={loading} onCreate={createWithAssistant} />
-        )}
-      </div>
+      {layout.editing && shown ? (
+        <div className={styles.editing}>
+          {body}
+          <WidgetSidePanel spec={shown} editor={layout} />
+        </div>
+      ) : (
+        body
+      )}
       <ColumnDialogs
         dialogs={c.dialogs}
         target={{ concept: concept.name, schema: c.schema, scope: columnKind }}
