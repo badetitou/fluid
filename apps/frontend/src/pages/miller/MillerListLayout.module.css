@@ -56,7 +56,7 @@
   border-radius: 999px;
   background: var(--ant-color-bg-elevated);
   box-shadow: var(--ant-box-shadow-tertiary);
-  opacity: 0.45;
+  opacity: 0.7;
   transform: translateX(-50%);
   transition: opacity var(--ant-motion-duration-mid);
 }
@@ -88,44 +88,64 @@
   background: var(--ant-color-primary-bg);
 }
 
-/* The boxes scroll; the window frame is placed over them in box coordinates. */
+/* The boxes scroll; the padding leaves room for the frame and its grips. */
 .boxes {
   position: relative;
+  padding: 4px 8px;
 }
 
-/* Frame over the highlighted boxes; only its edge grips catch the pointer. */
+/* Frame around the highlighted boxes; only its edge grips catch the pointer. */
 .window {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: 2px;
+  bottom: 2px;
+  margin-left: 5px;
+  padding: 0 2px;
+  box-sizing: content-box;
+  border: 1px solid var(--ant-color-primary);
+  border-radius: 4px;
   pointer-events: none;
 }
 
+/* A wide hit area on each edge, drawn as a small always-visible bar. */
 .grip {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 5px;
-  border-radius: 2px;
+  top: -2px;
+  bottom: -2px;
+  width: 10px;
   cursor: ew-resize;
   pointer-events: auto;
   touch-action: none;
-  transition: background-color var(--ant-motion-duration-mid);
+}
+
+.grip::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--ant-color-primary);
+  transition: transform var(--ant-motion-duration-mid);
 }
 
 .gripStart {
-  left: 0;
+  left: -6px;
 }
 
 .gripEnd {
-  right: 0;
+  right: -6px;
 }
 
-.grip:hover,
-.grip:focus-visible,
-.gripActive {
+.grip:hover::after,
+.grip:focus-visible::after,
+.gripActive::after {
+  transform: scaleX(1.5);
+}
+
+.grip:focus-visible {
   outline: none;
-  background: var(--ant-color-primary);
 }
 
 .pager:has(.gripActive) {
