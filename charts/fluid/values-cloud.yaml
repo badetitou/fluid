@@ -33,11 +33,6 @@ postgres:
 #   password: "change-me"
 #   database: fluid
 
-backendDemo:
-  seed:
-    enabled: true
-    onUpgrade: false
-
 bff:
   llm:
     # Set to "openai" to enable server-side generation with the key below.

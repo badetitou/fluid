@@ -1,6 +1,6 @@
 // fluid BFF — persistence for dashboard views and user preferences.
 // Uses a custom client output (src/generated/prisma) so this client never
-// collides with the demo bank's Prisma client in the pnpm store.
+// collides with another Prisma client in the pnpm store.
 
 generator client {
   provider = "prisma-client"

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Fluid frontend (React + Vite) served by nginx, which also reverse-proxies
-# /api -> BFF and /graphql -> backend-demo so the whole app lives on one origin.
+# /api -> BFF so the whole app lives on one origin.
 # Build from the repository root: docker build -f apps/frontend/Dockerfile -t fluid-frontend .
 
 # --- build the static bundle ---
@@ -19,9 +19,8 @@ FROM nginx:1.27-alpine AS runtime
 # via environment variables at container start (see docker/ files).
 ENV FRONTEND_PORT=8080 \
     BFF_UPSTREAM=http://fluid-bff:4001 \
-    BACKEND_UPSTREAM=http://fluid-backend-demo:4000 \
     FLUID_BFF_URL="" \
-    FLUID_DEFAULT_GRAPHQL_URL="/graphql"
+    FLUID_DEFAULT_GRAPHQL_URL="https://rickandmortyapi.com/graphql"
 COPY apps/frontend/docker/default.conf.template /etc/nginx/templates/default.conf.template
 COPY apps/frontend/docker/entrypoint.sh /docker-entrypoint.d/30-fluid-config.sh
 RUN chmod +x /docker-entrypoint.d/30-fluid-config.sh

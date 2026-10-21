@@ -13,8 +13,6 @@ interface DemoSource {
   url: string;
   description: string;
   concepts: string[];
-  /** Runs on the developer's machine rather than on the public internet. */
-  local?: boolean;
 }
 
 // Public, CORS-enabled GraphQL APIs checked against Fluid's introspection,
@@ -40,14 +38,6 @@ const DEMO_SOURCES: DemoSource[] = [
     url: 'https://graphqlzero.almansi.me/api',
     description: 'Fake users with their posts, comments, albums, photos and todos.',
     concepts: ['User', 'Post', 'Comment', 'Album', 'Photo', 'Todo'],
-  },
-  {
-    key: 'bank',
-    label: 'Fluid bank (local)',
-    url: 'http://localhost:4000/graphql',
-    description: "The project's own demo bank API: customers, accounts, cards and transactions.",
-    concepts: ['Customer', 'Account', 'Card', 'Transaction', 'Transfer', 'Beneficiary'],
-    local: true,
   },
 ];
 
@@ -94,7 +84,7 @@ export function ConnectPage() {
             <Input
               size="large"
               prefix={<ApiOutlined />}
-              placeholder="http://localhost:4000/graphql"
+              placeholder="https://example.com/graphql"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               autoFocus
@@ -124,12 +114,7 @@ export function ConnectPage() {
             onChange={setDemoKey}
             options={DEMO_SOURCES.map((d) => ({
               value: d.key,
-              label: (
-                <Flex justify="space-between" align="center" gap={8}>
-                  <span>{d.label}</span>
-                  {d.local && <Tag style={{ marginInlineEnd: 0 }}>needs local server</Tag>}
-                </Flex>
-              ),
+              label: d.label,
             }))}
           />
           <Flex vertical gap={6}>
@@ -151,9 +136,7 @@ export function ConnectPage() {
             Explore the {demo.label} demo
           </Button>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            Endpoint: <code>{demo.url}</code>
-            {demo.local ? ' — start it with the project first.' : ''} You can switch sources later from
-            the settings.
+            Endpoint: <code>{demo.url}</code>. You can switch sources later from the settings.
           </Typography.Text>
         </Flex>
       </Card>

@@ -5,9 +5,6 @@ Components:
   {{- if .Values.bff.enabled }}
   • bff           {{ include "fluid.bff.fullname" . }} (views/prefs + LLM proxy)
   {{- end }}
-  {{- if .Values.backendDemo.enabled }}
-  • backend-demo  {{ include "fluid.backendDemo.fullname" . }} (demo bank GraphQL)
-  {{- end }}
   {{- if .Values.postgres.enabled }}
   • postgres      {{ include "fluid.postgres.fullname" . }}
   {{- end }}
@@ -26,9 +23,5 @@ How to reach the app:
   then open http://localhost:8080/
 {{- end }}
 
-The connect screen is pre-filled with "{{ .Values.frontend.runtimeConfig.defaultGraphqlUrl }}",
-which nginx proxies to the demo bank. Click Connect and start exploring.
-{{- if .Values.backendDemo.seed.enabled }}
-
-A one-off Job seeds the demo bank with faker data (post-install hook).
-{{- end }}
+The connect screen is pre-filled with "{{ .Values.frontend.runtimeConfig.defaultGraphqlUrl }}".
+Click Connect and start exploring, or point it at your own GraphQL API.
