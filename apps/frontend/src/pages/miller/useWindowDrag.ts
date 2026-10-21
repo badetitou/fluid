@@ -1,41 +1,46 @@
 import { useCallback, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import {
   DEFAULT_VISIBLE_COLUMNS,
-  dragSteps,
+  dragWindow,
+  moveWindow,
   resizeWindow,
   type ColumnWindow,
-  type WindowEdge,
+  type WindowDrag,
+  type WindowFrame,
 } from './columnWindow';
 
 /**
- * Drag-to-resize for the pager's window: each edge grip moves by whole
- * columns while dragged, or with the arrow keys once focused. Double-clicking
- * a grip goes back to the default number of columns.
+ * Pointer and keyboard handling for the pager's overlay. While dragged, the
+ * overlay follows the pointer (`frame`) and the shown columns change as soon
+ * as it gets nearer other boxes; on release it snaps back onto the boxes.
+ * Arrows slide the window, Shift+arrows resize it, double-click resets it.
  */
-export function useWindowResize(
+export function useWindowDrag(
   { first, last }: ColumnWindow,
   count: number,
   onResize: (window: ColumnWindow) => void,
 ) {
-  const [dragging, setDragging] = useState<WindowEdge | null>(null);
+  const [dragging, setDragging] = useState<{ drag: WindowDrag; frame: WindowFrame } | null>(null);
 
   const onPointerDown = useCallback(
-    (edge: WindowEdge, e: PointerEvent<HTMLElement>) => {
+    (drag: WindowDrag, e: PointerEvent<HTMLElement>) => {
       if (e.button !== 0) return;
       e.preventDefault();
+      e.stopPropagation();
       const handle = e.currentTarget;
       const startX = e.clientX;
-      let steps = 0;
+      let current: ColumnWindow = { first, last };
       handle.setPointerCapture(e.pointerId);
-      setDragging(edge);
-      document.body.style.cursor = 'ew-resize';
+      document.body.style.cursor = drag === 'move' ? 'grabbing' : 'ew-resize';
       document.body.style.userSelect = 'none';
 
       const onMove = (move: globalThis.PointerEvent) => {
-        const next = dragSteps(move.clientX - startX);
-        if (next === steps) return;
-        steps = next;
-        onResize(resizeWindow({ first, last }, count, edge, steps));
+        const next = dragWindow({ first, last }, count, drag, move.clientX - startX);
+        setDragging({ drag, frame: next.frame });
+        if (next.window.first !== current.first || next.window.last !== current.last) {
+          current = next.window;
+          onResize(current);
+        }
       };
       const onUp = () => {
         handle.removeEventListener('pointermove', onMove);
@@ -53,18 +58,20 @@ export function useWindowResize(
   );
 
   const onKeyDown = useCallback(
-    (edge: WindowEdge, e: KeyboardEvent<HTMLElement>) => {
+    (e: KeyboardEvent<HTMLElement>) => {
       const steps = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
       if (!steps) return;
       e.preventDefault();
-      onResize(resizeWindow({ first, last }, count, edge, steps));
+      const window = { first, last };
+      onResize(e.shiftKey ? resizeWindow(window, count, 'end', steps) : moveWindow(window, count, steps));
     },
     [first, last, count, onResize],
   );
 
+  // Back to the default size, keeping the deepest column on screen.
   const onReset = useCallback(
-    () => onResize(resizeWindow({ first, last: first }, count, 'end', DEFAULT_VISIBLE_COLUMNS - 1)),
-    [first, count, onResize],
+    () => onResize(resizeWindow({ first: last, last }, count, 'start', 1 - DEFAULT_VISIBLE_COLUMNS)),
+    [last, count, onResize],
   );
 
   return { dragging, onPointerDown, onKeyDown, onReset };

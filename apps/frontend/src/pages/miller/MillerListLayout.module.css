@@ -88,66 +88,61 @@
   background: var(--ant-color-primary-bg);
 }
 
-/* The boxes scroll; the padding leaves room for the frame and its grips. */
+/* The boxes scroll; the padding leaves room for the overlay's outline. */
 .boxes {
   position: relative;
-  padding: 4px 8px;
+  padding: 3px 4px;
 }
 
-/* Frame around the highlighted boxes; only its edge grips catch the pointer. */
+/* Overlay on the shown boxes: dragged to pick the columns, snapping on release. */
 .window {
   position: absolute;
-  top: 2px;
-  bottom: 2px;
-  margin-left: 5px;
+  top: 1px;
+  bottom: 1px;
+  margin-left: 1px;
   padding: 0 2px;
   box-sizing: content-box;
-  border: 1px solid var(--ant-color-primary);
+  border: 1px solid var(--ant-color-primary-border);
   border-radius: 4px;
-  pointer-events: none;
-}
-
-/* A wide hit area on each edge, drawn as a small always-visible bar. */
-.grip {
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 10px;
-  cursor: ew-resize;
-  pointer-events: auto;
+  background: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
+  cursor: grab;
   touch-action: none;
+  transition:
+    left var(--ant-motion-duration-fast) ease-out,
+    width var(--ant-motion-duration-fast) ease-out,
+    border-color var(--ant-motion-duration-mid);
 }
 
-.grip::after {
-  content: '';
+.window:hover,
+.window:focus-visible {
+  outline: none;
+  border-color: var(--ant-color-primary);
+}
+
+/* Follow the pointer while dragged; the snap on release is animated. */
+.windowDragging {
+  cursor: grabbing;
+  border-color: var(--ant-color-primary);
+  transition: none;
+}
+
+/* Invisible strips on the overlay's sides that resize it instead of moving it. */
+.edge {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 3px;
-  width: 4px;
-  border-radius: 2px;
-  background: var(--ant-color-primary);
-  transition: transform var(--ant-motion-duration-mid);
+  width: 5px;
+  cursor: ew-resize;
 }
 
-.gripStart {
-  left: -6px;
+.edgeStart {
+  left: -1px;
 }
 
-.gripEnd {
-  right: -6px;
+.edgeEnd {
+  right: -1px;
 }
 
-.grip:hover::after,
-.grip:focus-visible::after,
-.gripActive::after {
-  transform: scaleX(1.5);
-}
-
-.grip:focus-visible {
-  outline: none;
-}
-
-.pager:has(.gripActive) {
+.pager:has(.windowDragging) {
   opacity: 1;
 }
