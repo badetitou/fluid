@@ -2,20 +2,23 @@ import { memo } from 'react';
 import { Alert, Skeleton } from 'antd';
 import { useConcept } from '../../entities/concept';
 import { MillerColumnPathContext } from '../../navigation/columnPath';
-import { MillerColumnBody, type ColumnFrame } from './MillerColumnBody';
+import { MillerColumnBody, type ColumnMode } from './MillerColumnBody';
+import type { ColumnConfig } from './model';
 import styles from './MillerColumn.module.css';
 
-interface MillerColumnProps extends ColumnFrame {
-  conceptName: string;
-  /** Miller path of this column; links inside it open the next column after it. */
-  path: string;
+interface MillerColumnProps {
+  column: ColumnConfig;
+  mode: ColumnMode;
+  onToggleFullscreen: (path: string) => void;
+  onClose: (parentPath: string) => void;
 }
 
 /**
- * A single Miller navigation column bound to one concept. It introspects the
- * concept's type on demand, then hands over to the column body.
+ * A column bound to one concept. It introspects the concept's type on demand,
+ * then hands over to the column body.
  */
-export const MillerColumn = memo(function MillerColumn({ conceptName, path, ...frame }: MillerColumnProps) {
+export const MillerColumn = memo(function MillerColumn({ column, mode, onToggleFullscreen, onClose }: MillerColumnProps) {
+  const { conceptName, path } = column;
   const { concept, fetching, error } = useConcept(conceptName);
 
   if (error || concept === null || (!fetching && !concept)) {
@@ -41,7 +44,7 @@ export const MillerColumn = memo(function MillerColumn({ conceptName, path, ...f
 
   return (
     <MillerColumnPathContext.Provider value={path}>
-      <MillerColumnBody concept={concept} path={path} {...frame} />
+      <MillerColumnBody concept={concept} column={column} mode={mode} onToggleFullscreen={onToggleFullscreen} onClose={onClose} />
     </MillerColumnPathContext.Provider>
   );
 });

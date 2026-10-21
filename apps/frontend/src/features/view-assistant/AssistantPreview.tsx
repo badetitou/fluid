@@ -1,5 +1,6 @@
 import { Alert, BorderBeam, Checkbox, Empty, Flex, Space, Typography } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
+import { conceptLabel } from '@fluid/shared';
 import { ViewRenderer } from '../../views/ViewRenderer';
 import type { AssistantSession } from './useAssistantSession';
 import { VersionSelect } from './VersionSelect';
@@ -39,7 +40,7 @@ export function AssistantPreview({ session, concept, isDefault, onDefaultChange,
         </Space>
         {spec && (
           <Checkbox checked={isDefault} onChange={(e) => onDefaultChange(e.target.checked)}>
-            Default view for {concept}
+            Default view for {conceptLabel(concept)}
           </Checkbox>
         )}
       </Flex>

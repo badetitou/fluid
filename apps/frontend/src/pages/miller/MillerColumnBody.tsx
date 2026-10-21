@@ -8,34 +8,35 @@ import { ColumnActions } from './ColumnActions';
 import { ColumnDialogs } from './ColumnDialogs';
 import { ColumnEmpty } from './ColumnEmpty';
 import { ColumnHeader } from './ColumnHeader';
-import { columnSubtitle, columnTitle } from './model';
+import { columnSubtitle, columnTitle, type ColumnConfig } from './model';
 import { useColumnController } from './useColumnController';
 import styles from './MillerColumn.module.css';
 
-/** How a column sits in the Miller view. */
-export interface ColumnFrame {
-  /** Present for drill-in (detail) columns; injects the id into the by-id query. */
-  itemId?: string;
-  parentPath?: string;
-  /** When true, this column occupies the whole view (its widgets reflow to the extra width). */
-  isFullscreen: boolean;
+/**
+ * How a column is shown: a dashboard alone as a `page`, one of several Miller
+ * columns, or one of them expanded to `fullscreen`. A page and a full-screen
+ * column lay their widgets out on the extra width.
+ */
+export type ColumnMode = 'page' | 'column' | 'fullscreen';
+
+interface MillerColumnBodyProps {
+  concept: Concept;
+  column: ColumnConfig;
+  mode: ColumnMode;
   onToggleFullscreen: (path: string) => void;
   onClose: (parentPath: string) => void;
-}
-
-interface MillerColumnBodyProps extends ColumnFrame {
-  concept: Concept;
-  path: string;
 }
 
 /**
  * The column body for a loaded concept: its perspectives as pills, the active
  * one rendered compactly so it fits a narrow column, and the editors.
  */
-export function MillerColumnBody({ concept, path, itemId, parentPath, isFullscreen, onToggleFullscreen, onClose }: MillerColumnBodyProps) {
+export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, onClose }: MillerColumnBodyProps) {
+  const { path, itemId, parentPath, perspective } = column;
   const compact = usePreferences((s) => s.density === 'compact');
-  const toggleFullscreen = () => onToggleFullscreen(path);
-  const c = useColumnController(concept, { itemId, isFullscreen, onToggleFullscreen: toggleFullscreen });
+  const isFullscreen = mode !== 'column';
+  const toggleFullscreen = mode === 'page' ? undefined : () => onToggleFullscreen(path);
+  const c = useColumnController(concept, { path, itemId, perspective, isFullscreen, onToggleFullscreen: toggleFullscreen });
   const { entries, selected, spec, columnKind, loading, bffAvailable, pick } = c.perspectives;
   const { layout, mutations } = c;
   const createWithAssistant = bffAvailable ? c.actions.createWithAssistant : undefined;
@@ -77,10 +78,11 @@ export function MillerColumnBody({ concept, path, itemId, parentPath, isFullscre
   return (
     <>
       <ColumnHeader
-        title={columnTitle({ conceptName: concept.name, itemId })}
+        title={columnTitle(column)}
         subtitle={columnSubtitle(concept.name)}
         bar={bar}
         actions={actions}
+        page={mode === 'page'}
       />
       <div className={styles.body}>
         {spec ? (

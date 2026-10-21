@@ -77,9 +77,9 @@ describe('Miller Navigation Integration - Complete Flow', () => {
       const customerLink = extractTableLinks(accountsTable).get('customerId');
 
       const customerId = getNavigationId(row, customerLink!.idField);
-      const url = buildMillerNavigationUrl('/miller/Account', customerLink!.targetConcept, customerId!);
+      const url = buildMillerNavigationUrl('/d/Account', customerLink!.targetConcept, customerId!);
 
-      expect(url).toBe('/miller/Account/Customer/CUST-001');
+      expect(url).toBe('/d/Account/Customer@CUST-001');
     });
 
     it('should navigate back from customer detail to account', () => {
@@ -92,36 +92,36 @@ describe('Miller Navigation Integration - Complete Flow', () => {
 
       const accountLink = extractDescriptionLinks(customerDetails).get('accounts[0].id');
       const accountId = getNavigationId(customer, accountLink!.idField);
-      const url = buildMillerNavigationUrl('/miller/Account/Customer/CUST-001', accountLink!.targetConcept, accountId!);
+      const url = buildMillerNavigationUrl('/d/Account/Customer@CUST-001', accountLink!.targetConcept, accountId!);
 
-      expect(url).toBe('/miller/Account/Customer/CUST-001/Account/ACC-001');
+      expect(url).toBe('/d/Account/Customer@CUST-001/Account@ACC-001');
     });
 
     it('should handle deeply nested navigation', () => {
       // Start at accounts list
-      let currentPath = '/miller/Account';
+      let currentPath = '/d/Account';
 
       // Navigate to customer
       currentPath = buildMillerNavigationUrl(currentPath, 'Customer', 'CUST-001');
-      expect(currentPath).toBe('/miller/Account/Customer/CUST-001');
+      expect(currentPath).toBe('/d/Account/Customer@CUST-001');
 
       // Navigate to related account
       currentPath = buildMillerNavigationUrl(currentPath, 'Account', 'ACC-002');
-      expect(currentPath).toBe('/miller/Account/Customer/CUST-001/Account/ACC-002');
+      expect(currentPath).toBe('/d/Account/Customer@CUST-001/Account@ACC-002');
 
       // Navigate to orders
       currentPath = buildMillerNavigationUrl(currentPath, 'Order', 'ORD-001');
-      expect(currentPath).toBe('/miller/Account/Customer/CUST-001/Account/ACC-002/Order/ORD-001');
+      expect(currentPath).toBe('/d/Account/Customer@CUST-001/Account@ACC-002/Order@ORD-001');
 
       // Can continue indefinitely
       currentPath = buildMillerNavigationUrl(currentPath, 'Account', 'ACC-003');
-      expect(currentPath).toMatch(/^\/miller\/Account\/.*\/Account\/ACC-003$/);
+      expect(currentPath).toMatch(/^\/d\/Account\/.*\/Account@ACC-003$/);
     });
   });
 
   describe('Scenario: Infinite Navigation Depth', () => {
     it('should support navigation to arbitrary depth (100 levels)', () => {
-      let path = '/miller/Account';
+      let path = '/d/Account';
       const concepts = ['Account', 'Customer', 'Order', 'Product'];
 
       for (let i = 0; i < 100; i++) {
@@ -131,54 +131,54 @@ describe('Miller Navigation Integration - Complete Flow', () => {
       }
 
       // Should have built a very long path without any errors
-      expect(path).toContain('/miller/Account');
-      expect(path).toContain('/Product/Pro-00100');
+      expect(path).toContain('/d/Account');
+      expect(path).toContain('/Product@Pro-00100');
     });
 
     it('should support navigation cycles', () => {
-      let path = '/miller/Account';
+      let path = '/d/Account';
 
       // Navigate: Account → Customer → Account → Customer → Account
       path = buildMillerNavigationUrl(path, 'Customer', 'CUST-001');
-      expect(path).toContain('Customer/CUST-001');
+      expect(path).toContain('Customer@CUST-001');
 
       path = buildMillerNavigationUrl(path, 'Account', 'ACC-002');
-      expect(path).toContain('/Account/ACC-002');
+      expect(path).toContain('/Account@ACC-002');
 
       path = buildMillerNavigationUrl(path, 'Customer', 'CUST-002');
-      expect(path).toContain('/Customer/CUST-002');
+      expect(path).toContain('/Customer@CUST-002');
 
       path = buildMillerNavigationUrl(path, 'Account', 'ACC-003');
-      expect(path).toContain('/Account/ACC-003');
+      expect(path).toContain('/Account@ACC-003');
 
       // Each navigation is valid
-      expect(path).toMatch(/^\/miller\/Account\/.+$/);
+      expect(path).toMatch(/^\/d\/Account\/.+$/);
     });
   });
 
   describe('Scenario: Bidirectional Navigation', () => {
     it('should allow navigation in both directions between concepts', () => {
       // Forward: Account → Customer
-      let path = '/miller/Account';
+      let path = '/d/Account';
       path = buildMillerNavigationUrl(path, 'Customer', 'CUST-001');
-      expect(path).toBe('/miller/Account/Customer/CUST-001');
+      expect(path).toBe('/d/Account/Customer@CUST-001');
 
       // Backward: Customer → Account
       path = buildMillerNavigationUrl(path, 'Account', 'ACC-001');
-      expect(path).toBe('/miller/Account/Customer/CUST-001/Account/ACC-001');
+      expect(path).toBe('/d/Account/Customer@CUST-001/Account@ACC-001');
 
       // Forward again: Account → Order
       path = buildMillerNavigationUrl(path, 'Order', 'ORD-001');
-      expect(path).toBe('/miller/Account/Customer/CUST-001/Account/ACC-001/Order/ORD-001');
+      expect(path).toBe('/d/Account/Customer@CUST-001/Account@ACC-001/Order@ORD-001');
 
       // Backward: Order → Customer
       path = buildMillerNavigationUrl(path, 'Customer', 'CUST-001');
-      expect(path).toBe('/miller/Account/Customer/CUST-001/Account/ACC-001/Order/ORD-001/Customer/CUST-001');
+      expect(path).toBe('/d/Account/Customer@CUST-001/Account@ACC-001/Order@ORD-001/Customer@CUST-001');
     });
 
     it('should allow returning to previously visited items', () => {
       // Navigate: Account → Customer → Order → Account (same account as before)
-      let path = '/miller/Account';
+      let path = '/d/Account';
       path = buildMillerNavigationUrl(path, 'Customer', 'CUST-001');
       path = buildMillerNavigationUrl(path, 'Order', 'ORD-001');
       path = buildMillerNavigationUrl(path, 'Account', 'ACC-001');
@@ -265,11 +265,11 @@ describe('Miller Navigation Integration - Complete Flow', () => {
       expect(orgId).toBe('ORG-001');
 
       const url = buildMillerNavigationUrl(
-        '/miller/Item',
+        '/d/Item',
         'Organization',
         orgId!,
       );
-      expect(url).toBe('/miller/Item/Organization/ORG-001');
+      expect(url).toBe('/d/Item/Organization@ORG-001');
     });
   });
 

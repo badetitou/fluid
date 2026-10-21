@@ -1,5 +1,6 @@
 import type { MenuProps } from 'antd';
 import {
+  AppstoreAddOutlined,
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
@@ -21,6 +22,8 @@ export interface PerspectiveActions {
   remove: () => void;
   openSettings: () => void;
   pin: (concept: string) => void;
+  /** Adds this column, on the selected perspective, to the dashboards. */
+  promote: () => void;
 }
 
 export interface PerspectiveMenuState {
@@ -34,7 +37,7 @@ export interface PerspectiveMenuState {
 
 type Items = NonNullable<MenuProps['items']>;
 
-/** Menu items of a column's "…" menu: saved perspectives get the edit actions. */
+/** Menu items of a column's "…" menu: saved perspectives get the edit actions, every column can be promoted. */
 export function perspectiveMenuItems(
   { selected, bffAvailable, concept, pinnable }: PerspectiveMenuState,
   actions: PerspectiveActions,
@@ -64,9 +67,12 @@ export function perspectiveMenuItems(
     }
     items.push({ key: 'delete', icon: <DeleteOutlined />, danger: true, label: 'Delete', onClick: actions.remove });
   }
+  items.push(
+    { type: 'divider' },
+    { key: 'promote', icon: <AppstoreAddOutlined />, label: 'Promote to dashboard', onClick: actions.promote },
+  );
   if (pinnable.length > 0) {
     items.push(
-      { type: 'divider' },
       {
         key: 'pin',
         icon: <PushpinOutlined />,

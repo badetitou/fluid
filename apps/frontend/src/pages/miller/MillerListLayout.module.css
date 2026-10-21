@@ -18,6 +18,21 @@
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
+  animation: column-in var(--ant-motion-duration-slow) ease-out;
+}
+
+/* A new column grows from the right edge, so a dashboard page visibly turns into columns. */
+@keyframes column-in {
+  from {
+    flex-grow: 0.001;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .column {
+    animation: none;
+  }
 }
 
 .divided {

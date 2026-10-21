@@ -1,7 +1,8 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { App as AntdApp } from 'antd';
 import type { ViewSpec, Widget } from '@fluid/shared';
 import { useConceptSchema, useRootConcepts, type Concept } from '../../entities/concept';
+import { useColumnPreselect } from '../../entities/dashboard';
 import {
   newViewDraft,
   newViewId,
@@ -12,6 +13,7 @@ import {
   type ViewEntry,
 } from '../../entities/view';
 import { usePinnableConcepts } from '../../features/concept-pinning';
+import { useColumnDashboards } from '../../features/dashboard-promotion';
 import { useLayoutEditor } from '../../features/layout-editor';
 import type { PerspectiveActions } from '../../features/perspective-menu';
 import { usePillRename } from '../../features/perspective-switcher';
@@ -20,9 +22,14 @@ import { withScope } from '../../views/viewScope';
 import { useColumnDialogs } from './useColumnDialogs';
 
 interface Options {
+  /** Miller path of the column, which dashboards open. */
+  path: string;
   itemId?: string;
+  /** Perspective shown first (a saved dashboard's). */
+  perspective?: string;
   isFullscreen: boolean;
-  onToggleFullscreen: () => void;
+  /** Omitted when the column already fills the page. */
+  onToggleFullscreen?: () => void;
 }
 
 /**
@@ -30,16 +37,24 @@ interface Options {
  * features: perspectives, their mutations, layout editing, inline rename,
  * pinning and the editors' dialogs. The column body only lays it out.
  */
-export function useColumnController(concept: Concept, { itemId, isFullscreen, onToggleFullscreen }: Options) {
+export function useColumnController(concept: Concept, { path, itemId, perspective, isFullscreen, onToggleFullscreen }: Options) {
   const { modal } = AntdApp.useApp();
   const { relatedNames, conceptByName, schema } = useConceptSchema(concept);
   const { queriesByType } = useRootConcepts();
-  const perspectives = useColumnPerspectives(concept, { itemId, conceptByName, queriesByType });
+  const perspectives = useColumnPerspectives(concept, { itemId, initialKey: perspective, conceptByName, queriesByType });
   const { selected, columnKind, pick, refetch } = perspectives;
   const mutations = useViewMutations(refetch);
   const dialogs = useColumnDialogs();
   const pinning = usePinnableConcepts(useMemo(() => [concept.name, ...relatedNames], [concept.name, relatedNames]));
   const rename = usePillRename((entry, title) => entry.saved && mutations.rename(entry.saved.id, title));
+  const dashboards = useColumnDashboards({ path, concept: concept.name, itemId, selected, entries: perspectives.entries });
+
+  // "New dashboard" opens this column with the assistant ready.
+  const preselect = useColumnPreselect(path);
+  const { openAssistant } = dialogs;
+  useEffect(() => {
+    if (preselect?.assistant) openAssistant();
+  }, [preselect, openAssistant]);
 
   // Editing a curated/auto perspective's layout saves the arrangement as a new saved perspective.
   const saveLayout = async (widgets: Widget[]) => {
@@ -67,19 +82,22 @@ export function useColumnController(concept: Concept, { itemId, isFullscreen, on
         okText: 'Delete',
         okButtonProps: { danger: true },
         onOk: async () => {
-          if ((await mutations.remove(id)) && entry.key === selected?.key) pick(undefined);
+          if (!(await mutations.remove(id))) return;
+          dashboards.viewDeleted(id);
+          if (entry.key === selected?.key) pick(undefined);
         },
       });
     },
-    [modal, mutations, selected?.key, pick],
+    [modal, mutations, dashboards, selected?.key, pick],
   );
 
   const onSaved = useCallback(
     (view: SavedView) => {
+      dashboards.viewSaved(view);
       refetch();
       pick(view.id);
     },
-    [refetch, pick],
+    [dashboards, refetch, pick],
   );
 
   const actions: PerspectiveActions = {
@@ -95,6 +113,7 @@ export function useColumnController(concept: Concept, { itemId, isFullscreen, on
     remove: () => selected && remove(selected),
     openSettings: dialogs.openSettings,
     pin: pinning.pin,
+    promote: dashboards.promote,
   };
 
   // Stable while the saved view does not change: widget cards are memoised on it.

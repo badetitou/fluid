@@ -12,6 +12,7 @@ const actions: PerspectiveActions = {
   remove: vi.fn(),
   openSettings: vi.fn(),
   pin: vi.fn(),
+  promote: vi.fn(),
 };
 
 const spec = { version: 1 as const, id: 'v', concept: 'Account', title: 'V', queries: {}, widgets: [] };
@@ -28,7 +29,7 @@ const keys = (items: ReturnType<typeof perspectiveMenuItems>) =>
 describe('perspectiveMenuItems', () => {
   it('offers only creation for an unsaved perspective', () => {
     const items = perspectiveMenuItems({ selected: curated, bffAvailable: true, concept: 'Account', pinnable: [] }, actions);
-    expect(keys(items)).toEqual(['assistant', 'json', 'divider', 'settings']);
+    expect(keys(items)).toEqual(['assistant', 'json', 'divider', 'promote', 'divider', 'settings']);
   });
 
   it('offers editing for a saved perspective, without "set default" when it already is', () => {
@@ -41,6 +42,8 @@ describe('perspectiveMenuItems', () => {
       'rename',
       'json-edit',
       'delete',
+      'divider',
+      'promote',
       'divider',
       'settings',
     ]);

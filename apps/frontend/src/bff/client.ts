@@ -66,7 +66,15 @@ export interface ConceptSchemaPayload {
   related?: { name: string; fields?: string[] }[];
   /** Relations reachable through nested selections, several levels deep. */
   paths?: RelationPathPayload[];
+  /** Root query fields, one per concept: only for a whole-graph dashboard. */
+  entryPoints?: EntryPointPayload[];
 }
+
+/** How to read one concept from the root of the graph; `fields` lists its scalars as "name: Type". */
+export type EntryPointPayload = { concept: string; fields: string[] } & Pick<
+  ConceptSchemaPayload,
+  'listQuery' | 'listItemsPath' | 'listLimitArg' | 'byIdQuery' | 'byIdArgName' | 'byIdArgType'
+>;
 
 /** One relation reachable from the concept, e.g. "accounts.transactions". */
 export interface RelationPathPayload {

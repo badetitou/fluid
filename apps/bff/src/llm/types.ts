@@ -66,6 +66,24 @@ export interface ConceptSchemaInfo {
   related?: RelatedConceptInfo[];
   /** Relations reachable through nested selections, several levels deep. */
   paths?: RelationPathInfo[];
+  /**
+   * Root query fields of the source, one per concept. Only sent for a
+   * whole-graph dashboard (concept `@graph`), whose queries may start anywhere.
+   */
+  entryPoints?: EntryPointInfo[];
+}
+
+/** How to read one concept from the root of the graph. */
+export interface EntryPointInfo {
+  concept: string;
+  listQuery?: string | null;
+  listItemsPath?: string | null;
+  listLimitArg?: string | null;
+  byIdQuery?: string | null;
+  byIdArgName?: string | null;
+  byIdArgType?: string | null;
+  /** Scalar fields of the concept, as "name: Type". */
+  fields: string[];
 }
 
 /** One relation reachable from the concept, e.g. "accounts.transactions". */

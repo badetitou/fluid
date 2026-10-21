@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Concept, ConceptField } from '../graphql/introspection';
-import { buildRelationPaths } from './conceptSchema';
+import { buildEntryPoints, buildRelationPaths } from './conceptSchema';
 
 function field(name: string, typeName: string, opts: Partial<ConceptField> = {}): ConceptField {
   const isScalar = ['ID', 'String', 'Float', 'Int'].includes(typeName);
@@ -54,5 +54,36 @@ describe('buildRelationPaths', () => {
 
   it('honours the depth limit', () => {
     expect(buildRelationPaths(customer, byName, 1).map((p) => p.path)).toEqual(['accounts']);
+  });
+});
+
+describe('buildEntryPoints', () => {
+  it('lists each root concept with its root queries and scalar fields', () => {
+    const queries = new Map([
+      ['Customer', { list: { field: 'customers', limitArg: 'take' }, byId: { field: 'customer', idArg: 'id', idType: 'ID!' } }],
+      ['Bank', { list: { field: 'banks', itemsPath: 'results' } }],
+    ]);
+    expect(buildEntryPoints(queries, byName)).toEqual([
+      {
+        concept: 'Bank',
+        listQuery: 'banks',
+        listItemsPath: 'results',
+        listLimitArg: null,
+        byIdQuery: null,
+        byIdArgName: null,
+        byIdArgType: null,
+        fields: [],
+      },
+      {
+        concept: 'Customer',
+        listQuery: 'customers',
+        listItemsPath: null,
+        listLimitArg: 'take',
+        byIdQuery: 'customer',
+        byIdArgName: 'id',
+        byIdArgType: 'ID!',
+        fields: ['id: ID', 'fullName: String'],
+      },
+    ]);
   });
 });

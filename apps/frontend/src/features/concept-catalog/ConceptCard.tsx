@@ -2,15 +2,20 @@ import { Link } from 'react-router-dom';
 import { Card, Skeleton, Space, Tag, Tooltip, Typography } from 'antd';
 import { ArrowRightOutlined } from '@ant-design/icons';
 import { useConcept, type ConceptEntry } from '../../entities/concept';
-import { ConceptIcon, ConceptIconPicker } from '../../features/concept-icon';
-import styles from './HomePage.module.css';
+import { ConceptIcon, ConceptIconPicker } from '../concept-icon';
+import { useNavigationHref } from '../../navigation/columnPath';
+import styles from './ConceptCatalog.module.css';
 
-/** A concept card introspects its own type, so the home page fills in progressively. */
+/**
+ * A concept card introspects its own type, so the catalog fills in
+ * progressively. It opens the concept's work list in a column after its own.
+ */
 export function ConceptCard({ entry }: { entry: ConceptEntry }) {
   const { concept, fetching } = useConcept(entry.name);
+  const hrefFor = useNavigationHref();
 
   return (
-    <Link to={`/miller/${entry.name}`}>
+    <Link to={hrefFor(entry.name)}>
       <Card
         hoverable
         title={

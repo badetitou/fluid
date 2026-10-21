@@ -62,6 +62,20 @@ const conceptSchemaInfo = z.object({
       }),
     )
     .optional(),
+  entryPoints: z
+    .array(
+      z.object({
+        concept: z.string().min(1),
+        listQuery: z.string().nullish(),
+        listItemsPath: z.string().nullish(),
+        listLimitArg: z.string().nullish(),
+        byIdQuery: z.string().nullish(),
+        byIdArgName: z.string().nullish(),
+        byIdArgType: z.string().nullish(),
+        fields: z.array(z.string()),
+      }),
+    )
+    .optional(),
 });
 
 export const generateViewBody = z.object({

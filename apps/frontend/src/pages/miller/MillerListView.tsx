@@ -1,31 +1,35 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { PreselectContext, readPreselect } from '../../entities/dashboard';
+import { ConceptsColumn } from './ConceptsColumn';
 import { MillerColumn } from './MillerColumn';
+import type { ColumnMode } from './MillerColumnBody';
 import { MillerListLayout } from './MillerListLayout';
-import { buildColumns, columnTitle, type NavigationNode } from './model';
+import { columnTitle, type ColumnConfig } from './model';
 
 interface MillerListViewProps {
-  rootConceptName: string;
-  navigationStack: NavigationNode[];
+  /** The dashboard, then one column per link followed from it. */
+  columns: ColumnConfig[];
 }
 
 /**
- * Renders the Miller split-view: one column per level of navigation.
- * - First column: the root concept's work list.
- * - Additional columns: the drilled-in entity for each navigation level.
+ * Renders a dashboard and the columns opened from it. Alone, the dashboard is
+ * a page; following a link turns the view into Miller columns, the dashboard
+ * staying mounted as the first one (so its state survives the change).
  *
- * Each column is an independent <MillerColumn> component, so a variable number
- * of columns never changes the hook count of any single component (this is what
- * previously crashed the page into a blank screen). Columns are memoised and get
- * stable callbacks: opening a new column does not re-render the others.
+ * Each column is an independent component, so a variable number of columns
+ * never changes the hook count of any single component. Columns are memoised
+ * and get stable callbacks: opening a new column does not re-render the others.
  *
  * Any column can be expanded to full screen; while one is expanded the others
  * are hidden and the expanded column lays its widgets out on a multi-column grid.
  */
-export function MillerListView({ rootConceptName, navigationStack }: MillerListViewProps) {
+export function MillerListView({ columns }: MillerListViewProps) {
   const navigate = useNavigate();
+  // "New dashboard" asks the column it opens to start the assistant.
+  const { state } = useLocation();
+  const preselect = useMemo(() => readPreselect(state), [state]);
   const [fullscreenPath, setFullscreenPath] = useState<string | null>(null);
-  const columns = useMemo(() => buildColumns(rootConceptName, navigationStack), [rootConceptName, navigationStack]);
 
   const close = useCallback((parentPath: string) => navigate(parentPath), [navigate]);
   const toggleFullscreen = useCallback(
@@ -36,21 +40,26 @@ export function MillerListView({ rootConceptName, navigationStack }: MillerListV
   // A stale full-screen path (after closing/navigating) simply shows every column.
   const active = columns.some((c) => c.path === fullscreenPath) ? fullscreenPath : null;
   const visible = active ? columns.filter((c) => c.path === active) : columns;
+  const modeOf = (c: ColumnConfig): ColumnMode =>
+    columns.length === 1 ? 'page' : c.path === active ? 'fullscreen' : 'column';
 
   return (
-    <MillerListLayout labels={visible.map(columnTitle)}>
-      {visible.map((c) => (
-        <MillerColumn
-          key={c.path}
-          conceptName={c.conceptName}
-          itemId={c.itemId}
-          path={c.path}
-          parentPath={c.parentPath}
-          isFullscreen={c.path === active}
-          onToggleFullscreen={toggleFullscreen}
-          onClose={close}
-        />
-      ))}
-    </MillerListLayout>
+    <PreselectContext.Provider value={preselect}>
+      <MillerListLayout labels={visible.map(columnTitle)}>
+        {visible.map((c) =>
+          c.kind === 'home' ? (
+            <ConceptsColumn key={c.path} path={c.path} mode={modeOf(c)} onToggleFullscreen={toggleFullscreen} />
+          ) : (
+            <MillerColumn
+              key={c.path}
+              column={c}
+              mode={modeOf(c)}
+              onToggleFullscreen={toggleFullscreen}
+              onClose={close}
+            />
+          ),
+        )}
+      </MillerListLayout>
+    </PreselectContext.Provider>
   );
 }

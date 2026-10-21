@@ -66,7 +66,7 @@ export * from './useMillerNavigation';
  * 
  * // Navigate when user clicks a link
  * navigateToEntity('Customer', 'CUST-001');
- * // Updates URL from /miller/Account to /miller/Account/Customer/CUST-001
+ * // Updates URL from /d/Account to /d/Account/Customer@CUST-001
  * // Adds a new column to Miller List
  * 
  * // Go back one level
@@ -103,7 +103,7 @@ export * from './useMillerNavigation';
  *         ↓
  * TableWidget renders link and calls navigateToEntity('Account', 'ACC-001')
  *         ↓
- * URL changes to /miller/Account/Account/ACC-001
+ * URL changes to /d/Account/Account@ACC-001
  *         ↓
  * MillerListPage adds new column with account details
  *         ↓
@@ -111,7 +111,7 @@ export * from './useMillerNavigation';
  *         ↓
  * DescriptionsWidget calls navigateToEntity('Customer', 'CUST-001')
  *         ↓
- * URL changes to /miller/Account/Account/ACC-001/Customer/CUST-001
+ * URL changes to /d/Account/Account@ACC-001/Customer@CUST-001
  *         ↓
  * MillerListPage adds another column with customer details
  *         ↓ (infinite navigation continues...)
@@ -219,11 +219,11 @@ export * from './useMillerNavigation';
  * 
  * ### Navigate in the UI
  * 
- * 1. User visits `/miller/Account`
+ * 1. User visits `/d/Account` (the Account dashboard, shown as a page)
  * 2. Sees list of accounts with clickable IDs and customer names
- * 3. Clicks on "ACC-001" → navigates to `/miller/Account/Account/ACC-001`
+ * 3. Clicks on "ACC-001" → navigates to `/d/Account/Account@ACC-001` (the page turns into Miller columns)
  * 4. New column shows account details
- * 5. Clicks on customer name → navigates to `/miller/Account/Account/ACC-001/Customer/CUST-001`
+ * 5. Clicks on customer name → navigates to `/d/Account/Account@ACC-001/Customer@CUST-001`
  * 6. New column shows customer details
  * 7. Can continue navigating or click close button to go back
  * 
@@ -231,14 +231,15 @@ export * from './useMillerNavigation';
  * 
  * Miller List paths follow this pattern:
  * ```
- * /miller/<rootConcept>/<concept1>/<id1>/<concept2>/<id2>/...
+ * /d/<dashboard>/<column>/<column>/...   (column = Concept or Concept@id)
  * 
  * Example:
- * /miller/Account
- * /miller/Account/Account/ACC-001
- * /miller/Account/Account/ACC-001/Customer/CUST-001
- * /miller/Account/Account/ACC-001/Customer/CUST-001/Order/ORD-001
+ * /                 the Concepts dashboard (its cards open /d/@home/<Concept>)
+ * /d/Account        a concept dashboard
+ * /d/~<id>          a saved dashboard
+ * /d/Account/Account@ACC-001/Customer@CUST-001
+ * /d/Account/Account@ACC-001/Customer@CUST-001/Order@ORD-001
  * ```
  * 
- * Each pair of segments represents a navigation level.
+ * The first segment is the dashboard; each following one is a column (see millerPath.ts).
  */

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { App as AntdApp, Button, Modal, Space, Splitter } from 'antd';
 import { RobotOutlined, SettingOutlined } from '@ant-design/icons';
-import type { ViewSpec } from '@fluid/shared';
+import { conceptLabel, type ViewSpec } from '@fluid/shared';
 import { preserveLayouts, useSaveView, type SavedView } from '../../entities/view';
 import { AssistantChat } from './AssistantChat';
 import { AssistantPreview } from './AssistantPreview';
@@ -48,9 +48,10 @@ export function ViewAssistantModal({ target, editing, onClose, onSaved, onOpenJs
     onSaved(saved);
   };
 
+  const label = conceptLabel(target.concept);
   const intro = editing
-    ? `I'm working from the saved view of ${target.concept}. Tell me what to change — each answer becomes a new version you can compare.`
-    : `Describe the dashboard you want for ${target.concept} (tables, stats, charts, clickable links). Each answer becomes a version you can preview and refine.`;
+    ? `I'm working from the saved view of ${label}. Tell me what to change — each answer becomes a new version you can compare.`
+    : `Describe the dashboard you want for ${label} (tables, stats, charts, clickable links). Each answer becomes a version you can preview and refine.`;
 
   return (
     <Modal
@@ -58,7 +59,7 @@ export function ViewAssistantModal({ target, editing, onClose, onSaved, onOpenJs
         <Space>
           <RobotOutlined />
           <span>
-            {editing ? 'Edit' : 'Create'} a view with the assistant — {target.concept}
+            {editing ? 'Edit' : 'Create'} a view with the assistant — {label}
           </span>
         </Space>
       }

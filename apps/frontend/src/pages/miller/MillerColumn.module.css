@@ -22,6 +22,18 @@
   padding: 4px 8px;
 }
 
+/* A dashboard shown on its own reads as a page, not as a Miller column. */
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 4px 16px;
+}
+
+.pageTitle {
+  margin-bottom: 2px !important;
+}
+
 .titleBlock {
   min-width: 0;
 }

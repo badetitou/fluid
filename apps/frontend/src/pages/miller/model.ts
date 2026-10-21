@@ -1,49 +1,57 @@
-/** One drill-in step of the Miller path: a concept and the item opened in it. */
-export interface NavigationNode {
-  conceptName: string;
-  itemId: string;
-}
+import { isGraphConcept } from '@fluid/shared';
+import type { Dashboard } from '../../entities/dashboard';
+import { DASHBOARD_PREFIX, appendColumn, type ColumnRef, type RootRef } from '../../navigation/millerPath';
 
-/** One column of the Miller view. */
+/** What the first column shows: the Concepts page, or a concept column (possibly a saved dashboard). */
+export type RootColumn =
+  | { kind: 'home' }
+  | { kind: 'concept'; conceptName: string; itemId?: string; perspective?: string; title?: string };
+
+/** One column of the view. */
 export interface ColumnConfig {
+  kind: 'home' | 'concept';
   conceptName: string;
-  /** Present for drill-in (detail) columns. */
+  /** Present for detail columns. */
   itemId?: string;
-  /** Miller path of this column; links inside it open the next column after it. Unique per column. */
+  /** Perspective shown first (a saved dashboard's). */
+  perspective?: string;
+  /** Overrides the generated title (a saved dashboard's name). */
+  title?: string;
+  /** Path of this column; links inside it open the next column after it. Unique per column. */
   path: string;
   /** Path of the column before it, which closing this one goes back to. */
   parentPath?: string;
 }
 
-/** Parse the splat of `/miller/:root/:concept/:itemId/…` into the root concept and its drill-in steps. */
-export function parseMillerPath(splat: string): { root: string | undefined; stack: NavigationNode[] } {
-  const parts = splat.split('/').filter(Boolean);
-  const stack: NavigationNode[] = [];
-  for (let i = 1; i < parts.length - 1; i += 2) {
-    stack.push({ conceptName: parts[i], itemId: parts[i + 1] });
-  }
-  return { root: parts[0], stack };
+/** The first column a root opens, or null for a saved dashboard that no longer exists. */
+export function resolveRoot(root: RootRef, find: (id: string) => Dashboard | undefined): RootColumn | null {
+  if (root.kind === 'home') return root;
+  if (root.kind === 'column') return { kind: 'concept', conceptName: root.concept, itemId: root.itemId };
+  const dashboard = find(root.id);
+  if (!dashboard) return null;
+  const { concept, itemId, perspective, title } = dashboard;
+  return { kind: 'concept', conceptName: concept, itemId, perspective, title };
 }
 
-/** The root work-list column followed by one detail column per drill-in step. */
-export function buildColumns(root: string, stack: NavigationNode[]): ColumnConfig[] {
-  const columns: ColumnConfig[] = [{ conceptName: root, path: `/miller/${root}` }];
-  for (const nav of stack) {
+/** The root column followed by one column per link followed from it. */
+export function buildColumns(rootSegment: string, root: RootColumn, stack: ColumnRef[]): ColumnConfig[] {
+  const path = `${DASHBOARD_PREFIX}/${rootSegment}`;
+  const columns: ColumnConfig[] = [root.kind === 'home' ? { kind: 'home', conceptName: '', path } : { ...root, path }];
+  for (const ref of stack) {
     const parentPath = columns[columns.length - 1].path;
-    columns.push({
-      conceptName: nav.conceptName,
-      itemId: nav.itemId,
-      path: `${parentPath}/${nav.conceptName}/${encodeURIComponent(nav.itemId)}`,
-      parentPath,
-    });
+    columns.push({ kind: 'concept', conceptName: ref.concept, itemId: ref.itemId, path: appendColumn(parentPath, ref), parentPath });
   }
   return columns;
 }
 
-export function columnTitle({ conceptName, itemId }: Pick<ColumnConfig, 'conceptName' | 'itemId'>): string {
+export function columnTitle({ kind, conceptName, itemId, title }: Pick<ColumnConfig, 'conceptName' | 'itemId'> & Partial<ColumnConfig>): string {
+  if (kind === 'home') return 'Concepts';
+  if (title) return title;
+  if (isGraphConcept(conceptName)) return 'Graph dashboards';
   return itemId ? `${conceptName}: ${itemId}` : `${conceptName} (work list)`;
 }
 
 export function columnSubtitle(conceptName: string): string {
+  if (isGraphConcept(conceptName)) return 'Queries across the whole graph';
   return `Entity Type: ${conceptName}`;
 }
