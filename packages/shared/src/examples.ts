@@ -1,6 +1,5 @@
 import type { ViewSpec } from './view-spec';
 import { methodSourceExample } from './widgets/code';
-import { commitHistoryExample } from './widgets/history';
 import { postBodyExample } from './widgets/richtext';
 import { countryScatterExample } from './widgets/scatter';
 import { continentTreeExample } from './widgets/tree';
@@ -254,7 +253,6 @@ export const EXAMPLE_VIEWS: Record<string, ViewSpec[]> = {
   Continent: [continentTreeExample],
   Post: [postBodyExample],
   Country: [countryScatterExample],
-  Commit: [commitHistoryExample],
   Method: [methodSourceExample],
 };
 

@@ -23,7 +23,7 @@ export interface HistoryNode {
 
 type NodeOptions = Pick<
   HistoryWidget,
-  'idField' | 'parentsField' | 'parentIdField' | 'labelField' | 'authorField' | 'avatarField' | 'dateField' | 'refsField'
+  'idField' | 'parentsField' | 'childrenField' | 'labelField' | 'authorField' | 'avatarField' | 'dateField' | 'refsField'
 >;
 
 const ID_FIELDS = ['id', 'oid', 'sha', 'hash'];
@@ -44,15 +44,20 @@ export function idOf(value: unknown, field?: string): string | undefined {
   return undefined;
 }
 
-/** Items of a list field, also reading GraphQL connections (`nodes` / `edges.node`). */
-export function listOf(value: unknown): unknown[] {
-  if (Array.isArray(value)) return value;
-  if (typeof value !== 'object' || value === null) return value == null ? [] : [value];
+// The items of a GraphQL connection (`nodes` / `edges.node`), or the value itself.
+function connectionItems(value: unknown): unknown[] {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return [value];
   const nodes = getPath(value, 'nodes');
   if (Array.isArray(nodes)) return nodes;
   const edges = getPath(value, 'edges');
   if (Array.isArray(edges)) return edges.map((edge) => getPath(edge, 'node'));
   return [value];
+}
+
+/** Items of a list field, also reading GraphQL connections (`nodes` / `edges.node`). */
+export function listOf(value: unknown): unknown[] {
+  if (value == null) return [];
+  return (Array.isArray(value) ? value : [value]).flatMap(connectionItems).filter((item) => item != null);
 }
 
 function timeOf(value: unknown): number | undefined {
@@ -70,21 +75,40 @@ function labelOf(row: Row, labelField?: string): string {
   return nodeLabel(row);
 }
 
-/** One version per row; a row without an id is kept, keyed by its index. Duplicate ids are dropped. */
+// A referenced version selected with more than its id: a version of its own.
+const isVersion = (item: unknown): item is Row =>
+  typeof item === 'object' && item !== null && Object.keys(item).filter((k) => k !== '__typename').length > 1;
+
+const MAX_VERSIONS = 5000;
+
+/**
+ * One version per row, plus the versions nested in the rows' parents and
+ * children when they were selected with more than their id (recursive
+ * selections such as `children { id message children { … } }`). The links of
+ * `childrenField` become parents of the children. A row without an id is kept,
+ * keyed by its index; duplicate ids are kept once.
+ */
 export function buildNodes(rows: Row[], opts: NodeOptions): HistoryNode[] {
-  const seen = new Set<string>();
-  const nodes: HistoryNode[] = [];
-  rows.forEach((row, index) => {
-    const key = idOf(row, opts.idField) ?? `#${index}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    const parents = listOf(getPath(row, opts.parentsField)).flatMap((p) => idOf(p, opts.parentIdField) ?? []);
+  const nodes = new Map<string, HistoryNode>();
+  const childLinks: [parent: string, child: string][] = [];
+  const pending: { row: Row; key?: string }[] = rows.map((row, index) => ({ row, key: idOf(row, opts.idField) ?? `#${index}` }));
+  for (let i = 0; i < pending.length && nodes.size < MAX_VERSIONS; i++) {
+    const { row } = pending[i];
+    const key = pending[i].key ?? idOf(row, opts.idField);
+    if (key === undefined || nodes.has(key)) continue;
+    const parents = opts.parentsField ? listOf(getPath(row, opts.parentsField)) : [];
+    const children = opts.childrenField ? listOf(getPath(row, opts.childrenField)) : [];
+    for (const child of children) {
+      const id = idOf(child, opts.idField);
+      if (id !== undefined) childLinks.push([key, id]);
+    }
+    for (const item of [...parents, ...children]) if (isVersion(item)) pending.push({ row: item });
     const refs = opts.refsField
       ? listOf(getPath(row, opts.refsField)).flatMap((ref) => scalar(ref) ?? scalar(getPath(ref, 'name')) ?? [])
       : [];
-    nodes.push({
+    nodes.set(key, {
       key,
-      parents: [...new Set(parents)].filter((p) => p !== key),
+      parents: parents.flatMap((p) => idOf(p, opts.idField) ?? []),
       label: labelOf(row, opts.labelField),
       row,
       author: opts.authorField ? scalar(getPath(row, opts.authorField)) : undefined,
@@ -92,8 +116,10 @@ export function buildNodes(rows: Row[], opts: NodeOptions): HistoryNode[] {
       time: opts.dateField ? timeOf(getPath(row, opts.dateField)) : undefined,
       refs,
     });
-  });
-  return nodes;
+  }
+  for (const [parent, child] of childLinks) nodes.get(child)?.parents.push(parent);
+  for (const node of nodes.values()) node.parents = [...new Set(node.parents)].filter((p) => p !== node.key);
+  return [...nodes.values()];
 }
 
 /**

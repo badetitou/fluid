@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import type { ViewSpec } from '../view-spec';
 import { columnSchema, dataBindingSchema, linkToSchema, widgetBase } from './common';
 
 /**
@@ -7,20 +6,25 @@ import { columnSchema, dataBindingSchema, linkToSchema, widgetBase } from './com
  * version (commit, document revision, edit…), with colored lanes showing where
  * the history branches and merges.
  *
- * The only required structure is the link from each version to its parent(s):
- * a list of ids, or of objects holding the id. Branches and merges are deduced
- * from it. Children are always drawn above their parents (newest first).
+ * The only required structure is the link between versions, in either
+ * direction: `parentsField` (each version lists the ones it comes from) and/or
+ * `childrenField` (each version lists the ones made from it). The links are ids,
+ * or objects holding the id; objects selected with more fields are versions too,
+ * so recursive selections (`children { id message children { … } }`) work.
+ * Like every field, both are dot paths that may cross nested lists. Branches
+ * and merges are deduced from the links; children are drawn above their
+ * parents (newest first).
  */
 export const historyWidgetSchema = z.object({
   type: z.literal('history'),
   ...widgetBase,
   data: dataBindingSchema,
-  /** Dot path to a version's id (default: id, oid, sha or hash, whichever the row has). */
+  /** Dot path to a version's id, also in linked objects (default: id, oid, sha or hash, whichever there is). */
   idField: z.string().min(1).optional(),
-  /** Dot path to the list of parents: ids, or objects holding the id (`parentIdField`). */
-  parentsField: z.string().min(1),
-  /** Dot path to the id inside a parent object (default: same lookup as `idField`). */
-  parentIdField: z.string().min(1).optional(),
+  /** Dot path to the versions a version comes from (the first one continues its lane). */
+  parentsField: z.string().min(1).optional(),
+  /** Dot path to the versions made from a version. */
+  childrenField: z.string().min(1).optional(),
   /** Dot path to the text of a version (default: message, title, name… whichever the row has). */
   labelField: z.string().min(1).optional(),
   /** Dot path to the author's name. */
@@ -41,61 +45,36 @@ export type HistoryWidget = z.infer<typeof historyWidgetSchema>;
 /** How the LLM is told to use the history widget. */
 export const historyWidgetDoc = `- { "id": string, "type": "history", "title"?: string, "span"?: 1..24, "height"?: number,
     "data": { "query": ..., "path"?: ... },
-    "parentsField": string, "parentIdField"?: string, "idField"?: string, "labelField"?: string,
+    "parentsField"?: string, "childrenField"?: string, "idField"?: string, "labelField"?: string,
     "authorField"?: string, "avatarField"?: string, "dateField"?: string, "refsField"?: string,
     "columns"?: [ Column, ... ], "linkTo"?: LinkConfig }
-    Use it for VERSION HISTORIES where each item points to its parent version(s): commits of a repository
-    (mining software repositories), revisions or edits of a document, snapshots… It draws a git-like graph
-    with branches and merges. ALWAYS select the parents (e.g. \`parents { oid }\` → "parentsField": "parents",
-    "parentIdField": "oid"; or a list of ids \`parentIds\` → "parentsField": "parentIds"). Map the message
+    Use it for VERSION HISTORIES where versions point to each other: commits of a repository (mining
+    software repositories), revisions or edits of a document, snapshots… It draws a git-like graph with
+    branches and merges. ALWAYS select the links, in either direction (at least one):
+    * to the previous version(s): "parentsField", e.g. \`parents { oid }\` → "parents" (with "idField": "oid"),
+      a list of ids \`parentIds\` → "parentIds", a connection \`parents { nodes { oid } }\` → "parents";
+    * to the next version(s): "childrenField", e.g. \`children { id }\` → "children".
+    Fields are dot paths and may cross nested lists (e.g. "parents.nodes.oid"). Linked objects selected with
+    more fields than their id are shown as versions too: from a single item, select recursively
+    (e.g. \`revisions { id comment children { id comment children { id comment } } }\`). Map the message
     to "labelField", the author's name/picture to "authorField"/"avatarField", the date to "dateField",
     branch or tag names to "refsField". Select the newest versions first when the API allows it.`;
 
 /**
- * A curated view for APIs exposing a `Commit` concept (mining software
- * repositories). No public API ships one: it serves as a reference.
+ * A reference configuration (used by the tests), deliberately not shipped as a
+ * curated view: how versions are shaped differs from one GraphQL API to the
+ * next, so history views are generated from each API's schema.
  */
-export const commitHistoryExample: ViewSpec = {
-  version: 1,
-  id: 'builtin:commit-history',
-  concept: 'Commit',
-  scope: 'list',
-  title: 'Commit graph',
-  description: 'Commits with their branches and merges, authors and dates.',
-  queries: {
-    commits: {
-      query: /* GraphQL */ `
-        query FluidCommitHistory {
-          commits {
-            id
-            message
-            date
-            author {
-              name
-              avatarUrl
-            }
-            parents {
-              id
-            }
-          }
-        }
-      `,
-    },
-  },
-  widgets: [
-    {
-      id: 'history',
-      type: 'history',
-      title: 'History',
-      height: 480,
-      data: { query: 'commits', path: 'commits' },
-      parentsField: 'parents',
-      parentIdField: 'id',
-      labelField: 'message',
-      authorField: 'author.name',
-      avatarField: 'author.avatarUrl',
-      dateField: 'date',
-      linkTo: { concept: 'Commit', idField: 'id' },
-    },
-  ],
+export const historyWidgetExample: HistoryWidget = {
+  id: 'history',
+  type: 'history',
+  title: 'History',
+  height: 480,
+  data: { query: 'commits', path: 'commits' },
+  parentsField: 'parents',
+  labelField: 'message',
+  authorField: 'author.name',
+  avatarField: 'author.avatarUrl',
+  dateField: 'date',
+  linkTo: { concept: 'Commit', idField: 'id' },
 };

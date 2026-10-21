@@ -1,11 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { commitHistoryExample, type HistoryWidget as HistoryWidgetSpec } from '@fluid/shared';
+import { historyWidgetExample as spec, type HistoryWidget as HistoryWidgetSpec } from '@fluid/shared';
 import { asRows, resolveBinding } from '../../data';
 import { HistoryWidget } from './HistoryWidget';
 
-const spec = commitHistoryExample.widgets[0] as HistoryWidgetSpec;
 const author = { name: 'Ada Lovelace', avatarUrl: 'https://avatars.example.org/ada.png' };
 const commits = {
   commits: [

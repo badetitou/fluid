@@ -66,6 +66,57 @@ describe('buildNodes', () => {
   });
 });
 
+describe('buildNodes with children and nested versions', () => {
+  it('turns children links into parents', () => {
+    const rows = [
+      { id: 'a', children: [{ id: 'b' }, { id: 'c' }] },
+      { id: 'b', children: ['d'] },
+      { id: 'c', children: [{ id: 'd' }] },
+      { id: 'd', children: [] },
+    ];
+    const nodes = buildNodes(rows, { childrenField: 'children' });
+    expect(Object.fromEntries(nodes.map((n) => [n.key, n.parents]))).toEqual({ a: [], b: ['a'], c: ['a'], d: ['b', 'c'] });
+  });
+
+  it('merges parents and children links, explicit parents first', () => {
+    const rows = [
+      { id: 'b', previous: [{ id: 'a' }], next: [] },
+      { id: 'x', next: [{ id: 'b' }] },
+      { id: 'a' },
+    ];
+    const [b] = buildNodes(rows, { parentsField: 'previous', childrenField: 'next' });
+    expect(b.parents).toEqual(['a', 'x']);
+  });
+
+  it('reads the versions nested in a recursive selection', () => {
+    const root = {
+      id: 'r1',
+      comment: 'created',
+      children: [{ id: 'r2', comment: 'typo', children: [{ id: 'r3', comment: 'rewrite', children: [] }] }, { id: 'r4', comment: 'draft' }],
+    };
+    const nodes = buildNodes([root], { childrenField: 'children' });
+    expect(nodes.map((n) => [n.key, n.label, n.parents])).toEqual([
+      ['r1', 'created', []],
+      ['r2', 'typo', ['r1']],
+      ['r4', 'draft', ['r1']],
+      ['r3', 'rewrite', ['r2']],
+    ]);
+  });
+
+  it('does not turn id-only references into versions', () => {
+    const nodes = buildNodes([{ oid: 'b', message: 'm', parents: [{ oid: 'a', __typename: 'Commit' }] }], { parentsField: 'parents' });
+    expect(keys(nodes)).toEqual(['b']);
+  });
+
+  it('follows deep paths, crossing lists and connections', () => {
+    const rows = [{ sha: 'b', meta: { parents: { nodes: [{ commit: { sha: 'a' } }] } } }];
+    expect(buildNodes(rows, { parentsField: 'meta.parents.nodes.commit.sha' })[0].parents).toEqual(['a']);
+    const crossing = [{ sha: 'm', merges: [{ from: [{ sha: 'x' }] }, { from: [{ sha: 'y' }] }] }];
+    expect(buildNodes(crossing, { parentsField: 'merges.from' })[0].parents).toEqual(['x', 'y']);
+    expect(buildNodes([{ id: 'x', parents: [{ nodes: [{ id: 'p' }] }] }], { parentsField: 'parents' })[0].parents).toEqual(['p']);
+  });
+});
+
 describe('orderChildrenFirst', () => {
   it('keeps an already ordered history', () => {
     const nodes = [node('c', ['b']), node('b', ['a']), node('a')];
