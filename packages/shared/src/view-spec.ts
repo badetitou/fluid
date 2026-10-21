@@ -168,6 +168,10 @@ export const tableWidgetSchema = z.object({
   /** Columns to render. If omitted, they are inferred from the first row's keys. */
   columns: z.array(columnSchema).optional(),
   pageSize: z.number().int().positive().optional(),
+  /** Let the user sort rows by clicking a column header (default true). */
+  sortable: z.boolean().optional(),
+  /** Let the user filter rows by a column's values from its header (default true). */
+  filterable: z.boolean().optional(),
 });
 export type TableWidget = z.infer<typeof tableWidgetSchema>;
 

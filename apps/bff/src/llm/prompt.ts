@@ -55,7 +55,8 @@ Each Widget is one of these discriminated shapes (field "type"):
     "value": { "op": "count"|"sum"|"avg"|"min"|"max", "field"?: string }, "format"?: Format, "precision"?: number }
 - { "id": string, "type": "table", "title"?: string, "span"?: 1..24,
     "data": { "query": ..., "path"?: ..., "transform"?: Transform },
-    "columns": [ { "key": string, "title"?: string, "format"?: Format, "linkTo"?: LinkConfig, "width"?: number } ], "pageSize"?: number }
+    "columns": [ { "key": string, "title"?: string, "format"?: Format, "linkTo"?: LinkConfig, "width"?: number } ], "pageSize"?: number,
+    "sortable"?: boolean, "filterable"?: boolean }  // header sorting / value filters, default true; set false only on request
     ⭐ TABLE WIDGET IS THE PRIMARY WIDGET FOR INTERACTIVE NAVIGATION ⭐
     ⭐ EVERY TABLE COLUMN REPRESENTING AN ID OR RELATIONSHIP MUST HAVE linkTo ⭐
 - { "id": string, "type": "descriptions", "title"?: string, "span"?: 1..24,

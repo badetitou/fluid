@@ -7,26 +7,21 @@ import { getPath } from '../data';
 import { formatValue } from '../format';
 import { getNavigationId } from '../../navigation/linkExtractor';
 import { useNavigationHref } from '../../navigation/columnPath';
+import { compareRows, filterOptions, humanize, inferColumns, matchesFilter, type Row } from './tableModel';
 
-type Row = Record<string, unknown>;
+const EMPTY_LABEL = '(empty)';
 
-function humanize(name: string): string {
-  const spaced = name
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .trim();
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-}
-
-function inferColumns(rows: Row[]): Column[] {
-  const first = rows[0];
-  if (!first) return [];
-  return Object.keys(first)
-    .filter((key) => {
-      const value = first[key];
-      return value == null || typeof value !== 'object';
-    })
-    .map((key) => ({ key, title: humanize(key) }));
+// Header sorter and value filter of a column, as enabled by the widget.
+function interactions(col: Column, rows: Row[], widget: TableWidgetSpec): Partial<TableColumnsType<Row>[number]> {
+  const out: Partial<TableColumnsType<Row>[number]> = {};
+  if (widget.sortable ?? true) out.sorter = compareRows(col.key);
+  const options = (widget.filterable ?? true) ? filterOptions(rows, col) : null;
+  if (options) {
+    out.filters = options.map((value) => ({ text: value === '' ? EMPTY_LABEL : value, value }));
+    out.filterSearch = true;
+    out.onFilter = (value, record) => matchesFilter(record, col.key, String(value));
+  }
+  return out;
 }
 
 export function TableWidget({ widget, rows }: { widget: TableWidgetSpec; rows: Row[] }) {
@@ -39,6 +34,7 @@ export function TableWidget({ widget, rows }: { widget: TableWidgetSpec; rows: R
     key: col.key,
     title: col.title ?? humanize(col.key),
     width: col.width,
+    ...interactions(col, rows, widget),
     render: (_value: unknown, record: Row) => {
       const value = getPath(record, col.key);
       const formatted = formatValue(value, col.format, { currency: col.currency });
@@ -47,7 +43,7 @@ export function TableWidget({ widget, rows }: { widget: TableWidgetSpec; rows: R
       if (col.linkTo) {
         const idFieldPath = col.linkTo.idField ?? 'id';
         const idValue = getNavigationId(record, idFieldPath);
-        
+
         if (idValue) {
           const href = hrefFor(col.linkTo.concept, idValue);
           return (
