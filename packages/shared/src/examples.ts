@@ -1,4 +1,5 @@
 import type { ViewSpec } from './view-spec';
+import { classMethodsExample } from './widgets/accordion';
 import { methodSourceExample } from './widgets/code';
 import { postBodyExample } from './widgets/richtext';
 import { countryScatterExample } from './widgets/scatter';
@@ -254,6 +255,7 @@ export const EXAMPLE_VIEWS: Record<string, ViewSpec[]> = {
   Post: [postBodyExample],
   Country: [countryScatterExample],
   Method: [methodSourceExample],
+  Class: [classMethodsExample],
 };
 
 /** All curated views as a flat list. */

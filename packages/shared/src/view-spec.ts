@@ -6,12 +6,14 @@ import {
   linkToSchema,
   widgetBase,
 } from './widgets/common';
+import { accordionWidgetFields } from './widgets/accordion';
 import { codeWidgetSchema } from './widgets/code';
 import { historyWidgetDraftSchema, historyWidgetSchema } from './widgets/history';
 import { richTextWidgetSchema } from './widgets/richtext';
 import { scatterWidgetSchema } from './widgets/scatter';
 import { treeWidgetSchema } from './widgets/tree';
 
+export * from './widgets/accordion';
 export * from './widgets/code';
 export * from './widgets/common';
 export * from './widgets/history';
@@ -147,7 +149,19 @@ export const pieWidgetSchema = z.object({
 });
 export type PieWidget = z.infer<typeof pieWidgetSchema>;
 
-export const widgetSchema = z.discriminatedUnion('type', [
+// The accordion nests widgets, accordions included: its type is written out so
+// that the recursion goes through an explicit annotation, not through inference.
+const accordionShellSchema = z.object({ type: z.literal('accordion'), ...accordionWidgetFields });
+const nestedWidgetsSchema: z.ZodType<Widget[]> = z.lazy(() => z.array(widgetSchema));
+
+/** Folding panels over a collection; `widgets` nests any widget, accordions included. */
+export const accordionWidgetSchema = accordionShellSchema.extend({
+  /** Widgets shown in an unfolded panel; they read its element with `data.query: "$item"`. */
+  widgets: nestedWidgetsSchema,
+});
+export type AccordionWidget = z.infer<typeof accordionShellSchema> & { widgets: Widget[] };
+
+const leafWidgetSchemas = [
   tableWidgetSchema,
   statisticWidgetSchema,
   descriptionsWidgetSchema,
@@ -160,8 +174,10 @@ export const widgetSchema = z.discriminatedUnion('type', [
   scatterWidgetSchema,
   historyWidgetSchema,
   codeWidgetSchema,
-]);
-export type Widget = z.infer<typeof widgetSchema>;
+] as const;
+
+export type Widget = z.infer<(typeof leafWidgetSchemas)[number]> | AccordionWidget;
+export const widgetSchema = z.discriminatedUnion('type', [...leafWidgetSchemas, accordionWidgetSchema]);
 export type WidgetType = Widget['type'];
 
 export const WIDGET_TYPES = [
@@ -177,6 +193,7 @@ export const WIDGET_TYPES = [
   'scatter',
   'history',
   'code',
+  'accordion',
 ] as const;
 
 /** Whether a view targets a concept's list (many rows) or the detail of a single item. */
@@ -265,6 +282,7 @@ const treeWidgetDraftSchema = treeWidgetSchema.omit({ id: true });
 const richTextWidgetDraftSchema = richTextWidgetSchema.omit({ id: true });
 const scatterWidgetDraftSchema = scatterWidgetSchema.omit({ id: true });
 const codeWidgetDraftSchema = codeWidgetSchema.omit({ id: true });
+const accordionWidgetDraftSchema = accordionWidgetSchema.omit({ id: true });
 
 export const widgetDraftSchema = z.discriminatedUnion('type', [
   tableWidgetDraftSchema,
@@ -279,6 +297,7 @@ export const widgetDraftSchema = z.discriminatedUnion('type', [
   scatterWidgetDraftSchema,
   historyWidgetDraftSchema,
   codeWidgetDraftSchema,
+  accordionWidgetDraftSchema,
 ]);
 export type WidgetDraft = z.infer<typeof widgetDraftSchema>;
 
