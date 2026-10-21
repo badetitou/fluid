@@ -1,0 +1,64 @@
+.markdown {
+  overflow-wrap: anywhere;
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown table {
+  border-collapse: collapse;
+  margin: 8px 0;
+}
+
+.markdown th,
+.markdown td {
+  border: 1px solid var(--ant-color-border-secondary);
+  padding: 4px 8px;
+}
+
+.markdown blockquote {
+  margin: 8px 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--ant-color-border);
+  color: var(--ant-color-text-secondary);
+}
+
+.markdown :not(pre) > code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--ant-color-fill-tertiary);
+  font-size: 0.9em;
+}
+
+.inline > p {
+  margin: 0;
+}
+
+.codeWrapper {
+  position: relative;
+}
+
+.code {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.copy {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+}
+
+.plain {
+  white-space: pre-wrap;
+  margin: 0;
+}

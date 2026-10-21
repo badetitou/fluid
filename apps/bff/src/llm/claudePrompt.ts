@@ -1,5 +1,7 @@
 import type { ChatMessage, ConceptSchemaInfo, GenerateViewInput } from './types';
+import { richTextWidgetDoc, treeWidgetDoc } from '@fluid/shared';
 import { detectLinkCandidates } from './linkDetection';
+import { renderStructureHints } from './structureHints';
 import {
   describeListQuery,
   NESTED_DATA_RULES,
@@ -45,9 +47,12 @@ Widget types:
 - "descriptions": binds ONE object (or the first array element); "items": [ { "label", "key", "format"?, "linkTo"? } ], "columns"?: 1..4
 - "line" | "area" | "bar": "xField", "yField", "colorField"? ("bar" renders vertical columns)
 - "pie": "angleField" (numeric), "colorField" (category)
+${treeWidgetDoc}
+${richTextWidgetDoc}
 
-Format: "text"|"number"|"currency"|"percent"|"date"|"datetime"|"tag"|"boolean"|"image"
+Format: "text"|"number"|"currency"|"percent"|"date"|"datetime"|"tag"|"boolean"|"image"|"markdown"|"code"
   "image" only for String fields holding a picture URL (avatar, portrait, photo, logo…); the user must click to load it.
+  "markdown" renders Markdown text, "code" source code (short values inline, multi-line as a block).
 Transform: { "derive"?: [ { "as": "<new field>", "op": "count"|"sum"|"avg"|"min"|"max"|"first", "field"?: "<dot path, may cross nested lists>" } ], "groupBy"?: "<field>", "aggregate"?: { "field": "<numeric field>" }, "sort"?: { "by": "<field>", "dir": "asc"|"desc" }, "limit"?: number }
   "derive" runs first: it adds per-row computed fields over nested data, which sort, groupBy, columns and chart fields can then use.
   After "groupBy", each row becomes { "<groupBy>": value, "count": n, "sum": n, "avg": n, "min": n, "max": n } (sum/avg/min/max only with "aggregate").
@@ -106,6 +111,7 @@ function renderSchema(schema: ConceptSchemaInfo): string {
     related,
     'Reachable relations (nested selections, several levels deep; path (Type[] when it yields many rows): scalar fields):',
     renderRelationPaths(schema),
+    renderStructureHints(schema),
   ]
     .filter(Boolean)
     .join('\n');

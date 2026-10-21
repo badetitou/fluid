@@ -4,6 +4,8 @@ import { asObject, asRows } from '../data';
 import { DescriptionsWidget } from './DescriptionsWidget';
 import { StatisticWidget } from './StatisticWidget';
 import { TableWidget } from './TableWidget';
+import { TreeWidget } from './tree/TreeWidget';
+import { LazyRichTextWidget } from './richtext/lazy';
 
 /** Props every widget renderer receives: its spec and its resolved data binding. */
 export interface WidgetRendererProps<W extends Widget = Widget> {
@@ -35,6 +37,8 @@ export const WIDGET_RENDERERS: { [T in WidgetType]: Renderer<T> } = {
   bar: ({ widget, data, fitHeight }) => <BarChart widget={widget} rows={asRows(data)} fitHeight={fitHeight} />,
   area: ({ widget, data, fitHeight }) => <AreaChart widget={widget} rows={asRows(data)} fitHeight={fitHeight} />,
   pie: ({ widget, data, fitHeight }) => <PieChart widget={widget} rows={asRows(data)} fitHeight={fitHeight} />,
+  tree: ({ widget, data }) => <TreeWidget widget={widget} data={data} />,
+  richtext: ({ widget, data }) => <LazyRichTextWidget widget={widget} data={data} />,
 };
 
 /** Widget types drawn as charts: they size themselves to their cell instead of scrolling. */

@@ -1,4 +1,6 @@
 import type { ViewSpec } from './view-spec';
+import { postBodyExample } from './widgets/richtext';
+import { continentTreeExample } from './widgets/tree';
 
 // -----------------------------------------------------------------------------
 // Curated example views
@@ -246,6 +248,8 @@ const transactionAnalytics: ViewSpec = {
 export const EXAMPLE_VIEWS: Record<string, ViewSpec[]> = {
   Account: [accountsOverview],
   Transaction: [transactionAnalytics],
+  Continent: [continentTreeExample],
+  Post: [postBodyExample],
 };
 
 /** All curated views as a flat list. */

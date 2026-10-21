@@ -1,4 +1,17 @@
 import { z } from 'zod';
+import {
+  columnSchema,
+  dataBindingSchema,
+  formatKindSchema,
+  linkToSchema,
+  widgetBase,
+} from './widgets/common';
+import { richTextWidgetSchema } from './widgets/richtext';
+import { treeWidgetSchema } from './widgets/tree';
+
+export * from './widgets/common';
+export * from './widgets/richtext';
+export * from './widgets/tree';
 
 // -----------------------------------------------------------------------------
 // Fluid view spec (v1)
@@ -23,23 +36,6 @@ import { z } from 'zod';
 
 export const VIEW_SPEC_VERSION = 1;
 
-/**
- * A value-formatting hint used by table columns, descriptions and statistics.
- * `image` renders a URL as a picture, behind a URL check and a user click
- * (see apps/frontend/src/views/imageSafety.ts).
- */
-export const formatKindSchema = z.enum([
-  'text',
-  'number',
-  'currency',
-  'percent',
-  'date',
-  'datetime',
-  'tag',
-  'boolean',
-  'image',
-]);
-export type FormatKind = z.infer<typeof formatKindSchema>;
 
 /** A named GraphQL query a widget can pull data from. */
 export const querySpecSchema = z.object({
@@ -50,53 +46,6 @@ export const querySpecSchema = z.object({
 });
 export type QuerySpec = z.infer<typeof querySpecSchema>;
 
-/**
- * Reshapes a selected array before rendering.
- * - `derive` first adds per-row computed fields aggregating nested data, e.g.
- *   `{ as: "totalSpent", op: "sum", field: "accounts.transactions.amount" }` on
- *   customer rows. The new fields can then be grouped, sorted and displayed.
- * - `groupBy` collapses rows by a field and emits, per group, the group key plus
- *   the aggregates `count`, and (when `aggregate.field` is set) `sum`, `avg`,
- *   `min`, `max`. Charts then use e.g. `xField: "<groupBy>"`, `yField: "count"`.
- * - `sort` / `limit` apply after grouping (or directly on the array).
- */
-export const transformSchema = z.object({
-  derive: z
-    .array(
-      z.object({
-        /** Name of the computed field added to each row. */
-        as: z.string().min(1),
-        op: z.enum(['count', 'sum', 'avg', 'min', 'max', 'first']),
-        /** Dot path in the row, usually crossing a nested list. */
-        field: z.string().optional(),
-      }),
-    )
-    .optional(),
-  groupBy: z.string().optional(),
-  aggregate: z
-    .object({
-      field: z.string().min(1),
-    })
-    .optional(),
-  sort: z
-    .object({
-      by: z.string().min(1),
-      dir: z.enum(['asc', 'desc']).default('asc'),
-    })
-    .optional(),
-  limit: z.number().int().positive().optional(),
-});
-export type Transform = z.infer<typeof transformSchema>;
-
-/** Where a widget gets its data: a query key, a dot path into the result, and an optional transform. */
-export const dataBindingSchema = z.object({
-  /** Key into `ViewSpec.queries`. */
-  query: z.string().min(1),
-  /** Dot path into the query result, e.g. "accounts" or "customer.accounts". Omit to use the root. */
-  path: z.string().optional(),
-  transform: transformSchema.optional(),
-});
-export type DataBinding = z.infer<typeof dataBindingSchema>;
 
 /** A single aggregation used by the statistic widget. */
 export const aggregationSchema = z.object({
@@ -106,60 +55,6 @@ export const aggregationSchema = z.object({
 });
 export type Aggregation = z.infer<typeof aggregationSchema>;
 
-/** A table column definition. */
-export const columnSchema = z.object({
-  /** Dot path into each row, e.g. "iban" or "customer.fullName". */
-  key: z.string().min(1),
-  title: z.string().min(1).optional(),
-  format: formatKindSchema.optional(),
-  /** Currency code for `format: "currency"` (defaults to EUR). */
-  currency: z.string().optional(),
-  width: z.number().int().positive().optional(),
-  /** Navigation configuration: concept to navigate to and optional field for the ID parameter. */
-  linkTo: z
-    .object({
-      /** Target concept name. */
-      concept: z.string().min(1),
-      /** Dot path to the ID value (defaults to "id"). */
-      idField: z.string().optional(),
-    })
-    .optional(),
-});
-export type Column = z.infer<typeof columnSchema>;
-
-/** Number of columns of the widget layout grid (see `widgetLayoutSchema`). */
-export const GRID_COLUMNS = 12;
-
-/**
- * Explicit placement of a widget on the view's layout grid, set by arranging
- * widgets with the mouse. `x`/`w` are in columns (out of `GRID_COLUMNS`), `y`/`h`
- * in grid rows. When any widget of a view has a layout, the view is rendered on
- * that grid; otherwise widgets flow by `span`.
- */
-export const widgetLayoutSchema = z.object({
-  x: z
-    .number()
-    .int()
-    .min(0)
-    .max(GRID_COLUMNS - 1),
-  y: z.number().int().min(0),
-  w: z.number().int().min(1).max(GRID_COLUMNS),
-  h: z.number().int().min(1),
-});
-export type WidgetLayout = z.infer<typeof widgetLayoutSchema>;
-
-// Fields shared by every widget. Spread into each discriminated member.
-const widgetBase = {
-  /** Stable id, unique within the view. */
-  id: z.string().min(1),
-  title: z.string().optional(),
-  /** Grid width on large screens, in Ant Design's 24-column system (default 24). */
-  span: z.number().int().min(1).max(24).optional(),
-  /** Pixel height (mostly relevant for charts). */
-  height: z.number().int().positive().optional(),
-  /** Explicit grid placement; takes precedence over `span`/`height` when set. */
-  layout: widgetLayoutSchema.optional(),
-};
 
 export const tableWidgetSchema = z.object({
   type: z.literal('table'),
@@ -199,15 +94,7 @@ export const descriptionsWidgetSchema = z.object({
       key: z.string().min(1),
       format: formatKindSchema.optional(),
       currency: z.string().optional(),
-      /** Navigation configuration: concept to navigate to and optional field for the ID parameter. */
-      linkTo: z
-        .object({
-          /** Target concept name. */
-          concept: z.string().min(1),
-          /** Dot path to the ID value (defaults to "id"). */
-          idField: z.string().optional(),
-        })
-        .optional(),
+      linkTo: linkToSchema.optional(),
     }),
   ),
   columns: z.number().int().min(1).max(4).optional(),
@@ -262,6 +149,8 @@ export const widgetSchema = z.discriminatedUnion('type', [
   barWidgetSchema,
   areaWidgetSchema,
   pieWidgetSchema,
+  treeWidgetSchema,
+  richTextWidgetSchema,
 ]);
 export type Widget = z.infer<typeof widgetSchema>;
 export type WidgetType = Widget['type'];
@@ -274,6 +163,8 @@ export const WIDGET_TYPES = [
   'bar',
   'area',
   'pie',
+  'tree',
+  'richtext',
 ] as const;
 
 /** Whether a view targets a concept's list (many rows) or the detail of a single item. */
@@ -358,6 +249,8 @@ const lineWidgetDraftSchema = lineWidgetSchema.omit({ id: true });
 const barWidgetDraftSchema = barWidgetSchema.omit({ id: true });
 const areaWidgetDraftSchema = areaWidgetSchema.omit({ id: true });
 const pieWidgetDraftSchema = pieWidgetSchema.omit({ id: true });
+const treeWidgetDraftSchema = treeWidgetSchema.omit({ id: true });
+const richTextWidgetDraftSchema = richTextWidgetSchema.omit({ id: true });
 
 export const widgetDraftSchema = z.discriminatedUnion('type', [
   tableWidgetDraftSchema,
@@ -367,6 +260,8 @@ export const widgetDraftSchema = z.discriminatedUnion('type', [
   barWidgetDraftSchema,
   areaWidgetDraftSchema,
   pieWidgetDraftSchema,
+  treeWidgetDraftSchema,
+  richTextWidgetDraftSchema,
 ]);
 export type WidgetDraft = z.infer<typeof widgetDraftSchema>;
 

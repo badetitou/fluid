@@ -1,6 +1,7 @@
 import type { ViewSpec, Widget } from '@fluid/shared';
 import { keyFieldOf, type Concept, type ConceptField, type ConceptQueries } from '../graphql/introspection';
-import { guessFormat, humanize, pickLabelField } from './fieldHeuristics';
+import { codeLanguageOf, guessFormat, humanize, pickLabelField, textKindOf } from './fieldHeuristics';
+import { buildDetailTree } from './treeView';
 
 /** What the detail view needs to know about the concepts a concept relates to. */
 export interface RelatedConcepts {
@@ -68,9 +69,17 @@ export function buildDetailView(concept: Concept, related?: RelatedConcepts): Vi
   const scalars = concept.scalarFields;
   if (scalars.length === 0) return null;
 
+  // Markdown / code properties get a widget of their own instead of a cramped row.
+  const plain = scalars.filter((f) => !textKindOf(f));
+  const rich = scalars.filter((f) => textKindOf(f));
+  // A hierarchy below the item is shown as a tree instead of a flat table.
+  const tree = buildDetailTree(concept, byIdField, related);
+
   const relations = resolveRelations(concept, related);
   const singles = relations.filter((r) => !r.field.isList);
-  const lists = relations.filter((r) => r.field.isList).slice(0, MAX_LIST_RELATIONS);
+  const lists = relations
+    .filter((r) => r.field.isList && r.field.name !== tree?.field)
+    .slice(0, MAX_LIST_RELATIONS);
   // One extra column for list relations, when the target has another scalar.
   const listExtra = (r: ResolvedRelation) =>
     r.target.scalarFields.filter((f) => f.name !== r.key && f.name !== r.label.name).slice(0, 1);
@@ -79,6 +88,7 @@ export function buildDetailView(concept: Concept, related?: RelatedConcepts): Vi
     ...scalars.map((f) => f.name),
     ...singles.map((r) => relationSelection(r)),
     ...lists.map((r) => relationSelection(r, listExtra(r))),
+    ...(tree ? [tree.selection] : []),
   ].join('\n            ');
   const idType = concept.queries.byId?.idType ?? 'ID!';
   const query = `query FluidAutoDetail_${concept.name}($id: ${idType}) {
@@ -95,7 +105,7 @@ export function buildDetailView(concept: Concept, related?: RelatedConcepts): Vi
       span: 24,
       data: { query: byIdField, path: byIdField },
       items: [
-        ...scalars.slice(0, MAX_SCALAR_ITEMS).map((f) => ({
+        ...plain.slice(0, MAX_SCALAR_ITEMS).map((f) => ({
           label: humanize(f.name),
           key: f.name,
           format: guessFormat(f),
@@ -110,6 +120,19 @@ export function buildDetailView(concept: Concept, related?: RelatedConcepts): Vi
         })),
       ],
     },
+    ...rich.map(
+      (f): Widget => ({
+        id: `text-${f.name}`,
+        type: 'richtext',
+        title: humanize(f.name),
+        span: 24,
+        data: { query: byIdField, path: byIdField },
+        field: f.name,
+        format: textKindOf(f),
+        language: textKindOf(f) === 'code' ? codeLanguageOf(f) : undefined,
+      }),
+    ),
+    ...(tree ? [tree.widget] : []),
     ...lists.map(
       (r): Widget => ({
         id: `rel-${r.field.name}`,

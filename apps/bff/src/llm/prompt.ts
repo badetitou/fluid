@@ -1,5 +1,7 @@
 import type { ChatMessage, ConceptSchemaInfo, GenerateViewInput, GenerateWidgetInput } from './types';
+import { richTextWidgetDoc, treeWidgetDoc } from '@fluid/shared';
 import { detectLinkCandidates, formatLinkCandidatesForPrompt } from './linkDetection';
+import { renderStructureHints } from './structureHints';
 
 // The system prompt pins the JSON contract (the ViewSpec *draft*) and biases the
 // model toward dashboards: tables, statistics and charts, with little prose.
@@ -68,6 +70,8 @@ Each Widget is one of these discriminated shapes (field "type"):
 - { "id": string, "type": "pie", "title"?: string, "span"?: 1..24,
     "data": { "query": ..., "path"?: ..., "transform"?: Transform },
     "angleField": string, "colorField": string, "height"?: number }
+${treeWidgetDoc}
+${richTextWidgetDoc}
 
 LinkConfig (FEATURE: Infinite Navigation - enables Miller list-style drilling):
   "linkTo": { "concept": "<target concept name>", "idField"?: "<dot path to ID>" }
@@ -88,8 +92,9 @@ Transform (optional) reshapes an array before rendering:
 When "groupBy" is set the rows become { "<groupBy>": value, "count": n, "sum": n, "avg": n, "min": n, "max": n }.
 So a category breakdown = groupBy + a "bar"/"pie" widget with xField/colorField = "<groupBy>" and yField/angleField = "count" (or "sum").
 
-Format is one of: "text","number","currency","percent","date","datetime","tag","boolean","image".
+Format is one of: "text","number","currency","percent","date","datetime","tag","boolean","image","markdown","code".
 "image" is only for String fields holding a picture URL (avatar, portrait, photo, logo…); the user must click to load it.
+"markdown" renders Markdown text, "code" source code (short values inline, multi-line as a block).
 
 Rules:
 - Every widget.data.query MUST reference a key defined in "queries".
@@ -182,6 +187,7 @@ function renderSchema(schema: ConceptSchemaInfo): string {
     related,
     'Reachable relations (nested selections, several levels deep; path (Type[] when it yields many rows): scalar fields):',
     renderRelationPaths(schema),
+    renderStructureHints(schema),
   ]
     .filter(Boolean)
     .join('\n');
@@ -312,10 +318,12 @@ The JSON is a Fluid "widget draft" with one of these discriminated shapes (field
 - { "type": "pie", "title"?: string, "span"?: 1..24,
     "data": { "query": "<query key>", "path"?: "<dot path>", "transform"?: Transform },
     "angleField": string, "colorField": string, "height"?: number }
+${treeWidgetDoc.replace('"id": string, ', '')}
+${richTextWidgetDoc.replace('"id": string, ', '')}
 
 Transform: { "derive"?: [ { "as": string, "op": "count"|"sum"|"avg"|"min"|"max"|"first", "field"?: string } ], "groupBy"?: string, "aggregate"?: { "field"?: string }, "sort"?: { "by": string, "dir": "asc"|"desc" }, "limit"?: number }
   "derive" adds per-row computed fields over nested data (e.g. sum of "accounts.transactions.amount"), usable by sort, groupBy, columns and chart fields.
-Format: "text"|"number"|"currency"|"percent"|"date"|"datetime"|"tag"|"boolean"|"image"
+Format: "text"|"number"|"currency"|"percent"|"date"|"datetime"|"tag"|"boolean"|"image"|"markdown"|"code"
   "image" only for String fields holding a picture URL (avatar, portrait, photo, logo…); the user must click to load it.
 LinkConfig: { "concept": string, "idField"?: string }
 
