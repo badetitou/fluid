@@ -5,6 +5,7 @@
  */
 
 import type { Column, DescriptionsWidget, TableWidget } from '@fluid/shared';
+import { appendColumn, DASHBOARD_PREFIX, rootPath } from './millerPath';
 
 export interface NavigationLink {
   /** The concept/entity type to navigate to */
@@ -87,13 +88,13 @@ export function buildMillerNavigationUrl(
   targetConcept: string,
   itemId: string,
 ): string {
-  // If already in a miller path, append to it
-  if (basePathname.startsWith('/miller')) {
-    return `${basePathname}/${targetConcept}/${itemId}`;
+  // If already in a dashboard path, open the item in a column after it
+  if (basePathname.startsWith(`${DASHBOARD_PREFIX}/`)) {
+    return appendColumn(basePathname, { concept: targetConcept, itemId });
   }
 
-  // Otherwise, start a new miller view from the target concept
-  return `/miller/${targetConcept}/${targetConcept}/${itemId}`;
+  // Otherwise, open the item on its own
+  return rootPath({ kind: 'column', concept: targetConcept, itemId });
 }
 
 /**

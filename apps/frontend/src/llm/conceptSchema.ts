@@ -1,5 +1,5 @@
-import type { Concept } from '../graphql/introspection';
-import type { ConceptSchemaPayload, LlmProvider, RelationPathPayload } from '../bff/client';
+import type { Concept, ConceptQueries } from '../graphql/introspection';
+import type { ConceptSchemaPayload, EntryPointPayload, LlmProvider, RelationPathPayload } from '../bff/client';
 
 /** How many relation hops below the concept the LLM is told about. */
 export const RELATION_PATH_DEPTH = 3;
@@ -89,6 +89,31 @@ export function buildConceptSchemaPayload(
     related,
     paths: buildRelationPaths(concept, conceptByName),
   };
+}
+
+/**
+ * Every concept readable from the root of the graph, with its root queries and
+ * scalar fields: what a whole-graph dashboard may start its queries from.
+ */
+export function buildEntryPoints(
+  queriesByType: Map<string, ConceptQueries>,
+  conceptByName: Map<string, Concept>,
+): EntryPointPayload[] {
+  return [...queriesByType.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, queries]) => ({
+      concept: name,
+      listQuery: queries.list?.field ?? null,
+      listItemsPath: queries.list?.itemsPath ?? null,
+      listLimitArg: queries.list?.limitArg ?? null,
+      byIdQuery: queries.byId?.field ?? null,
+      byIdArgName: queries.byId?.idArg ?? null,
+      byIdArgType: queries.byId?.idType ?? null,
+      fields: (conceptByName.get(name)?.scalarFields ?? [])
+        .filter((f) => !f.hasRequiredArgs)
+        .slice(0, MAX_PATH_FIELDS)
+        .map((f) => `${f.name}: ${f.typeName}${f.isList ? '[]' : ''}`),
+    }));
 }
 
 /** Trim empty override fields so the BFF falls back to its env defaults. */

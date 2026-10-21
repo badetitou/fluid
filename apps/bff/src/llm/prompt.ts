@@ -2,6 +2,7 @@ import type { ChatMessage, ConceptSchemaInfo, GenerateViewInput, GenerateWidgetI
 import { richTextWidgetDoc, treeWidgetDoc } from '@fluid/shared';
 import { detectLinkCandidates, formatLinkCandidatesForPrompt } from './linkDetection';
 import { renderStructureHints } from './structureHints';
+import { graphScopeInstructions, isGraphSchema } from './graphScope';
 
 // The system prompt pins the JSON contract (the ViewSpec *draft*) and biases the
 // model toward dashboards: tables, statistics and charts, with little prose.
@@ -201,6 +202,7 @@ function renderSchema(schema: ConceptSchemaInfo): string {
  */
 export function scopeInstructions(input: Pick<GenerateViewInput, 'scope' | 'schema'>): string {
   const { schema } = input;
+  if (isGraphSchema(schema)) return graphScopeInstructions(schema);
   if (input.scope === 'detail' && schema.byIdQuery) {
     const idType = schema.byIdArgType ?? 'ID!';
     const idArg = schema.byIdArgName ?? 'id';
@@ -250,7 +252,9 @@ export function buildMessages(input: GenerateViewInput): ChatMessage[] {
   messages.push({
     role: 'user',
     content: [
-      `Create a dashboard view for the "${input.concept}" concept.`,
+      isGraphSchema(input.schema)
+        ? 'Create a dashboard view across the whole graph.'
+        : `Create a dashboard view for the "${input.concept}" concept.`,
       '',
       '🎯 PRIMARY GOAL: Create a TABLE widget with clickable links for navigation.',
       '',
@@ -374,6 +378,10 @@ export function buildWidgetMessages(input: GenerateWidgetInput): ChatMessage[] {
 
   contextParts.push(linkCandidatesText);
   contextParts.push('');
+  if (isGraphSchema(input.schema)) {
+    contextParts.push(graphScopeInstructions(input.schema));
+    contextParts.push('');
+  }
   contextParts.push(`Request: ${input.prompt}`);
 
   messages.push({

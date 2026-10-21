@@ -8,7 +8,6 @@ import { useConnection } from './store';
 
 // Each page is its own chunk: the first paint only loads the screen it shows.
 const ConnectPage = lazy(() => import('./pages/connect/ConnectPage').then((m) => ({ default: m.ConnectPage })));
-const HomePage = lazy(() => import('./pages/home/HomePage').then((m) => ({ default: m.HomePage })));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const MillerListPage = lazy(() => import('./pages/miller/MillerListPage').then((m) => ({ default: m.MillerListPage })));
 
@@ -30,9 +29,10 @@ export function App() {
             </UrqlProvider>
           }
         >
-          <Route index element={page(<HomePage />)} />
+          {/* Every screen but the settings is a dashboard: `/` the Concepts one. */}
+          <Route index element={page(<MillerListPage />)} />
           <Route path="settings" element={page(<SettingsPage />)} />
-          <Route path="miller/*" element={page(<MillerListPage />)} />
+          <Route path="d/*" element={page(<MillerListPage />)} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       ) : (

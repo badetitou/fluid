@@ -200,22 +200,22 @@ describe('linkExtractor - Navigation URL Building', () => {
   describe('Miller List URLs', () => {
     it('should append to existing miller path', () => {
       const url = buildMillerNavigationUrl(
-        '/miller/Account/Account/ACC-001',
+        '/d/Account/Account@ACC-001',
         'Customer',
         'CUST-001',
       );
 
-      expect(url).toBe('/miller/Account/Account/ACC-001/Customer/CUST-001');
+      expect(url).toBe('/d/Account/Account@ACC-001/Customer@CUST-001');
     });
 
     it('should handle miller root path', () => {
       const url = buildMillerNavigationUrl(
-        '/miller/Account',
+        '/d/Account',
         'Customer',
         'CUST-001',
       );
 
-      expect(url).toBe('/miller/Account/Customer/CUST-001');
+      expect(url).toBe('/d/Account/Customer@CUST-001');
     });
 
     it('should start new miller view if not in miller context', () => {
@@ -225,7 +225,7 @@ describe('linkExtractor - Navigation URL Building', () => {
         'CUST-001',
       );
 
-      expect(url).toBe('/miller/Customer/Customer/CUST-001');
+      expect(url).toBe('/d/Customer@CUST-001');
     });
   });
 

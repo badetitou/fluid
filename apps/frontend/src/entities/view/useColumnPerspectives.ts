@@ -23,6 +23,8 @@ export interface ColumnPerspectives {
 interface Options {
   /** Present for drill-in (detail) columns. */
   itemId?: string;
+  /** Perspective shown first, when listed (e.g. a saved dashboard's). */
+  initialKey?: string;
   /** Introspected related concepts, used to link relations in the detail perspective. */
   conceptByName: Map<string, Concept>;
   queriesByType: Map<string, ConceptQueries>;
@@ -35,11 +37,11 @@ interface Options {
  */
 export function useColumnPerspectives(
   concept: Concept,
-  { itemId, conceptByName, queriesByType }: Options,
+  { itemId, initialKey, conceptByName, queriesByType }: Options,
 ): ColumnPerspectives {
   const views = useViews(concept);
   // The pick is remembered per concept so a new concept starts on its default.
-  const [picked, setPicked] = useState<{ concept: string; key?: string }>({ concept: concept.name });
+  const [picked, setPicked] = useState<{ concept: string; key?: string }>({ concept: concept.name, key: initialKey });
   const columnKind: ColumnKind = itemId ? 'detail' : 'list';
   const byIdField = concept.queries.byId?.field;
 

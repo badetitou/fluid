@@ -14,6 +14,8 @@ import {
   type RootTypeResult,
   type TypeResult,
 } from '../graphql/introspection';
+import { isGraphConcept } from '@fluid/shared';
+import { buildGraphConcept } from '../graphql/graphConcept';
 import { useConnection, usePinnedConcepts } from '../store';
 
 export type { Concept };
@@ -31,6 +33,8 @@ export interface UseRootConceptsResult {
   /** Root concepts first (sorted), then pinned deeper concepts in pin order. */
   concepts: ConceptEntry[];
   queriesByType: Map<string, ConceptQueries>;
+  /** The root Query type, once introspected. */
+  rootType: IntrospectionType | null;
   /** Introspection depth this source accepts (see `IntrospectionDepth`). */
   depth: IntrospectionDepth;
   fetching: boolean;
@@ -102,6 +106,7 @@ export function useRootConcepts(): UseRootConceptsResult {
   return {
     concepts,
     queriesByType,
+    rootType,
     depth,
     fetching:
       rootResult.fetching ||
@@ -128,19 +133,22 @@ export interface UseConceptResult {
 
 /** Introspects a single concept's type on demand (cached by urql per type name). */
 export function useConcept(name: string | undefined): UseConceptResult {
-  const { queriesByType, depth, fetching: rootFetching, error: rootError } = useRootConcepts();
+  const { queriesByType, rootType, depth, fetching: rootFetching, error: rootError } = useRootConcepts();
+  const isGraph = isGraphConcept(name);
   // Wait for the root so the source's accepted depth is known.
   const [result] = useQuery<TypeResult>({
     query: typeQuery(depth),
     variables: { name: name ?? '' },
-    pause: !name || rootFetching,
+    pause: !name || rootFetching || isGraph,
   });
 
   const queries = name ? queriesByType.get(name) : undefined;
   const concept = useMemo(() => {
-    if (!name || rootFetching || !result.data) return undefined;
+    if (!name || rootFetching) return undefined;
+    if (isGraph) return buildGraphConcept(rootType);
+    if (!result.data) return undefined;
     return buildConcept(result.data.__type, queries);
-  }, [name, rootFetching, result.data, queries]);
+  }, [name, rootFetching, isGraph, rootType, result.data, queries]);
 
   return {
     concept,

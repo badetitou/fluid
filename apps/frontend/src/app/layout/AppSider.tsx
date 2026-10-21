@@ -1,22 +1,22 @@
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { ConfigProvider, Layout, Menu, Typography } from 'antd';
 import { ThunderboltOutlined } from '@ant-design/icons';
+import { selectedBarKey } from '../../entities/dashboard';
 import { usePreferences } from '../../store';
 import { getChrome } from '../../theme';
-import { useConceptMenuItems } from './useConceptMenuItems';
+import { useBarItems } from './useBarItems';
 import styles from './AppLayout.module.css';
 
-/** The navigation sider: logo and the concept bar. */
+/** The navigation sider: logo and the dashboard bar. */
 export function AppSider() {
   const location = useLocation();
-  const params = useParams();
   const collapsed = usePreferences((s) => s.navbarCollapsed);
   const setCollapsed = usePreferences((s) => s.setNavbarCollapsed);
   const density = usePreferences((s) => s.density);
   const compact = density === 'compact';
   const chrome = getChrome(density);
-  const items = useConceptMenuItems();
-  const selectedKey = params.name ? `concept:${params.name}` : location.pathname === '/' ? 'home' : '';
+  const items = useBarItems();
+  const selectedKey = selectedBarKey(location.pathname);
 
   return (
     <Layout.Sider

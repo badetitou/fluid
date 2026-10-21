@@ -1,41 +1,49 @@
 import { describe, expect, it } from 'vitest';
-import { buildColumns, columnSubtitle, columnTitle, parseMillerPath } from './model';
+import { buildColumns, columnSubtitle, columnTitle, resolveRoot } from './model';
 
-describe('parseMillerPath', () => {
-  it('reads the root concept and the drill-in pairs', () => {
-    expect(parseMillerPath('Account/Customer/C1/Order/O1')).toEqual({
-      root: 'Account',
-      stack: [
-        { conceptName: 'Customer', itemId: 'C1' },
-        { conceptName: 'Order', itemId: 'O1' },
-      ],
+const saved = { id: 'x', title: 'Rick', concept: 'Character', itemId: '1', perspective: 'p' };
+
+describe('resolveRoot', () => {
+  it('opens the Concepts page, a concept column or a saved dashboard', () => {
+    const find = (id: string) => (id === 'x' ? saved : undefined);
+    expect(resolveRoot({ kind: 'home' }, find)).toEqual({ kind: 'home' });
+    expect(resolveRoot({ kind: 'column', concept: 'Order' }, find)).toEqual({ kind: 'concept', conceptName: 'Order', itemId: undefined });
+    expect(resolveRoot({ kind: 'dashboard', id: 'x' }, find)).toEqual({
+      kind: 'concept',
+      conceptName: 'Character',
+      itemId: '1',
+      perspective: 'p',
+      title: 'Rick',
     });
-  });
-
-  it('ignores an incomplete trailing pair and empty segments', () => {
-    expect(parseMillerPath('/Account//Customer/')).toEqual({ root: 'Account', stack: [] });
-    expect(parseMillerPath('')).toEqual({ root: undefined, stack: [] });
+    expect(resolveRoot({ kind: 'dashboard', id: 'gone' }, find)).toBeNull();
   });
 });
 
 describe('buildColumns', () => {
   it('chains each column path onto its parent', () => {
-    const columns = buildColumns('Account', [
-      { conceptName: 'Customer', itemId: 'C 1' },
-      { conceptName: 'Order', itemId: 'O1' },
+    const columns = buildColumns('~x', { kind: 'concept', conceptName: 'Character', itemId: '1' }, [
+      { concept: 'Location' },
+      { concept: 'Location', itemId: 'L 1' },
     ]);
     expect(columns.map((c) => [c.path, c.parentPath])).toEqual([
-      ['/miller/Account', undefined],
-      ['/miller/Account/Customer/C%201', '/miller/Account'],
-      ['/miller/Account/Customer/C%201/Order/O1', '/miller/Account/Customer/C%201'],
+      ['/d/~x', undefined],
+      ['/d/~x/Location', '/d/~x'],
+      ['/d/~x/Location/Location@L%201', '/d/~x/Location'],
     ]);
+    expect(columns[2]).toMatchObject({ kind: 'concept', conceptName: 'Location', itemId: 'L 1' });
+  });
+
+  it('starts from the Concepts page', () => {
+    expect(buildColumns('@home', { kind: 'home' }, [{ concept: 'Order' }]).map((c) => c.kind)).toEqual(['home', 'concept']);
   });
 });
 
 describe('titles', () => {
-  it('names list and detail columns', () => {
+  it('names list, detail, saved and home columns', () => {
     expect(columnTitle({ conceptName: 'Account' })).toBe('Account (work list)');
     expect(columnTitle({ conceptName: 'Order', itemId: 'O1' })).toBe('Order: O1');
+    expect(columnTitle({ conceptName: 'Order', itemId: 'O1', title: 'My order' })).toBe('My order');
+    expect(columnTitle({ kind: 'home', conceptName: '' })).toBe('Concepts');
     expect(columnSubtitle('Order')).toBe('Entity Type: Order');
   });
 });

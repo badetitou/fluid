@@ -1,27 +1,34 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Alert } from 'antd';
-import { parseMillerPath } from './model';
+import { useDashboards } from '../../entities/dashboard';
+import { parseDashboardSplat } from '../../navigation/millerPath';
+import { buildColumns, resolveRoot } from './model';
 import { MillerListView } from './MillerListView';
 import styles from './MillerColumn.module.css';
 
 /**
- * Split-view columnar navigation: /miller/:rootConcept or
- * /miller/:rootConcept/:concept/:itemId/… shows the root concept's work list
- * then each drilled-in entity side by side. Each column owns its own
- * perspectives (views) and AI editing, and introspects its concept on demand.
+ * A dashboard and the columns opened from it: `/` is the Concepts dashboard,
+ * `/d/<dashboard>/<column>/…` any dashboard (a concept, a saved one, the
+ * graph) followed by the Miller columns its links opened.
  */
 export function MillerListPage() {
   const splat = useParams<{ '*': string }>()['*'] ?? '';
-  const { root, stack } = useMemo(() => parseMillerPath(splat), [splat]);
+  const { find } = useDashboards();
+  const { root, rootSegment, stack } = useMemo(() => parseDashboardSplat(splat), [splat]);
+  const rootColumn = useMemo(() => resolveRoot(root, find), [root, find]);
+  const columns = useMemo(
+    () => (rootColumn ? buildColumns(rootSegment, rootColumn, stack) : []),
+    [rootSegment, rootColumn, stack],
+  );
 
-  if (!root) {
-    return <Alert type="warning" showIcon title="No concept selected" />;
+  if (!rootColumn) {
+    return <Alert type="warning" showIcon title="This dashboard no longer exists" />;
   }
 
   return (
     <div className={styles.page}>
-      <MillerListView rootConceptName={root} navigationStack={stack} />
+      <MillerListView columns={columns} />
     </div>
   );
 }

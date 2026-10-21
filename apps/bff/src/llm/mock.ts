@@ -1,6 +1,7 @@
 import type { FormatKind, ViewSpecDraft, WidgetDraft } from '@fluid/shared';
 import type { ConceptFieldInfo, GenerateViewInput, GenerateWidgetInput } from './types';
 import { listRowsPath } from './prompt';
+import { isGraphSchema, mockGraphDraft } from './graphScope';
 
 function humanize(name: string): string {
   const spaced = name
@@ -49,6 +50,7 @@ function buildMockListQuery(
 
 export function mockDraft(input: GenerateViewInput): ViewSpecDraft {
   const { schema, concept, prompt } = input;
+  if (isGraphSchema(schema)) return mockGraphDraft(schema, prompt);
   const listField = schema.listQuery ?? undefined;
   const rowsPath = listRowsPath(schema);
   const scalars = schema.fields.filter((f) => f.isScalar && !f.isList);

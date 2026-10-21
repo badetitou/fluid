@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { App as AntdApp } from 'antd';
+import { isGraphConcept } from '@fluid/shared';
 import { usePinning, useRootConcepts } from '../../entities/concept';
 
 /**
@@ -13,7 +14,7 @@ export function usePinnableConcepts(names: string[]) {
   const { pinned, pin } = usePinning();
 
   const pinnable = useMemo(
-    () => [...new Set(names)].filter((name) => !queriesByType.has(name) && !pinned.includes(name)),
+    () => [...new Set(names)].filter((name) => !isGraphConcept(name) && !queriesByType.has(name) && !pinned.includes(name)),
     [names, queriesByType, pinned],
   );
 

@@ -36,11 +36,10 @@ export function useMillerNavigation(): UseMillerNavigationResult {
   );
 
   const navigateBack = useCallback(() => {
-    // In Miller view, go back one level by removing the last concept/id pair
+    // Go back one level by closing the last column
     const parts = location.pathname.split('/').filter(Boolean);
-    if (parts.length > 2) { // More than just /miller/concept
-      // Remove the last two parts (concept and itemId)
-      const newPath = '/' + parts.slice(0, -2).join('/');
+    if (parts.length > 2) { // More than just /d/<root>
+      const newPath = '/' + parts.slice(0, -1).join('/');
       navigate(newPath);
     }
   }, [navigate, location.pathname]);

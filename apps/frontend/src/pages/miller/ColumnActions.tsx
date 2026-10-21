@@ -9,7 +9,8 @@ interface ColumnActionsProps {
   /** The perspective "…" menu. */
   menu: ReactNode;
   isFullscreen: boolean;
-  onToggleFullscreen: () => void;
+  /** Omitted for a dashboard shown on its own, which already fills the page. */
+  onToggleFullscreen?: () => void;
   /** Omitted for the root column, which cannot be closed. */
   onClose?: () => void;
 }
@@ -24,13 +25,15 @@ export function ColumnActions({ onEditLayout, menu, isFullscreen, onToggleFullsc
         </Tooltip>
       )}
       {menu}
-      <Button
-        type="text"
-        size="small"
-        aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
-        icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
-        onClick={onToggleFullscreen}
-      />
+      {onToggleFullscreen && (
+        <Button
+          type="text"
+          size="small"
+          aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
+          icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+          onClick={onToggleFullscreen}
+        />
+      )}
       {onClose && <Button type="text" size="small" aria-label="Close column" icon={<CloseOutlined />} onClick={onClose} />}
     </Space>
   );
