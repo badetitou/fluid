@@ -40,7 +40,8 @@ Widget types:
 - "line" | "area" | "bar": "xField", "yField", "colorField"? ("bar" renders vertical columns)
 - "pie": "angleField" (numeric), "colorField" (category)
 
-Format: "text"|"number"|"currency"|"percent"|"date"|"datetime"|"tag"|"boolean"
+Format: "text"|"number"|"currency"|"percent"|"date"|"datetime"|"tag"|"boolean"|"image"
+  "image" only for String fields holding a picture URL (avatar, portrait, photo, logo…); the user must click to load it.
 Transform: { "groupBy"?: "<field>", "aggregate"?: { "field": "<numeric field>" }, "sort"?: { "by": "<field>", "dir": "asc"|"desc" }, "limit"?: number }
   After "groupBy", each row becomes { "<groupBy>": value, "count": n, "sum": n, "avg": n, "min": n, "max": n } (sum/avg/min/max only with "aggregate").
   A breakdown chart therefore uses xField/colorField = "<groupBy field>" and yField/angleField = "count" or "sum".

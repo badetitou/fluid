@@ -23,7 +23,11 @@ import { z } from 'zod';
 
 export const VIEW_SPEC_VERSION = 1;
 
-/** A value-formatting hint used by table columns, descriptions and statistics. */
+/**
+ * A value-formatting hint used by table columns, descriptions and statistics.
+ * `image` renders a URL as a picture, behind a URL check and a user click
+ * (see apps/frontend/src/views/imageSafety.ts).
+ */
 export const formatKindSchema = z.enum([
   'text',
   'number',
@@ -33,6 +37,7 @@ export const formatKindSchema = z.enum([
   'datetime',
   'tag',
   'boolean',
+  'image',
 ]);
 export type FormatKind = z.infer<typeof formatKindSchema>;
 

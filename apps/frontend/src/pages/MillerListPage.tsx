@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { Alert, Flex } from 'antd';
+import { Alert } from 'antd';
 import { MillerListView } from './MillerListView';
 
 /**
@@ -21,11 +21,9 @@ export function MillerListPage() {
   }
 
   return (
-    <Flex vertical gap={20}>
-      <div style={{ height: 'calc(100vh - 200px)' }}>
-        <MillerListView rootConceptName={rootConceptName} navigationStack={navigationStack} />
-      </div>
-    </Flex>
+    <div style={{ height: '100%' }}>
+      <MillerListView rootConceptName={rootConceptName} navigationStack={navigationStack} />
+    </div>
   );
 }
 

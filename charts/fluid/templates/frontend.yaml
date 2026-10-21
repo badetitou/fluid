@@ -47,6 +47,8 @@ spec:
               value: {{ .Values.frontend.runtimeConfig.bffUrl | quote }}
             - name: FLUID_DEFAULT_GRAPHQL_URL
               value: {{ .Values.frontend.runtimeConfig.defaultGraphqlUrl | quote }}
+            - name: FLUID_IMAGE_HOSTS
+              value: {{ join "," (.Values.frontend.runtimeConfig.imageHosts | default list) | quote }}
           readinessProbe:
             httpGet:
               path: /

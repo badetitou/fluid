@@ -13,8 +13,12 @@ function humanize(name: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
+// String fields whose name suggests a picture URL.
+const IMAGEISH = /(image|avatar|portrait|photo|picture|thumbnail|logo)(url)?$/i;
+
 function guessFormat(field: ConceptField): FormatKind | undefined {
   if (field.typeKind === 'ENUM') return 'tag';
+  if (field.typeName === 'String' && IMAGEISH.test(field.name)) return 'image';
   switch (field.typeName) {
     case 'DateTime':
       return 'datetime';

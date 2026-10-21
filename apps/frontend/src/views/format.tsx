@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Tag, Typography } from 'antd';
 import type { FormatKind } from '@fluid/shared';
+import { SafeImage } from './widgets/SafeImage';
 
 // Value formatting shared by table cells, descriptions and (text parts of) widgets.
 
@@ -68,6 +69,8 @@ export function formatValue(value: unknown, kind?: FormatKind, options?: FormatO
     }
     case 'boolean':
       return formatBoolean(value);
+    case 'image':
+      return <SafeImage value={value} />;
     case 'text':
     default:
       return typeof value === 'object' ? JSON.stringify(value) : String(value);

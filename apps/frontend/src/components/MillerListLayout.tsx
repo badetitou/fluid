@@ -34,6 +34,7 @@ export function MillerListLayout({ children, visibleCount = 2, labels }: MillerL
 
   const [start, setStart] = useState(maxStart);
   const [prevCount, setPrevCount] = useState(count);
+  const [pagerHovered, setPagerHovered] = useState(false);
   // Follow navigation: when columns are added, slide to show the newest ones.
   if (count !== prevCount) {
     setPrevCount(count);
@@ -57,16 +58,16 @@ export function MillerListLayout({ children, visibleCount = 2, labels }: MillerL
   };
 
   return (
-    <Flex
-      vertical
+    <div
       style={{
+        position: 'relative',
         height: '100%',
         width: '100%',
         background: token.colorBgLayout,
         borderRadius: token.borderRadius,
       }}
     >
-      <Flex style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <Flex style={{ height: '100%', overflow: 'hidden' }}>
         {columns.map((column, index) => {
           const shown = index >= first && index <= last;
           return (
@@ -92,11 +93,21 @@ export function MillerListLayout({ children, visibleCount = 2, labels }: MillerL
         <Flex
           align="center"
           justify="center"
-          gap={6}
+          gap={2}
+          onMouseEnter={() => setPagerHovered(true)}
+          onMouseLeave={() => setPagerHovered(false)}
           style={{
-            padding: '6px 12px',
-            borderTop: `1px solid ${token.colorBorderSecondary}`,
-            background: token.colorBgContainer,
+            position: 'absolute',
+            bottom: 10,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 10,
+            padding: '2px 4px',
+            borderRadius: 999,
+            background: token.colorBgElevated,
+            boxShadow: token.boxShadowTertiary,
+            opacity: pagerHovered ? 1 : 0.45,
+            transition: `opacity ${token.motionDurationMid}`,
           }}
         >
           <Button
@@ -108,13 +119,8 @@ export function MillerListLayout({ children, visibleCount = 2, labels }: MillerL
             aria-label="Previous column"
           />
           <Flex
-            gap={4}
-            style={{
-              padding: 3,
-              borderRadius: token.borderRadiusSM,
-              background: token.colorFillTertiary,
-              overflowX: 'auto',
-            }}
+            gap={3}
+            style={{ maxWidth: '60vw', overflowX: 'auto' }}
           >
             {columns.map((_, index) => {
               const shown = index >= first && index <= last;
@@ -126,8 +132,8 @@ export function MillerListLayout({ children, visibleCount = 2, labels }: MillerL
                     aria-current={shown}
                     onClick={() => reveal(index)}
                     style={{
-                      width: 14,
-                      height: 20,
+                      width: 10,
+                      height: 14,
                       padding: 0,
                       flexShrink: 0,
                       cursor: 'pointer',
@@ -150,6 +156,6 @@ export function MillerListLayout({ children, visibleCount = 2, labels }: MillerL
           />
         </Flex>
       )}
-    </Flex>
+    </div>
   );
 }

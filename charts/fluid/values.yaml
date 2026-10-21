@@ -122,6 +122,9 @@ frontend:
   runtimeConfig:
     bffUrl: ""
     defaultGraphqlUrl: "/graphql"
+    # Hosts the "image" format may load pictures from ("*.domain" for subdomains).
+    # Empty => any https host; images are always loaded only after a user click.
+    imageHosts: []
   resources:
     requests:
       cpu: 25m

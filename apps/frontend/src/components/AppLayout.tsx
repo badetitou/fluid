@@ -104,6 +104,7 @@ export function AppLayout() {
       trigger={null}
       collapsedWidth={64}
       theme="dark"
+      style={{ overflowY: 'auto' }}
     >
       <div
         style={{
@@ -138,7 +139,7 @@ export function AppLayout() {
   );
 
   return (
-    <Layout style={{ minHeight: '100vh' }} hasSider>
+    <Layout style={{ height: '100vh' }} hasSider>
       {navbarSide === 'left' && sider}
       <Layout>
         <Header
@@ -171,7 +172,7 @@ export function AppLayout() {
             {navbarSide === 'right' && toggleButton}
           </div>
         </Header>
-        <Content style={{ padding: 24, background: token.colorBgLayout }}>
+        <Content style={{ padding: 24, minHeight: 0, overflow: 'auto', background: token.colorBgLayout }}>
           <Outlet />
         </Content>
       </Layout>

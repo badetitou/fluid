@@ -14,6 +14,12 @@ export interface FluidRuntimeConfig {
   bffUrl?: string;
   /** GraphQL URL pre-filled on the connect screen. */
   defaultGraphqlUrl?: string;
+  /**
+   * Hosts the `image` format may load pictures from, e.g. ["rickandmortyapi.com",
+   * "*.example.org"]. Unset or empty means "any https host" — every image still
+   * needs a click from the user before it is fetched.
+   */
+  imageHosts?: string[];
 }
 
 const runtime: FluidRuntimeConfig =
@@ -36,3 +42,10 @@ export const DEFAULT_GRAPHQL_URL = pick(
   import.meta.env.VITE_DEFAULT_GRAPHQL_URL,
   'http://localhost:4000/graphql',
 );
+
+export const IMAGE_HOSTS: string[] = Array.isArray(runtime.imageHosts)
+  ? runtime.imageHosts.map((h) => String(h).trim().toLowerCase()).filter(Boolean)
+  : (import.meta.env.VITE_IMAGE_HOSTS ?? '')
+      .split(',')
+      .map((h: string) => h.trim().toLowerCase())
+      .filter(Boolean);

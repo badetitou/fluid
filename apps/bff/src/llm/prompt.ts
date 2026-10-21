@@ -64,7 +64,8 @@ Transform (optional) reshapes an array before rendering:
 When "groupBy" is set the rows become { "<groupBy>": value, "count": n, "sum": n, "avg": n, "min": n, "max": n }.
 So a category breakdown = groupBy + a "bar"/"pie" widget with xField/colorField = "<groupBy>" and yField/angleField = "count" (or "sum").
 
-Format is one of: "text","number","currency","percent","date","datetime","tag","boolean".
+Format is one of: "text","number","currency","percent","date","datetime","tag","boolean","image".
+"image" is only for String fields holding a picture URL (avatar, portrait, photo, logo…); the user must click to load it.
 
 Rules:
 - Every widget.data.query MUST reference a key defined in "queries".
@@ -266,7 +267,8 @@ The JSON is a Fluid "widget draft" with one of these discriminated shapes (field
     "angleField": string, "colorField": string, "height"?: number }
 
 Transform: { "groupBy"?: string, "aggregate"?: { "field"?: string }, "sort"?: { "by": string, "dir": "asc"|"desc" }, "limit"?: number }
-Format: "text"|"number"|"currency"|"percent"|"date"|"datetime"|"tag"|"boolean"
+Format: "text"|"number"|"currency"|"percent"|"date"|"datetime"|"tag"|"boolean"|"image"
+  "image" only for String fields holding a picture URL (avatar, portrait, photo, logo…); the user must click to load it.
 LinkConfig: { "concept": string, "idField"?: string }
 
 Important:
