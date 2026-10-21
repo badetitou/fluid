@@ -1,12 +1,29 @@
 .page {
   min-height: 100vh;
   padding: 24px;
-  background: linear-gradient(135deg, var(--ant-color-primary) 0%, #0b1021 100%);
+  background: var(--surface);
 }
 
+/* An accent card: soft box, the brand gradient as a bar along its bottom. */
 .card {
+  position: relative;
+  overflow: hidden;
   width: 500px;
   max-width: 100%;
+  border-color: var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--accent-bar);
+  background: var(--bdt-gradient);
+  pointer-events: none;
 }
 
 .intro {
@@ -15,7 +32,7 @@
 
 .logo {
   font-size: 28px;
-  color: var(--ant-color-primary);
+  color: var(--ink);
 }
 
 .title {
@@ -30,10 +47,6 @@
   margin: 0;
   padding-inline-start: 20px;
   color: var(--ant-color-text-secondary);
-}
-
-.tag {
-  margin-inline-end: 0;
 }
 
 .small {

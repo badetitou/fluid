@@ -11,14 +11,39 @@
 
 .sider {
   overflow-y: auto;
+  border-inline-end: 1px solid var(--border);
 }
 
+.siderRight {
+  border-inline-end: 0;
+  border-inline-start: 1px solid var(--border);
+}
+
+/* The light menu draws its own edge; the sider border replaces it. */
+.sider :global(.ant-menu-inline),
+.sider :global(.ant-menu-vertical) {
+  border-inline-end: 0 !important;
+}
+
+/* The brand's one gradient element: a bar along the bottom of the logo block. */
 .brand {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   overflow: hidden;
-  color: #fff;
+  color: var(--ink);
+}
+
+.brand::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--space-hairline);
+  background: var(--bdt-gradient);
+  pointer-events: none;
 }
 
 .brandCollapsed {
@@ -30,8 +55,10 @@
 }
 
 .brandName {
-  color: #fff !important;
+  color: var(--ink) !important;
   font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
 }
 
 .compact .logo {
@@ -47,7 +74,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid var(--ant-color-border-secondary);
+  border-bottom: 1px solid var(--border);
 }
 
 .header.compact {

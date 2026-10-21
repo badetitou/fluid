@@ -58,11 +58,3 @@ export function guessLanguage(text: string, hint?: string): string {
   if (/^[\w-]+:\s/m.test(t) && !/[;{}]/.test(t)) return 'yaml';
   return 'tsx';
 }
-
-/** Whether a CSS hex color is dark (picks the code theme matching the antd theme). */
-export function isDarkColor(color: string): boolean {
-  const hex = /^#?([\da-f]{6})$/i.exec(color.trim())?.[1];
-  if (!hex) return false;
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 128;
-}

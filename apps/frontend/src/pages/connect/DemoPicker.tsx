@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Button, Flex, Select, Tag, Typography } from 'antd';
+import { Button, Flex, Select, Typography } from 'antd';
 import { PlayCircleOutlined } from '@ant-design/icons';
+import { Badge } from '../../shared/ui';
 import { DEMO_SOURCES } from './demoSources';
 import styles from './ConnectPage.module.css';
 
@@ -27,11 +28,9 @@ export function DemoPicker({ onConnect }: { onConnect: (url: string) => void }) 
       />
       <Flex vertical gap={6}>
         <Typography.Text type="secondary">{demo.description}</Typography.Text>
-        <Flex wrap gap={4}>
+        <Flex wrap gap={8}>
           {demo.concepts.map((c) => (
-            <Tag key={c} color="blue" className={styles.tag}>
-              {c}
-            </Tag>
+            <Badge key={c}>{c}</Badge>
           ))}
         </Flex>
       </Flex>

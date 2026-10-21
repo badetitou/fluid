@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App as AntdApp, ConfigProvider } from 'antd';
 import 'antd/dist/reset.css';
+import './shared/design/badetitou.css';
 import { App } from './App';
 import { getTheme } from './theme';
 import { usePreferences } from './store';
@@ -14,7 +15,7 @@ function AppWithTheme() {
   // Native controls, scrollbars and the page behind the layout follow the theme.
   useEffect(() => {
     document.documentElement.style.colorScheme = themeMode;
-    document.body.style.background = themeMode === 'dark' ? '#000' : '#f5f5f5';
+    document.documentElement.dataset.theme = themeMode;
   }, [themeMode]);
 
   return (

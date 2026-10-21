@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { AppstoreOutlined, DashboardOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, DashboardOutlined } from '@ant-design/icons';
+import { FluidLogo } from '../../shared/ui';
 import { useConceptMenuItems } from './useConceptMenuItems';
 import { useDashboardMenuItems } from './useDashboardMenuItems';
 
@@ -14,7 +15,7 @@ export function useBarItems() {
 
   return useMemo(
     () => [
-      { key: 'home', icon: <ThunderboltOutlined />, label: <Link to="/">Concepts</Link> },
+      { key: 'home', icon: <FluidLogo />, label: <Link to="/">Concepts</Link> },
       { type: 'divider' as const },
       { key: 'group:concepts', icon: <AppstoreOutlined />, label: 'Concepts', children: concepts },
       { key: 'group:dashboards', icon: <DashboardOutlined />, label: 'My dashboards', children: dashboards },

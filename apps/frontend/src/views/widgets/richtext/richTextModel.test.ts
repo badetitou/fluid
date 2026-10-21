@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectTextFormat, guessLanguage, isDarkColor, resolveFormat, textOf } from './richTextModel';
+import { detectTextFormat, guessLanguage, resolveFormat, textOf } from './richTextModel';
 
 describe('textOf', () => {
   it('reads a field of the bound object, or the binding itself', () => {
@@ -43,13 +43,5 @@ describe('guessLanguage', () => {
     expect(guessLanguage('query { users { id } }')).toBe('graphql');
     expect(guessLanguage('<div></div>')).toBe('markup');
     expect(guessLanguage('const a = 1;')).toBe('tsx');
-  });
-});
-
-describe('isDarkColor', () => {
-  it('tells dark backgrounds from light ones', () => {
-    expect(isDarkColor('#141414')).toBe(true);
-    expect(isDarkColor('#ffffff')).toBe(false);
-    expect(isDarkColor('rgb(0,0,0)')).toBe(false);
   });
 });

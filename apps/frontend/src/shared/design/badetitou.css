@@ -1,0 +1,66 @@
+/*
+ * badetitou design system — tokens as CSS variables, for the styles antd does
+ * not own (the app chrome, signature components). The antd theme in
+ * `src/theme.ts` maps the same values to antd tokens. `data-theme` on <html>
+ * follows the app's light/dark preference.
+ */
+:root {
+  --brand-green: #86efac;
+  --brand-blue: #3b82f6;
+  --brand-purple: #9333ea;
+  --bdt-gradient: linear-gradient(to right, var(--brand-green), var(--brand-blue), var(--brand-purple));
+
+  --surface: #ffffff;
+  --surface-card: oklch(98.5% 0.002 247.839);
+  --surface-inset: oklch(98.5% 0.002 247.839);
+  --surface-button: #ffffff;
+  --border: oklch(87.2% 0.01 258.338);
+  --border-subtle: oklch(92.8% 0.006 264.531);
+  --ink: oklch(21% 0.034 264.665);
+  --ink-secondary: oklch(37.3% 0.034 259.733);
+  --ink-muted: oklch(55.1% 0.027 264.364);
+  --accent-hover: #86efac;
+  --badge-border: oklch(79.2% 0.209 151.711);
+  --link: oklch(48.8% 0.243 264.376);
+
+  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+
+  --space-hairline: 2px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --accent-bar: 4px;
+}
+
+:root[data-theme='dark'] {
+  --surface: oklch(21% 0.034 264.665);
+  --surface-card: oklch(27.8% 0.033 256.848 / 0.6);
+  --surface-inset: oklch(13% 0.028 261.692 / 0.4);
+  --surface-button: #000000;
+  --border: oklch(37.3% 0.034 259.733);
+  --border-subtle: oklch(27.8% 0.033 256.848);
+  --ink: oklch(96.7% 0.003 264.542);
+  --ink-secondary: oklch(87.2% 0.01 258.338);
+  --ink-muted: oklch(70.7% 0.022 261.325);
+  --accent-hover: #9333ea;
+  --badge-border: #9333ea;
+  --link: oklch(80.9% 0.105 251.813);
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+/* Headings tighten their tracking; hierarchy is weight more than size. */
+h1.ant-typography,
+h2.ant-typography,
+h3.ant-typography {
+  letter-spacing: -0.025em;
+}

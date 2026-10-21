@@ -42,46 +42,110 @@ const CHROME: Record<Density, Chrome> = {
 
 export const getChrome = (density: Density): Chrome => CHROME[density];
 
-const lightTheme: ThemeConfig = {
-  algorithm: theme.defaultAlgorithm,
-  token: {
-    colorPrimary: '#2f54eb',
-    borderRadius: 8,
-    fontSize: 14,
+/**
+ * The badetitou design system, as the hex values antd can derive palettes from
+ * (the system itself writes the grays as Tailwind `oklch()`; `badetitou.css`
+ * exposes the same tokens as CSS variables).
+ */
+export interface Palette {
+  surface: string;
+  surfaceCard: string;
+  surfaceElevated: string;
+  border: string;
+  borderSubtle: string;
+  ink: string;
+  inkSecondary: string;
+  inkMuted: string;
+  link: string;
+  selected: string;
+}
+
+export const BRAND = { green: '#86efac', blue: '#3b82f6', purple: '#9333ea' } as const;
+
+export const PALETTES: Record<ThemeMode, Palette> = {
+  light: {
+    surface: '#ffffff',
+    surfaceCard: '#f9fafb',
+    surfaceElevated: '#ffffff',
+    border: '#d1d5db',
+    borderSubtle: '#e5e7eb',
+    ink: '#111827',
+    inkSecondary: '#374151',
+    inkMuted: '#6b7280',
+    link: '#1d4ed8',
+    selected: '#f3f4f6',
   },
-  components: {
-    Layout: {
-      headerBg: '#ffffff',
-      siderBg: '#0b1021',
-    },
-    Menu: {
-      darkItemBg: '#0b1021',
-      darkSubMenuItemBg: '#0b1021',
-    },
+  dark: {
+    surface: '#111827',
+    // gray-800 at 60% over gray-900, flattened so antd can derive from it.
+    surfaceCard: '#19222f',
+    surfaceElevated: '#1f2937',
+    border: '#374151',
+    borderSubtle: '#1f2937',
+    ink: '#f3f4f6',
+    inkSecondary: '#d1d5db',
+    inkMuted: '#9ca3af',
+    link: '#93c5fd',
+    selected: '#1f2937',
   },
 };
 
-const darkTheme: ThemeConfig = {
-  algorithm: theme.darkAlgorithm,
-  token: {
-    colorPrimary: '#2f54eb',
-    borderRadius: 8,
-    fontSize: 14,
-  },
-  components: {
-    Layout: {
-      headerBg: '#141414',
-      siderBg: '#0b1021',
+const FONT_SANS = 'Inter, ui-sans-serif, system-ui, sans-serif';
+const FONT_MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+
+const buildTheme = (mode: ThemeMode): ThemeConfig => {
+  const p = PALETTES[mode];
+  return {
+    algorithm: mode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+    token: {
+      colorPrimary: BRAND.blue,
+      colorInfo: BRAND.blue,
+      colorLink: p.link,
+      colorText: p.ink,
+      colorTextSecondary: p.inkSecondary,
+      colorTextTertiary: p.inkMuted,
+      colorBorder: p.border,
+      colorBorderSecondary: p.borderSubtle,
+      colorBgLayout: p.surface,
+      colorBgContainer: p.surfaceCard,
+      colorBgElevated: p.surfaceElevated,
+      fontFamily: FONT_SANS,
+      fontFamilyCode: FONT_MONO,
+      fontSize: 14,
+      borderRadius: 8,
+      borderRadiusLG: 8,
+      borderRadiusSM: 4,
+      borderRadiusXS: 2,
+      // Borders, not shadows, separate content.
+      boxShadowTertiary: 'none',
     },
-    Menu: {
-      darkItemBg: '#0b1021',
-      darkSubMenuItemBg: '#0b1021',
+    components: {
+      Layout: {
+        headerBg: p.surface,
+        siderBg: p.surface,
+        lightSiderBg: p.surface,
+        bodyBg: p.surface,
+      },
+      Menu: {
+        itemBg: p.surface,
+        subMenuItemBg: p.surface,
+        itemColor: p.inkSecondary,
+        itemHoverColor: p.ink,
+        itemHoverBg: p.selected,
+        itemSelectedColor: p.ink,
+        subMenuItemSelectedColor: p.ink,
+        itemSelectedBg: p.selected,
+        groupTitleColor: p.inkMuted,
+      },
+      Typography: {
+        titleMarginBottom: '0.5em',
+      },
     },
-  },
+  };
 };
 
-export const getTheme = (mode: ThemeMode): ThemeConfig => {
-  return mode === 'dark' ? darkTheme : lightTheme;
-};
+const THEMES: Record<ThemeMode, ThemeConfig> = { light: buildTheme('light'), dark: buildTheme('dark') };
 
-export const fluidTheme = lightTheme;
+export const getTheme = (mode: ThemeMode): ThemeConfig => THEMES[mode];
+
+export const fluidTheme = THEMES.light;
