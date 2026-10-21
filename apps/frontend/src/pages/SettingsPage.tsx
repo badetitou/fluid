@@ -8,6 +8,8 @@ import {
   DisconnectOutlined,
   SunOutlined,
   MoonOutlined,
+  CompressOutlined,
+  ExpandOutlined,
 } from '@ant-design/icons';
 
 export function SettingsPage() {
@@ -20,6 +22,8 @@ export function SettingsPage() {
   const setThemeMode = usePreferences((s) => s.setThemeMode);
   const navbarSide = usePreferences((s) => s.navbarSide);
   const setNavbarSide = usePreferences((s) => s.setNavbarSide);
+  const density = usePreferences((s) => s.density);
+  const setDensity = usePreferences((s) => s.setDensity);
 
   const handleDisconnect = () => {
     disconnect();
@@ -101,6 +105,22 @@ export function SettingsPage() {
                   >
                     Current: {navbarSide}
                   </Button>
+                </div>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Typography.Text strong>Density</Typography.Text>
+                <div style={{ marginTop: 8 }}>
+                  <Segmented
+                    block
+                    value={density}
+                    onChange={(v) => setDensity(v as typeof density)}
+                    options={[
+                      { label: 'Comfortable', value: 'comfortable', icon: <ExpandOutlined /> },
+                      { label: 'Compact', value: 'compact', icon: <CompressOutlined /> },
+                    ]}
+                  />
                 </div>
               </Col>
             </Row>

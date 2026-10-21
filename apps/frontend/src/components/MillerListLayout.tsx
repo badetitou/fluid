@@ -98,7 +98,7 @@ export function MillerListLayout({ children, visibleCount = 2, labels }: MillerL
           onMouseLeave={() => setPagerHovered(false)}
           style={{
             position: 'absolute',
-            bottom: 10,
+            bottom: 6,
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 10,

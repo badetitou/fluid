@@ -45,6 +45,8 @@ import { ViewEditorModal, type ViewEditorInitial } from './ViewEditorModal';
 import { LlmSettingsModal } from './LlmSettingsModal';
 import { buildConceptSchemaPayload } from '../llm/conceptSchema';
 import { bffClient } from '../bff/client';
+import { usePreferences } from '../store';
+import { getChrome } from '../theme';
 
 const SOURCE_META: Record<ViewSource, { label: string; color: string }> = {
   saved: { label: 'saved', color: 'green' },
@@ -140,6 +142,9 @@ function MillerColumnBody({
 }: MillerColumnBodyProps) {
   const { token } = theme.useToken();
   const { message, modal } = AntdApp.useApp();
+  const density = usePreferences((s) => s.density);
+  const compact = density === 'compact';
+  const chrome = getChrome(density);
   const { entries, defaultKey, loading, bffAvailable, refetch } = useViews(concept);
 
   const [picked, setPicked] = useState<string | undefined>(undefined);
@@ -366,14 +371,14 @@ function MillerColumnBody({
     alignItems: 'center',
     gap: 5,
     flexShrink: 0,
-    height: 22,
-    padding: '0 9px',
+    height: chrome.pillHeight,
+    padding: compact ? '0 7px' : '0 9px',
     borderRadius: 999,
     border: `1px solid ${token.colorBorderSecondary}`,
     background: token.colorBgContainer,
     color: token.colorTextSecondary,
-    fontSize: 12,
-    lineHeight: '20px',
+    fontSize: compact ? 11 : 12,
+    lineHeight: `${chrome.pillHeight - 2}px`,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
     transition: `all ${token.motionDurationMid}`,
@@ -422,63 +427,109 @@ function MillerColumnBody({
     );
   });
 
+  const actions = (
+    <Space size={2} style={{ flexShrink: 0 }}>
+      <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+        <Button type="text" size="small" icon={<MoreOutlined />} loading={busy} />
+      </Dropdown>
+      {onToggleFullscreen && (
+        <Button
+          type="text"
+          size="small"
+          aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
+          icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+          onClick={onToggleFullscreen}
+        />
+      )}
+      {onClose && (
+        <Button type="text" size="small" icon={<CloseOutlined />} onClick={onClose} />
+      )}
+    </Space>
+  );
+
+  const pillBar = allEntries.length > 0 && (
+    <div
+      role="tablist"
+      style={{
+        display: 'flex',
+        gap: compact ? 4 : 6,
+        overflowX: 'auto',
+        padding: compact ? 0 : '2px 0 4px',
+        minWidth: 0,
+        flex: compact ? '1 1 auto' : undefined,
+      }}
+    >
+      {perspectivePills}
+      {bffAvailable && (
+        <Tooltip title="New perspective with assistant">
+          <span
+            role="button"
+            aria-label="New perspective"
+            tabIndex={0}
+            onClick={openAssistantCreate}
+            onKeyDown={(ev) => ev.key === 'Enter' && openAssistantCreate()}
+            style={{
+              ...pillBase,
+              padding: 0,
+              width: chrome.pillHeight,
+              justifyContent: 'center',
+              borderStyle: 'dashed',
+            }}
+          >
+            <PlusOutlined style={{ fontSize: 10 }} />
+          </span>
+        </Tooltip>
+      )}
+    </div>
+  );
+
+  // Compact density folds title, perspectives and actions into a single row;
+  // the subtitle moves to a tooltip on the title.
+  const header = compact ? (
+    <Flex
+      align="center"
+      gap={8}
+      style={{
+        padding: chrome.columnHeaderPadding,
+        borderBottom: `1px solid ${token.colorBorderSecondary}`,
+        background: token.colorBgElevated,
+      }}
+    >
+      <Tooltip title={subtitle} mouseEnterDelay={0.6}>
+        <Typography.Text strong ellipsis style={{ fontSize: 13, flex: '0 1 auto', maxWidth: '40%' }}>
+          {title}
+        </Typography.Text>
+      </Tooltip>
+      {pillBar || <div style={{ flex: 1 }} />}
+      {actions}
+    </Flex>
+  ) : (
+    <div
+      style={{
+        padding: chrome.columnHeaderPadding,
+        borderBottom: `1px solid ${token.colorBorderSecondary}`,
+        background: token.colorBgElevated,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+      }}
+    >
+      <Flex align="flex-start" justify="space-between" gap={8}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 12, color: token.colorTextSecondary }}>{subtitle}</div>
+          <Typography.Text strong ellipsis style={{ fontSize: 14 }}>
+            {title}
+          </Typography.Text>
+        </div>
+        {actions}
+      </Flex>
+      {pillBar}
+    </div>
+  );
+
   return (
     <>
-      <div
-        style={{
-          padding: '10px 12px',
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          background: token.colorBgElevated,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-        }}
-      >
-        <Flex align="flex-start" justify="space-between" gap={8}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 12, color: token.colorTextSecondary }}>{subtitle}</div>
-            <Typography.Text strong ellipsis style={{ fontSize: 14 }}>
-              {title}
-            </Typography.Text>
-          </div>
-          <Space size={2}>
-            <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-              <Button type="text" size="small" icon={<MoreOutlined />} loading={busy} />
-            </Dropdown>
-            {onToggleFullscreen && (
-              <Button
-                type="text"
-                size="small"
-                aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
-                icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
-                onClick={onToggleFullscreen}
-              />
-            )}
-            {onClose && (
-              <Button type="text" size="small" icon={<CloseOutlined />} onClick={onClose} />
-            )}
-          </Space>
-        </Flex>
-        {allEntries.length > 0 && (
-          <div role="tablist" style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '2px 0 4px' }}>
-            {perspectivePills}
-            {bffAvailable && (
-              <Tooltip title="New perspective with assistant">
-                <span
-                  role="button"
-                  aria-label="New perspective"
-                  tabIndex={0}
-                  onClick={openAssistantCreate}
-                  onKeyDown={(ev) => ev.key === 'Enter' && openAssistantCreate()}
-                  style={{ ...pillBase, padding: 0, width: 22, justifyContent: 'center', borderStyle: 'dashed' }}
-                >
-                  <PlusOutlined style={{ fontSize: 10 }} />
-                </span>
-              </Tooltip>
-            )}
-          </div>
-        )}
-      </div>
+      {header}
       <div style={{ flex: 1, overflow: 'auto' }}>
         {spec ? (
           <div style={{ padding: 12 }}>

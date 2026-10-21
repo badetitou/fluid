@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
-import { Alert, Card, Col, Empty, Flex, Row, Skeleton, Space, Tag, Typography } from 'antd';
-import { ArrowRightOutlined, PushpinOutlined, TableOutlined } from '@ant-design/icons';
+import { Alert, Card, Col, Empty, Flex, Row, Skeleton, Space, Tag, Tooltip, Typography } from 'antd';
+import { ArrowRightOutlined } from '@ant-design/icons';
 import { useConcept, useRootConcepts, type ConceptEntry } from '../hooks/useConcepts';
+import { ConceptIcon, ConceptIconPicker } from '../components/ConceptIcon';
 
 export function HomePage() {
   const { concepts, fetching, error } = useRootConcepts();
@@ -64,7 +65,11 @@ function ConceptCard({ entry }: { entry: ConceptEntry }) {
         hoverable
         title={
           <Space>
-            {entry.isRoot ? <TableOutlined /> : <PushpinOutlined />}
+            <Tooltip title="Change icon">
+              <ConceptIconPicker name={entry.name}>
+                <ConceptIcon name={entry.name} isRoot={entry.isRoot} />
+              </ConceptIconPicker>
+            </Tooltip>
             {entry.name}
           </Space>
         }

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ThemeMode } from './theme';
+import type { Density, ThemeMode } from './theme';
 
 export type NavbarSide = 'left' | 'right';
 
@@ -48,6 +48,26 @@ export const usePinnedConcepts = create<PinnedConceptsState>()(
   ),
 );
 
+interface ConceptIconsState {
+  /** Icon key per concept name, keyed by GraphQL source URL. */
+  byUrl: Record<string, Record<string, string>>;
+  setIcon: (url: string, concept: string, icon: string | null) => void;
+}
+
+// User-chosen icons for concepts; a missing entry falls back to the default icon.
+export const useConceptIcons = create<ConceptIconsState>()(
+  persist(
+    (set, get) => ({
+      byUrl: {},
+      setIcon: (url, concept, icon) => {
+        const { [concept]: _previous, ...rest } = get().byUrl[url] ?? {};
+        set({ byUrl: { ...get().byUrl, [url]: icon ? { ...rest, [concept]: icon } : rest } });
+      },
+    }),
+    { name: 'fluid-concept-icons' },
+  ),
+);
+
 interface PreferencesState {
   navbarSide: NavbarSide;
   setNavbarSide: (side: NavbarSide) => void;
@@ -58,6 +78,9 @@ interface PreferencesState {
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
   toggleThemeMode: () => void;
+  density: Density;
+  setDensity: (density: Density) => void;
+  toggleDensity: () => void;
 }
 
 export const usePreferences = create<PreferencesState>()(
@@ -77,6 +100,10 @@ export const usePreferences = create<PreferencesState>()(
       setThemeMode: (mode) => set({ themeMode: mode }),
       toggleThemeMode: () =>
         set({ themeMode: get().themeMode === 'light' ? 'dark' : 'light' }),
+      density: 'comfortable',
+      setDensity: (density) => set({ density }),
+      toggleDensity: () =>
+        set({ density: get().density === 'compact' ? 'comfortable' : 'compact' }),
     }),
     { name: 'fluid-preferences' },
   ),

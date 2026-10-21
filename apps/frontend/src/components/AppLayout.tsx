@@ -1,20 +1,22 @@
 import { useEffect, useMemo } from 'react';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
-import { Button, Layout, Menu, Tooltip, Typography, theme } from 'antd';
+import { Button, ConfigProvider, Layout, Menu, Tooltip, Typography, theme } from 'antd';
 import {
   ThunderboltOutlined,
-  TableOutlined,
   SettingOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MoonOutlined,
   SunOutlined,
-  PushpinOutlined,
   CloseOutlined,
+  CompressOutlined,
+  ExpandOutlined,
 } from '@ant-design/icons';
 import { useConnection, usePreferences, type NavbarSide } from '../store';
 import { usePinning, useRootConcepts } from '../hooks/useConcepts';
 import { bffClient } from '../bff/client';
+import { getChrome } from '../theme';
+import { ConceptIcon } from './ConceptIcon';
 
 const { Header, Sider, Content } = Layout;
 
@@ -29,6 +31,10 @@ export function AppLayout() {
   const setCollapsed = usePreferences((s) => s.setNavbarCollapsed);
   const themeMode = usePreferences((s) => s.themeMode);
   const toggleThemeMode = usePreferences((s) => s.toggleThemeMode);
+  const density = usePreferences((s) => s.density);
+  const toggleDensity = usePreferences((s) => s.toggleDensity);
+  const compact = density === 'compact';
+  const chrome = getChrome(density);
   const graphqlUrl = useConnection((s) => s.graphqlUrl);
 
   const { concepts } = useRootConcepts();
@@ -69,7 +75,7 @@ export function AppLayout() {
       },
       ...concepts.map((concept) => ({
         key: `concept:${concept.name}`,
-        icon: concept.isRoot ? <TableOutlined /> : <PushpinOutlined />,
+        icon: <ConceptIcon name={concept.name} isRoot={concept.isRoot} />,
         label: concept.isRoot ? (
           <Link to={`/miller/${concept.name}`}>{concept.name}</Link>
         ) : (
@@ -97,35 +103,45 @@ export function AppLayout() {
 
   const sider = (
     <Sider
-      width={240}
+      width={chrome.siderWidth}
       collapsible
       collapsed={collapsed}
       onCollapse={setCollapsed}
       trigger={null}
-      collapsedWidth={64}
+      collapsedWidth={chrome.siderCollapsedWidth}
       theme="dark"
       style={{ overflowY: 'auto' }}
     >
       <div
         style={{
-          height: 56,
+          height: compact ? chrome.headerHeight : 56,
           display: 'flex',
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'flex-start',
           gap: 10,
-          padding: collapsed ? 0 : '0 20px',
+          padding: collapsed ? 0 : `0 ${chrome.headerPadding}px`,
           color: '#fff',
           overflow: 'hidden',
         }}
       >
-        <ThunderboltOutlined style={{ fontSize: 20 }} />
+        <ThunderboltOutlined style={{ fontSize: compact ? 16 : 20 }} />
         {!collapsed && (
-          <Typography.Text strong style={{ color: '#fff', fontSize: 18 }}>
+          <Typography.Text strong style={{ color: '#fff', fontSize: compact ? 15 : 18 }}>
             fluid
           </Typography.Text>
         )}
       </div>
-      <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems} />
+      <ConfigProvider
+        theme={{
+          components: {
+            Menu: compact
+              ? { itemHeight: chrome.menuItemHeight, itemMarginBlock: 2, itemMarginInline: 4, collapsedWidth: chrome.siderCollapsedWidth }
+              : {},
+          },
+        }}
+      >
+        <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems} />
+      </ConfigProvider>
     </Sider>
   );
 
@@ -133,6 +149,7 @@ export function AppLayout() {
     <Button
       type="text"
       aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+      size={compact ? 'small' : 'middle'}
       icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
       onClick={() => setCollapsed(!collapsed)}
     />
@@ -147,8 +164,10 @@ export function AppLayout() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 12,
-            padding: '0 20px',
+            gap: compact ? 8 : 12,
+            height: chrome.headerHeight,
+            lineHeight: `${chrome.headerHeight}px`,
+            padding: `0 ${chrome.headerPadding}px`,
             borderBottom: `1px solid ${token.colorBorderSecondary}`,
           }}
         >
@@ -158,16 +177,25 @@ export function AppLayout() {
               {graphqlUrl}
             </Typography.Text>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: compact ? 4 : 8 }}>
+            <Tooltip title={compact ? 'Comfortable density' : 'Compact density'}>
+              <Button
+                aria-label="Toggle density"
+                size={compact ? 'small' : 'middle'}
+                icon={compact ? <ExpandOutlined /> : <CompressOutlined />}
+                onClick={toggleDensity}
+              />
+            </Tooltip>
             <Tooltip title={themeMode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}>
               <Button
                 aria-label="Toggle theme"
+                size={compact ? 'small' : 'middle'}
                 icon={themeMode === 'dark' ? <SunOutlined /> : <MoonOutlined />}
                 onClick={toggleThemeMode}
               />
             </Tooltip>
             <Link to="/settings">
-              <Button icon={<SettingOutlined />} />
+              <Button size={compact ? 'small' : 'middle'} icon={<SettingOutlined />} />
             </Link>
             {navbarSide === 'right' && toggleButton}
           </div>
