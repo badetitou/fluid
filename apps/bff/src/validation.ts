@@ -59,6 +59,7 @@ const conceptSchemaInfo = z.object({
         typeName: z.string(),
         isList: z.boolean(),
         fields: z.array(z.string()),
+        recursive: z.boolean().optional(),
       }),
     )
     .optional(),

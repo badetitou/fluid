@@ -9,6 +9,16 @@
   color: var(--ant-color-text-secondary);
 }
 
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  margin-bottom: 8px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+}
+
 .scroll {
   overflow: auto;
 }
