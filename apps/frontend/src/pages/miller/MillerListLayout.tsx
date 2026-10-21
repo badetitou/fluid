@@ -2,27 +2,29 @@ import { Children, isValidElement, useState, type ReactNode } from 'react';
 import { Empty, Flex } from 'antd';
 import { ErrorBoundary } from '../../shared/ui';
 import { ColumnPager } from './ColumnPager';
+import type { ColumnWindow } from './columnWindow';
+import { useVisibleColumns } from './useVisibleColumns';
 import styles from './MillerListLayout.module.css';
 
 interface MillerListLayoutProps {
   /** One node per navigation level. Each already renders its own header + body. */
   children: ReactNode;
-  /** Number of consecutive columns shown at once. */
-  visibleCount?: number;
   /** Optional label per column, shown as a tooltip on the pager. */
   labels?: string[];
 }
 
 /**
  * Lays out Miller navigation columns side by side, showing a sliding window of
- * `visibleCount` consecutive columns (two by default). When navigation opens a
- * new column the window follows it, so the last two levels are always on screen.
+ * consecutive columns (two by default, as many as the user drags the pager to).
+ * When navigation opens a new column the window follows it, so the deepest
+ * levels are always on screen.
  *
  * Columns outside the window stay mounted (just hidden) so their local state —
  * selected perspective, pagination — survives scrolling back. Each column is
  * wrapped in an error boundary so a single failing perspective cannot blank the screen.
  */
-export function MillerListLayout({ children, visibleCount = 2, labels }: MillerListLayoutProps) {
+export function MillerListLayout({ children, labels }: MillerListLayoutProps) {
+  const [visibleCount, setVisibleCount] = useVisibleColumns();
   const columns = Children.toArray(children);
   const count = columns.length;
   const windowSize = Math.max(1, Math.min(visibleCount, count));
@@ -37,6 +39,10 @@ export function MillerListLayout({ children, visibleCount = 2, labels }: MillerL
   }
   const first = Math.min(start, maxStart);
   const last = first + windowSize - 1;
+  const resize = ({ first: nextFirst, last: nextLast }: ColumnWindow) => {
+    setStart(nextFirst);
+    setVisibleCount(nextLast - nextFirst + 1);
+  };
 
   if (count === 0) {
     return (
@@ -65,8 +71,16 @@ export function MillerListLayout({ children, visibleCount = 2, labels }: MillerL
         ))}
       </div>
 
-      {count > windowSize && (
-        <ColumnPager count={count} first={first} last={last} labels={labels} onStartChange={setStart} />
+      {/* From two columns on, even all shown, so the window can be narrowed again. */}
+      {count > 1 && (
+        <ColumnPager
+          count={count}
+          first={first}
+          last={last}
+          labels={labels}
+          onStartChange={setStart}
+          onResize={resize}
+        />
       )}
     </div>
   );

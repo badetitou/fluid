@@ -79,6 +79,9 @@ interface PreferencesState {
   /** Width of the expanded navbar set by dragging its edge; `null` uses the density default. */
   navbarWidth: number | null;
   setNavbarWidth: (width: number | null) => void;
+  /** Miller columns shown side by side, set by dragging the pager's window. */
+  millerVisibleColumns: number;
+  setMillerVisibleColumns: (count: number) => void;
   /** Keys of the navbar sections (concepts, dashboards) currently unfolded. */
   navbarOpenSections: string[];
   setNavbarOpenSections: (keys: string[]) => void;
@@ -102,6 +105,8 @@ export const usePreferences = create<PreferencesState>()(
       toggleNavbarCollapsed: () => set({ navbarCollapsed: !get().navbarCollapsed }),
       navbarWidth: null,
       setNavbarWidth: (width) => set({ navbarWidth: width }),
+      millerVisibleColumns: 2,
+      setMillerVisibleColumns: (count) => set({ millerVisibleColumns: count }),
       navbarOpenSections: ['group:concepts', 'group:dashboards'],
       setNavbarOpenSections: (keys) => set({ navbarOpenSections: keys }),
       themeMode:
