@@ -77,6 +77,13 @@ export function removeDashboard(list: Dashboard[], id: string): Dashboard[] {
   return list.filter((d) => d.id !== id);
 }
 
+/** Rename a dashboard; a blank title keeps the current one. */
+export function renameDashboard(list: Dashboard[], id: string, title: string): Dashboard[] {
+  const trimmed = title.trim();
+  if (!trimmed) return list;
+  return list.map((d) => (d.id === id ? { ...d, title: trimmed } : d));
+}
+
 /** Drop the dashboards showing a perspective that no longer exists. */
 export function forgetPerspective(list: Dashboard[], perspective: string): Dashboard[] {
   return list.filter((d) => d.perspective !== perspective);

@@ -17,7 +17,7 @@ import { RemovableEntry } from './RemovableEntry';
  * whole-graph dashboard with the assistant.
  */
 export function useDashboardMenuItems() {
-  const { dashboards, remove } = useDashboards();
+  const { dashboards, remove, rename } = useDashboards();
 
   return useMemo(
     () => [
@@ -30,6 +30,7 @@ export function useDashboardMenuItems() {
             label={d.title}
             removeLabel="Remove dashboard"
             onRemove={() => remove(d.id)}
+            onRename={(title) => rename(d.id, title)}
           />
         ),
       })),
@@ -43,6 +44,6 @@ export function useDashboardMenuItems() {
         ),
       },
     ],
-    [dashboards, remove],
+    [dashboards, remove, rename],
   );
 }

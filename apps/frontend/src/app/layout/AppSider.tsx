@@ -5,6 +5,7 @@ import { selectedBarKey } from '../../entities/dashboard';
 import { usePreferences } from '../../store';
 import { getChrome } from '../../theme';
 import { useBarItems } from './useBarItems';
+import { useNavbarSections } from './useNavbarSections';
 import styles from './AppLayout.module.css';
 
 /** The navigation sider: logo and the dashboard bar. */
@@ -17,6 +18,7 @@ export function AppSider() {
   const chrome = getChrome(density);
   const items = useBarItems();
   const selectedKey = selectedBarKey(location.pathname);
+  const sections = useNavbarSections(collapsed);
 
   return (
     <Layout.Sider
@@ -54,7 +56,7 @@ export function AppSider() {
           },
         }}
       >
-        <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={items} />
+        <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={items} {...sections} />
       </ConfigProvider>
     </Layout.Sider>
   );

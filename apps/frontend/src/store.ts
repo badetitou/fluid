@@ -76,6 +76,9 @@ interface PreferencesState {
   navbarCollapsed: boolean;
   setNavbarCollapsed: (collapsed: boolean) => void;
   toggleNavbarCollapsed: () => void;
+  /** Keys of the navbar sections (concepts, dashboards) currently unfolded. */
+  navbarOpenSections: string[];
+  setNavbarOpenSections: (keys: string[]) => void;
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
   toggleThemeMode: () => void;
@@ -94,6 +97,8 @@ export const usePreferences = create<PreferencesState>()(
       navbarCollapsed: false,
       setNavbarCollapsed: (collapsed) => set({ navbarCollapsed: collapsed }),
       toggleNavbarCollapsed: () => set({ navbarCollapsed: !get().navbarCollapsed }),
+      navbarOpenSections: ['group:concepts', 'group:dashboards'],
+      setNavbarOpenSections: (keys) => set({ navbarOpenSections: keys }),
       themeMode:
         typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
           ? 'dark'

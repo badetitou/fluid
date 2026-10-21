@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useConnection } from '../../store';
-import { addDashboard, forgetPerspective, removeDashboard, type Dashboard } from './model';
+import { addDashboard, forgetPerspective, removeDashboard, renameDashboard, type Dashboard } from './model';
 import { useDashboardStore } from './store';
 
 const EMPTY: Dashboard[] = [];
@@ -33,6 +33,7 @@ export function useDashboards() {
         return added;
       },
       remove: (id: string) => change((list) => removeDashboard(list, id)),
+      rename: (id: string, title: string) => change((list) => renameDashboard(list, id, title)),
       forgetPerspective: (key: string) => change((list) => forgetPerspective(list, key)),
     }),
     [dashboards, change],

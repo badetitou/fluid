@@ -83,6 +83,12 @@
   gap: 4px;
 }
 
+/* Popup menus (collapsed sider) lay items out inline: a block-level flex
+   entry would wrap below the icon and be clipped by the item. */
+:global(.ant-menu-submenu-popup) .pinned {
+  display: inline-flex;
+}
+
 .pinnedLink {
   flex: 1;
   min-width: 0;

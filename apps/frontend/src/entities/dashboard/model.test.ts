@@ -8,6 +8,7 @@ import {
   newGraphDashboardNavState,
   readPreselect,
   removeDashboard,
+  renameDashboard,
   selectedBarKey,
   type Dashboard,
 } from './model';
@@ -47,6 +48,13 @@ describe('dashboard list', () => {
     const list = [detail, other];
     expect(removeDashboard(list, detail.id)).toEqual([other]);
     expect(forgetPerspective(list, 'gone')).toEqual([detail]);
+  });
+
+  it('renames by id, trimming, and ignores a blank title', () => {
+    const other: Dashboard = { ...detail, id: 'b' };
+    const list = [detail, other];
+    expect(renameDashboard(list, 'b', '  Mine  ')).toEqual([detail, { ...other, title: 'Mine' }]);
+    expect(renameDashboard(list, 'b', '   ')).toBe(list);
   });
 });
 
