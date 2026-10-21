@@ -6,6 +6,7 @@ import { usePreferences } from '../../store';
 import { getChrome } from '../../theme';
 import { useBarItems } from './useBarItems';
 import { useNavbarSections } from './useNavbarSections';
+import { SiderResizeHandle } from './SiderResizeHandle';
 import styles from './AppLayout.module.css';
 
 /** The navigation sider: logo (over the brand gradient bar) and the dashboard bar. */
@@ -20,10 +21,11 @@ export function AppSider() {
   const selectedKey = selectedBarKey(location.pathname);
   const sections = useNavbarSections(collapsed);
   const navbarSide = usePreferences((s) => s.navbarSide);
+  const width = usePreferences((s) => s.navbarWidth) ?? chrome.siderWidth;
 
   return (
     <Layout.Sider
-      width={chrome.siderWidth}
+      width={width}
       collapsible
       collapsed={collapsed}
       onCollapse={setCollapsed}
@@ -59,6 +61,7 @@ export function AppSider() {
       >
         <Menu theme="light" mode="inline" selectedKeys={[selectedKey]} items={items} {...sections} />
       </ConfigProvider>
+      {!collapsed && <SiderResizeHandle width={width} side={navbarSide} />}
     </Layout.Sider>
   );
 }
