@@ -15,6 +15,8 @@ import {
   type MenuProps,
 } from 'antd';
 import {
+  AppstoreOutlined,
+  CheckOutlined,
   CloseOutlined,
   DeleteOutlined,
   EditOutlined,
@@ -28,7 +30,7 @@ import {
   StarFilled,
   StarOutlined,
 } from '@ant-design/icons';
-import type { ViewSpec } from '@fluid/shared';
+import type { ViewSpec, Widget } from '@fluid/shared';
 import {
   useConcept,
   useConceptsByName,
@@ -39,6 +41,7 @@ import {
 import { useViews, type ViewEntry, type ViewSource } from '../hooks/useViews';
 import { ViewRenderer } from '../views/ViewRenderer';
 import { buildDetailView } from '../views/registry';
+import { applyLayout, compact as compactLayout, resolveLayout } from '../views/gridLayout';
 import { MillerColumnPathContext } from '../navigation/columnPath';
 import { getViewScope, withScope, type ColumnKind } from '../views/viewScope';
 import { ViewAssistantModal } from './ViewAssistantModal';
@@ -160,10 +163,16 @@ function MillerColumnBody({
   const [renamingKey, setRenamingKey] = useState<string | undefined>(undefined);
   const [renameDraft, setRenameDraft] = useState('');
   const renameCancelled = useRef(false);
+  // Widgets being arranged with the mouse; null when not editing the layout.
+  const [layoutDraft, setLayoutDraft] = useState<Widget[] | null>(null);
+  // Whether entering layout edit switched the column to full screen (undone on exit).
+  const enteredFullscreen = useRef(false);
+  const editingLayout = layoutDraft !== null;
 
   // Reset the explicit pick when the concept changes so its default is honoured.
   useEffect(() => {
     setPicked(undefined);
+    setLayoutDraft(null);
   }, [concept.name]);
 
   // Related types are introspected one level ahead so the LLM knows their fields.
@@ -239,6 +248,11 @@ function MillerColumnBody({
     return { ...selected.spec, queries };
   }, [selected, itemId, concept]);
 
+  const renderedSpec = useMemo(
+    () => (spec && layoutDraft ? { ...spec, widgets: layoutDraft } : spec),
+    [spec, layoutDraft],
+  );
+
   const isSaved = selected?.source === 'saved';
   const isDefaultView = Boolean(selected?.saved?.isDefault);
 
@@ -286,6 +300,62 @@ function MillerColumnBody({
     } finally {
       setBusy(false);
     }
+  };
+
+  // Layout edit: arrange the widgets on the grid like macOS widgets. Editing a
+  // curated/auto perspective saves the arrangement as a new saved perspective.
+  const startLayoutEdit = () => {
+    if (!selected) return;
+    setLayoutDraft(selected.spec.widgets);
+    if (onToggleFullscreen && !isFullscreen) {
+      enteredFullscreen.current = true;
+      onToggleFullscreen();
+    }
+  };
+
+  const exitLayoutEdit = () => {
+    setLayoutDraft(null);
+    if (enteredFullscreen.current) {
+      enteredFullscreen.current = false;
+      onToggleFullscreen?.();
+    }
+  };
+
+  const saveLayout = async () => {
+    if (!selected || !layoutDraft) return;
+    const widgets = applyLayout(layoutDraft, resolveLayout(layoutDraft));
+    setBusy(true);
+    try {
+      if (selected.saved) {
+        await bffClient.updateView(selected.saved.id, { spec: { ...selected.spec, widgets } });
+        message.success('Layout saved');
+        refetch();
+      } else {
+        const copy: ViewSpec = withScope(
+          {
+            ...selected.spec,
+            id: `${concept.name.toLowerCase()}-view-${Date.now().toString(36)}`,
+            title: selected.title,
+            widgets,
+          },
+          columnKind,
+        );
+        const created = await bffClient.createView(copy, false);
+        message.success('Layout saved as a new perspective');
+        refetch();
+        setPicked(created.id);
+      }
+      exitLayoutEdit();
+    } catch (err) {
+      message.error((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const tidyLayout = () => {
+    if (layoutDraft)
+      setLayoutDraft(applyLayout(layoutDraft, compactLayout(resolveLayout(layoutDraft))));
   };
 
   const startRename = (entry: ViewEntry | undefined = selected) => {
@@ -500,8 +570,39 @@ function MillerColumnBody({
     );
   });
 
-  const actions = (
+  const actions = editingLayout ? (
+    <Space size={4} style={{ flexShrink: 0 }}>
+      <Tooltip title="Close the gaps between widgets">
+        <Button size="small" icon={<AppstoreOutlined />} onClick={tidyLayout}>
+          {compact ? null : 'Tidy up'}
+        </Button>
+      </Tooltip>
+      <Button size="small" onClick={exitLayoutEdit} disabled={busy}>
+        Cancel
+      </Button>
+      <Button
+        size="small"
+        type="primary"
+        icon={<CheckOutlined />}
+        loading={busy}
+        onClick={saveLayout}
+      >
+        Done
+      </Button>
+    </Space>
+  ) : (
     <Space size={2} style={{ flexShrink: 0 }}>
+      {spec && bffAvailable && spec.widgets.length > 0 && (
+        <Tooltip title="Edit layout — move and resize widgets">
+          <Button
+            type="text"
+            size="small"
+            aria-label="Edit layout"
+            icon={<EditOutlined />}
+            onClick={startLayoutEdit}
+          />
+        </Tooltip>
+      )}
       <Dropdown menu={{ items: menuItems }} trigger={['click']}>
         <Button type="text" size="small" icon={<MoreOutlined />} loading={busy} />
       </Dropdown>
@@ -520,41 +621,54 @@ function MillerColumnBody({
     </Space>
   );
 
-  const pillBar = allEntries.length > 0 && (
-    <div
-      role="tablist"
-      style={{
-        display: 'flex',
-        gap: compact ? 4 : 6,
-        overflowX: 'auto',
-        padding: compact ? 0 : '2px 0 4px',
-        minWidth: 0,
-        flex: compact ? '1 1 auto' : undefined,
-      }}
+  const layoutHint = (
+    <Typography.Text
+      type="secondary"
+      ellipsis
+      style={{ fontSize: 12, flex: compact ? '1 1 auto' : undefined, minWidth: 0 }}
     >
-      {perspectivePills}
-      {bffAvailable && (
-        <Tooltip title="New perspective with assistant">
-          <span
-            role="button"
-            aria-label="New perspective"
-            tabIndex={0}
-            onClick={openAssistantCreate}
-            onKeyDown={(ev) => ev.key === 'Enter' && openAssistantCreate()}
-            style={{
-              ...pillBase,
-              padding: 0,
-              width: chrome.pillHeight,
-              justifyContent: 'center',
-              borderStyle: 'dashed',
-            }}
-          >
-            <PlusOutlined style={{ fontSize: 10 }} />
-          </span>
-        </Tooltip>
-      )}
-    </div>
+      Drag to move · drag the corner to resize · right-click for sizes
+      {selected?.saved ? '' : ' · saved as a new perspective'}
+    </Typography.Text>
   );
+
+  const pillBar = editingLayout
+    ? layoutHint
+    : allEntries.length > 0 && (
+        <div
+          role="tablist"
+          style={{
+            display: 'flex',
+            gap: compact ? 4 : 6,
+            overflowX: 'auto',
+            padding: compact ? 0 : '2px 0 4px',
+            minWidth: 0,
+            flex: compact ? '1 1 auto' : undefined,
+          }}
+        >
+          {perspectivePills}
+          {bffAvailable && (
+            <Tooltip title="New perspective with assistant">
+              <span
+                role="button"
+                aria-label="New perspective"
+                tabIndex={0}
+                onClick={openAssistantCreate}
+                onKeyDown={(ev) => ev.key === 'Enter' && openAssistantCreate()}
+                style={{
+                  ...pillBase,
+                  padding: 0,
+                  width: chrome.pillHeight,
+                  justifyContent: 'center',
+                  borderStyle: 'dashed',
+                }}
+              >
+                <PlusOutlined style={{ fontSize: 10 }} />
+              </span>
+            </Tooltip>
+          )}
+        </div>
+      );
 
   // Compact density folds title, perspectives and actions into a single row;
   // the subtitle moves to a tooltip on the title.
@@ -608,7 +722,9 @@ function MillerColumnBody({
           <div style={{ padding: 12 }}>
             <ViewRenderer
               key={selected?.key}
-              spec={spec}
+              spec={renderedSpec!}
+              editingLayout={editingLayout}
+              onWidgetsChange={setLayoutDraft}
               concept={concept.name}
               schema={schema}
               viewId={selected?.saved?.id}

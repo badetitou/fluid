@@ -223,6 +223,13 @@ export function ViewAssistantModal({
     // Associate the view with the column it was created from; keep an existing
     // association when refining an already-scoped view.
     const specToSave: ViewSpec = { ...spec, scope: spec.scope ?? scope };
+    // Widgets the assistant kept stay where they were arranged on the grid.
+    if (isEditing && initialSpec) {
+      const layouts = new Map(initialSpec.widgets.map((w) => [w.id, w.layout]));
+      specToSave.widgets = specToSave.widgets.map((w) =>
+        w.layout || !layouts.get(w.id) ? w : { ...w, layout: layouts.get(w.id) },
+      );
+    }
     try {
       let saved: SavedView;
       if (isEditing) {

@@ -11,8 +11,19 @@ import {
   PieChartWidget,
 } from './widgets/charts';
 
-/** Resolves a widget's data binding and renders the matching widget component. */
-export function WidgetBody({ widget, view }: { widget: Widget; view: ViewData }) {
+/**
+ * Resolves a widget's data binding and renders the matching widget component.
+ * `fitHeight` makes charts fill a fixed-size grid cell.
+ */
+export function WidgetBody({
+  widget,
+  view,
+  fitHeight,
+}: {
+  widget: Widget;
+  view: ViewData;
+  fitHeight?: number;
+}) {
   const resolved = resolveBinding(widget.data, view.results);
 
   switch (widget.type) {
@@ -23,13 +34,13 @@ export function WidgetBody({ widget, view }: { widget: Widget; view: ViewData })
     case 'descriptions':
       return <DescriptionsWidget widget={widget} object={asObject(resolved)} />;
     case 'line':
-      return <LineChartWidget widget={widget} rows={asRows(resolved)} />;
+      return <LineChartWidget widget={widget} rows={asRows(resolved)} fitHeight={fitHeight} />;
     case 'bar':
-      return <BarChartWidget widget={widget} rows={asRows(resolved)} />;
+      return <BarChartWidget widget={widget} rows={asRows(resolved)} fitHeight={fitHeight} />;
     case 'area':
-      return <AreaChartWidget widget={widget} rows={asRows(resolved)} />;
+      return <AreaChartWidget widget={widget} rows={asRows(resolved)} fitHeight={fitHeight} />;
     case 'pie':
-      return <PieChartWidget widget={widget} rows={asRows(resolved)} />;
+      return <PieChartWidget widget={widget} rows={asRows(resolved)} fitHeight={fitHeight} />;
     default:
       return null;
   }

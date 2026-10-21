@@ -109,8 +109,9 @@ export async function viewRoutes(app: FastifyInstance) {
       return reply.code(404).send({ error: 'Widget not found in view' });
     }
 
-    // Replace the widget, preserving the ID
+    // Replace the widget, preserving the ID and where it was arranged on the grid
     spec.widgets[widgetIndex] = {
+      layout: spec.widgets[widgetIndex].layout,
       ...widget,
       id: widgetId,
     };

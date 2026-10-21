@@ -127,6 +127,27 @@ export const columnSchema = z.object({
 });
 export type Column = z.infer<typeof columnSchema>;
 
+/** Number of columns of the widget layout grid (see `widgetLayoutSchema`). */
+export const GRID_COLUMNS = 12;
+
+/**
+ * Explicit placement of a widget on the view's layout grid, set by arranging
+ * widgets with the mouse. `x`/`w` are in columns (out of `GRID_COLUMNS`), `y`/`h`
+ * in grid rows. When any widget of a view has a layout, the view is rendered on
+ * that grid; otherwise widgets flow by `span`.
+ */
+export const widgetLayoutSchema = z.object({
+  x: z
+    .number()
+    .int()
+    .min(0)
+    .max(GRID_COLUMNS - 1),
+  y: z.number().int().min(0),
+  w: z.number().int().min(1).max(GRID_COLUMNS),
+  h: z.number().int().min(1),
+});
+export type WidgetLayout = z.infer<typeof widgetLayoutSchema>;
+
 // Fields shared by every widget. Spread into each discriminated member.
 const widgetBase = {
   /** Stable id, unique within the view. */
@@ -136,6 +157,8 @@ const widgetBase = {
   span: z.number().int().min(1).max(24).optional(),
   /** Pixel height (mostly relevant for charts). */
   height: z.number().int().positive().optional(),
+  /** Explicit grid placement; takes precedence over `span`/`height` when set. */
+  layout: widgetLayoutSchema.optional(),
 };
 
 export const tableWidgetSchema = z.object({

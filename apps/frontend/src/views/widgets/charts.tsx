@@ -12,6 +12,13 @@ type Row = Record<string, unknown>;
 
 const DEFAULT_HEIGHT = 260;
 
+interface ChartProps<W> {
+  widget: W;
+  rows: Row[];
+  /** Height the chart must fill (grid layout), overriding the widget's own `height`. */
+  fitHeight?: number;
+}
+
 /** G2 theme matching the app's light/dark mode. */
 function useChartTheme() {
   return usePreferences((s) => (s.themeMode === 'dark' ? 'classicDark' : 'classic'));
@@ -25,8 +32,8 @@ function ChartEmpty({ height }: { height: number }) {
   );
 }
 
-export function LineChartWidget({ widget, rows }: { widget: LineWidgetSpec; rows: Row[] }) {
-  const height = widget.height ?? DEFAULT_HEIGHT;
+export function LineChartWidget({ widget, rows, fitHeight }: ChartProps<LineWidgetSpec>) {
+  const height = fitHeight ?? widget.height ?? DEFAULT_HEIGHT;
   const chartTheme = useChartTheme();
   if (rows.length === 0) return <ChartEmpty height={height} />;
   return (
@@ -42,8 +49,8 @@ export function LineChartWidget({ widget, rows }: { widget: LineWidgetSpec; rows
   );
 }
 
-export function AreaChartWidget({ widget, rows }: { widget: AreaWidgetSpec; rows: Row[] }) {
-  const height = widget.height ?? DEFAULT_HEIGHT;
+export function AreaChartWidget({ widget, rows, fitHeight }: ChartProps<AreaWidgetSpec>) {
+  const height = fitHeight ?? widget.height ?? DEFAULT_HEIGHT;
   const chartTheme = useChartTheme();
   if (rows.length === 0) return <ChartEmpty height={height} />;
   return (
@@ -59,8 +66,8 @@ export function AreaChartWidget({ widget, rows }: { widget: AreaWidgetSpec; rows
   );
 }
 
-export function BarChartWidget({ widget, rows }: { widget: BarWidgetSpec; rows: Row[] }) {
-  const height = widget.height ?? DEFAULT_HEIGHT;
+export function BarChartWidget({ widget, rows, fitHeight }: ChartProps<BarWidgetSpec>) {
+  const height = fitHeight ?? widget.height ?? DEFAULT_HEIGHT;
   const chartTheme = useChartTheme();
   if (rows.length === 0) return <ChartEmpty height={height} />;
   return (
@@ -76,8 +83,8 @@ export function BarChartWidget({ widget, rows }: { widget: BarWidgetSpec; rows: 
   );
 }
 
-export function PieChartWidget({ widget, rows }: { widget: PieWidgetSpec; rows: Row[] }) {
-  const height = widget.height ?? DEFAULT_HEIGHT;
+export function PieChartWidget({ widget, rows, fitHeight }: ChartProps<PieWidgetSpec>) {
+  const height = fitHeight ?? widget.height ?? DEFAULT_HEIGHT;
   const chartTheme = useChartTheme();
   if (rows.length === 0) return <ChartEmpty height={height} />;
   return (

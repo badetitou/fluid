@@ -16,3 +16,20 @@ export function useElementWidth<T extends HTMLElement>() {
 
   return [ref, width] as const;
 }
+
+/** Tracks the rendered height of an element, updating whenever it is resized. */
+export function useElementHeight<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [height, setHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setHeight(el.getBoundingClientRect().height);
+    const observer = new ResizeObserver(([entry]) => setHeight(entry.contentRect.height));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return [ref, height] as const;
+}
