@@ -87,3 +87,47 @@
   border-color: var(--ant-color-primary);
   background: var(--ant-color-primary-bg);
 }
+
+/* The boxes scroll; the window frame is placed over them in box coordinates. */
+.boxes {
+  position: relative;
+}
+
+/* Frame over the highlighted boxes; only its edge grips catch the pointer. */
+.window {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.grip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  border-radius: 2px;
+  cursor: ew-resize;
+  pointer-events: auto;
+  touch-action: none;
+  transition: background-color var(--ant-motion-duration-mid);
+}
+
+.gripStart {
+  left: 0;
+}
+
+.gripEnd {
+  right: 0;
+}
+
+.grip:hover,
+.grip:focus-visible,
+.gripActive {
+  outline: none;
+  background: var(--ant-color-primary);
+}
+
+.pager:has(.gripActive) {
+  opacity: 1;
+}
