@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { ViewSpec } from '@fluid/shared';
 import type { Density, ThemeMode } from './theme';
 
 export type NavbarSide = 'left' | 'right';
@@ -133,5 +134,49 @@ export const useLlmSettings = create<LlmSettingsState>()(
       update: (patch) => set(patch),
     }),
     { name: 'fluid-llm-settings' },
+  ),
+);
+
+/** One prompt → response exchange of a view assistant conversation. */
+export interface AssistantTurn {
+  id: string;
+  prompt: string;
+  at: number;
+  /** Version number of the spec this turn refined from (0 = the saved view). */
+  basedOn: number | null;
+  spec?: ViewSpec;
+  model?: string;
+  reasoning?: string[];
+  error?: string;
+}
+
+interface AssistantChatsState {
+  /** Conversations keyed by `concept|scope|viewId`. */
+  sessions: Record<string, { turns: AssistantTurn[]; updatedAt: number }>;
+  addTurn: (key: string, turn: AssistantTurn) => void;
+  clear: (key: string) => void;
+}
+
+const MAX_ASSISTANT_SESSIONS = 30;
+
+// The assistant's chat history survives closing the modal so a refinement
+// session can be resumed where it was left.
+export const useAssistantChats = create<AssistantChatsState>()(
+  persist(
+    (set, get) => ({
+      sessions: {},
+      addTurn: (key, turn) => {
+        const sessions = { ...get().sessions };
+        sessions[key] = { turns: [...(sessions[key]?.turns ?? []), turn], updatedAt: Date.now() };
+        const keys = Object.keys(sessions).sort((a, b) => sessions[b].updatedAt - sessions[a].updatedAt);
+        for (const k of keys.slice(MAX_ASSISTANT_SESSIONS)) delete sessions[k];
+        set({ sessions });
+      },
+      clear: (key) => {
+        const { [key]: _removed, ...rest } = get().sessions;
+        set({ sessions: rest });
+      },
+    }),
+    { name: 'fluid-assistant-chats' },
   ),
 );

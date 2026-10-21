@@ -1,24 +1,39 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   App as AntdApp,
   Alert,
+  BorderBeam,
   Button,
   Checkbox,
-  Divider,
+  Collapse,
   Empty,
   Flex,
   Input,
   Modal,
+  Popconfirm,
+  Select,
   Space,
+  Splitter,
   Tag,
   Timeline,
+  Tooltip,
   Typography,
   theme,
 } from 'antd';
-import { RobotOutlined, SettingOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import {
+  ClearOutlined,
+  EyeOutlined,
+  LoadingOutlined,
+  RobotOutlined,
+  SendOutlined,
+  SettingOutlined,
+  StopOutlined,
+  ThunderboltOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import type { ViewSpec, ViewScope } from '@fluid/shared';
 import { ViewRenderer } from '../views/ViewRenderer';
-import { useLlmSettings } from '../store';
+import { useAssistantChats, useLlmSettings, type AssistantTurn } from '../store';
 import {
   bffClient,
   type ChatMessage,
@@ -42,6 +57,48 @@ interface ViewAssistantModalProps {
   scope?: ViewScope;
 }
 
+const EMPTY_TURNS: AssistantTurn[] = [];
+
+/** Successful turns numbered as spec versions (v1, v2, …); v0 is the saved view. */
+function versionTurns(turns: AssistantTurn[]): Map<string, number> {
+  const versions = new Map<string, number>();
+  let n = 0;
+  for (const t of turns) if (t.spec) versions.set(t.id, ++n);
+  return versions;
+}
+
+/**
+ * Conversation replayed to the model: the saved view (when refining one), then
+ * every successful exchange up to the version the new prompt builds on.
+ */
+function buildHistory(
+  turns: AssistantTurn[],
+  versions: Map<string, number>,
+  base: number,
+  initialSpec?: ViewSpec,
+): ChatMessage[] {
+  const history: ChatMessage[] = [];
+  if (initialSpec) {
+    history.push(
+      { role: 'user', content: 'Here is the current saved view. Refine it with my next requests.' },
+      { role: 'assistant', content: JSON.stringify(initialSpec) },
+    );
+  }
+  for (const t of turns) {
+    const v = versions.get(t.id);
+    if (v === undefined) continue;
+    if (v > base) break;
+    history.push({ role: 'user', content: t.prompt }, { role: 'assistant', content: JSON.stringify(t.spec) });
+  }
+  return history;
+}
+
+function summarizeSpec(spec: ViewSpec): string {
+  const widgets = spec.widgets ?? [];
+  const parts = widgets.map((w) => (w.title ? `${w.type} “${w.title}”` : w.type));
+  return parts.length ? parts.join(' · ') : 'No widget';
+}
+
 export function ViewAssistantModal({
   open,
   concept,
@@ -58,21 +115,40 @@ export function ViewAssistantModal({
   const { message } = AntdApp.useApp();
   const { token } = theme.useToken();
   const settings = useLlmSettings();
+  const sessionKey = `${concept}|${initialSpec?.scope ?? scope ?? ''}|${editingViewId ?? 'new'}`;
+  const turns = useAssistantChats((s) => s.sessions[sessionKey]?.turns ?? EMPTY_TURNS);
+  const addTurn = useAssistantChats((s) => s.addTurn);
+  const clearSession = useAssistantChats((s) => s.clear);
+
   const [prompt, setPrompt] = useState('');
-  const [history, setHistory] = useState<ChatMessage[]>([]);
-  const [spec, setSpec] = useState<ViewSpec | null>(initialSpec ?? null);
-  const [meta, setMeta] = useState<{ provider: string; model: string } | null>(null);
-  const [reasoning, setReasoning] = useState<string[] | null>(null);
-  const [generating, setGenerating] = useState(false);
+  // Version shown in the preview and refined by the next prompt; null = latest.
+  const [selected, setSelected] = useState<number | null>(null);
+  const [pending, setPending] = useState<{ prompt: string; basedOn: number | null } | null>(null);
   const [saving, setSaving] = useState(false);
   const [isDefault, setIsDefault] = useState(editingIsDefault ?? false);
-  const [error, setError] = useState<{ title: string; message: string } | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   // Live output streamed by the provider while generating (Claude Code only).
   const [live, setLive] = useState<{ thinking: string; text: string } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
   const liveRef = useRef<HTMLPreElement | null>(null);
 
   const isEditing = !!editingViewId;
+  const generating = pending !== null;
+
+  const versions = useMemo(() => versionTurns(turns), [turns]);
+  const specByVersion = useMemo(() => {
+    const map = new Map<number, ViewSpec>();
+    if (initialSpec) map.set(0, initialSpec);
+    for (const t of turns) {
+      const v = versions.get(t.id);
+      if (v !== undefined && t.spec) map.set(v, t.spec);
+    }
+    return map;
+  }, [turns, versions, initialSpec]);
+  const latestVersion = specByVersion.size ? Math.max(...specByVersion.keys()) : null;
+  const activeVersion = selected !== null && specByVersion.has(selected) ? selected : latestVersion;
+  const spec = activeVersion !== null ? (specByVersion.get(activeVersion) ?? null) : null;
 
   // Stop an in-flight generation when the modal closes or unmounts.
   useEffect(() => {
@@ -81,32 +157,35 @@ export function ViewAssistantModal({
   }, [open]);
 
   useEffect(() => {
+    if (!open) return;
+    setPrompt('');
+    setSelected(null);
+    setPending(null);
+    setSaving(false);
+    setIsDefault(editingIsDefault ?? false);
+    setSaveError(null);
+    setLive(null);
+  }, [open, sessionKey, editingIsDefault]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ block: 'end' });
+  }, [turns.length, pending, open]);
+
+  useEffect(() => {
     if (liveRef.current) liveRef.current.scrollTop = liveRef.current.scrollHeight;
   }, [live]);
 
-  useEffect(() => {
-    if (!open) return;
-    setPrompt('');
-    setHistory([]);
-    setSpec(initialSpec ?? null);
-    setMeta(null);
-    setReasoning(null);
-    setGenerating(false);
-    setSaving(false);
-    setIsDefault(editingIsDefault ?? false);
-    setError(null);
-    setLive(null);
-  }, [open, initialSpec, editingIsDefault]);
-
   const handleGenerate = async () => {
     const trimmed = prompt.trim();
-    if (!trimmed) return;
-    setGenerating(true);
-    setError(null);
-    setReasoning(null);
+    if (!trimmed || generating) return;
+    const basedOn = activeVersion;
+    setPending({ prompt: trimmed, basedOn });
+    setPrompt('');
     setLive(null);
+    setSaveError(null);
     const controller = new AbortController();
     abortRef.current = controller;
+    const turn: AssistantTurn = { id: crypto.randomUUID(), prompt: trimmed, at: Date.now(), basedOn };
     try {
       const res = await bffClient.generateViewStream(
         {
@@ -114,7 +193,7 @@ export function ViewAssistantModal({
           schema,
           prompt: trimmed,
           scope: initialSpec?.scope ?? scope,
-          history,
+          history: buildHistory(turns, versions, basedOn ?? 0, initialSpec),
           config: toConfigOverrides(settings),
         },
         (delta) =>
@@ -126,109 +205,238 @@ export function ViewAssistantModal({
           }),
         controller.signal,
       );
-      setSpec(res.spec);
-      setMeta({ provider: res.provider, model: res.model });
-      setReasoning(res.reasoning ?? null);
-      setHistory((h) => [
-        ...h,
-        { role: 'user', content: trimmed },
-        { role: 'assistant', content: JSON.stringify(res.spec) },
-      ]);
-      setPrompt('');
+      addTurn(sessionKey, { ...turn, spec: res.spec, model: res.model, reasoning: res.reasoning });
+      setSelected(null);
     } catch (err) {
-      if (!controller.signal.aborted) setError({ title: 'Generation failed', message: (err as Error).message });
+      addTurn(sessionKey, { ...turn, error: controller.signal.aborted ? 'Stopped.' : (err as Error).message });
     } finally {
       if (abortRef.current === controller) abortRef.current = null;
-      setGenerating(false);
+      setPending(null);
+      setLive(null);
     }
   };
 
   const handleSave = async () => {
     if (!spec) return;
     setSaving(true);
-    setError(null);
+    setSaveError(null);
     // Associate the view with the column it was created from; keep an existing
     // association when refining an already-scoped view.
     const specToSave: ViewSpec = { ...spec, scope: spec.scope ?? scope };
     try {
+      let saved: SavedView;
       if (isEditing) {
         await bffClient.updateView(editingViewId, { spec: specToSave, isDefault });
         message.success('View updated');
-        const saved = await bffClient.getView(editingViewId);
-        onSaved(saved);
+        saved = await bffClient.getView(editingViewId);
       } else {
-        const saved = await bffClient.createView(specToSave, isDefault);
+        saved = await bffClient.createView(specToSave, isDefault);
         message.success('View saved');
-        onSaved(saved);
       }
+      // The conversation served its purpose once the view is persisted.
+      clearSession(sessionKey);
+      onSaved(saved);
       onClose();
     } catch (err) {
-      setError({ title: 'Save failed', message: (err as Error).message });
+      setSaveError((err as Error).message);
     } finally {
       setSaving(false);
     }
   };
 
-  const userTurns = history.filter((m) => m.role === 'user');
+  const bubble = (role: 'user' | 'assistant', children: React.ReactNode, extra?: React.CSSProperties) => (
+    <Flex gap={8} justify={role === 'user' ? 'flex-end' : 'flex-start'} align="flex-start">
+      {role === 'assistant' && <RobotOutlined style={{ marginTop: 8, color: token.colorPrimary }} />}
+      <div
+        style={{
+          maxWidth: '85%',
+          padding: '8px 12px',
+          borderRadius: 12,
+          background: role === 'user' ? token.colorPrimaryBg : token.colorFillQuaternary,
+          border: `1px solid ${role === 'user' ? token.colorPrimaryBorder : token.colorBorderSecondary}`,
+          position: 'relative',
+          ...extra,
+        }}
+      >
+        {children}
+      </div>
+      {role === 'user' && <UserOutlined style={{ marginTop: 8, color: token.colorTextTertiary }} />}
+    </Flex>
+  );
 
-  return (
-    <Modal
-      title={
-        <Space>
-          <RobotOutlined />
-          <span>{isEditing ? 'Edit' : 'Create'} a view with the assistant — {concept}</span>
-        </Space>
-      }
-      open={open}
-      onCancel={onClose}
-      width={900}
-      destroyOnHidden
-      footer={[
-        <Button key="settings" icon={<SettingOutlined />} onClick={onOpenSettings}>
-          Settings
-        </Button>,
-        <Button
-          key="json"
-          onClick={() => spec && onOpenJson(spec)}
-          disabled={!spec}
-        >
-          Open in JSON editor
-        </Button>,
-        <Button key="save" type="primary" onClick={handleSave} loading={saving} disabled={!spec}>
-          {isEditing ? 'Update view' : 'Save view'}
-        </Button>,
-      ]}
-    >
-      <Space orientation="vertical" size={12} style={{ width: '100%', marginTop: 8 }}>
-        <Alert
-          type="info"
-          showIcon
-          title="💡 Tip: Ask for navigation links"
-          description="Request clickable elements in your prompt like: 'Create a table with clickable IDs that navigate to details' or 'Add links to related customers'. This enables infinite navigation between objects!"
-          style={{ marginBottom: 8 }}
-        />
-        <Flex align="center" justify="space-between" wrap gap={8}>
-          <Typography.Text type="secondary">
-            {isEditing
-              ? 'Refine this view with prompts, then update it.'
-              : 'Describe the dashboard you want (tables, stats, charts). The assistant returns a view you can preview, refine, then save.'}
-          </Typography.Text>
-          <Tag icon={<ThunderboltOutlined />} color="blue">
-            {settings.provider}
-            {meta ? ` · ${meta.model}` : ''}
-          </Tag>
-        </Flex>
+  const versionLabel = (v: number) => (v === 0 ? 'saved view' : `v${v}`);
 
-        {userTurns.length > 0 && (
-          <Space orientation="vertical" size={2} style={{ width: '100%' }}>
-            {userTurns.map((t, i) => (
-              <Typography.Text key={i} type="secondary" style={{ fontSize: 12 }}>
-                <RobotOutlined /> "{t.content}"
+  const renderTurn = (t: AssistantTurn) => {
+    const v = versions.get(t.id);
+    const refinedFrom = t.basedOn !== null && t.basedOn !== (v ?? 0) - 1 ? t.basedOn : null;
+    return (
+      <Space key={t.id} orientation="vertical" size={6} style={{ width: '100%' }}>
+        {bubble(
+          'user',
+          <>
+            {refinedFrom !== null && (
+              <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                ↳ from {versionLabel(refinedFrom)}
               </Typography.Text>
-            ))}
-          </Space>
+            )}
+            <Typography.Text style={{ whiteSpace: 'pre-wrap' }}>{t.prompt}</Typography.Text>
+          </>,
         )}
+        {t.error
+          ? bubble(
+              'assistant',
+              <Typography.Text type="danger" style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>
+                {t.error}
+              </Typography.Text>,
+              { borderColor: token.colorErrorBorder, background: token.colorErrorBg },
+            )
+          : t.spec &&
+            v !== undefined &&
+            bubble(
+              'assistant',
+              <Space orientation="vertical" size={4} style={{ width: '100%' }}>
+                <Flex justify="space-between" align="center" gap={8}>
+                  <Space size={4}>
+                    <Tag color={v === activeVersion ? 'blue' : undefined} style={{ marginInlineEnd: 0 }}>
+                      v{v}
+                    </Tag>
+                    <Typography.Text strong>{t.spec.title ?? 'Untitled view'}</Typography.Text>
+                  </Space>
+                  <Tooltip title={v === activeVersion ? 'Shown in the preview' : 'Show this version'}>
+                    <Button
+                      size="small"
+                      type={v === activeVersion ? 'primary' : 'text'}
+                      icon={<EyeOutlined />}
+                      onClick={() => setSelected(v)}
+                    />
+                  </Tooltip>
+                </Flex>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {summarizeSpec(t.spec)}
+                </Typography.Text>
+                {t.reasoning && t.reasoning.length > 0 && (
+                  <Collapse
+                    size="small"
+                    ghost
+                    items={[
+                      {
+                        key: 'r',
+                        label: <Typography.Text type="secondary" style={{ fontSize: 12 }}>Reasoning</Typography.Text>,
+                        children: (
+                          <Timeline
+                            items={t.reasoning.map((step) => ({
+                              content: <Typography.Text style={{ fontSize: 12 }}>{step}</Typography.Text>,
+                            }))}
+                          />
+                        ),
+                      },
+                    ]}
+                  />
+                )}
+                {t.model && (
+                  <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                    {t.model} · {new Date(t.at).toLocaleTimeString()}
+                  </Typography.Text>
+                )}
+              </Space>,
+              v === activeVersion ? { borderColor: token.colorPrimaryBorder } : undefined,
+            )}
+      </Space>
+    );
+  };
 
+  const chat = (
+    <Flex vertical style={{ height: '100%', paddingRight: 12 }}>
+      <Flex align="center" justify="space-between" gap={8} style={{ paddingBottom: 8 }}>
+        <Tag icon={<ThunderboltOutlined />} color="blue" style={{ marginInlineEnd: 0 }}>
+          {settings.provider}
+          {settings.model ? ` · ${settings.model}` : ''}
+        </Tag>
+        <Popconfirm
+          title="Start a new conversation?"
+          description="The current exchanges and versions will be forgotten."
+          onConfirm={() => {
+            clearSession(sessionKey);
+            setSelected(null);
+          }}
+          disabled={turns.length === 0 || generating}
+        >
+          <Button size="small" icon={<ClearOutlined />} disabled={turns.length === 0 || generating}>
+            New conversation
+          </Button>
+        </Popconfirm>
+      </Flex>
+
+      <div style={{ flex: 1, overflow: 'auto', paddingBlock: 4 }}>
+        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+          {bubble(
+            'assistant',
+            <Typography.Text style={{ fontSize: 13 }}>
+              {isEditing
+                ? `I'm working from the saved view of ${concept}. Tell me what to change — each answer becomes a new version you can compare.`
+                : `Describe the dashboard you want for ${concept} (tables, stats, charts, clickable links). Each answer becomes a version you can preview and refine.`}
+            </Typography.Text>,
+          )}
+          {turns.map(renderTurn)}
+          {pending && (
+            <Space orientation="vertical" size={6} style={{ width: '100%' }}>
+              {bubble(
+                'user',
+                <Typography.Text style={{ whiteSpace: 'pre-wrap' }}>{pending.prompt}</Typography.Text>,
+              )}
+              <Flex gap={8} align="flex-start">
+                <RobotOutlined style={{ marginTop: 8, color: token.colorPrimary }} />
+                <BorderBeam>
+                  <div
+                    style={{
+                      flex: 1,
+                      maxWidth: '85%',
+                      padding: '8px 12px',
+                      borderRadius: 12,
+                      background: token.colorFillQuaternary,
+                      border: `1px solid ${token.colorBorderSecondary}`,
+                      position: 'relative',
+                    }}
+                  >
+                    <Typography.Text type="secondary">
+                      <LoadingOutlined /> Working on {pending.basedOn !== null ? versionLabel(pending.basedOn) : 'a first version'}…
+                    </Typography.Text>
+                    {live && (
+                      <pre
+                        ref={liveRef}
+                        style={{
+                          margin: '8px 0 0',
+                          maxHeight: 180,
+                          overflow: 'auto',
+                          whiteSpace: 'pre-wrap',
+                          fontSize: 11,
+                        }}
+                      >
+                        {live.thinking && (
+                          <span style={{ color: token.colorTextTertiary, fontStyle: 'italic' }}>
+                            {live.thinking}
+                            {'\n\n'}
+                          </span>
+                        )}
+                        {live.text}
+                      </pre>
+                    )}
+                  </div>
+                </BorderBeam>
+              </Flex>
+            </Space>
+          )}
+          <div ref={chatEndRef} />
+        </Space>
+      </div>
+
+      <div style={{ paddingTop: 8 }}>
+        {activeVersion !== null && activeVersion !== latestVersion && (
+          <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>
+            Next prompt refines {versionLabel(activeVersion)}.{' '}
+            <Typography.Link onClick={() => setSelected(null)}>Back to latest</Typography.Link>
+          </Typography.Text>
+        )}
         <Space.Compact style={{ width: '100%' }}>
           <Input.TextArea
             value={prompt}
@@ -236,109 +444,133 @@ export function ViewAssistantModal({
             placeholder={
               spec
                 ? 'Refine, e.g. "add a pie chart of balances by currency"'
-                : 'e.g. "Create a table with clickable IDs to navigate to details" or "Show accounts with links to related customers"'
+                : 'e.g. "Create a table with clickable IDs to navigate to details"'
             }
-            autoSize={{ minRows: 2, maxRows: 5 }}
+            autoSize={{ minRows: 2, maxRows: 6 }}
             onPressEnter={(e) => {
               if (!e.shiftKey) {
                 e.preventDefault();
-                if (!generating) handleGenerate();
+                handleGenerate();
               }
             }}
           />
+          {generating ? (
+            <Button danger icon={<StopOutlined />} onClick={() => abortRef.current?.abort()} style={{ height: 'auto' }} />
+          ) : (
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              onClick={handleGenerate}
+              disabled={!prompt.trim()}
+              style={{ height: 'auto' }}
+            />
+          )}
         </Space.Compact>
-        <Button
-          type="primary"
-          icon={<RobotOutlined />}
-          onClick={handleGenerate}
-          loading={generating}
-          disabled={!prompt.trim()}
-        >
-          {spec ? 'Refine' : 'Generate'}
-        </Button>
+      </div>
+    </Flex>
+  );
 
-        {generating && live && (
-          <div>
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              <ThunderboltOutlined /> Live output
-            </Typography.Text>
-            <pre
-              ref={liveRef}
-              style={{
-                margin: '4px 0 0',
-                padding: 12,
-                maxHeight: 220,
-                overflow: 'auto',
-                whiteSpace: 'pre-wrap',
-                fontSize: 12,
-                borderRadius: 8,
-                background: token.colorFillQuaternary,
-                border: `1px solid ${token.colorBorderSecondary}`,
-              }}
-            >
-              {live.thinking && (
-                <span style={{ color: token.colorTextTertiary, fontStyle: 'italic' }}>
-                  {live.thinking}
-                  {'\n\n'}
-                </span>
-              )}
-              {live.text}
-            </pre>
-          </div>
-        )}
-
-        {reasoning && reasoning.length > 0 && (
-          <Alert
-            type="info"
-            showIcon
-            title="LLM Reasoning"
-            description={
-              <Timeline
-                items={reasoning.map((step) => ({
-                  label: null,
-                  children: <Typography.Text>{step}</Typography.Text>,
+  const preview = (
+    <Flex vertical gap={8} style={{ height: '100%', paddingLeft: 12 }}>
+      <Flex align="center" justify="space-between" gap={8} wrap>
+        <Space size={8}>
+          <Typography.Text strong>Preview</Typography.Text>
+          {specByVersion.size > 0 && activeVersion !== null && (
+            <Select
+              size="small"
+              value={activeVersion}
+              onChange={(v) => setSelected(v)}
+              style={{ minWidth: 140 }}
+              options={[...specByVersion.keys()]
+                .sort((a, b) => b - a)
+                .map((v) => ({
+                  value: v,
+                  label: `${versionLabel(v)}${v === latestVersion && v !== 0 ? ' (latest)' : ''}`,
                 }))}
-                style={{ marginTop: 8 }}
+            />
+          )}
+          {generating && (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              <LoadingOutlined /> generating a new version…
+            </Typography.Text>
+          )}
+        </Space>
+        {spec && (
+          <Checkbox checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)}>
+            Default view for {concept}
+          </Checkbox>
+        )}
+      </Flex>
+      {saveError && <Alert type="error" showIcon title="Save failed" description={saveError} />}
+      <BorderBeam style={generating ? undefined : { display: 'none' }} lineWidth={2}>
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflow: 'auto',
+            padding: 12,
+            borderRadius: 8,
+            border: `1px solid ${token.colorBorderSecondary}`,
+            position: 'relative',
+            opacity: generating ? 0.6 : 1,
+            transition: 'opacity 0.3s',
+          }}
+        >
+          {spec ? (
+            <ViewRenderer key={`${activeVersion}-${spec.id}`} spec={spec} />
+          ) : (
+            <Flex align="center" justify="center" style={{ height: '100%' }}>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={generating ? 'The assistant is building your view…' : 'No preview yet — describe a view in the chat.'}
               />
-            }
-          />
-        )}
+            </Flex>
+          )}
+        </div>
+      </BorderBeam>
+    </Flex>
+  );
 
-        {error && (
-          <Alert
-            type="error"
-            showIcon
-            title={error.title}
-            description={<pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{error.message}</pre>}
-          />
-        )}
-
-        <Divider style={{ margin: '4px 0' }}>Preview</Divider>
-
-        {spec ? (
-          <>
-            <Checkbox checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)}>
-              Set as the default view for {concept}
-            </Checkbox>
-            <div
-              style={{
-                border: `1px solid ${token.colorBorderSecondary}`,
-                borderRadius: 8,
-                padding: 12,
-                maxHeight: 460,
-                overflow: 'auto',
-              }}
-            >
-              <ViewRenderer key={spec.id} spec={spec} />
-            </div>
-          </>
-        ) : (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={generating ? 'Generating…' : 'No preview yet — generate a view above.'}
-          />
-        )}
-      </Space>
+  return (
+    <Modal
+      title={
+        <Space>
+          <RobotOutlined />
+          <span>
+            {isEditing ? 'Edit' : 'Create'} a view with the assistant — {concept}
+          </span>
+        </Space>
+      }
+      open={open}
+      onCancel={onClose}
+      width="min(1440px, 96vw)"
+      centered
+      destroyOnHidden
+      footer={[
+        <Button key="settings" icon={<SettingOutlined />} onClick={onOpenSettings}>
+          Settings
+        </Button>,
+        <Button key="json" onClick={() => spec && onOpenJson(spec)} disabled={!spec}>
+          Open in JSON editor
+        </Button>,
+        <Button
+          key="save"
+          type="primary"
+          onClick={handleSave}
+          loading={saving}
+          disabled={!spec || generating || (isEditing && activeVersion === 0)}
+        >
+          {isEditing ? 'Update view' : 'Save view'}
+          {activeVersion ? ` (v${activeVersion})` : ''}
+        </Button>,
+      ]}
+    >
+      <Splitter style={{ height: '72vh', marginTop: 8 }}>
+        <Splitter.Panel defaultSize="38%" min={320}>
+          {chat}
+        </Splitter.Panel>
+        <Splitter.Panel min={360}>{preview}</Splitter.Panel>
+      </Splitter>
     </Modal>
   );
 }
