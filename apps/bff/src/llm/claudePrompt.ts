@@ -41,7 +41,7 @@ Every widget has: "id" (unique string), "type", optional "title", optional "span
 
 Widget types:
 - "statistic": "value": { "op": "count"|"sum"|"avg"|"min"|"max"|"first", "field"?: "<numeric field, required except for count>" }, "format"?: "number"|"currency"|"percent", "currency"?: "EUR", "precision"?: 0..6, "prefix"?, "suffix"?
-- "table": "columns": [ { "key": "<dot path in the row>", "title"?, "format"?: Format, "currency"?, "width"?, "linkTo"?: LinkTo } ], "pageSize"?: number
+- "table": "columns": [ { "key": "<dot path in the row>", "title"?, "format"?: Format, "currency"?, "width"?, "linkTo"?: LinkTo } ], "pageSize"?: number, "sortable"?: boolean, "filterable"?: boolean (header sorting and value filters, both on by default; set false only when the user asks)
 - "descriptions": binds ONE object (or the first array element); "items": [ { "label", "key", "format"?, "linkTo"? } ], "columns"?: 1..4
 - "line" | "area" | "bar": "xField", "yField", "colorField"? ("bar" renders vertical columns)
 - "pie": "angleField" (numeric), "colorField" (category)
