@@ -31,3 +31,11 @@ export function resizeWindow(
 
 /** Whole columns covered by a drag of `deltaX` pixels on the pager. */
 export const dragSteps = (deltaX: number): number => Math.round(deltaX / PAGER_STEP_PX);
+
+/** One more column: the level before the window, or after it when it starts at the root. */
+export const growWindow = (window: ColumnWindow, count: number): ColumnWindow =>
+  window.first > 0 ? resizeWindow(window, count, 'start', -1) : resizeWindow(window, count, 'end', 1);
+
+/** One column fewer, dropping the leftmost so the deepest level stays on screen. */
+export const shrinkWindow = (window: ColumnWindow, count: number): ColumnWindow =>
+  resizeWindow(window, count, 'start', 1);

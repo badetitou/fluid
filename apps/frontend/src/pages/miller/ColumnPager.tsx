@@ -1,6 +1,6 @@
 import { Button, Tooltip } from 'antd';
-import { LeftOutlined, RightOutlined } from '@ant-design/icons';
-import type { ColumnWindow } from './columnWindow';
+import { LeftOutlined, MinusOutlined, PlusOutlined, RightOutlined } from '@ant-design/icons';
+import { growWindow, shrinkWindow, type ColumnWindow } from './columnWindow';
 import { PagerWindow } from './PagerWindow';
 import styles from './MillerListLayout.module.css';
 
@@ -12,14 +12,15 @@ interface ColumnPagerProps {
   labels?: string[];
   /** Moves the window so it starts at the given column. */
   onStartChange: (start: number) => void;
-  /** Shows another range of columns, from dragging the edges of the highlighted boxes. */
+  /** Shows another range of columns: the −/+ buttons, or dragging the frame's edges. */
   onResize: (window: ColumnWindow) => void;
 }
 
 /**
  * A small pager in the spirit of the Pharo/GT inspector: one box per column,
- * the visible ones highlighted, a click jumps to any level. Dragging the edges
- * of the highlighted range shows more or fewer columns side by side.
+ * the visible ones highlighted, a click jumps to any level. The −/+ buttons,
+ * or dragging the edges of the frame around the highlighted boxes, show more
+ * or fewer columns side by side.
  */
 export function ColumnPager({ count, first, last, labels, onStartChange, onResize }: ColumnPagerProps) {
   const size = last - first + 1;
@@ -31,6 +32,16 @@ export function ColumnPager({ count, first, last, labels, onStartChange, onResiz
 
   return (
     <div className={styles.pager}>
+      <Tooltip title="Show fewer columns">
+        <Button
+          type="text"
+          size="small"
+          icon={<MinusOutlined />}
+          disabled={size === 1}
+          onClick={() => onResize(shrinkWindow({ first, last }, count))}
+          aria-label="Show fewer columns"
+        />
+      </Tooltip>
       <Button
         type="text"
         size="small"
@@ -64,6 +75,16 @@ export function ColumnPager({ count, first, last, labels, onStartChange, onResiz
         onClick={() => onStartChange(first + 1)}
         aria-label="Next column"
       />
+      <Tooltip title="Show more columns">
+        <Button
+          type="text"
+          size="small"
+          icon={<PlusOutlined />}
+          disabled={size === count}
+          onClick={() => onResize(growWindow({ first, last }, count))}
+          aria-label="Show more columns"
+        />
+      </Tooltip>
     </div>
   );
 }
