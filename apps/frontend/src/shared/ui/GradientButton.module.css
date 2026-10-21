@@ -1,0 +1,30 @@
+/* One element: the face is the padding-box layer, the frame the border-box one. */
+.button:global(.ant-btn) {
+  border: var(--space-hairline) solid transparent;
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(var(--surface-button), var(--surface-button)) padding-box,
+    var(--bdt-gradient) border-box;
+  color: var(--ink);
+  font-weight: 500;
+  box-shadow: none;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.button:global(.ant-btn):not(:disabled):hover,
+.button:global(.ant-btn):not(:disabled):active {
+  border-color: transparent;
+  background: var(--bdt-gradient) border-box;
+  color: #ffffff;
+}
+
+.button:global(.ant-btn):focus-visible {
+  outline: 3px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+
+.button:global(.ant-btn):disabled {
+  opacity: 0.5;
+}

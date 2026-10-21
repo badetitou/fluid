@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, Divider, Flex, Form, Input, Typography } from 'antd';
-import { ApiOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { Card, Divider, Flex, Form, Input, Typography } from 'antd';
+import { ApiOutlined } from '@ant-design/icons';
 import { DEFAULT_GRAPHQL_URL } from '../../runtime-config';
+import { FluidLogo, GradientButton } from '../../shared/ui';
 import { useConnection } from '../../store';
 import { DemoPicker } from './DemoPicker';
 import styles from './ConnectPage.module.css';
@@ -21,10 +22,10 @@ export function ConnectPage() {
 
   return (
     <Flex align="center" justify="center" className={styles.page}>
-      <Card className={styles.card} variant="borderless">
+      <Card className={styles.card}>
         <Flex vertical gap={8} className={styles.intro}>
           <Flex align="center" gap={12}>
-            <ThunderboltOutlined className={styles.logo} />
+            <FluidLogo className={styles.logo} />
             <Typography.Title level={2} className={styles.title}>
               fluid
             </Typography.Title>
@@ -45,9 +46,9 @@ export function ConnectPage() {
               autoFocus
             />
           </Form.Item>
-          <Button type="primary" size="large" htmlType="submit" block disabled={!url.trim()}>
+          <GradientButton size="large" htmlType="submit" block disabled={!url.trim()}>
             Connect
-          </Button>
+          </GradientButton>
         </Form>
 
         <Divider plain className={styles.divider}>

@@ -1,14 +1,14 @@
 import { useLocation } from 'react-router-dom';
 import { ConfigProvider, Layout, Menu, Typography } from 'antd';
-import { ThunderboltOutlined } from '@ant-design/icons';
 import { selectedBarKey } from '../../entities/dashboard';
+import { FluidLogo } from '../../shared/ui';
 import { usePreferences } from '../../store';
 import { getChrome } from '../../theme';
 import { useBarItems } from './useBarItems';
 import { useNavbarSections } from './useNavbarSections';
 import styles from './AppLayout.module.css';
 
-/** The navigation sider: logo and the dashboard bar. */
+/** The navigation sider: logo (over the brand gradient bar) and the dashboard bar. */
 export function AppSider() {
   const location = useLocation();
   const collapsed = usePreferences((s) => s.navbarCollapsed);
@@ -19,6 +19,7 @@ export function AppSider() {
   const items = useBarItems();
   const selectedKey = selectedBarKey(location.pathname);
   const sections = useNavbarSections(collapsed);
+  const navbarSide = usePreferences((s) => s.navbarSide);
 
   return (
     <Layout.Sider
@@ -28,14 +29,14 @@ export function AppSider() {
       onCollapse={setCollapsed}
       trigger={null}
       collapsedWidth={chrome.siderCollapsedWidth}
-      theme="dark"
-      className={styles.sider}
+      theme="light"
+      className={`${styles.sider} ${navbarSide === 'right' ? styles.siderRight : ''}`}
     >
       <div
         className={`${styles.brand} ${collapsed ? styles.brandCollapsed : ''} ${compact ? styles.compact : ''}`}
-        style={{ height: compact ? chrome.headerHeight : 56, paddingInline: collapsed ? 0 : chrome.headerPadding }}
+        style={{ height: chrome.headerHeight, paddingInline: collapsed ? 0 : chrome.headerPadding }}
       >
-        <ThunderboltOutlined className={styles.logo} />
+        <FluidLogo className={styles.logo} />
         {!collapsed && (
           <Typography.Text strong className={styles.brandName}>
             fluid
@@ -56,7 +57,7 @@ export function AppSider() {
           },
         }}
       >
-        <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={items} {...sections} />
+        <Menu theme="light" mode="inline" selectedKeys={[selectedKey]} items={items} {...sections} />
       </ConfigProvider>
     </Layout.Sider>
   );
