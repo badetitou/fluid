@@ -7,12 +7,14 @@ import {
   widgetBase,
 } from './widgets/common';
 import { codeWidgetSchema } from './widgets/code';
+import { historyWidgetSchema } from './widgets/history';
 import { richTextWidgetSchema } from './widgets/richtext';
 import { scatterWidgetSchema } from './widgets/scatter';
 import { treeWidgetSchema } from './widgets/tree';
 
 export * from './widgets/code';
 export * from './widgets/common';
+export * from './widgets/history';
 export * from './widgets/richtext';
 export * from './widgets/scatter';
 export * from './widgets/tree';
@@ -156,6 +158,7 @@ export const widgetSchema = z.discriminatedUnion('type', [
   treeWidgetSchema,
   richTextWidgetSchema,
   scatterWidgetSchema,
+  historyWidgetSchema,
   codeWidgetSchema,
 ]);
 export type Widget = z.infer<typeof widgetSchema>;
@@ -172,6 +175,7 @@ export const WIDGET_TYPES = [
   'tree',
   'richtext',
   'scatter',
+  'history',
   'code',
 ] as const;
 
@@ -260,6 +264,7 @@ const pieWidgetDraftSchema = pieWidgetSchema.omit({ id: true });
 const treeWidgetDraftSchema = treeWidgetSchema.omit({ id: true });
 const richTextWidgetDraftSchema = richTextWidgetSchema.omit({ id: true });
 const scatterWidgetDraftSchema = scatterWidgetSchema.omit({ id: true });
+const historyWidgetDraftSchema = historyWidgetSchema.omit({ id: true });
 const codeWidgetDraftSchema = codeWidgetSchema.omit({ id: true });
 
 export const widgetDraftSchema = z.discriminatedUnion('type', [
@@ -273,6 +278,7 @@ export const widgetDraftSchema = z.discriminatedUnion('type', [
   treeWidgetDraftSchema,
   richTextWidgetDraftSchema,
   scatterWidgetDraftSchema,
+  historyWidgetDraftSchema,
   codeWidgetDraftSchema,
 ]);
 export type WidgetDraft = z.infer<typeof widgetDraftSchema>;

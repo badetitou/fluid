@@ -1,0 +1,131 @@
+.frame {
+  width: 100%;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.consent {
+  margin-bottom: 4px;
+  color: var(--ant-color-text-secondary);
+}
+
+.scroll {
+  overflow: auto;
+}
+
+.graph {
+  position: relative;
+  min-width: 0;
+}
+
+.lanes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.segment {
+  fill: none;
+  stroke-width: 2;
+}
+
+.dot {
+  stroke: var(--ant-color-bg-container);
+  stroke-width: 1.5;
+}
+
+.activeDot {
+  stroke: var(--ant-color-text);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--ant-border-radius-sm);
+  font-size: 13px;
+  outline: none;
+}
+
+.row:hover,
+.row:focus-visible {
+  background: var(--ant-color-fill-tertiary);
+}
+
+.row.linked {
+  cursor: pointer;
+}
+
+.message {
+  flex: 1 1 40%;
+  min-width: 80px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ref {
+  margin-inline-end: 6px;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.extra {
+  flex-shrink: 0;
+  color: var(--ant-color-text-secondary);
+}
+
+.author {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 20px;
+  max-width: 160px;
+  color: var(--ant-color-text-secondary);
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--ant-color-fill-secondary);
+  color: var(--ant-color-text-secondary);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.authorName {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.id {
+  flex-shrink: 0;
+  color: var(--ant-color-text-tertiary);
+  font-size: 12px;
+}
+
+.date {
+  flex-shrink: 0;
+  width: 64px;
+  text-align: right;
+  color: var(--ant-color-text-tertiary);
+  font-size: 12px;
+}
+
+/* Narrow columns: the text first, the author as an avatar only. */
+@container (max-width: 480px) {
+  .authorName,
+  .id {
+    display: none;
+  }
+}

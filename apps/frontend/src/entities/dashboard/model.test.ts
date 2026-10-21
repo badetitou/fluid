@@ -10,6 +10,7 @@ import {
   removeDashboard,
   renameDashboard,
   selectedBarKey,
+  setDashboardIcon,
   type Dashboard,
 } from './model';
 
@@ -55,6 +56,13 @@ describe('dashboard list', () => {
     const list = [detail, other];
     expect(renameDashboard(list, 'b', '  Mine  ')).toEqual([detail, { ...other, title: 'Mine' }]);
     expect(renameDashboard(list, 'b', '   ')).toBe(list);
+  });
+
+  it('sets an icon by id and drops it on reset', () => {
+    const other: Dashboard = { ...detail, id: 'b' };
+    const withIcon = setDashboardIcon([detail, other], 'b', 'rocket');
+    expect(withIcon).toEqual([detail, { ...other, icon: 'rocket' }]);
+    expect(setDashboardIcon(withIcon, 'b', null)).toEqual([detail, other]);
   });
 });
 

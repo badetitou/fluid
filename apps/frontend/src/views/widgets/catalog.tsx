@@ -7,6 +7,7 @@ import { TableWidget } from './TableWidget';
 import { TreeWidget } from './tree/TreeWidget';
 import { LazyRichTextWidget } from './richtext/lazy';
 import { ScatterWidget } from './scatter/ScatterWidget';
+import { HistoryWidget } from './history/HistoryWidget';
 import { LazyCodeWidget } from './code/lazy';
 
 /** Props every widget renderer receives: its spec and its resolved data binding. */
@@ -44,6 +45,7 @@ export const WIDGET_RENDERERS: { [T in WidgetType]: Renderer<T> } = {
   tree: ({ widget, data }) => <TreeWidget widget={widget} data={data} />,
   richtext: ({ widget, data }) => <LazyRichTextWidget widget={widget} data={data} />,
   scatter: ({ widget, data, fitHeight }) => <ScatterWidget widget={widget} rows={asRows(data)} fitHeight={fitHeight} />,
+  history: ({ widget, data, fitHeight }) => <HistoryWidget widget={widget} rows={asRows(data)} fitHeight={fitHeight} />,
   code: ({ widget, data, resolve }) => <LazyCodeWidget widget={widget} data={data} resolve={resolve} />,
 };
 

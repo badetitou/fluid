@@ -16,6 +16,8 @@ export interface Dashboard {
   itemId?: string;
   /** Perspective (view key) shown in the column. */
   perspective?: string;
+  /** Icon key chosen by the user; the default depends on the dashboard kind. */
+  icon?: string;
 }
 
 /** Path of the whole-graph column, where new graph dashboards are created. */
@@ -82,6 +84,15 @@ export function renameDashboard(list: Dashboard[], id: string, title: string): D
   const trimmed = title.trim();
   if (!trimmed) return list;
   return list.map((d) => (d.id === id ? { ...d, title: trimmed } : d));
+}
+
+/** Set a dashboard's icon; null goes back to the default one. */
+export function setDashboardIcon(list: Dashboard[], id: string, icon: string | null): Dashboard[] {
+  return list.map((d) => {
+    if (d.id !== id) return d;
+    const { icon: _old, ...rest } = d;
+    return icon ? { ...rest, icon } : rest;
+  });
 }
 
 /** Drop the dashboards showing a perspective that no longer exists. */

@@ -13,7 +13,10 @@
   padding: 0 !important;
 }
 
+/* Above the ::before antd stretches over a menu item's link, so the icon stays clickable in the bar. */
 .trigger {
+  position: relative;
+  z-index: 1;
   padding: 2px;
   border-radius: var(--ant-border-radius-sm);
   cursor: pointer;

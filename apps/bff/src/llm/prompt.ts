@@ -1,5 +1,5 @@
 import type { ChatMessage, ConceptSchemaInfo, GenerateViewInput, GenerateWidgetInput } from './types';
-import { codeWidgetDoc, richTextWidgetDoc, scatterWidgetDoc, treeWidgetDoc } from '@fluid/shared';
+import { codeWidgetDoc, historyWidgetDoc, richTextWidgetDoc, scatterWidgetDoc, treeWidgetDoc } from '@fluid/shared';
 import { detectLinkCandidates, formatLinkCandidatesForPrompt } from './linkDetection';
 import { renderStructureHints } from './structureHints';
 import { graphScopeInstructions, isGraphSchema } from './graphScope';
@@ -74,6 +74,7 @@ Each Widget is one of these discriminated shapes (field "type"):
 ${treeWidgetDoc}
 ${richTextWidgetDoc}
 ${scatterWidgetDoc}
+${historyWidgetDoc}
 ${codeWidgetDoc}
 
 LinkConfig (FEATURE: Infinite Navigation - enables Miller list-style drilling):
@@ -327,6 +328,7 @@ The JSON is a Fluid "widget draft" with one of these discriminated shapes (field
 ${treeWidgetDoc.replace('"id": string, ', '')}
 ${richTextWidgetDoc.replace('"id": string, ', '')}
 ${scatterWidgetDoc.replace('"id": string, ', '')}
+${historyWidgetDoc.replace('"id": string, ', '')}
 ${codeWidgetDoc.replace('"id": string, ', '')}
 
 Transform: { "derive"?: [ { "as": string, "op": "count"|"sum"|"avg"|"min"|"max"|"first", "field"?: string } ], "groupBy"?: string, "aggregate"?: { "field"?: string }, "sort"?: { "by": string, "dir": "asc"|"desc" }, "limit"?: number }
