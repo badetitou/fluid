@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { Button, Layout, Tooltip, Typography } from 'antd';
 import {
   CompressOutlined,
@@ -11,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import { useConnection, usePreferences } from '../../store';
 import { getChrome } from '../../theme';
+import { useSettingsToggle } from './useSettingsToggle';
 import styles from './AppLayout.module.css';
 
 /** Top bar: the connected source and quick toggles (density, theme, settings, sider). */
@@ -23,6 +23,7 @@ export function AppHeader() {
   const density = usePreferences((s) => s.density);
   const toggleDensity = usePreferences((s) => s.toggleDensity);
   const graphqlUrl = useConnection((s) => s.graphqlUrl);
+  const settings = useSettingsToggle();
   const compact = density === 'compact';
   const chrome = getChrome(density);
   const size = compact ? 'small' : 'middle';
@@ -65,9 +66,16 @@ export function AppHeader() {
             onClick={toggleThemeMode}
           />
         </Tooltip>
-        <Link to="/settings">
-          <Button size={size} aria-label="Settings" icon={<SettingOutlined />} />
-        </Link>
+        <Tooltip title={settings.open ? 'Close settings' : 'Settings'}>
+          <Button
+            size={size}
+            aria-label={settings.open ? 'Close settings' : 'Settings'}
+            aria-pressed={settings.open}
+            type={settings.open ? 'primary' : 'default'}
+            icon={<SettingOutlined />}
+            onClick={settings.toggle}
+          />
+        </Tooltip>
         {navbarSide === 'right' && toggleSider}
       </div>
     </Layout.Header>
