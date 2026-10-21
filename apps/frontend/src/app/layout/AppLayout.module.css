@@ -10,8 +10,45 @@
 }
 
 .sider {
-  overflow-y: auto;
   border-inline-end: 1px solid var(--border);
+}
+
+/* The content scrolls, not the sider, so the resize handle stays on the edge. */
+.sider :global(.ant-layout-sider-children) {
+  overflow-y: auto;
+}
+
+/* Drag grip over the sider's inner edge, tinted on hover and while dragging. */
+.resizeHandle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -3px;
+  z-index: 2;
+  width: 6px;
+  cursor: col-resize;
+  touch-action: none;
+  transition: background-color 0.15s;
+}
+
+.resizeHandleRight {
+  right: auto;
+  left: -3px;
+}
+
+.resizeHandle:hover,
+.resizeHandleActive {
+  background: var(--ant-color-primary);
+  opacity: 0.6;
+}
+
+.resizeHandleActive {
+  opacity: 1;
+}
+
+/* Follow the pointer while dragging instead of easing to each new width. */
+.sider:has(.resizeHandleActive) {
+  transition: none;
 }
 
 .siderRight {
@@ -119,9 +156,21 @@
 .pinnedLink {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
+/* Shown on hover only, and never shrunk: a long label ellipsizes before it. */
 .unpin {
+  flex-shrink: 0;
+  display: none;
   font-size: 10px;
   opacity: 0.65;
+}
+
+:global(.ant-menu-item:hover) .unpin,
+:global(.ant-menu-item-active) .unpin,
+.pinned:focus-within .unpin {
+  display: inline-flex;
 }

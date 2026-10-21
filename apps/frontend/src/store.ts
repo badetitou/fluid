@@ -76,6 +76,9 @@ interface PreferencesState {
   navbarCollapsed: boolean;
   setNavbarCollapsed: (collapsed: boolean) => void;
   toggleNavbarCollapsed: () => void;
+  /** Width of the expanded navbar set by dragging its edge; `null` uses the density default. */
+  navbarWidth: number | null;
+  setNavbarWidth: (width: number | null) => void;
   /** Keys of the navbar sections (concepts, dashboards) currently unfolded. */
   navbarOpenSections: string[];
   setNavbarOpenSections: (keys: string[]) => void;
@@ -97,6 +100,8 @@ export const usePreferences = create<PreferencesState>()(
       navbarCollapsed: false,
       setNavbarCollapsed: (collapsed) => set({ navbarCollapsed: collapsed }),
       toggleNavbarCollapsed: () => set({ navbarCollapsed: !get().navbarCollapsed }),
+      navbarWidth: null,
+      setNavbarWidth: (width) => set({ navbarWidth: width }),
       navbarOpenSections: ['group:concepts', 'group:dashboards'],
       setNavbarOpenSections: (keys) => set({ navbarOpenSections: keys }),
       themeMode:
