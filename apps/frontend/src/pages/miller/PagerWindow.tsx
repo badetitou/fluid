@@ -1,5 +1,5 @@
-import { PAGER_GAP_PX, PAGER_STEP_PX, type ColumnWindow, type WindowEdge } from './columnWindow';
-import { useWindowResize } from './useWindowResize';
+import { PAGER_GAP_PX, frameOf, type ColumnWindow, type WindowDrag } from './columnWindow';
+import { useWindowDrag } from './useWindowDrag';
 import styles from './MillerListLayout.module.css';
 
 interface PagerWindowProps {
@@ -9,39 +9,42 @@ interface PagerWindowProps {
   onResize: (window: ColumnWindow) => void;
 }
 
-const EDGES: { edge: WindowEdge; label: string }[] = [
-  { edge: 'start', label: 'Show columns on the left' },
-  { edge: 'end', label: 'Show columns on the right' },
+const EDGES: { drag: WindowDrag; className: string }[] = [
+  { drag: 'start', className: styles.edgeStart },
+  { drag: 'end', className: styles.edgeEnd },
 ];
 
 /**
- * A frame over the pager's highlighted boxes whose two edges can be dragged,
- * like a range slider, to choose how many columns are shown side by side.
+ * An overlay over the pager's highlighted boxes: drag it to choose which
+ * columns are shown, or drag one of its edges to show more or fewer of them.
+ * It follows the pointer while dragged and snaps onto the boxes on release.
  */
 export function PagerWindow({ range, count, onResize }: PagerWindowProps) {
-  const { dragging, onPointerDown, onKeyDown, onReset } = useWindowResize(range, count, onResize);
-  const size = range.last - range.first + 1;
+  const { dragging, onPointerDown, onKeyDown, onReset } = useWindowDrag(range, count, onResize);
+  const { left, right } = dragging?.frame ?? frameOf(range);
 
   return (
     <div
-      className={styles.window}
-      style={{ left: range.first * PAGER_STEP_PX, width: size * PAGER_STEP_PX - PAGER_GAP_PX }}
+      role="slider"
+      tabIndex={0}
+      aria-label="Shown columns"
+      aria-valuemin={1}
+      aria-valuemax={count}
+      aria-valuenow={range.first + 1}
+      aria-valuetext={`Columns ${range.first + 1} to ${range.last + 1} of ${count}`}
+      title="Drag to choose the columns, drag an edge to show more or fewer, double-click to reset"
+      className={`${styles.window} ${dragging ? styles.windowDragging : ''}`}
+      style={{ left, width: right - left - PAGER_GAP_PX }}
+      onPointerDown={(e) => onPointerDown('move', e)}
+      onKeyDown={onKeyDown}
+      onDoubleClick={onReset}
     >
-      {EDGES.map(({ edge, label }) => (
+      {EDGES.map(({ drag, className }) => (
         <div
-          key={edge}
-          role="separator"
-          tabIndex={0}
-          aria-orientation="vertical"
-          aria-label={label}
-          aria-valuemin={1}
-          aria-valuemax={count}
-          aria-valuenow={size}
-          title="Drag to show more or fewer columns, double-click to reset"
-          className={`${styles.grip} ${edge === 'start' ? styles.gripStart : styles.gripEnd} ${dragging === edge ? styles.gripActive : ''}`}
-          onPointerDown={(e) => onPointerDown(edge, e)}
-          onKeyDown={(e) => onKeyDown(edge, e)}
-          onDoubleClick={onReset}
+          key={drag}
+          aria-hidden
+          className={`${styles.edge} ${className}`}
+          onPointerDown={(e) => onPointerDown(drag, e)}
         />
       ))}
     </div>
