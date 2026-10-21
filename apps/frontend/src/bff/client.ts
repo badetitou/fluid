@@ -64,6 +64,19 @@ export interface ConceptSchemaPayload {
     description?: string | null;
   }[];
   related?: { name: string; fields?: string[] }[];
+  /** Relations reachable through nested selections, several levels deep. */
+  paths?: RelationPathPayload[];
+}
+
+/** One relation reachable from the concept, e.g. "accounts.transactions". */
+export interface RelationPathPayload {
+  /** Dot path of relation fields from the concept, e.g. "accounts.transactions". */
+  path: string;
+  typeName: string;
+  /** Whether any segment of the path is a list (the path then yields many rows). */
+  isList: boolean;
+  /** Scalar fields of the target, as "name: Type". */
+  fields: string[];
 }
 
 export interface ChatMessage {

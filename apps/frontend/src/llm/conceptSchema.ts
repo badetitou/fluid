@@ -1,10 +1,57 @@
 import type { Concept } from '../graphql/introspection';
-import type { ConceptSchemaPayload, LlmProvider } from '../bff/client';
+import type { ConceptSchemaPayload, LlmProvider, RelationPathPayload } from '../bff/client';
+
+/** How many relation hops below the concept the LLM is told about. */
+export const RELATION_PATH_DEPTH = 3;
+/** Cap on reachable relations so wide schemas keep the prompt compact. */
+const MAX_RELATION_PATHS = 40;
+const MAX_PATH_FIELDS = 12;
+
+/**
+ * Walk the relation graph breadth-first from the concept, up to `maxDepth`
+ * hops, so a view can select and display data several levels deep (e.g.
+ * Customer → accounts → transactions). A type already on the current path is
+ * not re-entered, which skips back-references and cycles.
+ */
+export function buildRelationPaths(
+  concept: Concept,
+  conceptByName: Map<string, Concept>,
+  maxDepth = RELATION_PATH_DEPTH,
+): RelationPathPayload[] {
+  const out: RelationPathPayload[] = [];
+  let frontier = [{ concept, path: '', isList: false, ancestors: new Set([concept.name]) }];
+  for (let depth = 1; depth <= maxDepth && frontier.length; depth += 1) {
+    const next: typeof frontier = [];
+    for (const node of frontier) {
+      for (const rf of node.concept.relationFields) {
+        if (rf.hasRequiredArgs || node.ancestors.has(rf.typeName)) continue;
+        const target = conceptByName.get(rf.typeName);
+        if (!target) continue;
+        if (out.length >= MAX_RELATION_PATHS) return out;
+        const path = node.path ? `${node.path}.${rf.name}` : rf.name;
+        const isList = node.isList || rf.isList;
+        out.push({
+          path,
+          typeName: rf.typeName,
+          isList,
+          fields: target.scalarFields
+            .filter((f) => !f.hasRequiredArgs)
+            .slice(0, MAX_PATH_FIELDS)
+            .map((f) => `${f.name}: ${f.typeName}${f.isList ? '[]' : ''}`),
+        });
+        next.push({ concept: target, path, isList, ancestors: new Set([...node.ancestors, rf.typeName]) });
+      }
+    }
+    frontier = next;
+  }
+  return out;
+}
 
 /**
  * Build the compact concept schema the BFF needs to prompt the LLM (and to
  * build the deterministic mock): the concept's fields, its list/by-id queries,
- * and a shallow view of related concepts.
+ * a shallow view of related concepts and the relations reachable several
+ * levels deep.
  */
 export function buildConceptSchemaPayload(
   concept: Concept,
@@ -40,6 +87,7 @@ export function buildConceptSchemaPayload(
       description: f.description,
     })),
     related,
+    paths: buildRelationPaths(concept, conceptByName),
   };
 }
 

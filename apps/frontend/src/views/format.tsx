@@ -50,6 +50,15 @@ export function formatValue(value: unknown, kind?: FormatKind, options?: FormatO
     return kind === 'boolean' ? formatBoolean(value) : empty;
   }
 
+  // A key crossing a nested list (e.g. "accounts.iban") resolves to many values.
+  if (Array.isArray(value) && kind !== 'image') {
+    if (value.length === 0) return empty;
+    if (kind === 'tag' || kind === 'boolean') return <>{value.map((v, i) => <span key={i}>{formatValue(v, kind, options)}</span>)}</>;
+    if (value.every((v) => v == null || typeof v !== 'object')) {
+      return value.map((v) => String(formatValue(v, kind, options))).join(', ');
+    }
+  }
+
   switch (kind) {
     case 'currency':
       return formatCurrency(value, options?.currency);

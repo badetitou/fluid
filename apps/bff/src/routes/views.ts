@@ -70,7 +70,20 @@ export async function viewRoutes(app: FastifyInstance) {
                 title: spec.title,
               }
             : {}),
-          ...(title ? { title } : {}),
+          // A bare rename also updates the stored spec so its title stays in sync.
+          ...(title
+            ? {
+                title,
+                ...(spec
+                  ? {}
+                  : {
+                      spec: {
+                        ...(existing.spec as Record<string, unknown>),
+                        title,
+                      } as Prisma.InputJsonValue,
+                    }),
+              }
+            : {}),
           ...(isDefault !== undefined ? { isDefault } : {}),
         },
       });

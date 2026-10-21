@@ -444,7 +444,7 @@ export function ViewAssistantModal({
             placeholder={
               spec
                 ? 'Refine, e.g. "add a pie chart of balances by currency"'
-                : 'e.g. "Create a table with clickable IDs to navigate to details"'
+                : 'Describe a view or ask a question, e.g. "Which customers spent the most across all their accounts?"'
             }
             autoSize={{ minRows: 2, maxRows: 6 }}
             onPressEnter={(e) => {

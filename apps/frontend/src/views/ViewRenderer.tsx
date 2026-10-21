@@ -6,6 +6,10 @@ import { useViewData } from './useViewData';
 import { WidgetBody } from './WidgetRenderer';
 import { WidgetEditorModal } from '../components/WidgetEditorModal';
 import type { ConceptSchemaPayload, SavedView } from '../bff/client';
+import { useElementWidth } from '../hooks/useElementWidth';
+
+/** Narrowest a widget may get before the grid drops to fewer columns per row. */
+const MIN_WIDGET_WIDTH = 360;
 
 interface ViewRendererProps {
   spec: ViewSpec;
@@ -13,15 +17,21 @@ interface ViewRendererProps {
   schema?: ConceptSchemaPayload;
   viewId?: string;
   onWidgetUpdated?: (updatedView: SavedView) => void;
-  /** Stack every widget full-width with tight spacing, for narrow Miller columns. */
-  compact?: boolean;
-  /** When set (and not compact), cap the grid at this many columns per row. */
+  /** Upper bound on widgets per row, however wide the container gets. */
   maxColumns?: number;
 }
 
-/** Renders a full view spec: runs its queries and lays widgets out on a 24-column grid. */
-export function ViewRenderer({ spec, concept, schema, viewId, onWidgetUpdated, compact, maxColumns }: ViewRendererProps) {
+/**
+ * Renders a full view spec: runs its queries and lays widgets out on a 24-column
+ * grid. How many widgets fit on a row follows the width actually available to
+ * the renderer (not the viewport), so a lone Miller column uses the whole screen
+ * while side-by-side columns stack their widgets.
+ */
+export function ViewRenderer({ spec, concept, schema, viewId, onWidgetUpdated, maxColumns = 3 }: ViewRendererProps) {
   const view = useViewData(spec);
+  const [containerRef, width] = useElementWidth<HTMLDivElement>();
+  const fit = Math.max(1, Math.min(maxColumns, Math.floor(width / MIN_WIDGET_WIDTH)));
+  const compact = fit === 1;
   const [editingWidget, setEditingWidget] = useState<Widget | null>(null);
 
   const canEdit = concept && schema && viewId && onWidgetUpdated;
@@ -35,29 +45,26 @@ export function ViewRenderer({ spec, concept, schema, viewId, onWidgetUpdated, c
     setEditingWidget(null);
   };
 
-  // Column width (in Ant's 24-unit grid) for each widget. Compact stacks every
-  // widget full-width; otherwise respect the authored span, but when maxColumns
-  // is set never let a widget be narrower than 24/maxColumns (so at most that
-  // many fit on a row).
+  // Column width (in Ant's 24-unit grid) for each widget. When only one widget
+  // fits, stack them full-width; otherwise respect the authored span but never
+  // let a widget be narrower than 24/fit (so at most `fit` share a row).
   const columnSpan = (widget: Widget): number => {
     if (compact) return 24;
-    const span = Math.min(24, widget.span ?? 24);
-    if (maxColumns && maxColumns > 0) {
-      return Math.max(Math.ceil(24 / maxColumns), span);
-    }
-    return span;
+    return Math.max(Math.ceil(24 / fit), Math.min(24, widget.span ?? 24));
   };
 
   if (view.fetching) {
     return (
-      <Card>
-        <Skeleton active paragraph={{ rows: 8 }} />
-      </Card>
+      <div ref={containerRef}>
+        <Card>
+          <Skeleton active paragraph={{ rows: 8 }} />
+        </Card>
+      </div>
     );
   }
 
   return (
-    <>
+    <div ref={containerRef}>
       {view.error && (
         <Alert
           type="warning"
@@ -69,7 +76,7 @@ export function ViewRenderer({ spec, concept, schema, viewId, onWidgetUpdated, c
       )}
       <Row gutter={compact ? [8, 8] : [16, 16]}>
         {spec.widgets.map((widget) => (
-          <Col key={widget.id} xs={24} lg={columnSpan(widget)}>
+          <Col key={widget.id} span={columnSpan(widget)}>
             <Card
               size="small"
               title={widget.title}
@@ -116,6 +123,6 @@ export function ViewRenderer({ spec, concept, schema, viewId, onWidgetUpdated, c
           onSaved={handleWidgetSaved}
         />
       )}
-    </>
+    </div>
   );
 }

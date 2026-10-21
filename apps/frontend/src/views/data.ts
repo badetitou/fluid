@@ -3,15 +3,37 @@ import type { Aggregation, DataBinding, Transform } from '@fluid/shared';
 // Runtime helpers that turn raw GraphQL results into the shapes widgets expect:
 // dot-path selection, grouping/aggregation, sorting and limiting.
 
-/** Resolve a dot path (e.g. "customer.fullName") against a value. */
+/**
+ * Resolve a dot path (e.g. "customer.fullName") against a value.
+ *
+ * Paths may cross nested lists at any depth: when a segment meets an array
+ * (and is not a numeric index), it is applied to every element and the results
+ * are flattened. So "customers.accounts.transactions" on a list of customers
+ * yields one flat array of all their transactions, and "accounts.balance" on a
+ * single customer yields the array of balances.
+ */
 export function getPath(obj: unknown, path?: string): unknown {
   if (path == null || path === '') return obj;
   let current: unknown = obj;
   for (const segment of path.split('.')) {
-    if (current == null || typeof current !== 'object') return undefined;
-    current = (current as Record<string, unknown>)[segment];
+    current = step(current, segment);
+    if (current === undefined) return undefined;
   }
   return current;
+}
+
+function step(current: unknown, segment: string): unknown {
+  if (current == null || typeof current !== 'object') return undefined;
+  if (Array.isArray(current) && !/^\d+$/.test(segment)) {
+    const out: unknown[] = [];
+    for (const item of current) {
+      const value = step(item, segment);
+      if (Array.isArray(value)) out.push(...value);
+      else if (value !== undefined) out.push(value);
+    }
+    return out;
+  }
+  return (current as Record<string, unknown>)[segment];
 }
 
 function toFiniteNumber(value: unknown): number | null {
@@ -33,8 +55,12 @@ export function aggregate(data: unknown, op: AggOp, field?: string): number | st
     return value == null ? null : (value as number | string);
   }
 
+  // A field crossing a nested list yields several values per row: count them all.
   const numbers = rows
-    .map((row) => (field ? getPath(row, field) : row))
+    .flatMap((row) => {
+      const value = field ? getPath(row, field) : row;
+      return Array.isArray(value) ? value : [value];
+    })
     .map(toFiniteNumber)
     .filter((n): n is number => n !== null);
 
@@ -103,10 +129,26 @@ function compareValues(a: unknown, b: unknown, dir: 'asc' | 'desc'): number {
   return dir === 'desc' ? -result : result;
 }
 
-/** Apply a transform (group / aggregate / sort / limit) to array data. Non-arrays pass through. */
+/** Per-row aggregate of the (possibly nested, multi-valued) data at `field`. */
+function deriveValue(row: unknown, op: AggOp, field?: string): number | string | null {
+  const value = field ? getPath(row, field) : row;
+  if (op === 'count') return Array.isArray(value) ? value.length : value == null ? 0 : 1;
+  return aggregate(value, op);
+}
+
+/** Apply a transform (derive / group / aggregate / sort / limit) to array data. Non-arrays pass through. */
 export function applyTransform(data: unknown, transform?: Transform): unknown {
   if (!Array.isArray(data)) return data;
   let rows: unknown[] = data;
+
+  if (transform?.derive?.length) {
+    const derive = transform.derive;
+    rows = rows.map((row) => {
+      const out = { ...(row as Record<string, unknown>) };
+      for (const d of derive) out[d.as] = deriveValue(row, d.op, d.field);
+      return out;
+    });
+  }
 
   if (transform?.groupBy) {
     rows = groupRows(rows, transform.groupBy, transform.aggregate?.field);

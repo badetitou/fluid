@@ -6,6 +6,26 @@ import { detectLinkCandidates, formatLinkCandidatesForPrompt } from './linkDetec
 // CRITICAL: The prompt emphasizes creating INTERACTIVE tables with clickable links
 // for Miller-list style navigation between related entities.
 
+/** How dot paths cross nested lists at render time (shared by both prompts). */
+export const NESTED_DATA_RULES = [
+  'Views may show data several levels deep: select it with nested GraphQL selections (e.g. `customers { accounts { transactions { amount } } }`).',
+  'Dot paths ("path", column/item "key", "field", "groupBy", "xField"…) cross nested lists: each segment is applied to every element and the results are flattened.',
+  '  * "path": "customers.accounts.transactions" → one flat array of every transaction of every customer (tables, charts, statistics on it).',
+  '  * column "key": "accounts.iban" on a customer row → the list of that customer\'s IBANs (rendered comma-separated).',
+  '  * Per-row totals over nested data use transform "derive", e.g. { "as": "totalSpent", "op": "sum", "field": "accounts.transactions.amount" }, then sort by "totalSpent".',
+  '  * To keep parent context in a flattened table, also select a back-reference when the schema has one (e.g. `transactions { amount account { iban } }` → key "account.iban").',
+].join('\n');
+
+/** A request phrased as a question must produce the view that answers it. */
+export const QUESTION_RULES = [
+  'The request may be a QUESTION (e.g. "which customers have the highest balance?", "how much was spent per category last month?").',
+  'Then design the view that ANSWERS it:',
+  '  * title = the question\'s topic, description = one sentence stating what the view answers;',
+  '  * put the answer first: the statistic(s) or the focused chart/table that directly answers it (use transform sort/limit for "top"/"most"/"highest", groupBy for "per"/"by");',
+  '  * then only the supporting widgets needed to justify the answer (e.g. the underlying rows, with links). No generic dashboard filler.',
+  '  * Follow relations as deep as the question needs (see the reachable relations).',
+].join('\n');
+
 const CONTRACT = `You output a response with TWO SECTIONS:
 
 1. REASONING (optional - help the user understand your thinking):
@@ -59,8 +79,11 @@ LinkConfig (FEATURE: Infinite Navigation - enables Miller list-style drilling):
     * {"concept": "Customer", "idField": "customer.id"} → opens the Customer whose id is the row's "customer.id"
 
 Transform (optional) reshapes an array before rendering:
-{ "groupBy"?: "<field>", "aggregate"?: { "field"?: "<numeric field>" },
+{ "derive"?: [ { "as": "<new field>", "op": "count"|"sum"|"avg"|"min"|"max"|"first", "field"?: "<dot path, may cross nested lists>" } ],
+  "groupBy"?: "<field>", "aggregate"?: { "field"?: "<numeric field>" },
   "sort"?: { "by": "<field>", "dir": "asc"|"desc" }, "limit"?: number }
+"derive" runs first and adds per-row computed fields over nested data, e.g. on customer rows
+{ "as": "totalSpent", "op": "sum", "field": "accounts.transactions.amount" } — then sort/display "totalSpent".
 When "groupBy" is set the rows become { "<groupBy>": value, "count": n, "sum": n, "avg": n, "min": n, "max": n }.
 So a category breakdown = groupBy + a "bar"/"pie" widget with xField/colorField = "<groupBy>" and yField/angleField = "count" (or "sum").
 
@@ -69,15 +92,19 @@ Format is one of: "text","number","currency","percent","date","datetime","tag","
 
 Rules:
 - Every widget.data.query MUST reference a key defined in "queries".
-- GraphQL selections may ONLY use fields listed in the concept schema below. Prefer the concept's list query.
+- GraphQL selections may ONLY use fields listed in the concept schema below (including the reachable relations, through nested selections). Prefer the concept's list query.
 - Pass a $take variable (e.g. 200) when the list query supports it.
 - "path" is the dot path from the query result to the array/object (usually the list query field name).
+- NESTED DATA (multi-level):
+${NESTED_DATA_RULES.replace(/^/gm, '  ')}
+- QUESTIONS:
+${QUESTION_RULES.replace(/^/gm, '  ')}
 - WIDGET TYPE SELECTION (CRITICAL - read user request carefully):
   * If request mentions "table", "list", "all items", "multiple", or "show all" → CREATE TABLE WIDGET with list query
   * If request mentions "detail", "single item", "this", "show relationships" → CREATE DESCRIPTIONS widget
   * If request asks for "links" or "clickable" → add linkTo to TABLE columns (not descriptions)
   * When in doubt, default to TABLE (lists with links are more useful for navigation)
-- Build a DASHBOARD: a couple of statistics, one table, and one or two charts. Minimal descriptive text.
+- Build a DASHBOARD: a couple of statistics, one table, and one or two charts. Minimal descriptive text (for a question, focus on the answer instead).
 - **ALWAYS ADD NAVIGATION LINKS (linkTo) - THIS IS ESSENTIAL FOR MILLER LIST INTERACTION**:
   * For TABLE widgets: EVERY column that displays an ID or represents a relationship MUST have linkTo
   * Example: A "customers" table MUST have linkTo on the "id" column: { "concept": "Customer" }
@@ -113,6 +140,21 @@ export function describeListQuery(schema: ConceptSchemaInfo): string {
   return notes.length ? `${shape} — ${notes.join('; ')}` : shape;
 }
 
+/**
+ * Relations reachable through nested selections, several levels deep, e.g.
+ * `accounts.transactions (Transaction[]): id: ID, amount: Float`. Lets the model
+ * select and display data beyond the concept's direct fields.
+ */
+export function renderRelationPaths(schema: ConceptSchemaInfo): string {
+  if (!schema.paths?.length) return '  (none)';
+  return schema.paths
+    .map(
+      (p) =>
+        `  - ${p.path} (${p.typeName}${p.isList ? '[]' : ''})${p.fields.length ? `: ${p.fields.join(', ')}` : ''}`,
+    )
+    .join('\n');
+}
+
 function renderSchema(schema: ConceptSchemaInfo): string {
   const fields = schema.fields
     .map(
@@ -137,6 +179,8 @@ function renderSchema(schema: ConceptSchemaInfo): string {
     fields || '  (none)',
     'Related concepts:',
     related,
+    'Reachable relations (nested selections, several levels deep; path (Type[] when it yields many rows): scalar fields):',
+    renderRelationPaths(schema),
   ]
     .filter(Boolean)
     .join('\n');
@@ -268,7 +312,8 @@ The JSON is a Fluid "widget draft" with one of these discriminated shapes (field
     "data": { "query": "<query key>", "path"?: "<dot path>", "transform"?: Transform },
     "angleField": string, "colorField": string, "height"?: number }
 
-Transform: { "groupBy"?: string, "aggregate"?: { "field"?: string }, "sort"?: { "by": string, "dir": "asc"|"desc" }, "limit"?: number }
+Transform: { "derive"?: [ { "as": string, "op": "count"|"sum"|"avg"|"min"|"max"|"first", "field"?: string } ], "groupBy"?: string, "aggregate"?: { "field"?: string }, "sort"?: { "by": string, "dir": "asc"|"desc" }, "limit"?: number }
+  "derive" adds per-row computed fields over nested data (e.g. sum of "accounts.transactions.amount"), usable by sort, groupBy, columns and chart fields.
 Format: "text"|"number"|"currency"|"percent"|"date"|"datetime"|"tag"|"boolean"|"image"
   "image" only for String fields holding a picture URL (avatar, portrait, photo, logo…); the user must click to load it.
 LinkConfig: { "concept": string, "idField"?: string }
@@ -276,6 +321,7 @@ LinkConfig: { "concept": string, "idField"?: string }
 Important:
 - Do NOT include an "id" field in the widget — it will be assigned by the system.
 - WIDGET.data.query must reference an available query key.
+- Dot paths cross nested lists (each segment applies to every element, results are flattened), so a widget can read data several levels deep, e.g. "path": "customer.accounts.transactions".
 - Use double quotes everywhere. Output valid JSON and nothing else.`;
 
 export function buildWidgetMessages(input: GenerateWidgetInput): ChatMessage[] {

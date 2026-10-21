@@ -52,6 +52,16 @@ const conceptSchemaInfo = z.object({
   related: z
     .array(z.object({ name: z.string(), fields: z.array(z.string()).optional() }))
     .optional(),
+  paths: z
+    .array(
+      z.object({
+        path: z.string().min(1),
+        typeName: z.string(),
+        isList: z.boolean(),
+        fields: z.array(z.string()),
+      }),
+    )
+    .optional(),
 });
 
 export const generateViewBody = z.object({

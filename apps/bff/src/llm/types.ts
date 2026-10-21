@@ -64,6 +64,19 @@ export interface ConceptSchemaInfo {
   byIdArgType?: string | null;
   fields: ConceptFieldInfo[];
   related?: RelatedConceptInfo[];
+  /** Relations reachable through nested selections, several levels deep. */
+  paths?: RelationPathInfo[];
+}
+
+/** One relation reachable from the concept, e.g. "accounts.transactions". */
+export interface RelationPathInfo {
+  /** Dot path of relation fields from the concept, e.g. "accounts.transactions". */
+  path: string;
+  typeName: string;
+  /** Whether any segment of the path is a list (the path then yields many rows). */
+  isList: boolean;
+  /** Scalar fields of the target, as "name: Type". */
+  fields: string[];
 }
 
 export interface GenerateViewInput {

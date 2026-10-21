@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   Alert,
   App as AntdApp,
@@ -6,6 +6,7 @@ import {
   Dropdown,
   Empty,
   Flex,
+  Input,
   Skeleton,
   Space,
   Tooltip,
@@ -83,7 +84,7 @@ interface MillerColumnProps {
   title: string;
   subtitle: string;
   onClose?: () => void;
-  /** When true, this column occupies the whole view and lays widgets on a grid. */
+  /** When true, this column occupies the whole view (its widgets reflow to the extra width). */
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
 }
@@ -155,6 +156,10 @@ function MillerColumnBody({
   const [editorInitial, setEditorInitial] = useState<ViewEditorInitial | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Key of the saved perspective whose pill is being renamed inline.
+  const [renamingKey, setRenamingKey] = useState<string | undefined>(undefined);
+  const [renameDraft, setRenameDraft] = useState('');
+  const renameCancelled = useRef(false);
 
   // Reset the explicit pick when the concept changes so its default is honoured.
   useEffect(() => {
@@ -283,6 +288,34 @@ function MillerColumnBody({
     }
   };
 
+  const startRename = (entry: ViewEntry | undefined = selected) => {
+    if (!entry?.saved || !bffAvailable) return;
+    setPicked(entry.key);
+    setRenameDraft(entry.title);
+    setRenamingKey(entry.key);
+  };
+
+  const commitRename = async () => {
+    const entry = allEntries.find((e) => e.key === renamingKey);
+    setRenamingKey(undefined);
+    if (renameCancelled.current) {
+      renameCancelled.current = false;
+      return;
+    }
+    const title = renameDraft.trim();
+    if (!entry?.saved || !title || title === entry.title) return;
+    setBusy(true);
+    try {
+      await bffClient.updateView(entry.saved.id, { title });
+      message.success('Perspective renamed');
+      refetch();
+    } catch (err) {
+      message.error((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleDelete = (entry: ViewEntry | undefined = selected) => {
     if (!entry?.saved) return;
     const id = entry.saved.id;
@@ -334,7 +367,16 @@ function MillerColumnBody({
       onClick: openJsonCreate,
     },
     ...(isSaved
-      ? [{ key: 'json-edit', icon: <EditOutlined />, label: 'Edit (JSON)', onClick: openJsonEdit }]
+      ? [
+          {
+            key: 'rename',
+            icon: <EditOutlined />,
+            label: 'Rename',
+            disabled: !bffAvailable,
+            onClick: () => startRename(),
+          },
+          { key: 'json-edit', icon: <EditOutlined />, label: 'Edit (JSON)', onClick: openJsonEdit },
+        ]
       : []),
     ...(isSaved && !isDefaultView
       ? [{ key: 'default', icon: <StarOutlined />, label: 'Set as default', onClick: handleSetDefault }]
@@ -392,13 +434,44 @@ function MillerColumnBody({
 
   const perspectivePills = allEntries.map((e) => {
     const active = e.key === selected?.key;
+    if (e.key === renamingKey) {
+      return (
+        <Input
+          key={e.key}
+          size="small"
+          autoFocus
+          aria-label="Perspective name"
+          value={renameDraft}
+          onChange={(ev) => setRenameDraft(ev.target.value)}
+          onFocus={(ev) => ev.target.select()}
+          onPressEnter={(ev) => ev.currentTarget.blur()}
+          onBlur={commitRename}
+          onKeyDown={(ev) => {
+            if (ev.key !== 'Escape') return;
+            renameCancelled.current = true;
+            ev.currentTarget.blur();
+          }}
+          style={{
+            ...pillBase,
+            ...activePill,
+            cursor: 'text',
+            width: Math.max(80, renameDraft.length * 7 + 24),
+          }}
+        />
+      );
+    }
     return (
-      <Tooltip key={e.key} title={`${SOURCE_META[e.source].label} perspective`} mouseEnterDelay={0.6}>
+      <Tooltip
+        key={e.key}
+        title={`${SOURCE_META[e.source].label} perspective${e.source === 'saved' && bffAvailable ? ' — double-click to rename' : ''}`}
+        mouseEnterDelay={0.6}
+      >
         <span
           role="tab"
           aria-selected={active}
           tabIndex={0}
           onClick={() => setPicked(e.key)}
+          onDoubleClick={() => startRename(e)}
           onKeyDown={(ev) => (ev.key === 'Enter' || ev.key === ' ') && setPicked(e.key)}
           style={active ? { ...pillBase, ...activePill } : pillBase}
         >
@@ -536,8 +609,6 @@ function MillerColumnBody({
             <ViewRenderer
               key={selected?.key}
               spec={spec}
-              compact={!isFullscreen}
-              maxColumns={isFullscreen ? 3 : undefined}
               concept={concept.name}
               schema={schema}
               viewId={selected?.saved?.id}

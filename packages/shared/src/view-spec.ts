@@ -52,12 +52,26 @@ export type QuerySpec = z.infer<typeof querySpecSchema>;
 
 /**
  * Reshapes a selected array before rendering.
+ * - `derive` first adds per-row computed fields aggregating nested data, e.g.
+ *   `{ as: "totalSpent", op: "sum", field: "accounts.transactions.amount" }` on
+ *   customer rows. The new fields can then be grouped, sorted and displayed.
  * - `groupBy` collapses rows by a field and emits, per group, the group key plus
  *   the aggregates `count`, and (when `aggregate.field` is set) `sum`, `avg`,
  *   `min`, `max`. Charts then use e.g. `xField: "<groupBy>"`, `yField: "count"`.
  * - `sort` / `limit` apply after grouping (or directly on the array).
  */
 export const transformSchema = z.object({
+  derive: z
+    .array(
+      z.object({
+        /** Name of the computed field added to each row. */
+        as: z.string().min(1),
+        op: z.enum(['count', 'sum', 'avg', 'min', 'max', 'first']),
+        /** Dot path in the row, usually crossing a nested list. */
+        field: z.string().optional(),
+      }),
+    )
+    .optional(),
   groupBy: z.string().optional(),
   aggregate: z
     .object({
