@@ -52,11 +52,11 @@ LinkConfig (FEATURE: Infinite Navigation - enables Miller list-style drilling):
   "linkTo": { "concept": "<target concept name>", "idField"?: "<dot path to ID>" }
   - "concept": The target concept to navigate to (e.g., "Customer", "Order", "Product")
   - "idField": Optional dot path to extract the ID (defaults to "id"). Supports nested paths like "customer.id"
-  - When a column or item has linkTo, users can click it to navigate to "/concept/{concept}/item/{id}"
+  - When a column or item has linkTo, clicking it opens a new Miller column showing that item's detail view
   - This enables INFINITE NAVIGATION: explore related objects by clicking links in tables or descriptions
   - Examples:
-    * {"concept": "Customer"} → uses "id" field, navigates to /concept/Customer/item/ACC-001
-    * {"concept": "Customer", "idField": "customer.id"} → navigates to /concept/Customer/item/CUST-001
+    * {"concept": "Account"} on an "id" column → opens the Account whose id is the row's "id"
+    * {"concept": "Customer", "idField": "customer.id"} → opens the Customer whose id is the row's "customer.id"
 
 Transform (optional) reshapes an array before rendering:
 { "groupBy"?: "<field>", "aggregate"?: { "field"?: "<numeric field>" },
@@ -87,6 +87,31 @@ Rules:
   * Miller list navigation (split-view columns) is ONLY possible when you include linkTo in table columns
 - Use double quotes everywhere. Output valid JSON and nothing else.`;
 
+/**
+ * Path from a list query's result to its rows: the list field itself, or its
+ * rows field when it returns a pagination wrapper (e.g. "characters.results").
+ */
+export function listRowsPath(schema: ConceptSchemaInfo): string | undefined {
+  if (!schema.listQuery) return undefined;
+  return schema.listItemsPath ? `${schema.listQuery}.${schema.listItemsPath}` : schema.listQuery;
+}
+
+/** Human/LLM-readable shape of the list query, e.g. `characters { results { ... } }`. */
+export function describeListQuery(schema: ConceptSchemaInfo): string {
+  if (!schema.listQuery) return '(none)';
+  const args = schema.listLimitArg ? `(${schema.listLimitArg}: Int)` : '';
+  const shape = schema.listItemsPath
+    ? `${schema.listQuery}${args} { ${schema.listItemsPath} { ...${schema.name} fields } }`
+    : `${schema.listQuery}${args} { ...${schema.name} fields }`;
+  const notes = [
+    schema.listItemsPath
+      ? `paginated wrapper: rows are under "${schema.listItemsPath}", read them with path "${listRowsPath(schema)}"`
+      : null,
+    schema.listLimitArg ? null : 'no row-limit argument: do not pass "take"',
+  ].filter(Boolean);
+  return notes.length ? `${shape} — ${notes.join('; ')}` : shape;
+}
+
 function renderSchema(schema: ConceptSchemaInfo): string {
   const fields = schema.fields
     .map(
@@ -105,7 +130,7 @@ function renderSchema(schema: ConceptSchemaInfo): string {
   return [
     `Concept: ${schema.name}`,
     schema.description ? `Description: ${schema.description}` : null,
-    `List query (returns many): ${schema.listQuery ?? '(none)'}`,
+    `List query (returns many): ${describeListQuery(schema)}`,
     schema.byIdQuery ? `By-id query: ${schema.byIdQuery}` : null,
     'Fields:',
     fields || '  (none)',
@@ -114,6 +139,34 @@ function renderSchema(schema: ConceptSchemaInfo): string {
   ]
     .filter(Boolean)
     .join('\n');
+}
+
+/**
+ * Rules that depend on whether the view is generated for a list column (many
+ * rows) or a detail column (one item). Detail columns only inject the selected
+ * item's id into the query keyed by the concept's by-id field, so the model
+ * must use exactly that key and a `$id: ID!` variable.
+ */
+export function scopeInstructions(input: Pick<GenerateViewInput, 'scope' | 'schema'>): string {
+  const { schema } = input;
+  if (input.scope === 'detail' && schema.byIdQuery) {
+    return [
+      `This view is a DETAIL view: it is shown for ONE selected ${schema.name}.`,
+      `- Declare the query under the key "${schema.byIdQuery}" exactly, using the by-id query with a "$id: ID!" variable:`,
+      `  "${schema.byIdQuery}": { "query": "query($id: ID!) { ${schema.byIdQuery}(id: $id) { ... } }" }`,
+      '- Do NOT set "id" in "variables": the application injects the selected item\'s id at runtime.',
+      `- Widgets read the item with "path": "${schema.byIdQuery}" (descriptions) or a nested list such as "${schema.byIdQuery}.<relation>" (tables, charts, statistics).`,
+      '- Select related objects and lists through nested selections of that single query.',
+    ].join('\n');
+  }
+  return [
+    `This view is a LIST view: it shows many ${schema.name} rows.`,
+    schema.listQuery
+      ? schema.listLimitArg
+        ? `- Read rows from the list query: ${describeListQuery(schema)} (pass "${schema.listLimitArg}": 200).`
+        : `- Read rows from the list query: ${describeListQuery(schema)}.`
+      : '- The concept has no list query; use the closest query available.',
+  ].join('\n');
 }
 
 export function buildMessages(input: GenerateViewInput): ChatMessage[] {
@@ -160,6 +213,8 @@ export function buildMessages(input: GenerateViewInput): ChatMessage[] {
       '  { "key": "customerId", "title": "Customer", "linkTo": { "concept": "Customer", "idField": "customerId" } }',
       '',
       linkCandidatesText,
+      '',
+      scopeInstructions(input),
       '',
       `Request: ${input.prompt}`,
     ].join('\n'),

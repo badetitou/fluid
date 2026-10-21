@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   App as AntdApp,
   Button,
   Dropdown,
   Empty,
   Flex,
   Select,
+  Skeleton,
   Space,
   Tag,
   Typography,
@@ -20,13 +22,20 @@ import {
   FullscreenOutlined,
   MoreOutlined,
   PlusOutlined,
+  PushpinOutlined,
   RobotOutlined,
   SettingOutlined,
   StarFilled,
   StarOutlined,
 } from '@ant-design/icons';
 import type { ViewSpec } from '@fluid/shared';
-import type { Concept } from '../hooks/useConcepts';
+import {
+  useConcept,
+  useConceptsByName,
+  usePinning,
+  useRootConcepts,
+  type Concept,
+} from '../hooks/useConcepts';
 import { useViews, type ViewEntry, type ViewSource } from '../hooks/useViews';
 import { ViewRenderer } from '../views/ViewRenderer';
 import { buildDetailView } from '../views/registry';
@@ -64,8 +73,7 @@ function newViewInitial(
 }
 
 interface MillerColumnProps {
-  concept: Concept;
-  conceptByName: Map<string, Concept>;
+  conceptName: string;
   /** Present for drill-in (detail) columns; injects the id into the by-id query. */
   itemId?: string;
   title: string;
@@ -77,21 +85,53 @@ interface MillerColumnProps {
 }
 
 /**
- * A single Miller navigation column bound to one concept. It resolves the
+ * A single Miller navigation column bound to one concept. It introspects the
+ * concept's type on demand, then hands over to the column body.
+ */
+export function MillerColumn({ conceptName, ...rest }: MillerColumnProps) {
+  const { concept, fetching, error } = useConcept(conceptName);
+
+  if (error || concept === null || (!fetching && !concept)) {
+    return (
+      <div style={{ padding: 12 }}>
+        <Alert
+          type={error ? 'error' : 'warning'}
+          showIcon
+          message={error ? `Could not introspect ${conceptName}` : 'Unknown concept'}
+          description={error ? error.message : `No object type named "${conceptName}" exists.`}
+        />
+      </div>
+    );
+  }
+
+  if (!concept) {
+    return (
+      <div style={{ padding: 12 }}>
+        <Skeleton active paragraph={{ rows: 6 }} />
+      </div>
+    );
+  }
+
+  return <MillerColumnBody concept={concept} {...rest} />;
+}
+
+type MillerColumnBodyProps = Omit<MillerColumnProps, 'conceptName'> & { concept: Concept };
+
+/**
+ * The column body for a loaded concept. It resolves the
  * perspectives (saved / curated / auto views) for that concept, lets the user
  * switch between them, edit them with AI or JSON, and renders the active
  * perspective compactly so it fits a narrow column.
  */
-export function MillerColumn({
+function MillerColumnBody({
   concept,
-  conceptByName,
   itemId,
   title,
   subtitle,
   onClose,
   isFullscreen,
   onToggleFullscreen,
-}: MillerColumnProps) {
+}: MillerColumnBodyProps) {
   const { token } = theme.useToken();
   const { message, modal } = AntdApp.useApp();
   const { entries, defaultKey, loading, bffAvailable, refetch } = useViews(concept);
@@ -109,6 +149,21 @@ export function MillerColumn({
   useEffect(() => {
     setPicked(undefined);
   }, [concept.name]);
+
+  // Related types are introspected one level ahead so the LLM knows their fields.
+  const relatedNames = useMemo(
+    () => [...new Set(concept.relationFields.map((f) => f.typeName))],
+    [concept],
+  );
+  const conceptByName = useConceptsByName(relatedNames);
+
+  // Deeper concepts are not listed in the concept bar by default: offer to pin
+  // this concept (when reached by navigation) and the concepts it relates to.
+  const { queriesByType } = useRootConcepts();
+  const { pinned, pin } = usePinning();
+  const pinnable = [concept.name, ...relatedNames].filter(
+    (name) => !queriesByType.has(name) && !pinned.includes(name),
+  );
 
   const schema = useMemo(
     () => buildConceptSchemaPayload(concept, conceptByName),
@@ -274,6 +329,24 @@ export function MillerColumn({
       : []),
     ...(isSaved
       ? [{ key: 'delete', icon: <DeleteOutlined />, danger: true, label: 'Delete', onClick: handleDelete }]
+      : []),
+    ...(pinnable.length > 0
+      ? [
+          { type: 'divider' as const },
+          {
+            key: 'pin',
+            icon: <PushpinOutlined />,
+            label: 'Pin to concept bar',
+            children: pinnable.map((name) => ({
+              key: `pin:${name}`,
+              label: name === concept.name ? `${name} (this concept)` : name,
+              onClick: () => {
+                pin(name);
+                message.success(`${name} pinned to the concept bar`);
+              },
+            })),
+          },
+        ]
       : []),
     { type: 'divider' },
     { key: 'settings', icon: <SettingOutlined />, label: 'LLM settings', onClick: () => setSettingsOpen(true) },

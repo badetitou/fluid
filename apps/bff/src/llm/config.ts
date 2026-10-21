@@ -1,9 +1,12 @@
 import type { LlmConfig, LlmConfigOverrides, LlmProvider } from './types';
+import { detectClaudeCode } from './claudeCode';
 
 const OPENAI_DEFAULT_BASE_URL = 'https://api.openai.com/v1';
 const OPENAI_DEFAULT_MODEL = 'gpt-4o-mini';
 const OLLAMA_DEFAULT_BASE_URL = 'http://localhost:11434/v1';
 const OLLAMA_DEFAULT_MODEL = 'llama3.1';
+const CLAUDE_CODE_DEFAULT_BIN = 'claude';
+const CLAUDE_CODE_DEFAULT_MODEL = 'sonnet';
 
 function env(name: string): string | undefined {
   const v = process.env[name];
@@ -18,7 +21,9 @@ function openaiConfigured(): boolean {
 function pickProvider(override?: LlmProvider): LlmProvider {
   if (override) return override;
   const fromEnv = env('LLM_PROVIDER') as LlmProvider | undefined;
-  if (fromEnv === 'openai' || fromEnv === 'ollama' || fromEnv === 'mock') return fromEnv;
+  if (fromEnv === 'openai' || fromEnv === 'ollama' || fromEnv === 'claude-code' || fromEnv === 'mock') {
+    return fromEnv;
+  }
   // Fall back to OpenAI when a key is present, otherwise the offline mock.
   return openaiConfigured() ? 'openai' : 'mock';
 }
@@ -50,11 +55,23 @@ export function resolveLlmConfig(overrides: LlmConfigOverrides = {}): LlmConfig 
     };
   }
 
+  if (provider === 'claude-code') {
+    return {
+      provider,
+      model: overrides.model ?? env('CLAUDE_CODE_MODEL') ?? CLAUDE_CODE_DEFAULT_MODEL,
+      // The CLI path is server-side configuration only: never let a request choose
+      // which binary the BFF executes.
+      baseUrl: env('CLAUDE_CODE_BIN') ?? CLAUDE_CODE_DEFAULT_BIN,
+      apiKey: undefined,
+    };
+  }
+
   return { provider: 'mock', model: 'mock', baseUrl: '', apiKey: undefined };
 }
 
 /** Non-secret capability description for the frontend settings UI. */
-export function describeLlmConfig() {
+export async function describeLlmConfig() {
+  const claudeVersion = await detectClaudeCode(env('CLAUDE_CODE_BIN') ?? CLAUDE_CODE_DEFAULT_BIN);
   return {
     defaultProvider: pickProvider(),
     providers: {
@@ -66,6 +83,11 @@ export function describeLlmConfig() {
       ollama: {
         model: env('OLLAMA_MODEL') ?? OLLAMA_DEFAULT_MODEL,
         baseUrl: env('OLLAMA_BASE_URL') ?? OLLAMA_DEFAULT_BASE_URL,
+      },
+      'claude-code': {
+        available: claudeVersion !== null,
+        version: claudeVersion,
+        model: env('CLAUDE_CODE_MODEL') ?? CLAUDE_CODE_DEFAULT_MODEL,
       },
       mock: { available: true },
     },

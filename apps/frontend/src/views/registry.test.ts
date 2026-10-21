@@ -70,3 +70,17 @@ describe('buildDetailView', () => {
     expect(buildDetailView(makeConcept({ queries: { list: { field: 'accounts' } } }))).toBeNull();
   });
 });
+
+describe('buildDefaultView with a paginated list query', () => {
+  it('reads rows through the wrapper and omits the unsupported limit', () => {
+    const view = buildDefaultView(
+      makeConcept({ queries: { list: { field: 'characters', itemsPath: 'results' } } }),
+    )!;
+    const rows = view.queries.rows;
+    expect(rows.query).toContain('characters {');
+    expect(rows.query).toContain('results {');
+    expect(rows.query).not.toContain('$take');
+    expect(rows.variables).toEqual({});
+    expect(view.widgets[0].data.path).toBe('characters.results');
+  });
+});

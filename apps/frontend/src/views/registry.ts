@@ -30,8 +30,9 @@ function guessFormat(field: ConceptField): FormatKind | undefined {
 
 /** Build a compact, navigable list for a concept from its introspected shape. */
 export function buildDefaultView(concept: Concept): ViewSpec | null {
-  const listField = concept.queries.list?.field;
-  if (!listField) return null;
+  const list = concept.queries.list;
+  if (!list) return null;
+  const listField = list.field;
 
   const scalars = concept.scalarFields;
   if (scalars.length === 0) return null;
@@ -54,11 +55,17 @@ export function buildDefaultView(concept: Concept): ViewSpec | null {
   const canDrill = Boolean(concept.queries.byId);
 
   const selection = Array.from(new Set([idField, ...chosen.map((f) => f.name)])).join('\n            ');
-  const query = `query FluidAuto_${concept.name}($take: Int) {
-          ${listField}(take: $take) {
-            ${selection}
+  // Only pass a row limit when the field supports one, and reach through the
+  // pagination wrapper (e.g. `characters { results { ... } }`) when there is one.
+  const varDecl = list.limitArg ? '($take: Int)' : '';
+  const callArgs = list.limitArg ? `(${list.limitArg}: $take)` : '';
+  const body = list.itemsPath ? `${list.itemsPath} {\n            ${selection}\n          }` : selection;
+  const query = `query FluidAuto_${concept.name}${varDecl} {
+          ${listField}${callArgs} {
+            ${body}
           }
         }`;
+  const rowsPath = list.itemsPath ? `${listField}.${list.itemsPath}` : listField;
 
   const columns: Column[] = chosen.map((field, index) => ({
     key: field.name,
@@ -75,7 +82,7 @@ export function buildDefaultView(concept: Concept): ViewSpec | null {
     title: `${concept.name} list`,
     description: `Auto-generated list of ${concept.name}.`,
     queries: {
-      rows: { query, variables: { take: 100 } },
+      rows: { query, variables: list.limitArg ? { take: 100 } : {} },
     },
     widgets: [
       {
@@ -83,7 +90,7 @@ export function buildDefaultView(concept: Concept): ViewSpec | null {
         type: 'table',
         title: humanize(concept.name),
         span: 24,
-        data: { query: 'rows', path: listField },
+        data: { query: 'rows', path: rowsPath },
         columns,
         pageSize: 8,
       },

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   App as AntdApp,
   Alert,
@@ -13,6 +13,7 @@ import {
   Tag,
   Timeline,
   Typography,
+  theme,
 } from 'antd';
 import { RobotOutlined, SettingOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import type { ViewSpec, ViewScope } from '@fluid/shared';
@@ -55,6 +56,7 @@ export function ViewAssistantModal({
   scope,
 }: ViewAssistantModalProps) {
   const { message } = AntdApp.useApp();
+  const { token } = theme.useToken();
   const settings = useLlmSettings();
   const [prompt, setPrompt] = useState('');
   const [history, setHistory] = useState<ChatMessage[]>([]);
@@ -65,8 +67,22 @@ export function ViewAssistantModal({
   const [saving, setSaving] = useState(false);
   const [isDefault, setIsDefault] = useState(editingIsDefault ?? false);
   const [error, setError] = useState<string | null>(null);
+  // Live output streamed by the provider while generating (Claude Code only).
+  const [live, setLive] = useState<{ thinking: string; text: string } | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const liveRef = useRef<HTMLPreElement | null>(null);
 
   const isEditing = !!editingViewId;
+
+  // Stop an in-flight generation when the modal closes or unmounts.
+  useEffect(() => {
+    if (!open) abortRef.current?.abort();
+    return () => abortRef.current?.abort();
+  }, [open]);
+
+  useEffect(() => {
+    if (liveRef.current) liveRef.current.scrollTop = liveRef.current.scrollHeight;
+  }, [live]);
 
   useEffect(() => {
     if (!open) return;
@@ -79,6 +95,7 @@ export function ViewAssistantModal({
     setSaving(false);
     setIsDefault(editingIsDefault ?? false);
     setError(null);
+    setLive(null);
   }, [open, initialSpec, editingIsDefault]);
 
   const handleGenerate = async () => {
@@ -87,14 +104,28 @@ export function ViewAssistantModal({
     setGenerating(true);
     setError(null);
     setReasoning(null);
+    setLive(null);
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
-      const res = await bffClient.generateView({
-        concept,
-        schema,
-        prompt: trimmed,
-        history,
-        config: toConfigOverrides(settings),
-      });
+      const res = await bffClient.generateViewStream(
+        {
+          concept,
+          schema,
+          prompt: trimmed,
+          scope: initialSpec?.scope ?? scope,
+          history,
+          config: toConfigOverrides(settings),
+        },
+        (delta) =>
+          setLive((cur) => {
+            const next = cur ?? { thinking: '', text: '' };
+            return delta.kind === 'thinking'
+              ? { ...next, thinking: next.thinking + delta.text }
+              : { ...next, text: next.text + delta.text };
+          }),
+        controller.signal,
+      );
       setSpec(res.spec);
       setMeta({ provider: res.provider, model: res.model });
       setReasoning(res.reasoning ?? null);
@@ -105,8 +136,9 @@ export function ViewAssistantModal({
       ]);
       setPrompt('');
     } catch (err) {
-      setError((err as Error).message);
+      if (!controller.signal.aborted) setError((err as Error).message);
     } finally {
+      if (abortRef.current === controller) abortRef.current = null;
       setGenerating(false);
     }
   };
@@ -225,6 +257,36 @@ export function ViewAssistantModal({
           {spec ? 'Refine' : 'Generate'}
         </Button>
 
+        {generating && live && (
+          <div>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              <ThunderboltOutlined /> Live output
+            </Typography.Text>
+            <pre
+              ref={liveRef}
+              style={{
+                margin: '4px 0 0',
+                padding: 12,
+                maxHeight: 220,
+                overflow: 'auto',
+                whiteSpace: 'pre-wrap',
+                fontSize: 12,
+                borderRadius: 8,
+                background: token.colorFillQuaternary,
+                border: `1px solid ${token.colorBorderSecondary}`,
+              }}
+            >
+              {live.thinking && (
+                <span style={{ color: token.colorTextTertiary, fontStyle: 'italic' }}>
+                  {live.thinking}
+                  {'\n\n'}
+                </span>
+              )}
+              {live.text}
+            </pre>
+          </div>
+        )}
+
         {reasoning && reasoning.length > 0 && (
           <Alert
             type="info"
@@ -260,7 +322,7 @@ export function ViewAssistantModal({
             </Checkbox>
             <div
               style={{
-                border: '1px solid #f0f0f0',
+                border: `1px solid ${token.colorBorderSecondary}`,
                 borderRadius: 8,
                 padding: 12,
                 maxHeight: 460,

@@ -1,9 +1,14 @@
 import { useState } from 'react';
-import { Space, Typography, Divider, Card, Button, Row, Col } from 'antd';
+import { Space, Typography, Divider, Card, Button, Row, Col, Segmented } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useConnection, usePreferences } from '../store';
 import { LlmSettingsModal } from '../components/LlmSettingsModal';
-import { SettingOutlined, DisconnectOutlined } from '@ant-design/icons';
+import {
+  SettingOutlined,
+  DisconnectOutlined,
+  SunOutlined,
+  MoonOutlined,
+} from '@ant-design/icons';
 
 export function SettingsPage() {
   const navigate = useNavigate();
@@ -12,17 +17,13 @@ export function SettingsPage() {
   const graphqlUrl = useConnection((s) => s.graphqlUrl);
   const disconnect = useConnection((s) => s.disconnect);
   const themeMode = usePreferences((s) => s.themeMode);
-  const toggleThemeMode = usePreferences((s) => s.toggleThemeMode);
+  const setThemeMode = usePreferences((s) => s.setThemeMode);
   const navbarSide = usePreferences((s) => s.navbarSide);
   const setNavbarSide = usePreferences((s) => s.setNavbarSide);
 
   const handleDisconnect = () => {
     disconnect();
     navigate('/connect', { replace: true });
-  };
-
-  const handleToggleTheme = () => {
-    toggleThemeMode();
   };
 
   const handleToggleNavbar = () => {
@@ -80,12 +81,15 @@ export function SettingsPage() {
               <Col span={12}>
                 <Typography.Text strong>Theme</Typography.Text>
                 <div style={{ marginTop: 8 }}>
-                  <Button
-                    onClick={handleToggleTheme}
+                  <Segmented
                     block
-                  >
-                    Current: {themeMode}
-                  </Button>
+                    value={themeMode}
+                    onChange={(v) => setThemeMode(v as typeof themeMode)}
+                    options={[
+                      { label: 'Light', value: 'light', icon: <SunOutlined /> },
+                      { label: 'Dark', value: 'dark', icon: <MoonOutlined /> },
+                    ]}
+                  />
                 </div>
               </Col>
               <Col span={12}>

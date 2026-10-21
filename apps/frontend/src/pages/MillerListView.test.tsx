@@ -13,7 +13,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import type { Concept } from '../hooks/useConcepts';
 
 vi.mock('../components/MillerColumn', () => ({
   MillerColumn: ({ title }: { title: string }) => <div data-testid="miller-column">{title}</div>,
@@ -21,23 +20,6 @@ vi.mock('../components/MillerColumn', () => ({
 
 // Import after the mock is registered.
 import { MillerListView } from './MillerListView';
-
-function makeConcept(name: string): Concept {
-  return {
-    name,
-    description: null,
-    fields: [],
-    scalarFields: [],
-    relationFields: [],
-    queries: {},
-  };
-}
-
-const conceptByName = new Map<string, Concept>([
-  ['Account', makeConcept('Account')],
-  ['Customer', makeConcept('Customer')],
-  ['Order', makeConcept('Order')],
-]);
 
 interface NavNode {
   conceptName: string;
@@ -47,11 +29,7 @@ interface NavNode {
 function tree(stack: NavNode[]) {
   return (
     <MemoryRouter>
-      <MillerListView
-        rootConcept={makeConcept('Account')}
-        navigationStack={stack}
-        conceptByName={conceptByName}
-      />
+      <MillerListView rootConceptName="Account" navigationStack={stack} />
     </MemoryRouter>
   );
 }
@@ -82,8 +60,10 @@ describe('MillerListView', () => {
     expect(getAllByTestId('miller-column')).toHaveLength(1);
   });
 
-  it('skips unknown concepts in the navigation stack', () => {
+  it('renders a column per level even before its concept is introspected', () => {
+    // Concepts are introspected lazily by each column, which reports unknown
+    // types itself; the view no longer needs the schema up front.
     const { getAllByTestId } = render(tree([{ conceptName: 'DoesNotExist', itemId: 'X' }]));
-    expect(getAllByTestId('miller-column')).toHaveLength(1);
+    expect(getAllByTestId('miller-column')).toHaveLength(2);
   });
 });

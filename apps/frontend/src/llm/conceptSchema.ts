@@ -1,5 +1,5 @@
 import type { Concept } from '../graphql/introspection';
-import type { ConceptSchemaPayload } from '../bff/client';
+import type { ConceptSchemaPayload, LlmProvider } from '../bff/client';
 
 /**
  * Build the compact concept schema the BFF needs to prompt the LLM (and to
@@ -26,6 +26,8 @@ export function buildConceptSchemaPayload(
     name: concept.name,
     description: concept.description,
     listQuery: concept.queries.list?.field ?? null,
+    listItemsPath: concept.queries.list?.itemsPath ?? null,
+    listLimitArg: concept.queries.list?.limitArg ?? null,
     byIdQuery: concept.queries.byId?.field ?? null,
     fields: concept.fields.map((f) => ({
       name: f.name,
@@ -41,18 +43,20 @@ export function buildConceptSchemaPayload(
 
 /** Trim empty override fields so the BFF falls back to its env defaults. */
 export function toConfigOverrides(settings: {
-  provider: 'openai' | 'ollama' | 'mock';
+  provider: LlmProvider;
   model?: string;
   apiKey?: string;
   baseUrl?: string;
 }) {
   const overrides: {
-    provider: 'openai' | 'ollama' | 'mock';
+    provider: LlmProvider;
     model?: string;
     apiKey?: string;
     baseUrl?: string;
   } = { provider: settings.provider };
   if (settings.model?.trim()) overrides.model = settings.model.trim();
+  // Claude Code authenticates with the local CLI login: no key or URL to forward.
+  if (settings.provider === 'claude-code') return overrides;
   if (settings.apiKey?.trim()) overrides.apiKey = settings.apiKey.trim();
   if (settings.baseUrl?.trim()) overrides.baseUrl = settings.baseUrl.trim();
   return overrides;

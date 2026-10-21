@@ -6,10 +6,16 @@ import type {
   LineWidget as LineWidgetSpec,
   PieWidget as PieWidgetSpec,
 } from '@fluid/shared';
+import { usePreferences } from '../../store';
 
 type Row = Record<string, unknown>;
 
 const DEFAULT_HEIGHT = 260;
+
+/** G2 theme matching the app's light/dark mode. */
+function useChartTheme() {
+  return usePreferences((s) => (s.themeMode === 'dark' ? 'classicDark' : 'classic'));
+}
 
 function ChartEmpty({ height }: { height: number }) {
   return (
@@ -21,6 +27,7 @@ function ChartEmpty({ height }: { height: number }) {
 
 export function LineChartWidget({ widget, rows }: { widget: LineWidgetSpec; rows: Row[] }) {
   const height = widget.height ?? DEFAULT_HEIGHT;
+  const chartTheme = useChartTheme();
   if (rows.length === 0) return <ChartEmpty height={height} />;
   return (
     <Line
@@ -29,6 +36,7 @@ export function LineChartWidget({ widget, rows }: { widget: LineWidgetSpec; rows
       yField={widget.yField}
       colorField={widget.colorField}
       height={height}
+      theme={chartTheme}
       autoFit
     />
   );
@@ -36,6 +44,7 @@ export function LineChartWidget({ widget, rows }: { widget: LineWidgetSpec; rows
 
 export function AreaChartWidget({ widget, rows }: { widget: AreaWidgetSpec; rows: Row[] }) {
   const height = widget.height ?? DEFAULT_HEIGHT;
+  const chartTheme = useChartTheme();
   if (rows.length === 0) return <ChartEmpty height={height} />;
   return (
     <Area
@@ -44,6 +53,7 @@ export function AreaChartWidget({ widget, rows }: { widget: AreaWidgetSpec; rows
       yField={widget.yField}
       colorField={widget.colorField}
       height={height}
+      theme={chartTheme}
       autoFit
     />
   );
@@ -51,6 +61,7 @@ export function AreaChartWidget({ widget, rows }: { widget: AreaWidgetSpec; rows
 
 export function BarChartWidget({ widget, rows }: { widget: BarWidgetSpec; rows: Row[] }) {
   const height = widget.height ?? DEFAULT_HEIGHT;
+  const chartTheme = useChartTheme();
   if (rows.length === 0) return <ChartEmpty height={height} />;
   return (
     <Column
@@ -59,6 +70,7 @@ export function BarChartWidget({ widget, rows }: { widget: BarWidgetSpec; rows: 
       yField={widget.yField}
       colorField={widget.colorField}
       height={height}
+      theme={chartTheme}
       autoFit
     />
   );
@@ -66,6 +78,7 @@ export function BarChartWidget({ widget, rows }: { widget: BarWidgetSpec; rows: 
 
 export function PieChartWidget({ widget, rows }: { widget: PieWidgetSpec; rows: Row[] }) {
   const height = widget.height ?? DEFAULT_HEIGHT;
+  const chartTheme = useChartTheme();
   if (rows.length === 0) return <ChartEmpty height={height} />;
   return (
     <Pie
@@ -73,6 +86,7 @@ export function PieChartWidget({ widget, rows }: { widget: PieWidgetSpec; rows: 
       angleField={widget.angleField}
       colorField={widget.colorField}
       height={height}
+      theme={chartTheme}
       autoFit
     />
   );

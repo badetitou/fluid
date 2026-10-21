@@ -1,63 +1,29 @@
 import { useParams } from 'react-router-dom';
-import { Alert, Card, Flex, Skeleton } from 'antd';
-import { useConcepts } from '../hooks/useConcepts';
+import { Alert, Flex } from 'antd';
 import { MillerListView } from './MillerListView';
 
 /**
  * MillerListPage renders a split-view columnar navigation.
  * Navigates through entities showing work lists and details side-by-side.
- * Each column owns its own perspectives (views) and AI editing.
+ * Each column owns its own perspectives (views) and AI editing, and introspects
+ * its concept's type on demand.
  */
 export function MillerListPage() {
   const params = useParams<{ '*': string }>();
-
-  const { conceptByName, fetching, error } = useConcepts();
 
   // Parse the path: /miller/:rootConcept or /miller/:rootConcept/:concept/:itemId/...
   const pathParts = (params['*'] || '').split('/').filter(Boolean);
   const rootConceptName = pathParts[0];
   const navigationStack = parseNavigationStack(pathParts);
 
-  const rootConcept = rootConceptName ? conceptByName.get(rootConceptName) : undefined;
-
-  if (error) {
-    return (
-      <Alert
-        type="error"
-        showIcon
-        message="Could not introspect the GraphQL source"
-        description={error.message}
-      />
-    );
-  }
-
-  if (fetching) {
-    return (
-      <Card>
-        <Skeleton active paragraph={{ rows: 6 }} />
-      </Card>
-    );
-  }
-
-  if (!rootConcept) {
-    return (
-      <Alert
-        type="warning"
-        showIcon
-        message="Unknown concept"
-        description={`No concept named "${rootConceptName}" exists.`}
-      />
-    );
+  if (!rootConceptName) {
+    return <Alert type="warning" showIcon message="No concept selected" />;
   }
 
   return (
     <Flex vertical gap={20}>
       <div style={{ height: 'calc(100vh - 200px)' }}>
-        <MillerListView
-          rootConcept={rootConcept}
-          navigationStack={navigationStack}
-          conceptByName={conceptByName}
-        />
+        <MillerListView rootConceptName={rootConceptName} navigationStack={navigationStack} />
       </div>
     </Flex>
   );

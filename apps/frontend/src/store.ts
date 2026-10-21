@@ -21,6 +21,33 @@ export const useConnection = create<ConnectionState>()(
   ),
 );
 
+interface PinnedConceptsState {
+  /** Pinned concept names, keyed by GraphQL source URL. */
+  byUrl: Record<string, string[]>;
+  pin: (url: string, concept: string) => void;
+  unpin: (url: string, concept: string) => void;
+}
+
+// Only the root Query's concepts are listed by default; deeper concepts the user
+// discovered while navigating can be pinned to the concept bar.
+export const usePinnedConcepts = create<PinnedConceptsState>()(
+  persist(
+    (set, get) => ({
+      byUrl: {},
+      pin: (url, concept) => {
+        const current = get().byUrl[url] ?? [];
+        if (current.includes(concept)) return;
+        set({ byUrl: { ...get().byUrl, [url]: [...current, concept] } });
+      },
+      unpin: (url, concept) => {
+        const current = get().byUrl[url] ?? [];
+        set({ byUrl: { ...get().byUrl, [url]: current.filter((c) => c !== concept) } });
+      },
+    }),
+    { name: 'fluid-pinned-concepts' },
+  ),
+);
+
 interface PreferencesState {
   navbarSide: NavbarSide;
   setNavbarSide: (side: NavbarSide) => void;
@@ -43,7 +70,10 @@ export const usePreferences = create<PreferencesState>()(
       navbarCollapsed: false,
       setNavbarCollapsed: (collapsed) => set({ navbarCollapsed: collapsed }),
       toggleNavbarCollapsed: () => set({ navbarCollapsed: !get().navbarCollapsed }),
-      themeMode: 'light',
+      themeMode:
+        typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light',
       setThemeMode: (mode) => set({ themeMode: mode }),
       toggleThemeMode: () =>
         set({ themeMode: get().themeMode === 'light' ? 'dark' : 'light' }),
@@ -52,7 +82,7 @@ export const usePreferences = create<PreferencesState>()(
   ),
 );
 
-export type LlmProvider = 'openai' | 'ollama' | 'mock';
+export type LlmProvider = 'openai' | 'ollama' | 'claude-code' | 'mock';
 
 interface LlmSettingsState {
   provider: LlmProvider;

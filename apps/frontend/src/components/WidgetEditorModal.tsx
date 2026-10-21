@@ -9,6 +9,7 @@ import {
   Space,
   Timeline,
   Typography,
+  theme,
 } from 'antd';
 import { RobotOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import type { ViewSpec, Widget } from '@fluid/shared';
@@ -43,6 +44,7 @@ export function WidgetEditorModal({
   onSaved,
 }: WidgetEditorModalProps) {
   const { message } = AntdApp.useApp();
+  const { token } = theme.useToken();
   const settings = useLlmSettings();
   const [prompt, setPrompt] = useState('');
   const [history, setHistory] = useState<ChatMessage[]>([]);
@@ -180,7 +182,7 @@ export function WidgetEditorModal({
 
         {/* New widget preview */}
         {newWidget && (
-          <div style={{ backgroundColor: '#f5f5f5', padding: 12, borderRadius: 4 }}>
+          <div style={{ backgroundColor: token.colorFillTertiary, padding: 12, borderRadius: 4 }}>
             <Typography.Text strong>Generated widget preview:</Typography.Text>
             <pre style={{ marginTop: 8, overflow: 'auto', maxHeight: 300 }}>
               {JSON.stringify(newWidget, null, 2)}

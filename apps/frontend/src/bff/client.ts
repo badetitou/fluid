@@ -1,4 +1,4 @@
-import type { ViewSpec } from '@fluid/shared';
+import type { ViewScope, ViewSpec } from '@fluid/shared';
 import { BFF_URL } from '../runtime-config';
 
 // Thin fetch wrapper around the Fluid BFF REST API (view persistence + prefs).
@@ -23,7 +23,7 @@ export interface UpdateViewPatch {
   isDefault?: boolean;
 }
 
-export type LlmProvider = 'openai' | 'ollama' | 'mock';
+export type LlmProvider = 'openai' | 'ollama' | 'claude-code' | 'mock';
 
 export interface LlmConfigOverrides {
   provider?: LlmProvider;
@@ -37,6 +37,7 @@ export interface LlmCapabilities {
   providers: {
     openai: { configured: boolean; model: string; baseUrl: string };
     ollama: { model: string; baseUrl: string };
+    'claude-code'?: { available: boolean; version: string | null; model: string };
     mock: { available: boolean };
   };
 }
@@ -45,6 +46,10 @@ export interface ConceptSchemaPayload {
   name: string;
   description?: string | null;
   listQuery?: string | null;
+  /** Rows field when the list query returns a pagination wrapper (e.g. "results"). */
+  listItemsPath?: string | null;
+  /** Row-limit argument of the list query (e.g. "take"), when it has one. */
+  listLimitArg?: string | null;
   byIdQuery?: string | null;
   fields: {
     name: string;
@@ -66,6 +71,8 @@ export interface GenerateViewPayload {
   concept: string;
   schema: ConceptSchemaPayload;
   prompt: string;
+  /** List or detail column the view is generated for. */
+  scope?: ViewScope;
   history?: ChatMessage[];
   config?: LlmConfigOverrides;
 }
@@ -92,6 +99,58 @@ export interface GenerateWidgetResponse {
   provider: LlmProvider;
   model: string;
   reasoning?: string[];
+}
+
+/** A chunk of model output streamed while a view is being generated. */
+export interface LlmDelta {
+  kind: 'text' | 'thinking';
+  text: string;
+}
+
+/**
+ * Generate a view over the BFF's Server-Sent Events endpoint, forwarding live
+ * deltas to `onDelta`. Resolves with the final result, rejects on error events.
+ */
+async function generateViewStream(
+  payload: GenerateViewPayload,
+  onDelta: (delta: LlmDelta) => void,
+  signal?: AbortSignal,
+): Promise<GenerateViewResponse> {
+  const path = '/api/llm/generate-view/stream';
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`BFF POST ${path} → ${res.status} ${detail}`.trim());
+  }
+
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += value;
+    let sep: number;
+    while ((sep = buffer.indexOf('\n\n')) !== -1) {
+      const block = buffer.slice(0, sep);
+      buffer = buffer.slice(sep + 2);
+      const event = block.match(/^event: (.*)$/m)?.[1];
+      const data = block.match(/^data: (.*)$/m)?.[1];
+      if (!event || data === undefined) continue;
+      const parsed = JSON.parse(data);
+      if (event === 'delta') onDelta(parsed as LlmDelta);
+      else if (event === 'result') return parsed as GenerateViewResponse;
+      else if (event === 'error') {
+        const { error, details } = parsed as { error: string; details?: string };
+        throw new Error(details ? `${error}\n${details}` : error);
+      }
+    }
+  }
+  throw new Error('The generation stream ended without a result');
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -145,6 +204,7 @@ export const bffClient = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  generateViewStream,
   generateWidget: (payload: GenerateWidgetPayload) =>
     request<GenerateWidgetResponse>('/api/llm/generate-widget', {
       method: 'POST',

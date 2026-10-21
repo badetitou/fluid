@@ -34,6 +34,8 @@ const conceptSchemaInfo = z.object({
   name: z.string().min(1),
   description: z.string().nullish(),
   listQuery: z.string().nullish(),
+  listItemsPath: z.string().nullish(),
+  listLimitArg: z.string().nullish(),
   byIdQuery: z.string().nullish(),
   fields: z.array(
     z.object({
@@ -54,10 +56,11 @@ export const generateViewBody = z.object({
   concept: z.string().min(1),
   schema: conceptSchemaInfo,
   prompt: z.string().min(1),
+  scope: z.enum(['list', 'detail']).optional(),
   history: z.array(chatMessage).optional(),
   config: z
     .object({
-      provider: z.enum(['openai', 'ollama', 'mock']).optional(),
+      provider: z.enum(['openai', 'ollama', 'claude-code', 'mock']).optional(),
       model: z.string().optional(),
       baseUrl: z.string().optional(),
       apiKey: z.string().optional(),
@@ -76,7 +79,7 @@ export const generateWidgetBody = z.object({
   history: z.array(chatMessage).optional(),
   config: z
     .object({
-      provider: z.enum(['openai', 'ollama', 'mock']).optional(),
+      provider: z.enum(['openai', 'ollama', 'claude-code', 'mock']).optional(),
       model: z.string().optional(),
       baseUrl: z.string().optional(),
       apiKey: z.string().optional(),

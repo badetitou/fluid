@@ -1,11 +1,22 @@
 import type { ViewSpec, ViewSpecDraft, Widget, WidgetDraft } from '@fluid/shared';
 
-export type LlmProvider = 'openai' | 'ollama' | 'mock';
+export type LlmProvider = 'openai' | 'ollama' | 'claude-code' | 'mock';
+
+/** Whether a view targets a concept's list or a single item (mirrors the shared ViewScope). */
+export type ViewScope = 'list' | 'detail';
+
+/** A chunk of model output streamed while a generation is in progress. */
+export interface LlmDelta {
+  kind: 'text' | 'thinking';
+  text: string;
+}
+export type LlmDeltaHandler = (delta: LlmDelta) => void;
 
 /** Fully-resolved config used to talk to a provider. */
 export interface LlmConfig {
   provider: LlmProvider;
   model: string;
+  /** API base URL — or, for `claude-code`, the path of the `claude` CLI binary. */
   baseUrl: string;
   apiKey?: string;
 }
@@ -42,6 +53,10 @@ export interface ConceptSchemaInfo {
   name: string;
   description?: string | null;
   listQuery?: string | null;
+  /** Rows field when the list query returns a pagination wrapper (e.g. "results"). */
+  listItemsPath?: string | null;
+  /** Row-limit argument of the list query (e.g. "take"), when it has one. */
+  listLimitArg?: string | null;
   byIdQuery?: string | null;
   fields: ConceptFieldInfo[];
   related?: RelatedConceptInfo[];
@@ -51,6 +66,8 @@ export interface GenerateViewInput {
   concept: string;
   schema: ConceptSchemaInfo;
   prompt: string;
+  /** List or detail column the view is generated for (detail views read the by-id query). */
+  scope?: ViewScope;
   history?: ChatMessage[];
   config?: LlmConfigOverrides;
 }

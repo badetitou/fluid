@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Concept } from '../hooks/useConcepts';
 import { MillerColumn } from '../components/MillerColumn';
 import { MillerListLayout } from '../components/MillerListLayout';
 
@@ -10,14 +9,13 @@ interface NavigationNode {
 }
 
 interface MillerListViewProps {
-  rootConcept: Concept;
+  rootConceptName: string;
   navigationStack: NavigationNode[];
-  conceptByName: Map<string, Concept>;
 }
 
 interface ColumnConfig {
   id: string;
-  concept: Concept;
+  conceptName: string;
   itemId?: string;
   title: string;
   subtitle: string;
@@ -31,33 +29,26 @@ interface ColumnConfig {
  *
  * Each column is an independent <MillerColumn> component, so a variable number
  * of columns never changes the hook count of any single component (this is what
- * previously crashed the page into a blank screen).
+ * previously crashed the page into a blank screen). Each column also introspects
+ * its own concept on demand.
  *
  * Any column can be expanded to full screen; while one is expanded the others
  * are hidden and the expanded column lays its widgets out on a multi-column grid.
  */
-export function MillerListView({
-  rootConcept,
-  navigationStack,
-  conceptByName,
-}: MillerListViewProps) {
+export function MillerListView({ rootConceptName, navigationStack }: MillerListViewProps) {
   const navigate = useNavigate();
   const [fullscreenId, setFullscreenId] = useState<string | null>(null);
-  const rootConceptName = rootConcept.name;
 
   const configs: ColumnConfig[] = [
     {
       id: `root-${rootConceptName}`,
-      concept: rootConcept,
+      conceptName: rootConceptName,
       title: `${rootConceptName} (work list)`,
       subtitle: `Entity Type: ${rootConceptName}`,
     },
   ];
 
   navigationStack.forEach((nav, stackIndex) => {
-    const concept = conceptByName.get(nav.conceptName);
-    if (!concept) return;
-
     const handleClose = () => {
       const remaining = navigationStack.slice(0, stackIndex);
       if (remaining.length === 0) {
@@ -70,7 +61,7 @@ export function MillerListView({
 
     configs.push({
       id: `lvl-${stackIndex}-${nav.conceptName}-${nav.itemId}`,
-      concept,
+      conceptName: nav.conceptName,
       itemId: nav.itemId,
       title: `${nav.conceptName}: ${nav.itemId}`,
       subtitle: `Entity Type: ${nav.conceptName}`,
@@ -89,8 +80,7 @@ export function MillerListView({
       {visible.map((cfg) => (
         <MillerColumn
           key={cfg.id}
-          concept={cfg.concept}
-          conceptByName={conceptByName}
+          conceptName={cfg.conceptName}
           itemId={cfg.itemId}
           title={cfg.title}
           subtitle={cfg.subtitle}

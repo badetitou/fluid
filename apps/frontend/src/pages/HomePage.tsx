@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Alert, Card, Col, Empty, Flex, Row, Skeleton, Space, Tag, Typography } from 'antd';
-import { ArrowRightOutlined, TableOutlined } from '@ant-design/icons';
-import { useConcepts } from '../hooks/useConcepts';
+import { ArrowRightOutlined, PushpinOutlined, TableOutlined } from '@ant-design/icons';
+import { useConcept, useRootConcepts, type ConceptEntry } from '../hooks/useConcepts';
 
 export function HomePage() {
-  const { concepts, fetching, error } = useConcepts();
+  const { concepts, fetching, error } = useRootConcepts();
 
   if (error) {
     return (
@@ -24,7 +24,8 @@ export function HomePage() {
           Concepts
         </Typography.Title>
         <Typography.Text type="secondary">
-          These are the concepts exposed by your data source. Pick one to open its dashboard.
+          These are the concepts exposed by the root of your data source, plus the ones you pinned.
+          Pick one to open its dashboard.
         </Typography.Text>
       </div>
 
@@ -42,41 +43,53 @@ export function HomePage() {
         <Empty description="No explorable concepts found in this schema" />
       ) : (
         <Row gutter={[16, 16]}>
-          {concepts.map((concept) => (
-            <Col key={concept.name} xs={24} sm={12} lg={8} xxl={6}>
-              <Link to={`/miller/${concept.name}`}>
-                <Card
-                  hoverable
-                  title={
-                    <Space>
-                      <TableOutlined />
-                      {concept.name}
-                    </Space>
-                  }
-                  extra={<ArrowRightOutlined />}
-                  style={{ height: '100%' }}
-                >
-                  <Typography.Paragraph
-                    type="secondary"
-                    ellipsis={{ rows: 2 }}
-                    style={{ minHeight: 44 }}
-                  >
-                    {concept.description ?? 'No description provided.'}
-                  </Typography.Paragraph>
-                  <Space size={[4, 4]} wrap>
-                    <Tag color="blue">{concept.scalarFields.length} fields</Tag>
-                    {concept.relationFields.length > 0 && (
-                      <Tag color="purple">{concept.relationFields.length} relations</Tag>
-                    )}
-                    {concept.queries.list && <Tag color="green">list</Tag>}
-                    {concept.queries.byId && <Tag color="geekblue">by id</Tag>}
-                  </Space>
-                </Card>
-              </Link>
+          {concepts.map((entry) => (
+            <Col key={entry.name} xs={24} sm={12} lg={8} xxl={6}>
+              <ConceptCard entry={entry} />
             </Col>
           ))}
         </Row>
       )}
     </Flex>
+  );
+}
+
+/** A concept card introspects its own type, so the home page fills in progressively. */
+function ConceptCard({ entry }: { entry: ConceptEntry }) {
+  const { concept, fetching } = useConcept(entry.name);
+
+  return (
+    <Link to={`/miller/${entry.name}`}>
+      <Card
+        hoverable
+        title={
+          <Space>
+            {entry.isRoot ? <TableOutlined /> : <PushpinOutlined />}
+            {entry.name}
+          </Space>
+        }
+        extra={<ArrowRightOutlined />}
+        style={{ height: '100%' }}
+      >
+        {fetching && !concept ? (
+          <Skeleton active title={false} paragraph={{ rows: 2 }} />
+        ) : (
+          <>
+            <Typography.Paragraph type="secondary" ellipsis={{ rows: 2 }} style={{ minHeight: 44 }}>
+              {concept?.description ?? 'No description provided.'}
+            </Typography.Paragraph>
+            <Space size={[4, 4]} wrap>
+              {concept && <Tag color="blue">{concept.scalarFields.length} fields</Tag>}
+              {concept && concept.relationFields.length > 0 && (
+                <Tag color="purple">{concept.relationFields.length} relations</Tag>
+              )}
+              {entry.queries.list && <Tag color="green">list</Tag>}
+              {entry.queries.byId && <Tag color="geekblue">by id</Tag>}
+              {!entry.isRoot && <Tag>pinned</Tag>}
+            </Space>
+          </>
+        )}
+      </Card>
+    </Link>
   );
 }

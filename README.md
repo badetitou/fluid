@@ -55,6 +55,24 @@ pnpm dev
 The demo GraphQL API defaults to <http://localhost:4000/graphql> (GraphiQL enabled). The frontend
 pre-fills this URL on its connection screen.
 
+## Generating views with your Claude subscription
+
+Besides OpenAI, Ollama and the offline mock, the assistant can use **Claude through your local
+Claude Code login** (Pro/Max subscription, no API key):
+
+1. Install [Claude Code](https://docs.claude.com/en/docs/claude-code) on the machine that runs the
+   BFF and run `claude` once to log in.
+2. Start the stack with `pnpm dev`, then in the app open **Settings → Configure LLM** and pick
+   **Claude (local Claude Code login)** (model: Sonnet by default, Opus or Haiku available).
+3. Open a concept, press **+** and describe the view: Claude's output streams live in the assistant,
+   then the validated view is previewed and can be saved.
+
+The BFF runs `claude -p` headless with tools, MCP servers, hooks and session persistence disabled,
+using a Claude-tuned prompt (XML-sectioned contract, schema, link hints and list/detail scope).
+Optional env vars: `CLAUDE_CODE_BIN`, `CLAUDE_CODE_MODEL`, `CLAUDE_CODE_TIMEOUT_MS`
+(see `apps/bff/.env.example`). Set `LLM_PROVIDER=claude-code` to make it the server default.
+This provider is meant for local use: the container images do not include the CLI.
+
 ## Deployment
 
 Everything is containerized and deployed by a single parameterizable **Helm chart**
@@ -112,7 +130,7 @@ MVP complete. Build order:
 1. ✅ Monorepo scaffold + demo bank backend + concept introspection & explorer
 2. ✅ Declarative view engine + widget catalog
 3. ✅ Multi-view selector + persistence (BFF)
-4. ✅ LLM view generation (OpenAI + Ollama + offline mock)
+4. ✅ LLM view generation (OpenAI + Ollama + local Claude Code + offline mock, live streaming)
 5. ✅ Dockerfiles + Helm chart + CI (GHCR)
 
 ## License

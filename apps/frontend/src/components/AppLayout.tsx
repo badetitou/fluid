@@ -1,15 +1,19 @@
 import { useEffect, useMemo } from 'react';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
-import { Button, Layout, Menu, Typography, theme } from 'antd';
+import { Button, Layout, Menu, Tooltip, Typography, theme } from 'antd';
 import {
   ThunderboltOutlined,
   TableOutlined,
   SettingOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  MoonOutlined,
+  SunOutlined,
+  PushpinOutlined,
+  CloseOutlined,
 } from '@ant-design/icons';
 import { useConnection, usePreferences, type NavbarSide } from '../store';
-import { useConcepts } from '../hooks/useConcepts';
+import { usePinning, useRootConcepts } from '../hooks/useConcepts';
 import { bffClient } from '../bff/client';
 
 const { Header, Sider, Content } = Layout;
@@ -23,9 +27,12 @@ export function AppLayout() {
   const setNavbarSide = usePreferences((s) => s.setNavbarSide);
   const collapsed = usePreferences((s) => s.navbarCollapsed);
   const setCollapsed = usePreferences((s) => s.setNavbarCollapsed);
+  const themeMode = usePreferences((s) => s.themeMode);
+  const toggleThemeMode = usePreferences((s) => s.toggleThemeMode);
   const graphqlUrl = useConnection((s) => s.graphqlUrl);
 
-  const { concepts } = useConcepts();
+  const { concepts } = useRootConcepts();
+  const { unpin } = usePinning();
 
   // The BFF is the shared source of truth for preferences when reachable;
   // localStorage (zustand persist) stays the offline fallback.
@@ -62,11 +69,30 @@ export function AppLayout() {
       },
       ...concepts.map((concept) => ({
         key: `concept:${concept.name}`,
-        icon: <TableOutlined />,
-        label: <Link to={`/miller/${concept.name}`}>{concept.name}</Link>,
+        icon: concept.isRoot ? <TableOutlined /> : <PushpinOutlined />,
+        label: concept.isRoot ? (
+          <Link to={`/miller/${concept.name}`}>{concept.name}</Link>
+        ) : (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Link to={`/miller/${concept.name}`} style={{ flex: 1, minWidth: 0 }}>
+              {concept.name}
+            </Link>
+            <Tooltip title="Unpin">
+              <CloseOutlined
+                aria-label={`Unpin ${concept.name}`}
+                style={{ fontSize: 10, opacity: 0.65 }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  unpin(concept.name);
+                }}
+              />
+            </Tooltip>
+          </span>
+        ),
       })),
     ],
-    [concepts],
+    [concepts, unpin],
   );
 
   const sider = (
@@ -132,6 +158,13 @@ export function AppLayout() {
             </Typography.Text>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Tooltip title={themeMode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}>
+              <Button
+                aria-label="Toggle theme"
+                icon={themeMode === 'dark' ? <SunOutlined /> : <MoonOutlined />}
+                onClick={toggleThemeMode}
+              />
+            </Tooltip>
             <Link to="/settings">
               <Button icon={<SettingOutlined />} />
             </Link>

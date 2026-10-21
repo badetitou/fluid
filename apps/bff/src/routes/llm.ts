@@ -13,6 +13,54 @@ import type { GenerateViewInput, GenerateWidgetInput } from '../llm/types';
 export async function llmRoutes(app: FastifyInstance) {
   app.get('/api/llm/config', async () => describeLlmConfig());
 
+  // Same as generate-view, but streamed as Server-Sent Events so the UI can show
+  // the model working live: `delta` events carry text/thinking chunks (Claude
+  // Code only), then a single `result` or `error` event ends the stream.
+  app.post('/api/llm/generate-view/stream', async (req, reply) => {
+    const parsed = generateViewBody.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
+    }
+
+    // Hijacking skips Fastify's send pipeline, so carry over the headers hooks
+    // already set on the reply (CORS) when writing the raw response.
+    reply.hijack();
+    const raw = reply.raw;
+    raw.writeHead(200, {
+      ...(reply.getHeaders() as Record<string, string>),
+      'content-type': 'text/event-stream; charset=utf-8',
+      'cache-control': 'no-cache, no-transform',
+      connection: 'keep-alive',
+      'x-accel-buffering': 'no',
+    });
+    const send = (event: string, data: unknown) => {
+      if (!raw.writableEnded) raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      const result = await generateView(parsed.data as GenerateViewInput, (delta) =>
+        send('delta', delta),
+      );
+      send('result', {
+        spec: result.spec,
+        provider: result.provider,
+        model: result.model,
+        reasoning: result.reasoning,
+      });
+    } catch (err) {
+      if (err instanceof LlmValidationError) {
+        send('error', { error: err.message, details: err.errorText, raw: err.raw });
+      } else if (err instanceof LlmError) {
+        send('error', { error: err.message });
+      } else {
+        req.log.error(err);
+        send('error', { error: 'View generation failed' });
+      }
+    } finally {
+      raw.end();
+    }
+  });
+
   app.post('/api/llm/generate-view', async (req, reply) => {
     const parsed = generateViewBody.safeParse(req.body);
     if (!parsed.success) {
