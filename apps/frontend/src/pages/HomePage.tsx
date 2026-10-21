@@ -11,7 +11,7 @@ export function HomePage() {
       <Alert
         type="error"
         showIcon
-        message="Could not introspect the GraphQL source"
+        title="Could not introspect the GraphQL source"
         description={error.message}
       />
     );

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { generateViewBody, generateWidgetBody } from '../validation';
 import { describeLlmConfig } from '../llm/config';
 import { generateView, generateWidget } from '../llm/generate';
@@ -19,7 +20,7 @@ export async function llmRoutes(app: FastifyInstance) {
   app.post('/api/llm/generate-view/stream', async (req, reply) => {
     const parsed = generateViewBody.safeParse(req.body);
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
+      return reply.code(400).send({ error: 'Invalid body', details: z.flattenError(parsed.error) });
     }
 
     // Hijacking skips Fastify's send pipeline, so carry over the headers hooks
@@ -64,7 +65,7 @@ export async function llmRoutes(app: FastifyInstance) {
   app.post('/api/llm/generate-view', async (req, reply) => {
     const parsed = generateViewBody.safeParse(req.body);
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
+      return reply.code(400).send({ error: 'Invalid body', details: z.flattenError(parsed.error) });
     }
 
     try {
@@ -92,7 +93,7 @@ export async function llmRoutes(app: FastifyInstance) {
   app.post('/api/llm/generate-widget', async (req, reply) => {
     const parsed = generateWidgetBody.safeParse(req.body);
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
+      return reply.code(400).send({ error: 'Invalid body', details: z.flattenError(parsed.error) });
     }
 
     try {

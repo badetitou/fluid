@@ -137,7 +137,7 @@ export function WidgetEditorModal({
         </Button>,
       ]}
     >
-      <Space direction="vertical" style={{ width: '100%' }} size="large">
+      <Space orientation="vertical" style={{ width: '100%' }} size="large">
         {/* Prompt input */}
         <div>
           <Typography.Text strong>Describe how you'd like to modify this widget:</Typography.Text>
@@ -162,7 +162,7 @@ export function WidgetEditorModal({
         </div>
 
         {error && (
-          <Alert type="error" message={error} showIcon closable onClose={() => setError(null)} />
+          <Alert type="error" title={error} showIcon closable={{ onClose: () => setError(null) }} />
         )}
 
         {/* Reasoning display */}

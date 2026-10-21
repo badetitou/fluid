@@ -33,7 +33,7 @@ export function SettingsPage() {
 
   return (
     <div style={{ maxWidth: 800 }}>
-      <Space direction="vertical" size={24} style={{ width: '100%' }}>
+      <Space orientation="vertical" size={24} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={2}>Settings</Typography.Title>
           <Typography.Text type="secondary">
@@ -44,7 +44,7 @@ export function SettingsPage() {
         <Divider />
 
         <Card title="Connection">
-          <Space direction="vertical" style={{ width: '100%' }}>
+          <Space orientation="vertical" style={{ width: '100%' }}>
             <div>
               <Typography.Text strong>GraphQL URL</Typography.Text>
               <div
@@ -76,7 +76,7 @@ export function SettingsPage() {
         </Card>
 
         <Card title="Interface Preferences">
-          <Space direction="vertical" style={{ width: '100%' }}>
+          <Space orientation="vertical" style={{ width: '100%' }}>
             <Row gutter={16}>
               <Col span={12}>
                 <Typography.Text strong>Theme</Typography.Text>
@@ -108,7 +108,7 @@ export function SettingsPage() {
         </Card>
 
         <Card title="Assistant (LLM) Configuration">
-          <Space direction="vertical" style={{ width: '100%' }}>
+          <Space orientation="vertical" style={{ width: '100%' }}>
             <Typography.Text type="secondary">
               Configure the LLM provider and settings used for generating views and suggestions.
             </Typography.Text>

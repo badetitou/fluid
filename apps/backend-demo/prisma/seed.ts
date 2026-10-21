@@ -4,14 +4,12 @@ import {
   CardNetwork,
   CardStatus,
   CardType,
-  PrismaClient,
   TransactionType,
   TransferStatus,
   type Prisma,
-} from '@prisma/client';
+} from '../src/generated/prisma/client';
+import { prisma } from '../src/db';
 import { faker } from '@faker-js/faker';
-
-const prisma = new PrismaClient();
 
 const CUSTOMERS = 20;
 const NOW = new Date();

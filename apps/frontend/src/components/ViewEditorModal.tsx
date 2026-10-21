@@ -20,10 +20,10 @@ interface ViewEditorModalProps {
   onSaved: (view: SavedView) => void;
 }
 
-function formatIssues(issues: { path: (string | number)[]; message: string }[]): string {
+function formatIssues(issues: { path: PropertyKey[]; message: string }[]): string {
   return issues
     .slice(0, 6)
-    .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`)
+    .map((i) => `${i.path.map(String).join('.') || '(root)'}: ${i.message}`)
     .join('\n');
 }
 
@@ -136,7 +136,7 @@ export function ViewEditorModal({
           <Alert
             type="error"
             showIcon
-            message="Could not save the view"
+            title="Could not save the view"
             description={<pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{error}</pre>}
           />
         )}

@@ -123,6 +123,27 @@ helm install fluid charts/fluid -f charts/fluid/values-cloud.yaml \
 The browser-facing URLs are configured at container start (`FLUID_BFF_URL`,
 `FLUID_DEFAULT_GRAPHQL_URL` → `/config.js`), so one frontend image works for any deployment.
 
+### GitLab Pages (frontend only)
+
+`.gitlab-ci.yml` builds the frontend as a static site and publishes it on GitLab Pages on
+every push to the default branch, at **<https://fluid.badetitou.fr>**. The site is built for the
+domain root (`PAGES_BASE_PATH: '/'` in the `pages` job); remove that variable to derive the base
+path from `CI_PAGES_URL` instead (e.g. `/<project>/` on `https://<namespace>.gitlab.io/<project>/`).
+
+Custom domain setup: *Deploy → Pages → New domain* → `fluid.badetitou.fr`, enable automatic
+Let's Encrypt certificates, then add at the DNS provider:
+
+- `fluid.badetitou.fr. CNAME <namespace>.gitlab.io.`
+- `_gitlab-pages-verification-code.fluid.badetitou.fr. TXT "gitlab-pages-verification-code=…"` (value shown by GitLab)
+
+Without a BFF the app still runs: views fall back to curated/auto views and preferences to
+`localStorage`. Saving views and LLM generation need a BFF reachable from the browser.
+Configure via CI/CD variables (written to `config.js` at build time):
+
+- `FLUID_BFF_URL` — BFF base URL (leave empty for no BFF; the BFF must allow CORS from the Pages origin).
+- `FLUID_DEFAULT_GRAPHQL_URL` — GraphQL URL pre-filled on the connect screen (must be HTTPS
+  and allow CORS from the Pages origin).
+
 ## Status
 
 MVP complete. Build order:

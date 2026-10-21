@@ -3,13 +3,12 @@
 // collides with the demo bank's Prisma client in the pnpm store.
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 /// A persisted dashboard view (the JSON ViewSpec plus a little metadata).

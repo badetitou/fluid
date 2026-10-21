@@ -97,7 +97,7 @@ export function MillerColumn({ conceptName, ...rest }: MillerColumnProps) {
         <Alert
           type={error ? 'error' : 'warning'}
           showIcon
-          message={error ? `Could not introspect ${conceptName}` : 'Unknown concept'}
+          title={error ? `Could not introspect ${conceptName}` : 'Unknown concept'}
           description={error ? error.message : `No object type named "${conceptName}" exists.`}
         />
       </div>

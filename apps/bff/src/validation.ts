@@ -75,7 +75,7 @@ export const generateWidgetBody = z.object({
   schema: conceptSchemaInfo,
   prompt: z.string().min(1),
   existingWidget: z.unknown().optional(), // Will be validated as Widget if provided
-  viewQueries: z.record(z.string()).optional(),
+  viewQueries: z.record(z.string(), z.string()).optional(),
   history: z.array(chatMessage).optional(),
   config: z
     .object({

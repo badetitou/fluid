@@ -17,7 +17,7 @@ export function MillerListPage() {
   const navigationStack = parseNavigationStack(pathParts);
 
   if (!rootConceptName) {
-    return <Alert type="warning" showIcon message="No concept selected" />;
+    return <Alert type="warning" showIcon title="No concept selected" />;
   }
 
   return (

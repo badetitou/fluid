@@ -62,7 +62,7 @@ export function ViewRenderer({ spec, concept, schema, viewId, onWidgetUpdated, c
         <Alert
           type="warning"
           showIcon
-          message="Some data could not be loaded"
+          title="Some data could not be loaded"
           description={view.error.message}
           style={{ marginBottom: 16 }}
         />

@@ -30,7 +30,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <Alert
             type="error"
             showIcon
-            message={this.props.label ? `${this.props.label} failed to render` : 'Something went wrong'}
+            title={this.props.label ? `${this.props.label} failed to render` : 'Something went wrong'}
             description={this.state.error.message}
           />
         </div>

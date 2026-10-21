@@ -20,7 +20,7 @@ function AppWithTheme() {
   return (
     <ConfigProvider theme={theme}>
       <AntdApp>
-        <BrowserRouter>
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
           <App />
         </BrowserRouter>
       </AntdApp>

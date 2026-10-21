@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { Prisma, prisma } from '../db';
 import { createViewBody, updateViewBody } from '../validation';
 
@@ -24,7 +25,7 @@ export async function viewRoutes(app: FastifyInstance) {
   app.post('/api/views', async (req, reply) => {
     const parsed = createViewBody.safeParse(req.body);
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
+      return reply.code(400).send({ error: 'Invalid body', details: z.flattenError(parsed.error) });
     }
     const { spec, isDefault } = parsed.data;
     const created = await prisma.$transaction(async (tx) => {
@@ -47,7 +48,7 @@ export async function viewRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string };
     const parsed = updateViewBody.safeParse(req.body);
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
+      return reply.code(400).send({ error: 'Invalid body', details: z.flattenError(parsed.error) });
     }
     const existing = await prisma.view.findUnique({ where: { id } });
     if (!existing) return reply.code(404).send({ error: 'View not found' });

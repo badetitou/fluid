@@ -41,7 +41,7 @@ export const querySpecSchema = z.object({
   /** A GraphQL document, e.g. `query($take: Int) { accounts(take: $take) { id } }`. */
   query: z.string().min(1),
   /** Static variables passed to the query. */
-  variables: z.record(z.unknown()).optional(),
+  variables: z.record(z.string(), z.unknown()).optional(),
 });
 export type QuerySpec = z.infer<typeof querySpecSchema>;
 
@@ -250,7 +250,7 @@ export const viewSpecSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   /** Named GraphQL queries widgets pull their data from. */
-  queries: z.record(querySpecSchema),
+  queries: z.record(z.string(), querySpecSchema),
   widgets: z.array(widgetSchema),
 });
 export type ViewSpec = z.infer<typeof viewSpecSchema>;

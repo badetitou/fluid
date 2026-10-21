@@ -199,11 +199,11 @@ export function ViewAssistantModal({
         </Button>,
       ]}
     >
-      <Space direction="vertical" size={12} style={{ width: '100%', marginTop: 8 }}>
+      <Space orientation="vertical" size={12} style={{ width: '100%', marginTop: 8 }}>
         <Alert
           type="info"
           showIcon
-          message="💡 Tip: Ask for navigation links"
+          title="💡 Tip: Ask for navigation links"
           description="Request clickable elements in your prompt like: 'Create a table with clickable IDs that navigate to details' or 'Add links to related customers'. This enables infinite navigation between objects!"
           style={{ marginBottom: 8 }}
         />
@@ -220,7 +220,7 @@ export function ViewAssistantModal({
         </Flex>
 
         {userTurns.length > 0 && (
-          <Space direction="vertical" size={2} style={{ width: '100%' }}>
+          <Space orientation="vertical" size={2} style={{ width: '100%' }}>
             {userTurns.map((t, i) => (
               <Typography.Text key={i} type="secondary" style={{ fontSize: 12 }}>
                 <RobotOutlined /> "{t.content}"
@@ -291,7 +291,7 @@ export function ViewAssistantModal({
           <Alert
             type="info"
             showIcon
-            message="LLM Reasoning"
+            title="LLM Reasoning"
             description={
               <Timeline
                 items={reasoning.map((step) => ({
@@ -308,7 +308,7 @@ export function ViewAssistantModal({
           <Alert
             type="error"
             showIcon
-            message="Generation failed"
+            title="Generation failed"
             description={<pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{error}</pre>}
           />
         )}

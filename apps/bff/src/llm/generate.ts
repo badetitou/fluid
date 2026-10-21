@@ -30,7 +30,7 @@ function validateDraft(
   if (parsed.success) return { ok: true, draft: parsed.data };
   const errorText = parsed.error.issues
     .slice(0, 8)
-    .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`)
+    .map((i) => `${i.path.map(String).join('.') || '(root)'}: ${i.message}`)
     .join('\n');
   return { ok: false, errorText };
 }
@@ -48,7 +48,7 @@ function validateWidgetDraft(
   if (parsed.success) return { ok: true, draft: parsed.data };
   const errorText = parsed.error.issues
     .slice(0, 8)
-    .map((i: any) => `${i.path.join('.') || '(root)'}: ${i.message}`)
+    .map((i: any) => `${i.path.map(String).join('.') || '(root)'}: ${i.message}`)
     .join('\n');
   return { ok: false, errorText };
 }

@@ -2,18 +2,18 @@
 // See src/ for the Pothos/Yoga GraphQL layer built on top of these models.
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 generator pothos {
   provider     = "prisma-pothos-types"
-  clientOutput = "@prisma/client"
+  clientOutput = "./prisma"
   output       = "../src/generated/pothos-types.ts"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum AccountType {
