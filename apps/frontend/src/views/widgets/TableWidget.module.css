@@ -1,0 +1,16 @@
+/* Rows can be clicked: the row emits on the table's `selected` output. */
+.row {
+  cursor: pointer;
+}
+
+.selected {
+  cursor: pointer;
+}
+
+.selected > td {
+  background: var(--fluid-selected, var(--surface-card)) !important;
+}
+
+.selected > td:first-child {
+  box-shadow: inset 3px 0 0 0 var(--fluid-primary, var(--brand-blue));
+}

@@ -4,7 +4,7 @@ import type { Widget } from '@fluid/shared';
 import { useElementHeight } from '../hooks/useElementWidth';
 import type { ViewData } from './useViewData';
 import { WidgetBody } from './WidgetRenderer';
-import { CHART_TYPES } from './widgets/catalog';
+import { useWidgetRenderer } from './plugin-api';
 import styles from './ViewRenderer.module.css';
 
 interface WidgetCardProps {
@@ -25,6 +25,7 @@ const FILL_STYLES = { body: { flex: 1, minHeight: 0, display: 'flex', flexDirect
 export const WidgetCard = memo(function WidgetCard({ widget, view, renderActions, fill }: WidgetCardProps) {
   const [bodyRef, bodyHeight] = useElementHeight<HTMLDivElement>();
   const extra = renderActions?.(widget);
+  const chart = useWidgetRenderer(widget.type)?.sizing === 'chart';
 
   if (!fill) {
     return (
@@ -37,7 +38,7 @@ export const WidgetCard = memo(function WidgetCard({ widget, view, renderActions
   return (
     <Card size="small" title={widget.title} extra={extra} className={styles.fillCard} styles={FILL_STYLES}>
       {/* Charts are sized to the body exactly; other widgets scroll inside it. */}
-      <div ref={bodyRef} className={CHART_TYPES.has(widget.type) ? styles.chartBody : styles.scrollBody}>
+      <div ref={bodyRef} className={chart ? styles.chartBody : styles.scrollBody}>
         {bodyHeight > 0 && <WidgetBody widget={widget} view={view} fitHeight={Math.floor(bodyHeight)} />}
       </div>
     </Card>

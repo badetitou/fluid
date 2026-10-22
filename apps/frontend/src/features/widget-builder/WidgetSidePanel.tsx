@@ -1,4 +1,5 @@
-import type { ViewSpec } from '@fluid/shared';
+import { isCoreWidget, type ViewSpec } from '@fluid/shared';
+import { PluginWidgetNote } from './PluginWidgetNote';
 import { useWidgetBuilder, type WidgetBuilderTarget } from './useWidgetBuilder';
 import { WidgetCatalog } from './WidgetCatalog';
 import { WidgetInspector } from './WidgetInspector';
@@ -20,7 +21,9 @@ export function WidgetSidePanel({ spec, editor }: WidgetSidePanelProps) {
 
   return (
     <aside className={styles.panel} aria-label={selected ? 'Widget options' : 'Widget catalog'}>
-      {selected ? (
+      {selected && !isCoreWidget(selected) ? (
+        <PluginWidgetNote type={selected.type} onClose={builder.close} />
+      ) : selected ? (
         <WidgetInspector
           key={selected.id}
           widget={selected}

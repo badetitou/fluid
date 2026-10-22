@@ -14,7 +14,7 @@ import {
   ProfileOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import type { WidgetType } from '@fluid/shared';
+import type { CoreWidgetType } from '@fluid/shared';
 
 export type WidgetGroup = 'Data' | 'Charts' | 'Content';
 
@@ -27,7 +27,7 @@ export interface WidgetInfo {
 }
 
 /** Catalog entry of every widget type. Typed exhaustively, like the renderers. */
-export const WIDGET_INFO: { [T in WidgetType]: WidgetInfo } = {
+export const WIDGET_INFO: { [T in CoreWidgetType]: WidgetInfo } = {
   table: { label: 'Table', description: 'Rows and columns, sortable and filterable.', icon: <TableOutlined />, group: 'Data' },
   statistic: { label: 'Statistic', description: 'One key figure: a count, a sum, an average…', icon: <NumberOutlined />, group: 'Data' },
   descriptions: { label: 'Details', description: 'The fields of a single item, as label / value pairs.', icon: <ProfileOutlined />, group: 'Data' },

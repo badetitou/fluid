@@ -1,4 +1,4 @@
-import type { DataBinding, QuerySpec, Widget, WidgetType } from '@fluid/shared';
+import type { DataBinding, QuerySpec, Widget, CoreWidgetType } from '@fluid/shared';
 import { asRows, resolveBinding } from '../../views/data';
 import { defaultWidget, type SampleFields } from '../../views/widgets/defaults';
 
@@ -6,7 +6,7 @@ import { defaultWidget, type SampleFields } from '../../views/widgets/defaults';
 // can use, and an id no other widget of the view has.
 
 /** `type`, or `type-2`, `type-3`… whichever no widget of the view uses yet. */
-export function uniqueWidgetId(type: WidgetType, widgets: Widget[]): string {
+export function uniqueWidgetId(type: CoreWidgetType, widgets: Widget[]): string {
   const taken = new Set(widgets.map((w) => w.id));
   let id: string = type;
   for (let n = 2; taken.has(id); n++) id = `${type}-${n}`;
@@ -67,7 +67,7 @@ interface NewWidgetContext {
 }
 
 /** A widget of `type` to add to a view, bound to the view's data and set up from a peek at it. */
-export function newWidget(type: WidgetType, { widgets, queries, results, title }: NewWidgetContext): Widget {
+export function newWidget(type: CoreWidgetType, { widgets, queries, results, title }: NewWidgetContext): Widget {
   const data = defaultBinding(widgets, queries, results);
   const fields = sampleFields(resolveBinding(data, results));
   return defaultWidget(type, { id: uniqueWidgetId(type, widgets), title, data, fields });

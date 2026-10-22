@@ -1,4 +1,4 @@
-import type { DataBinding, Widget, WidgetType } from '@fluid/shared';
+import type { CoreWidget, CoreWidgetType, DataBinding } from '@fluid/shared';
 import { humanize } from '../fieldHeuristics';
 
 /** Fields seen in a sample of the rows a new widget will be bound to. */
@@ -19,7 +19,7 @@ export interface WidgetSeed {
   fields: SampleFields;
 }
 
-type Factory<T extends WidgetType> = (seed: WidgetSeed) => Extract<Widget, { type: T }>;
+type Factory<T extends CoreWidgetType> = (seed: WidgetSeed) => Extract<CoreWidget, { type: T }>;
 
 const base = ({ id, title, data }: WidgetSeed) => ({ id, title, data });
 
@@ -43,7 +43,7 @@ function cartesian<T extends 'line' | 'bar' | 'area'>(type: T, s: WidgetSeed) {
  * A ready-to-render widget of each type, added from the layout editor's catalog.
  * Typed exhaustively: a new widget type does not compile until it has defaults.
  */
-export const WIDGET_DEFAULTS: { [T in WidgetType]: Factory<T> } = {
+export const WIDGET_DEFAULTS: { [T in CoreWidgetType]: Factory<T> } = {
   table: (s) => ({ type: 'table', ...base(s) }),
   statistic: (s) => ({ type: 'statistic', ...base(s), value: { op: 'count' } }),
   descriptions: (s) => ({
@@ -78,6 +78,6 @@ export const WIDGET_DEFAULTS: { [T in WidgetType]: Factory<T> } = {
 };
 
 /** A new widget of `type`, with its type's defaults. */
-export function defaultWidget(type: WidgetType, seed: WidgetSeed): Widget {
-  return (WIDGET_DEFAULTS[type] as (seed: WidgetSeed) => Widget)(seed);
+export function defaultWidget(type: CoreWidgetType, seed: WidgetSeed): CoreWidget {
+  return (WIDGET_DEFAULTS[type] as (seed: WidgetSeed) => CoreWidget)(seed);
 }

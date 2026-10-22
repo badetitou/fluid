@@ -1,0 +1,49 @@
+{
+  "id": "nord-theme",
+  "name": "Nord theme",
+  "version": "1.0.0",
+  "description": "Example theme plugin (no code): the arctic, north-bluish Nord palette.",
+  "author": "fluid examples",
+  "contributes": {
+    "themes": [
+      {
+        "id": "nord",
+        "label": "Nord",
+        "description": "Arctic blues and frosty grays.",
+        "light": {
+          "primary": "#5e81ac",
+          "surface": "#eceff4",
+          "surfaceCard": "#e5e9f0",
+          "surfaceElevated": "#eceff4",
+          "border": "#c7cfdc",
+          "borderSubtle": "#d8dee9",
+          "ink": "#2e3440",
+          "inkSecondary": "#3b4252",
+          "inkMuted": "#4c566a",
+          "link": "#5e81ac",
+          "selected": "#d8dee9",
+          "gradient": ["#8fbcbb", "#88c0d0", "#5e81ac"],
+          "series": ["#5e81ac", "#a3be8c", "#b48ead", "#ebcb8b", "#bf616a", "#88c0d0", "#d08770"],
+          "radius": 6,
+          "widgets": { "tagcloud/cloud": { "tag": "#5e81ac" } }
+        },
+        "dark": {
+          "primary": "#88c0d0",
+          "surface": "#2e3440",
+          "surfaceCard": "#3b4252",
+          "surfaceElevated": "#434c5e",
+          "border": "#4c566a",
+          "borderSubtle": "#434c5e",
+          "ink": "#eceff4",
+          "inkSecondary": "#e5e9f0",
+          "inkMuted": "#d8dee9",
+          "link": "#88c0d0",
+          "selected": "#434c5e",
+          "gradient": ["#8fbcbb", "#88c0d0", "#81a1c1"],
+          "series": ["#88c0d0", "#a3be8c", "#b48ead", "#ebcb8b", "#bf616a", "#81a1c1", "#d08770"],
+          "radius": 6
+        }
+      }
+    ]
+  }
+}

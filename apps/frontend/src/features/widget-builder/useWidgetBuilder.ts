@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { ViewSpec, Widget, WidgetType } from '@fluid/shared';
+import type { ViewSpec, Widget, CoreWidgetType } from '@fluid/shared';
 import { resolveBinding } from '../../views/data';
 import { useViewData } from '../../views/useViewData';
 import { WIDGET_INFO } from '../../views/widgets/widgetInfo';
@@ -34,15 +34,15 @@ export function useWidgetBuilder(spec: ViewSpec, target: WidgetBuilderTarget) {
   const { selected } = target;
   const widgets = target.widgets ?? [];
 
-  const add = (type: WidgetType) =>
+  const add = (type: CoreWidgetType) =>
     target.add(newWidget(type, { widgets, queries: spec.queries, results, title: WIDGET_INFO[type].label }));
 
   const suggestions = useMemo(
     (): OptionSuggestions => ({
       queries: Object.keys(spec.queries),
-      paths: selected ? arrayPaths(results[selected.data.query]) : [],
-      fields: selected ? sampleFields(resolveBinding(selected.data, results)).all : [],
-      rowsPath: selected?.data.path,
+      paths: selected?.data ? arrayPaths(results[selected.data.query]) : [],
+      fields: selected?.data ? sampleFields(resolveBinding(selected.data, results)).all : [],
+      rowsPath: selected?.data?.path,
     }),
     [spec.queries, results, selected],
   );

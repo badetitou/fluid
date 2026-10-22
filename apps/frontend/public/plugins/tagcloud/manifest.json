@@ -1,0 +1,52 @@
+{
+  "id": "tagcloud",
+  "name": "Tag cloud",
+  "version": "1.0.0",
+  "description": "Example widget plugin: the values of a field as a cloud of tags, sized by count. Clicking a tag emits its rows.",
+  "author": "fluid examples",
+  "module": "./index.js",
+  "contributes": {
+    "widgets": [
+      {
+        "type": "tagcloud/cloud",
+        "label": "Tag cloud",
+        "description": "The values of a field, sized by how many rows have them.",
+        "llmDoc": "- { \"id\": string, \"type\": \"tagcloud/cloud\", \"title\"?: string, \"span\"?: 1..24,\n    \"data\": { \"query\": \"<queries key>\", \"path\"?: \"<dot path to the list>\" }, \"field\": \"<dot path of the value to count>\", \"max\"?: number }\n    A TAG CLOUD of the values of \"field\" (enums, tags, categories, names), each sized by how many rows have it (\"max\" tags, default 40).\n    Clicking a tag emits { \"value\": <value>, \"count\": n, \"rows\": [ the rows having it ] } on \"selected\":\n    pair it with a table bound to { \"query\": \"@<this id>\", \"path\": \"selected.rows\" } to list them (master/detail).",
+        "inputs": [
+          { "name": "data", "shape": "rows", "description": "The rows whose values are counted." }
+        ],
+        "outputs": [
+          {
+            "name": "selected",
+            "shape": "object",
+            "description": "The clicked tag: { value, count, rows }."
+          }
+        ],
+        "jsonSchema": {
+          "type": "object",
+          "properties": {
+            "type": { "const": "tagcloud/cloud" },
+            "data": {
+              "type": "object",
+              "properties": {
+                "query": { "type": "string", "minLength": 1 },
+                "path": { "type": "string" }
+              },
+              "required": ["query"]
+            },
+            "field": { "type": "string", "minLength": 1 },
+            "max": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          "required": ["type", "data", "field"]
+        },
+        "example": {
+          "id": "species",
+          "type": "tagcloud/cloud",
+          "title": "Species",
+          "data": { "query": "rows", "path": "characters.results" },
+          "field": "species"
+        }
+      }
+    ]
+  }
+}

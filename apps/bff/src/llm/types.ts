@@ -1,4 +1,4 @@
-import type { ViewSpec, ViewSpecDraft, Widget, WidgetDraft } from '@fluid/shared';
+import type { ViewSpec, ViewSpecDraft, ViewWidgetInfo, Widget, WidgetCatalogRequest, WidgetDraft } from '@fluid/shared';
 
 export type LlmProvider = 'openai' | 'ollama' | 'claude-code' | 'mock';
 
@@ -105,6 +105,8 @@ export interface GenerateViewInput {
   prompt: string;
   /** List or detail column the view is generated for (detail views read the by-id query). */
   scope?: ViewScope;
+  /** The widgets the user enabled (plugins); every built-in widget when omitted. */
+  widgets?: WidgetCatalogRequest;
   history?: ChatMessage[];
   config?: LlmConfigOverrides;
 }
@@ -125,6 +127,10 @@ export interface GenerateWidgetInput {
   existingWidget?: Widget;
   /** Named queries available in the current view for context. */
   viewQueries?: Record<string, string>;
+  /** The other widgets of the view, whose outputs the widget may read (`@<id>`). */
+  viewWidgets?: ViewWidgetInfo[];
+  /** The widgets the user enabled (plugins); every built-in widget when omitted. */
+  widgets?: WidgetCatalogRequest;
   history?: ChatMessage[];
   config?: LlmConfigOverrides;
 }
