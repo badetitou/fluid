@@ -1,114 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import {
-  checkWidgetsAgainstCatalog,
-  describeIssues,
-  finalizeViewSpec,
-  finalizeWidget,
-  resolveWidgetCatalog,
-  safeParseViewSpecDraft,
-  safeParseWidgetDraft,
-  type ViewSpecDraft,
-  type WidgetContract,
-  type WidgetDraft,
-} from '@fluid/shared';
-import type {
-  ChatMessage,
-  GenerateViewInput,
-  GenerateViewResult,
-  GenerateWidgetInput,
-  GenerateWidgetResult,
-  LlmConfig,
-  LlmDeltaHandler,
-} from './types';
+import { finalizeViewSpec, finalizeWidget, resolveWidgetCatalog } from '@fluid/shared';
+import type { GenerateViewInput, GenerateViewResult, GenerateWidgetInput, GenerateWidgetResult, LlmDeltaHandler } from './types';
 import { resolveLlmConfig } from './config';
 import { buildMessages, buildRepairMessage, buildWidgetMessages, buildWidgetRepairMessage } from './prompt';
-import { buildClaudeMessages, buildClaudeRepairMessage, parseClaudeAnswer } from './claudePrompt';
-import { chatCompletion, extractJson, extractReasoning } from './client';
-import { claudeCodeCompletion } from './claudeCode';
+import { chatCompletion, extractReasoning } from './client';
+import { generateViewWithClaude, generateWidgetWithClaude } from './claudeGenerate';
 import { mockDraft, mockWidgetDraft } from './mock';
 import { LlmValidationError } from './errors';
-
-type Validation<T> = { ok: true; draft: T } | { ok: false; errorText: string };
-
-/** Parses a view draft and checks its widgets against the enabled catalog. */
-function validateDraft(content: string, catalog: WidgetContract[]): Validation<ViewSpecDraft> {
-  let raw: unknown;
-  try {
-    raw = extractJson(content);
-  } catch (err) {
-    return { ok: false, errorText: (err as Error).message };
-  }
-  const parsed = safeParseViewSpecDraft(raw);
-  if (!parsed.success) return { ok: false, errorText: describeIssues(parsed.error) };
-  const problems = checkWidgetsAgainstCatalog(parsed.data.widgets, catalog);
-  if (problems.length) return { ok: false, errorText: problems.slice(0, 8).join('\n') };
-  return { ok: true, draft: parsed.data };
-}
-
-/** Parses a widget draft and checks it against the enabled catalog and the view's other widgets. */
-function validateWidgetDraft(content: string, catalog: WidgetContract[], viewIds: string[]): Validation<WidgetDraft> {
-  let raw: unknown;
-  try {
-    raw = extractJson(content);
-  } catch (err) {
-    return { ok: false, errorText: (err as Error).message };
-  }
-  const parsed = safeParseWidgetDraft(raw);
-  if (!parsed.success) return { ok: false, errorText: describeIssues(parsed.error) };
-  const problems = checkWidgetsAgainstCatalog([parsed.data], catalog, 'widget', new Set(viewIds));
-  if (problems.length) return { ok: false, errorText: problems.slice(0, 8).join('\n') };
-  return { ok: true, draft: parsed.data };
-}
-
-/** Send a chat to the configured (non-mock) provider. */
-function complete(
-  config: LlmConfig,
-  messages: ChatMessage[],
-  onDelta?: LlmDeltaHandler,
-): Promise<string> {
-  return config.provider === 'claude-code'
-    ? claudeCodeCompletion(config, messages, onDelta)
-    : chatCompletion(config, messages);
-}
-
-/**
- * Claude Code variant of view generation: a Claude-tuned prompt answered with
- * <reasoning>/<view> sections, streamed through `onDelta`, with one repair turn.
- */
-async function generateViewWithClaude(
-  input: GenerateViewInput,
-  config: LlmConfig,
-  onDelta?: LlmDeltaHandler,
-): Promise<GenerateViewResult> {
-  const catalog = resolveWidgetCatalog(input.widgets);
-  const messages = buildClaudeMessages(input);
-  const answer = await complete(config, messages, onDelta);
-  const { reasoning, content } = parseClaudeAnswer(answer);
-
-  let result = validateDraft(content, catalog);
-  if (!result.ok) {
-    onDelta?.({ kind: 'text', text: '\n\n[Fixing validation errors…]\n\n' });
-    const repaired = await complete(
-      config,
-      [...messages, { role: 'assistant', content: answer }, buildClaudeRepairMessage(result.errorText)],
-      onDelta,
-    );
-    const retry = validateDraft(parseClaudeAnswer(repaired).content, catalog);
-    if (!retry.ok) throw new LlmValidationError(retry.errorText, repaired);
-    result = retry;
-  }
-
-  return {
-    draft: result.draft,
-    spec: finalizeViewSpec(
-      { ...result.draft, scope: result.draft.scope ?? input.scope },
-      { concept: input.concept, id: `gen-${randomUUID().slice(0, 8)}` },
-    ),
-    provider: config.provider,
-    model: config.model,
-    reasoning: reasoning.length > 0 ? reasoning : undefined,
-  };
-}
+import { validateDraft, validateWidgetDraft } from './validateDraft';
 
 /**
  * Generate a view for a concept. The `mock` provider returns a deterministic
@@ -193,17 +92,21 @@ export async function generateWidget(input: GenerateWidgetInput): Promise<Genera
     };
   }
 
+  if (config.provider === 'claude-code') {
+    return generateWidgetWithClaude(input, config, widgetId);
+  }
+
   const catalog = resolveWidgetCatalog(input.widgets);
   const viewIds = (input.viewWidgets ?? []).map((w) => w.id);
   const messages = buildWidgetMessages(input);
-  let fullContent = await complete(config, messages);
+  let fullContent = await chatCompletion(config, messages);
   const { reasoning, content } = extractReasoning(fullContent);
 
   let result = validateWidgetDraft(content, catalog, viewIds);
 
   if (!result.ok) {
     const repair = buildWidgetRepairMessage(result.errorText, content);
-    fullContent = await complete(config, [
+    fullContent = await chatCompletion(config, [
       ...messages,
       { role: 'assistant', content: fullContent },
       repair,

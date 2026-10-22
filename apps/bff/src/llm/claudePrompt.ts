@@ -82,7 +82,7 @@ For a hypothetical "Order" list (fields id, reference, status: OrderStatus enum,
 </view>
 </example>`;
 
-function renderSchema(schema: ConceptSchemaInfo): string {
+export function renderSchema(schema: ConceptSchemaInfo): string {
   const fields = schema.fields
     .map((f) => {
       const type = `${f.typeName}${f.isList ? '[]' : ''}`;
@@ -112,7 +112,7 @@ function renderSchema(schema: ConceptSchemaInfo): string {
     .join('\n');
 }
 
-function renderLinkHints(schema: ConceptSchemaInfo): string {
+export function renderLinkHints(schema: ConceptSchemaInfo): string {
   const hints = detectLinkCandidates(schema).map(
     (c) => `  - "${c.fieldName}" → linkTo { "concept": "${c.targetConcept}"${
       c.fieldName === 'id' ? '' : `, "idField": "${c.idField}"`
@@ -172,10 +172,11 @@ export function buildClaudeRepairMessage(errorText: string): ChatMessage {
 }
 
 /**
- * Split a Claude answer into reasoning bullets and the JSON payload. Falls back
- * to the whole text when the tags are missing so `extractJson` can still try.
+ * Split a Claude answer into reasoning bullets and the JSON payload of the
+ * `<tag>` section. Falls back to the whole text when the tags are missing so
+ * `extractJson` can still try.
  */
-export function parseClaudeAnswer(text: string): { reasoning: string[]; content: string } {
+export function parseClaudeAnswer(text: string, tag = 'view'): { reasoning: string[]; content: string } {
   const reasoningBlock = text.match(/<reasoning>([\s\S]*?)<\/reasoning>/i)?.[1] ?? '';
   const reasoning = reasoningBlock
     .split('\n')
@@ -183,6 +184,6 @@ export function parseClaudeAnswer(text: string): { reasoning: string[]; content:
     .filter((l) => l.startsWith('-'))
     .map((l) => l.replace(/^-\s*/, ''))
     .filter(Boolean);
-  const view = text.match(/<view>([\s\S]*?)<\/view>/i)?.[1];
-  return { reasoning, content: (view ?? text).trim() };
+  const payload = text.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'i'))?.[1];
+  return { reasoning, content: (payload ?? text).trim() };
 }
