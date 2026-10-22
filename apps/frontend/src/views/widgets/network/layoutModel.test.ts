@@ -68,6 +68,18 @@ describe('layered layout', () => {
     expect(positions.b.x).toBeLessThan(positions.c.x);
   });
 
+  it('spreads the layers of a broad, shallow graph so it is not a thin strip', () => {
+    const leaves = Array.from({ length: 60 }, (_, i) => ({ key: `leaf${i}`, label: `leaf${i}` }));
+    const { positions } = layeredPositions({
+      nodes: [{ key: 'root', label: 'root' }, ...leaves],
+      edges: leaves.map((leaf) => ({ source: leaf.key, target: 'root' })),
+      direction: 'TB',
+    });
+    const xs = Object.values(positions).map((p) => p.x);
+    const width = Math.max(...xs) - Math.min(...xs);
+    expect(positions.leaf0.y - positions.root.y).toBeCloseTo(width / 2);
+  });
+
   it('validates the worker messages', () => {
     expect(layeredRequestSchema.safeParse(request).success).toBe(true);
     expect(layeredRequestSchema.safeParse({ ...request, direction: 'RL' }).success).toBe(false);

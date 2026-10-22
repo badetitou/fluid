@@ -8,6 +8,7 @@ import {
 } from './widgets/common';
 import { actionSpecSchema } from './actions/schema';
 import { accordionWidgetFields } from './widgets/accordion';
+import { classDiagramWidgetSchema } from './widgets/classDiagram';
 import { codeWidgetSchema } from './widgets/code';
 import { formWidgetSchema, rowActionSchema } from './widgets/form';
 import { historyWidgetDraftSchema, historyWidgetSchema } from './widgets/history';
@@ -19,6 +20,7 @@ import { scatterWidgetSchema } from './widgets/scatter';
 import { treeWidgetSchema } from './widgets/tree';
 
 export * from './widgets/accordion';
+export * from './widgets/classDiagram';
 export * from './widgets/code';
 export * from './widgets/common';
 export * from './widgets/coreDocs';
@@ -188,6 +190,7 @@ const leafWidgetSchemas = [
   historyWidgetSchema,
   codeWidgetSchema,
   networkWidgetSchema,
+  classDiagramWidgetSchema,
   formWidgetSchema,
   model3dWidgetSchema,
   scene3dWidgetSchema,
@@ -222,6 +225,7 @@ export const WIDGET_TYPES = [
   'form',
   'accordion',
   'network',
+  'classDiagram',
   'model3d',
   'scene3d',
 ] as const;
@@ -318,6 +322,7 @@ const formWidgetDraftSchema = formWidgetSchema.omit({ id: true });
 const accordionWidgetDraftSchema = accordionWidgetSchema.omit({ id: true });
 const model3dWidgetDraftSchema = model3dWidgetSchema.omit({ id: true });
 const scene3dWidgetDraftSchema = scene3dWidgetSchema.omit({ id: true });
+const classDiagramWidgetDraftSchema = classDiagramWidgetSchema.omit({ id: true });
 
 const coreWidgetDraftSchema = z.discriminatedUnion('type', [
   tableWidgetDraftSchema,
@@ -335,6 +340,7 @@ const coreWidgetDraftSchema = z.discriminatedUnion('type', [
   formWidgetDraftSchema,
   accordionWidgetDraftSchema,
   networkWidgetDraftSchema,
+  classDiagramWidgetDraftSchema,
   model3dWidgetDraftSchema,
   scene3dWidgetDraftSchema,
 ]);

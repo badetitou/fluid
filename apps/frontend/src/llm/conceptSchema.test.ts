@@ -66,6 +66,19 @@ describe('buildRelationPaths', () => {
     ]);
   });
 
+  it('lists the way back to a class through its superclass association, without walking it', () => {
+    const cls = concept('Class', [
+      field('name', 'String'),
+      field('superInheritances', 'Inheritance', { isList: true }),
+      field('methods', 'Method', { isList: true }),
+    ]);
+    const inheritance = concept('Inheritance', [field('superclass', 'Class'), field('subclass', 'Class')]);
+    const method = concept('Method', [field('selector', 'String'), field('parentType', 'Class')]);
+    const paths = buildRelationPaths(cls, new Map([cls, inheritance, method].map((c) => [c.name, c])));
+    expect(paths.map((p) => p.path)).toEqual(['superInheritances', 'methods', 'superInheritances.superclass']);
+    expect(paths[2]).toEqual({ path: 'superInheritances.superclass', typeName: 'Class', isList: true, fields: ['name: String'] });
+  });
+
   it('honours the depth limit', () => {
     expect(buildRelationPaths(customer, byName, 1).map((p) => p.path)).toEqual(['accounts']);
   });

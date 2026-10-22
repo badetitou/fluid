@@ -1,4 +1,4 @@
-import type { MutationInfo } from '@fluid/shared';
+import { SUPERCLASS_FIELD_NAMES, type MutationInfo } from '@fluid/shared';
 import type { Concept, ConceptMutation, ConceptMutations, ConceptQueries, InputField } from '../graphql/introspection';
 import type { ConceptSchemaPayload, EntryPointPayload, LlmProvider, RelationPathPayload } from '../bff/client';
 
@@ -15,6 +15,9 @@ const MAX_PATH_FIELDS = 12;
  * not re-entered, which skips back-references and cycles. A relation from a
  * type to itself (commit → parentCommits, folder → children) is listed, marked
  * `recursive`, but not walked: version histories and hierarchies need it.
+ * Likewise a way back to the concept through a superclass link
+ * (Class → superInheritances → superclass: Class) is listed, not walked: the
+ * class diagram follows it.
  */
 export function buildRelationPaths(
   concept: Concept,
@@ -28,11 +31,12 @@ export function buildRelationPaths(
     for (const node of frontier) {
       for (const rf of node.concept.relationFields) {
         const recursive = rf.typeName === node.concept.name;
-        if (rf.hasRequiredArgs || (node.ancestors.has(rf.typeName) && !recursive)) continue;
+        const path = node.path ? `${node.path}.${rf.name}` : rf.name;
+        const inherits = rf.typeName === concept.name && SUPERCLASS_FIELD_NAMES.test(rf.name);
+        if (rf.hasRequiredArgs || (node.ancestors.has(rf.typeName) && !recursive && !inherits)) continue;
         const target = conceptByName.get(rf.typeName);
         if (!target) continue;
         if (out.length >= MAX_RELATION_PATHS) return out;
-        const path = node.path ? `${node.path}.${rf.name}` : rf.name;
         const isList = node.isList || rf.isList;
         out.push({
           path,
@@ -44,7 +48,7 @@ export function buildRelationPaths(
             .map((f) => `${f.name}: ${f.typeName}${f.isList ? '[]' : ''}`),
           ...(recursive && { recursive: true }),
         });
-        if (!recursive) next.push({ concept: target, path, isList, ancestors: new Set([...node.ancestors, rf.typeName]) });
+        if (!recursive && !inherits) next.push({ concept: target, path, isList, ancestors: new Set([...node.ancestors, rf.typeName]) });
       }
     }
     frontier = next;
