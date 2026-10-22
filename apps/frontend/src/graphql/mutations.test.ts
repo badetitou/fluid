@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildInputFields, buildRootMutations, classifyMutation, splitMutationName } from './mutations';
+import { buildInputFields, buildRootMutations, classifyMutation } from './mutations';
 import type { IntrospectionField, IntrospectionType, TypeRef } from './introspectionTypes';
 
 // Shaped like the deep `__type(name: "Mutation")` result of https://graphqlzero.almansi.me/api.
@@ -32,19 +32,6 @@ const mutationType: IntrospectionType = {
 };
 
 const concepts = new Set(['Todo', 'User']);
-
-describe('splitMutationName', () => {
-  it('reads the verb a camelCase or snake_case name starts with', () => {
-    expect(splitMutationName('updateTodo')).toEqual({ kind: 'update', subject: 'Todo' });
-    expect(splitMutationName('insert_todos')).toEqual({ kind: 'create', subject: 'todos' });
-    expect(splitMutationName('removeUser')).toEqual({ kind: 'delete', subject: 'User' });
-  });
-
-  it('needs the verb to end at a word boundary', () => {
-    expect(splitMutationName('settings').kind).toBe('other');
-    expect(splitMutationName('newsletterSignup').kind).toBe('other');
-  });
-});
 
 describe('classifyMutation', () => {
   it('attaches a scalar-returning mutation to the concept its name ends with', () => {

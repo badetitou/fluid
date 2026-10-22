@@ -11,30 +11,12 @@ import type {
   IntrospectionInputType,
   IntrospectionType,
   MutationArg,
-  MutationKind,
 } from './introspectionTypes';
+import { splitMutationName } from '@fluid/shared';
 import { typeRefToString, unwrapType } from './introspectionTypes';
-
-const VERBS: [MutationKind, string[]][] = [
-  ['create', ['create', 'add', 'insert', 'new']],
-  ['update', ['update', 'edit', 'set', 'patch', 'modify', 'change']],
-  ['delete', ['delete', 'remove', 'destroy']],
-];
 
 /** A shallow introspection hides argument types: `input` is then the usual name of the input object. */
 const INPUT_ARG_NAMES = ['input', 'data'];
-
-/** The verb a mutation name starts with (`updateTodo`, `delete_todos`) and the rest of the name. */
-export function splitMutationName(field: string): { kind: MutationKind; subject: string } {
-  for (const [kind, verbs] of VERBS) {
-    for (const verb of verbs) {
-      // The verb must end at a word boundary: `setTodo`, `set_todo`, not `settings`.
-      const match = new RegExp(`^${verb}(?:_|(?=[A-Z]))(.+)$`).exec(field);
-      if (match) return { kind, subject: match[1] };
-    }
-  }
-  return { kind: 'other', subject: field };
-}
 
 /** The concept a name designates, ignoring case and a trailing plural `s`. */
 function matchConcept(subject: string, concepts: ReadonlySet<string>): string | undefined {

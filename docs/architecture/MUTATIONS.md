@@ -1,6 +1,6 @@
 # Mutations : modifier les données depuis fluid
 
-> Statut : **étape 1 livrée** (2026-10-22). Ce document fixe comment fluid écrit dans l'API
+> Statut : **étapes 1 et 2 livrées** (2026-10-22). Ce document fixe comment fluid écrit dans l'API
 > GraphQL à laquelle il est connecté. Il s'appuie sur `PLUGINS.md` (contrats, ports, `@<widgetId>`).
 
 ## 1. Constat
@@ -87,12 +87,24 @@ Les champs d'un type d'entrée (`UpdateTodoInput`) sont lus à la demande par `i
 }
 ```
 
-- `variables` : valeurs statiques, ou références résolues à l'exécution — `$target` (l'objet visé :
-  ligne, élément affiché), `$form` (les valeurs saisies), `$target.<chemin>`.
+- `variables` : valeurs littérales, ou références résolues à l'exécution, à toute profondeur —
+  `$target` (l'objet visé : ligne, élément affiché), `$form` (les valeurs saisies), suivis d'un
+  chemin optionnel (`$target.user.id`). Une chaîne qui commence par `$$` est un littéral (`"$$5"` → `"$5"`).
 - `refetch` : requêtes de la vue relancées en `network-only` après succès.
-- `confirm` : texte de confirmation ; **obligatoire** pour une mutation de genre `delete`.
-- Validation (zod, partagée) : une seule opération, de type `mutation` ; côté BFF, le champ appelé
-  doit exister dans le schéma introspecté transmis.
+- `confirm` : texte de confirmation ; **obligatoire** dès que la mutation appelle un champ de genre `delete`.
+- `label` : libellé du bouton (par défaut la clé de l'action).
+
+Validation, dans `packages/shared/src/actions/` (testée) :
+
+| Vérification | Où |
+| --- | --- |
+| Le document contient exactement une opération, une `mutation`, sans fragment, qui appelle au moins un champ | `parseMutationDocument` (lecteur minimal, `shared` n'a pas de dépendance GraphQL) |
+| Chaque clé de `variables` est déclarée ; chaque variable requise (`!` sans défaut) a une valeur | `actionSpecSchema` |
+| Les références `$…` sont bien formées | `actionSpecSchema` (`parseActionRef`) |
+| Une suppression a un `confirm` | `actionSpecSchema` (`splitMutationName`, partagé avec l'introspection) |
+| Les clés de `refetch` sont des requêtes de la vue | `checkViewActions`, appelé par le BFF (`validateDraft`) et l'éditeur JSON |
+
+Reste pour l'étape 5 : vérifier côté BFF que les champs appelés existent dans le schéma de la source.
 
 ## 6. Exécution dans le moteur (étape 3)
 
@@ -123,7 +135,7 @@ Les champs d'un type d'entrée (`UpdateTodoInput`) sont lus à la demande par `i
 | # | Contenu | État |
 | --- | --- | --- |
 | 1 | Introspection des mutations, classement par concept, types d’entrée (requête + modèle ; hook à l’étape 4) | ✅ |
-| 2 | `actions` dans le ViewSpec (schéma, validation) | à faire |
+| 2 | `actions` dans le ViewSpec (schéma, validation) | ✅ |
 | 3 | `useViewActions`, patch local, `invoke` dans `WidgetProps`, réglage « écriture » par connexion | à faire |
 | 4 | Collection `editing` : widget `form`, `table.rowActions` | à faire |
 | 5 | LLM (prompts, validation BFF) et vue détail automatique | à faire |

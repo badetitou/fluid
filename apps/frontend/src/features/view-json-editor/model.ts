@@ -1,4 +1,4 @@
-import { safeParseViewSpec, type ViewSpec } from '@fluid/shared';
+import { checkViewActions, safeParseViewSpec, type ViewSpec } from '@fluid/shared';
 
 export type ParsedView = { ok: true; spec: ViewSpec } | { ok: false; error: string };
 
@@ -23,5 +23,7 @@ export function parseViewSpecText(text: string, title: string, concept: string):
 
   const parsed = safeParseViewSpec(raw);
   if (!parsed.success) return { ok: false, error: `Invalid view spec:\n${formatIssues(parsed.error.issues)}` };
+  const actionProblems = checkViewActions(parsed.data);
+  if (actionProblems.length) return { ok: false, error: `Invalid view spec:\n${actionProblems.slice(0, 6).join('\n')}` };
   return { ok: true, spec: { ...parsed.data, title: trimmedTitle, concept } };
 }

@@ -1,4 +1,5 @@
 import {
+  checkViewActions,
   checkWidgetsAgainstCatalog,
   describeIssues,
   safeParseViewSpecDraft,
@@ -21,7 +22,7 @@ export function validateDraft(content: string, catalog: WidgetContract[]): Valid
   }
   const parsed = safeParseViewSpecDraft(raw);
   if (!parsed.success) return { ok: false, errorText: describeIssues(parsed.error) };
-  const problems = checkWidgetsAgainstCatalog(parsed.data.widgets, catalog);
+  const problems = [...checkWidgetsAgainstCatalog(parsed.data.widgets, catalog), ...checkViewActions(parsed.data)];
   if (problems.length) return { ok: false, errorText: problems.slice(0, 8).join('\n') };
   return { ok: true, draft: parsed.data };
 }

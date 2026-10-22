@@ -1,5 +1,9 @@
 // Shapes of introspection results and of the concepts built from them.
 
+import type { MutationKind } from '@fluid/shared';
+
+export type { MutationKind };
+
 export interface TypeRef {
   kind: string;
   name: string | null;
@@ -125,8 +129,6 @@ export interface Concept {
   mutations?: ConceptMutations;
 }
 
-/** What a mutation does to its concept, read from the verb its name starts with. */
-export type MutationKind = 'create' | 'update' | 'delete' | 'other';
 
 export interface MutationArg {
   name: string;
