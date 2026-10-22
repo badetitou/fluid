@@ -1,17 +1,55 @@
-.bar {
+.wrap {
   --pill-height: 22px;
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 2px;
   min-width: 0;
-  padding: 2px 0 4px;
-  overflow-x: auto;
 }
 
 .compact {
   --pill-height: 18px;
   flex: 1 1 auto;
+}
+
+/* Scrolls horizontally with the arrows or the wheel; the scrollbar itself is hidden. */
+.bar {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 0 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.bar::-webkit-scrollbar {
+  display: none;
+}
+
+.compact .bar {
   gap: 4px;
   padding: 0;
+}
+
+.arrow {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: var(--pill-height);
+  padding: 0;
+  border: none;
+  border-radius: var(--ant-border-radius-sm);
+  background: transparent;
+  color: var(--ant-color-text-secondary);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.arrow:hover {
+  background: var(--ant-color-fill-tertiary);
+  color: var(--ant-color-text);
 }
 
 .pill {
