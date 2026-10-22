@@ -63,7 +63,10 @@ export interface ConceptSchemaPayload {
     isScalar?: boolean;
     description?: string | null;
   }[];
-  related?: { name: string; fields?: string[] }[];
+  /** Interface concepts: their concrete types; and the supertypes the concept implements. */
+  possibleTypes?: string[];
+  interfaces?: string[];
+  related?: { name: string; fields?: string[]; possibleTypes?: string[] }[];
   /** Relations reachable through nested selections, several levels deep. */
   paths?: RelationPathPayload[];
   /** Root query fields, one per concept: only for a whole-graph dashboard. */

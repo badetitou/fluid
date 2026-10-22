@@ -46,6 +46,8 @@ export interface ConceptFieldInfo {
 export interface RelatedConceptInfo {
   name: string;
   fields?: string[];
+  /** Set when the related type is an interface: its concrete types. */
+  possibleTypes?: string[];
 }
 
 /** Compact concept schema the frontend sends so the BFF can build prompts/mocks. */
@@ -63,6 +65,10 @@ export interface ConceptSchemaInfo {
   /** GraphQL type of the by-id query's key argument (defaults to "ID!"). */
   byIdArgType?: string | null;
   fields: ConceptFieldInfo[];
+  /** Set when the concept is an interface: the concrete types of its items (`__typename`). */
+  possibleTypes?: string[];
+  /** Interfaces (supertypes) the concept implements. */
+  interfaces?: string[];
   related?: RelatedConceptInfo[];
   /** Relations reachable through nested selections, several levels deep. */
   paths?: RelationPathInfo[];

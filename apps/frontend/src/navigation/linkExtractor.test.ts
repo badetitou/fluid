@@ -10,6 +10,7 @@ import {
   buildMillerNavigationUrl,
   buildConceptNavigationUrl,
   getNavigationId,
+  linkTargetConcept,
   type NavigationLink,
 } from './linkExtractor';
 import type { TableWidget, DescriptionsWidget } from '@fluid/shared';
@@ -366,3 +367,19 @@ describe('linkExtractor - Integration Tests', () => {
     expect(customerLinks.get('accounts[0].id')?.targetConcept).toBe('Account');
   });
 });
+
+describe('linkExtractor - Concrete link target', () => {
+  const openable = (c: string) => ['Class', 'Package'].includes(c);
+
+  it('opens the concrete type of an item linked through an interface', () => {
+    const row = { __typename: 'Class', id: '1', container: { __typename: 'Package', id: '2' } };
+    expect(linkTargetConcept(row, { concept: 'MooseEntity' }, openable)).toBe('Class');
+    expect(linkTargetConcept(row, { concept: 'MooseEntity', idField: 'container.id' }, openable)).toBe('Package');
+  });
+
+  it('keeps the declared concept when the concrete type is unknown or cannot be opened', () => {
+    expect(linkTargetConcept({ id: '1' }, { concept: 'MooseEntity' }, openable)).toBe('MooseEntity');
+    expect(linkTargetConcept({ __typename: 'Method', id: '1' }, { concept: 'MooseEntity' }, openable)).toBe('MooseEntity');
+  });
+});
+

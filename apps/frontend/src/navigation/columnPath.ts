@@ -1,5 +1,7 @@
-import { createContext, useContext } from 'react';
+import { createContext, useCallback, useContext } from 'react';
 import { useLocation } from 'react-router-dom';
+import type { LinkTo } from '@fluid/shared';
+import { getNavigationId, linkTargetConcept } from './linkExtractor';
 import { appendColumn } from './millerPath';
 
 /**
@@ -15,4 +17,24 @@ export function useNavigationHref(): (concept: string, id?: string) => string {
   const { pathname } = useLocation();
   const base = columnPath ?? pathname;
   return (concept, id) => appendColumn(base, { concept, itemId: id });
+}
+
+/**
+ * Concepts that can be opened on one item (they have a by-id query). Links
+ * declared on an interface open the item's concrete type when it is one of them.
+ */
+export const OpenableConceptsContext = createContext<ReadonlySet<string> | null>(null);
+
+/** Href opening the item a row links to (in its concrete type), when the row has its id. */
+export function useLinkHref(): (row: Record<string, unknown>, linkTo?: LinkTo) => string | undefined {
+  const hrefFor = useNavigationHref();
+  const openable = useContext(OpenableConceptsContext);
+  return useCallback(
+    (row, linkTo) => {
+      const id = linkTo ? getNavigationId(row, linkTo.idField ?? 'id') : undefined;
+      if (!linkTo || !id) return undefined;
+      return hrefFor(linkTargetConcept(row, linkTo, (c) => openable?.has(c) ?? false), id);
+    },
+    [hrefFor, openable],
+  );
 }

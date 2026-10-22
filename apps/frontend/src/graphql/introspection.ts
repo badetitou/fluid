@@ -5,7 +5,7 @@
 // fields, relations, and the root Query fields that return it (list / by-id).
 
 import type { Concept, ConceptField, ConceptMutations, ConceptQueries, IntrospectionField, IntrospectionType } from './introspectionTypes';
-import { typeRefToString, unwrapType } from './introspectionTypes';
+import { COMPOSITE_KINDS, typeRefToString, unwrapType } from './introspectionTypes';
 
 export * from './introspectionQueries';
 export * from './introspectionTypes';
@@ -64,7 +64,7 @@ export function findWrapperCandidates(rootType: IntrospectionType | null): Map<s
 export function findItemsField(wrapper: IntrospectionType): { field: string; typeName: string } | null {
   const lists = (wrapper.fields ?? [])
     .map((f) => ({ field: f.name, u: unwrapType(f.type) }))
-    .filter(({ u }) => u.isList && u.kind === 'OBJECT' && u.name);
+    .filter(({ u }) => u.isList && COMPOSITE_KINDS.has(u.kind) && u.name);
   if (lists.length === 0) return null;
   const preferred =
     ITEMS_FIELDS.map((n) => lists.find((l) => l.field === n)).find(Boolean) ??
@@ -99,7 +99,8 @@ export function buildRootQueries(
 
   for (const field of rootType?.fields ?? []) {
     const u = unwrapType(field.type);
-    if (!u.name || u.kind !== 'OBJECT') continue;
+    // Interfaces are concepts too: an entity is listed under each of its types.
+    if (!u.name || !COMPOSITE_KINDS.has(u.kind)) continue;
     if (u.name.startsWith('__') || ROOT_TYPE_NAMES.has(u.name)) continue;
 
     if (u.isList) {
@@ -111,7 +112,7 @@ export function buildRootQueries(
       continue;
     }
 
-    const wrapper = wrappers.get(u.name);
+    const wrapper = u.kind === 'OBJECT' ? wrappers.get(u.name) : undefined;
     const items = wrapper && !field.args.some((a) => a.name === 'id') ? findItemsField(wrapper) : null;
     if (items) {
       wrapperTypes.add(u.name);
@@ -140,13 +141,16 @@ export function buildRootQueries(
   return { queriesByType, wrapperTypes };
 }
 
-/** Build one concept from its introspected type; null when it is not an explorable object. */
+const namesOf = (types: { name: string | null }[] | null | undefined): string[] =>
+  (types ?? []).flatMap((t) => (t.name ? [t.name] : []));
+
+/** Build one concept from its introspected type; null when it is not an explorable object or interface. */
 export function buildConcept(
   type: IntrospectionType | null,
   queries: ConceptQueries = {},
   mutations?: ConceptMutations,
 ): Concept | null {
-  if (!type?.name || type.kind !== 'OBJECT') return null;
+  if (!type?.name || !COMPOSITE_KINDS.has(type.kind)) return null;
   if (type.name.startsWith('__') || ROOT_TYPE_NAMES.has(type.name)) return null;
 
   const fields: ConceptField[] = (type.fields ?? []).map((f) => {
@@ -172,5 +176,7 @@ export function buildConcept(
     relationFields: fields.filter((f) => !f.isScalar && f.typeKind !== 'UNKNOWN'),
     queries,
     ...(mutations ? { mutations } : {}),
+    ...(type.kind === 'INTERFACE' ? { possibleTypes: namesOf(type.possibleTypes) } : {}),
+    ...(type.interfaces?.length ? { interfaces: namesOf(type.interfaces) } : {}),
   };
 }

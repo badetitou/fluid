@@ -1,7 +1,7 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { Alert, Skeleton } from 'antd';
-import { useConcept } from '../../entities/concept';
-import { MillerColumnPathContext } from '../../navigation/columnPath';
+import { useConcept, useRootConcepts } from '../../entities/concept';
+import { MillerColumnPathContext, OpenableConceptsContext } from '../../navigation/columnPath';
 import { MillerColumnBody, type ColumnMode } from './MillerColumnBody';
 import type { ColumnConfig } from './model';
 import styles from './MillerColumn.module.css';
@@ -20,6 +20,11 @@ interface MillerColumnProps {
 export const MillerColumn = memo(function MillerColumn({ column, mode, onToggleFullscreen, onClose }: MillerColumnProps) {
   const { conceptName, path } = column;
   const { concept, fetching, error } = useConcept(conceptName);
+  const { queriesByType } = useRootConcepts();
+  const openable = useMemo(
+    () => new Set([...queriesByType].flatMap(([name, q]) => (q.byId ? [name] : []))),
+    [queriesByType],
+  );
 
   if (error || concept === null || (!fetching && !concept)) {
     return (
@@ -28,7 +33,7 @@ export const MillerColumn = memo(function MillerColumn({ column, mode, onToggleF
           type={error ? 'error' : 'warning'}
           showIcon
           title={error ? `Could not introspect ${conceptName}` : 'Unknown concept'}
-          description={error ? error.message : `No object type named "${conceptName}" exists.`}
+          description={error ? error.message : `No object or interface type named "${conceptName}" exists.`}
         />
       </div>
     );
@@ -44,7 +49,9 @@ export const MillerColumn = memo(function MillerColumn({ column, mode, onToggleF
 
   return (
     <MillerColumnPathContext.Provider value={path}>
-      <MillerColumnBody concept={concept} column={column} mode={mode} onToggleFullscreen={onToggleFullscreen} onClose={onClose} />
+      <OpenableConceptsContext.Provider value={openable}>
+        <MillerColumnBody concept={concept} column={column} mode={mode} onToggleFullscreen={onToggleFullscreen} onClose={onClose} />
+      </OpenableConceptsContext.Provider>
     </MillerColumnPathContext.Provider>
   );
 });

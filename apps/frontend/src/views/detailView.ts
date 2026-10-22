@@ -19,7 +19,10 @@ interface ResolvedRelation {
   field: ConceptField;
   target: Concept;
   label: ConceptField;
-  /** Set when the target can be opened in its own column (it has a key and a by-id query). */
+  /**
+   * Set when the target can be opened in its own column: it has a key and a
+   * by-id query, or is an interface (each item then opens in its concrete type).
+   */
   navigable: boolean;
   /** The target's key field (`id`, or e.g. `code`). */
   key: string;
@@ -41,7 +44,7 @@ function resolveRelations(concept: Concept, related?: RelatedConcepts): Resolved
       field,
       target,
       label: pickLabelField(target.scalarFields),
-      navigable: hasKey && Boolean(targetQueries?.byId),
+      navigable: hasKey && (Boolean(targetQueries?.byId) || Boolean(target.possibleTypes?.length)),
       key,
     });
   }

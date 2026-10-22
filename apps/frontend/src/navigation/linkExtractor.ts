@@ -120,3 +120,21 @@ export function getNavigationId(row: Record<string, unknown>, idFieldPath: strin
 
   return String(idValue);
 }
+
+/**
+ * The concept a link opens. A link declared on an interface (e.g. `container:
+ * MooseEntity`) opens the linked object's concrete type, its `__typename`,
+ * when that type can be opened by id; otherwise the declared concept.
+ */
+export function linkTargetConcept(
+  row: Record<string, unknown>,
+  linkTo: { concept: string; idField?: string },
+  canOpen: (concept: string) => boolean,
+): string {
+  const idField = linkTo.idField ?? 'id';
+  const dot = idField.lastIndexOf('.');
+  const holder = dot === -1 ? row : getNestedValue(row, idField.slice(0, dot));
+  const typename =
+    holder != null && typeof holder === 'object' ? (holder as Record<string, unknown>).__typename : undefined;
+  return typeof typename === 'string' && typename !== linkTo.concept && canOpen(typename) ? typename : linkTo.concept;
+}
