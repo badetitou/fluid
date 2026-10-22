@@ -13,11 +13,11 @@ import type { ViewEntry } from '../../entities/view';
 
 /** What the "…" menu of a column can do; each action applies to the selected perspective. */
 export interface PerspectiveActions {
-  createWithAssistant: () => void;
+  /** Opens a blank view where the editor to build it with is picked. */
+  createView: () => void;
   editWithAssistant: () => void;
   createJson: () => void;
   editJson: () => void;
-  rename: () => void;
   setDefault: () => void;
   remove: () => void;
   openSettings: () => void;
@@ -45,7 +45,7 @@ export function perspectiveMenuItems(
   const saved = selected?.saved;
   const offline = !bffAvailable;
   const items: Items = [
-    { key: 'assistant', icon: <RobotOutlined />, label: 'New with assistant', disabled: offline, onClick: actions.createWithAssistant },
+    { key: 'new', icon: <PlusOutlined />, label: 'New view', disabled: offline, onClick: actions.createView },
   ];
   if (saved) {
     items.push({ key: 'assistant-edit', icon: <RobotOutlined />, label: 'Edit with assistant', disabled: offline, onClick: actions.editWithAssistant });
@@ -58,10 +58,7 @@ export function perspectiveMenuItems(
     onClick: actions.createJson,
   });
   if (saved) {
-    items.push(
-      { key: 'rename', icon: <EditOutlined />, label: 'Rename', disabled: offline, onClick: actions.rename },
-      { key: 'json-edit', icon: <EditOutlined />, label: 'Edit (JSON)', onClick: actions.editJson },
-    );
+    items.push({ key: 'json-edit', icon: <EditOutlined />, label: 'Edit (JSON)', onClick: actions.editJson });
     if (!saved.isDefault) {
       items.push({ key: 'default', icon: <StarOutlined />, label: 'Set as default', onClick: actions.setDefault });
     }

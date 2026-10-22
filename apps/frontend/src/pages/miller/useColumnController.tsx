@@ -20,6 +20,8 @@ import { usePillRename } from '../../features/perspective-switcher';
 import { WidgetAssistantAction } from '../../features/widget-assistant';
 import { withScope } from '../../views/viewScope';
 import { useColumnDialogs } from './useColumnDialogs';
+import { useEditorSwitch } from './useEditorSwitch';
+import { useNewView } from './useNewView';
 
 interface Options {
   /** Miller path of the column, which dashboards open. */
@@ -41,7 +43,11 @@ export function useColumnController(concept: Concept, { path, itemId, perspectiv
   const { modal } = AntdApp.useApp();
   const { relatedNames, conceptByName, schema } = useConceptSchema(concept);
   const { queriesByType } = useRootConcepts();
-  const perspectives = useColumnPerspectives(concept, { itemId, initialKey: perspective, conceptByName, queriesByType });
+  const newView = useNewView(
+    useColumnPerspectives(concept, { itemId, initialKey: perspective, conceptByName, queriesByType }),
+    concept.name,
+  );
+  const { perspectives } = newView;
   const { selected, columnKind, pick, refetch } = perspectives;
   const mutations = useViewMutations(refetch);
   const dialogs = useColumnDialogs();
@@ -57,20 +63,19 @@ export function useColumnController(concept: Concept, { path, itemId, perspectiv
   }, [preselect, openAssistant]);
 
   // Editing a curated/auto perspective's layout saves the arrangement as a new saved perspective.
-  const saveLayout = async (widgets: Widget[]) => {
+  const saveLayout = async (widgets: Widget[], title: string) => {
     if (!selected) return false;
     if (selected.saved) {
-      return Boolean(await mutations.updateSpec(selected.saved.id, { ...selected.spec, widgets }, 'Layout saved'));
+      return Boolean(await mutations.updateSpec(selected.saved.id, { ...selected.spec, title, widgets }, 'Layout saved'));
     }
-    const copy = withScope(
-      { ...selected.spec, id: newViewId(concept.name), title: selected.title, widgets },
-      columnKind,
-    );
-    const created = await mutations.create(copy, 'Layout saved as a new perspective');
+    const copy = withScope({ ...selected.spec, id: newViewId(concept.name), title, widgets }, columnKind);
+    const isNew = selected.source === 'draft';
+    const created = await mutations.create(copy, isNew ? 'View created' : 'Layout saved as a new perspective');
     if (created) pick(created.id);
     return Boolean(created);
   };
   const layout = useLayoutEditor({ viewKey: selected?.key, isFullscreen, onToggleFullscreen, onSave: saveLayout });
+  const editorSwitch = useEditorSwitch({ selected, columnKind, layout, dialogs });
 
   const remove = useCallback(
     (entry: ViewEntry) => {
@@ -101,14 +106,13 @@ export function useColumnController(concept: Concept, { path, itemId, perspectiv
   );
 
   const actions: PerspectiveActions = {
-    createWithAssistant: () => dialogs.openAssistant(),
+    createView: newView.start,
     editWithAssistant: () => selected?.saved && dialogs.openAssistant(selected.saved),
     createJson: () => dialogs.openJson(newViewDraft(concept.name, selected?.spec, columnKind)),
     editJson: () => {
       const draft = selected && savedViewDraft(selected);
       if (draft) dialogs.openJson(draft);
     },
-    rename: () => selected && rename.start(selected),
     setDefault: () => selected?.saved && mutations.setDefault(selected.saved.id),
     remove: () => selected && remove(selected),
     openSettings: dialogs.openSettings,
@@ -133,5 +137,8 @@ export function useColumnController(concept: Concept, { path, itemId, perspectiv
     [savedId, savedSpec, concept.name, schema, onSaved],
   );
 
-  return { perspectives, mutations, layout, rename, remove, dialogs, pinning, schema, actions, onSaved, renderWidgetActions };
+  return {
+    perspectives, mutations, layout, editorSwitch, rename, remove,
+    dialogs, pinning, schema, actions, onSaved, renderWidgetActions,
+  };
 }

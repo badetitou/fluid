@@ -16,7 +16,7 @@ interface PerspectivePillsProps {
   onPick: (key: string) => void;
   /** Delete a saved perspective. */
   onDelete: (entry: ViewEntry) => void;
-  /** "+" pill: create a perspective with the assistant. */
+  /** "+" pill: create a perspective. */
   onCreate: () => void;
 }
 
@@ -42,7 +42,7 @@ export function PerspectivePills(props: PerspectivePillsProps) {
         ),
       )}
       {editable && (
-        <Tooltip title="New perspective with assistant">
+        <Tooltip title="New view">
           <span
             role="button"
             aria-label="New perspective"

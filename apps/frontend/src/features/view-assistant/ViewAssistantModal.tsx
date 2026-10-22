@@ -12,6 +12,8 @@ interface ViewAssistantModalProps {
   target: AssistantTarget;
   /** The saved view being refined; a new view is created when absent. */
   editing?: SavedView;
+  /** Spec the conversation starts from (version 0) instead of the saved one, e.g. edits from the layout editor. */
+  from?: ViewSpec;
   onClose: () => void;
   onSaved: (view: SavedView) => void;
   onOpenJson: (spec: ViewSpec) => void;
@@ -22,9 +24,11 @@ interface ViewAssistantModalProps {
  * Creates or refines a view by chatting with the LLM. Each answer is a version
  * that can be previewed, refined again, then saved. Mounted only while open.
  */
-export function ViewAssistantModal({ target, editing, onClose, onSaved, onOpenJson, onOpenSettings }: ViewAssistantModalProps) {
+export function ViewAssistantModal(props: ViewAssistantModalProps) {
+  const { target, editing, from, onClose, onSaved, onOpenJson, onOpenSettings } = props;
   const { message } = AntdApp.useApp();
-  const session = useAssistantSession(target, editing?.id, editing?.spec);
+  const base = from ?? editing?.spec;
+  const session = useAssistantSession(target, editing?.id, base);
   const { saving, error, setError, save } = useSaveView();
   const [isDefault, setIsDefault] = useState(editing?.isDefault ?? false);
   const { spec, activeVersion, clear } = session;
@@ -39,7 +43,7 @@ export function ViewAssistantModal({ target, editing, onClose, onSaved, onOpenJs
     if (!spec) return;
     // Keep an existing scope association; widgets kept by the assistant stay where they were arranged.
     const toSave: ViewSpec = { ...spec, scope: spec.scope ?? target.scope };
-    if (editing) toSave.widgets = preserveLayouts(toSave.widgets, editing.spec.widgets);
+    if (base) toSave.widgets = preserveLayouts(toSave.widgets, base.widgets);
     const saved = await save(toSave, { editingId: editing?.id, isDefault });
     if (!saved) return;
     message.success(editing ? 'View updated' : 'View saved');
@@ -49,8 +53,8 @@ export function ViewAssistantModal({ target, editing, onClose, onSaved, onOpenJs
   };
 
   const label = conceptLabel(target.concept);
-  const intro = editing
-    ? `I'm working from the saved view of ${label}. Tell me what to change — each answer becomes a new version you can compare.`
+  const intro = base
+    ? `I'm working from the ${editing ? 'saved ' : ''}view of ${label}. Tell me what to change — each answer becomes a new version you can compare.`
     : `Describe the dashboard you want for ${label} (tables, stats, charts, clickable links). Each answer becomes a version you can preview and refine.`;
 
   return (
@@ -79,7 +83,7 @@ export function ViewAssistantModal({ target, editing, onClose, onSaved, onOpenJs
           type="primary"
           onClick={handleSave}
           loading={saving}
-          disabled={!spec || generating || (Boolean(editing) && activeVersion === 0)}
+          disabled={!spec || generating || (Boolean(editing) && !from && activeVersion === 0)}
         >
           {editing ? 'Update view' : 'Save view'}
           {activeVersion ? ` (v${activeVersion})` : ''}

@@ -42,6 +42,7 @@ export function ColumnDialogs({ dialogs, target, onSaved }: ColumnDialogsProps) 
           <ViewAssistantModal
             target={target}
             editing={dialog.editing}
+            from={dialog.from}
             onClose={dialogs.close}
             onSaved={saved}
             onOpenJson={openJson}
