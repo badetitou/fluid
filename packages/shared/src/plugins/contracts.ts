@@ -13,6 +13,7 @@ import {
   tableWidgetDoc,
 } from '../widgets/coreDocs';
 import { historyWidgetDoc } from '../widgets/history';
+import { model3dWidgetDoc, scene3dWidgetDoc } from '../widgets/model3d';
 import { richTextWidgetDoc } from '../widgets/richtext';
 import { scatterWidgetDoc } from '../widgets/scatter';
 import { treeWidgetDoc } from '../widgets/tree';
@@ -109,6 +110,17 @@ export const BUILTIN_WIDGET_CONTRACTS: { [T in CoreWidgetType]: WidgetContract }
     'Folding panels nesting other widgets.',
     accordionWidgetDoc,
   ),
+  model3d: contract('model3d', '3D element', 'One building element (IFC) in 3D.', model3dWidgetDoc),
+  scene3d: contract(
+    'scene3d',
+    '3D scene',
+    'A whole building (IFC) in 3D, some elements highlighted.',
+    scene3dWidgetDoc,
+    {
+      inputs: [DATA_INPUT, port('highlight', 'The element(s) to highlight, or their ids.')],
+      outputs: [{ ...SELECTED_OUTPUT, description: 'The element the user last clicked.' }],
+    },
+  ),
 };
 
 /** A built-in widget collection: shipped with fluid, enabled by default. */
@@ -152,5 +164,11 @@ export const BUILTIN_WIDGET_COLLECTIONS: BuiltinWidgetCollection[] = [
     name: 'Editing',
     description: 'Forms and row buttons that change data through the view actions (needs “Allow changes”).',
     types: ['form'],
+  },
+  {
+    id: 'fluid-3d',
+    name: '3D',
+    description: 'Building elements (IFC) in 3D, alone or highlighted in their model.',
+    types: ['model3d', 'scene3d'],
   },
 ];

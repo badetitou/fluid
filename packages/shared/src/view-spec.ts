@@ -11,6 +11,7 @@ import { accordionWidgetFields } from './widgets/accordion';
 import { codeWidgetSchema } from './widgets/code';
 import { formWidgetSchema, rowActionSchema } from './widgets/form';
 import { historyWidgetDraftSchema, historyWidgetSchema } from './widgets/history';
+import { model3dWidgetSchema, scene3dWidgetSchema } from './widgets/model3d';
 import { pluginWidgetDraftSchema, pluginWidgetSchema, type PluginWidget } from './widgets/plugin';
 import { richTextWidgetSchema } from './widgets/richtext';
 import { scatterWidgetSchema } from './widgets/scatter';
@@ -22,6 +23,8 @@ export * from './widgets/common';
 export * from './widgets/coreDocs';
 export * from './widgets/form';
 export * from './widgets/history';
+export * from './widgets/model3d';
+export * from './widgets/model3dExample';
 export * from './widgets/plugin';
 export * from './widgets/richtext';
 export * from './widgets/scatter';
@@ -183,6 +186,8 @@ const leafWidgetSchemas = [
   historyWidgetSchema,
   codeWidgetSchema,
   formWidgetSchema,
+  model3dWidgetSchema,
+  scene3dWidgetSchema,
 ] as const;
 
 /** A widget fluid ships; plugin widgets are typed `PluginWidget`. */
@@ -213,6 +218,8 @@ export const WIDGET_TYPES = [
   'code',
   'form',
   'accordion',
+  'model3d',
+  'scene3d',
 ] as const;
 
 /** Whether a view targets a concept's list (many rows) or the detail of a single item. */
@@ -305,6 +312,8 @@ const scatterWidgetDraftSchema = scatterWidgetSchema.omit({ id: true });
 const codeWidgetDraftSchema = codeWidgetSchema.omit({ id: true });
 const formWidgetDraftSchema = formWidgetSchema.omit({ id: true });
 const accordionWidgetDraftSchema = accordionWidgetSchema.omit({ id: true });
+const model3dWidgetDraftSchema = model3dWidgetSchema.omit({ id: true });
+const scene3dWidgetDraftSchema = scene3dWidgetSchema.omit({ id: true });
 
 const coreWidgetDraftSchema = z.discriminatedUnion('type', [
   tableWidgetDraftSchema,
@@ -321,6 +330,8 @@ const coreWidgetDraftSchema = z.discriminatedUnion('type', [
   codeWidgetDraftSchema,
   formWidgetDraftSchema,
   accordionWidgetDraftSchema,
+  model3dWidgetDraftSchema,
+  scene3dWidgetDraftSchema,
 ]);
 export const widgetDraftSchema = z.union([coreWidgetDraftSchema, pluginWidgetDraftSchema]);
 export type WidgetDraft = z.infer<typeof widgetDraftSchema>;

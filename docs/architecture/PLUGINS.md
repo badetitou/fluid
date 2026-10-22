@@ -42,7 +42,8 @@ Un plugin peut contribuer les deux. D'autres types de contribution s'ajouteront 
 
 - **Intégrés** (`builtin`) : livrés avec fluid, désactivables, jamais supprimés.
   Les 13 widgets historiques sont répartis en 4 collections (`essentials`, `charts`, `code`,
-  `structure`) et le thème badetitou devient un plugin, à côté de deux autres thèmes.
+  `structure`) et le thème badetitou devient un plugin, à côté de deux autres thèmes. Une 5ᵉ
+  collection, `3d` (`model3d`, `scene3d`, three.js chargé à la demande), affiche des éléments IFC.
 - **Installés par URL** : on colle l'URL d'un manifeste dans *Settings → Plugins*. Le manifeste
   est mémorisé (localStorage) ; le module est rechargé au démarrage.
 

@@ -92,6 +92,9 @@ export const WIDGET_DEFAULTS: { [T in CoreWidgetType]: Factory<T> } = {
     labelField: category(s.fields),
     widgets: [],
   }),
+  // The geometry comes from the query (IfcGeometry fragment): nothing to pick among the fields.
+  model3d: (s) => ({ type: 'model3d', ...base(s) }),
+  scene3d: (s) => ({ type: 'scene3d', ...base(s) }),
 };
 
 /** A new widget of `type`, with its type's defaults. */
