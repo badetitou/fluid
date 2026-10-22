@@ -9,7 +9,7 @@ import styles from './MillerColumn.module.css';
 interface MillerColumnProps {
   column: ColumnConfig;
   mode: ColumnMode;
-  onToggleFullscreen: (path: string) => void;
+  onToggleFullscreen: (slot: string) => void;
   onClose: (parentPath: string) => void;
 }
 

@@ -25,3 +25,14 @@
 .warning {
   margin-bottom: 16px;
 }
+
+/* Another item of the same view is loading: the previous one stays, dimmed. */
+.settled,
+.refreshing {
+  transition: opacity 120ms ease-out;
+}
+
+.refreshing {
+  opacity: 0.55;
+  pointer-events: none;
+}

@@ -6,6 +6,11 @@ export interface ViewData {
   /** Query key -> the `data` object returned by that query. */
   results: Record<string, unknown>;
   fetching: boolean;
+  /**
+   * The queries are running again with other variables (another item of the
+   * same view): `results` still holds the previous ones, shown until replaced.
+   */
+  refreshing?: boolean;
   error?: Error;
 }
 
@@ -50,14 +55,15 @@ export function useViewData(spec: ViewSpec): ViewData & ViewDataControls {
 
   useEffect(() => {
     let cancelled = false;
-    setState({ results: {}, fetching: true, error: undefined });
+    // Once loaded, keep the results on screen while the new ones arrive.
+    setState((s) => (s.fetching ? s : { ...s, refreshing: true }));
 
     runQueries(client, Object.entries(spec.queries))
       .then(({ results, error }) => {
-        if (!cancelled) setState({ results, fetching: false, error });
+        if (!cancelled) setState({ results, fetching: false, refreshing: false, error });
       })
       .catch((err: unknown) => {
-        if (!cancelled) setState({ results: {}, fetching: false, error: err as Error });
+        if (!cancelled) setState({ results: {}, fetching: false, refreshing: false, error: err as Error });
       });
 
     return () => {

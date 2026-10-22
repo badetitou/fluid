@@ -5,6 +5,7 @@ import { buildDetailView, buildTreeView, withEditForm } from '../../views/regist
 import { useSourceWrites } from '../preferences/useSourceWrites';
 import type { ColumnKind } from '../../views/viewScope';
 import { columnEntries, injectItemId, resolveActiveKey } from './model';
+import { usePerspectiveMemory } from './perspectiveMemory';
 import { useViews, type ViewEntry } from './useViews';
 
 export interface ColumnPerspectives {
@@ -24,6 +25,8 @@ export interface ColumnPerspectives {
 interface Options {
   /** Present for drill-in (detail) columns. */
   itemId?: string;
+  /** Position of the column: the perspective last picked there is shown first. */
+  slot?: string;
   /** Perspective shown first, when listed (e.g. a saved dashboard's). */
   initialKey?: string;
   /** Introspected related concepts, used to link relations in the detail perspective. */
@@ -38,11 +41,16 @@ interface Options {
  */
 export function useColumnPerspectives(
   concept: Concept,
-  { itemId, initialKey, conceptByName, queriesByType }: Options,
+  { itemId, slot, initialKey, conceptByName, queriesByType }: Options,
 ): ColumnPerspectives {
   const views = useViews(concept);
-  // The pick is remembered per concept so a new concept starts on its default.
-  const [picked, setPicked] = useState<{ concept: string; key?: string }>({ concept: concept.name, key: initialKey });
+  const remember = usePerspectiveMemory((s) => s.remember);
+  // The pick is remembered per concept so a new concept starts on its default,
+  // and per slot so a column reopened at the same place starts on its last one.
+  const [picked, setPicked] = useState<{ concept: string; key?: string }>(() => ({
+    concept: concept.name,
+    key: initialKey ?? (slot === undefined ? undefined : usePerspectiveMemory.getState().bySlot[slot]),
+  }));
   const columnKind: ColumnKind = itemId ? 'detail' : 'list';
   const byIdField = concept.queries.byId?.field;
   // Where the source accepts writes, the auto detail also edits the item.
@@ -78,7 +86,13 @@ export function useColumnPerspectives(
     [selected, byIdField, itemId],
   );
 
-  const pick = useCallback((key: string | undefined) => setPicked({ concept: concept.name, key }), [concept.name]);
+  const pick = useCallback(
+    (key: string | undefined) => {
+      setPicked({ concept: concept.name, key });
+      if (slot !== undefined) remember(slot, key);
+    },
+    [concept.name, slot, remember],
+  );
 
   return {
     entries,
