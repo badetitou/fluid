@@ -2,6 +2,7 @@ import type { ViewSpec } from './view-spec';
 import { classMethodsExample } from './widgets/accordion';
 import { methodSourceExample } from './widgets/code';
 import { characterEpisodesNetworkExample } from './widgets/network';
+import { wall3dExample } from './widgets/model3dExample';
 import { postBodyExample } from './widgets/richtext';
 import { countryScatterExample } from './widgets/scatter';
 import { continentTreeExample } from './widgets/tree';
@@ -258,6 +259,7 @@ export const EXAMPLE_VIEWS: Record<string, ViewSpec[]> = {
   Method: [methodSourceExample],
   Class: [classMethodsExample],
   Character: [characterEpisodesNetworkExample],
+  IfcWallStandardCase: [wall3dExample],
 };
 
 /** All curated views as a flat list. */

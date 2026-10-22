@@ -13,6 +13,7 @@ import {
 } from '../widgets/coreDocs';
 import { historyWidgetDoc } from '../widgets/history';
 import { networkWidgetDoc } from '../widgets/network';
+import { model3dWidgetDoc, scene3dWidgetDoc } from '../widgets/model3d';
 import { richTextWidgetDoc } from '../widgets/richtext';
 import { scatterWidgetDoc } from '../widgets/scatter';
 import { treeWidgetDoc } from '../widgets/tree';
@@ -106,6 +107,17 @@ export const BUILTIN_WIDGET_CONTRACTS: { [T in CoreWidgetType]: WidgetContract }
     inputs: [DATA_INPUT, port('edges', 'Edge rows (source → target), when the nodes do not list their links.')],
     outputs: [{ ...SELECTED_OUTPUT, description: 'The row of the node the user last clicked.' }],
   }),
+  model3d: contract('model3d', '3D element', 'One building element (IFC) in 3D.', model3dWidgetDoc),
+  scene3d: contract(
+    'scene3d',
+    '3D scene',
+    'A whole building (IFC) in 3D, some elements highlighted.',
+    scene3dWidgetDoc,
+    {
+      inputs: [DATA_INPUT, port('highlight', 'The element(s) to highlight, or their ids.')],
+      outputs: [{ ...SELECTED_OUTPUT, description: 'The element the user last clicked.' }],
+    },
+  ),
 };
 
 /** A built-in widget collection: shipped with fluid, enabled by default. */
@@ -149,5 +161,11 @@ export const BUILTIN_WIDGET_COLLECTIONS: BuiltinWidgetCollection[] = [
     name: 'Graphs',
     description: 'Networks of linked items (dependencies, call graphs), drawn with WebGL.',
     types: ['network'],
+  },
+  {
+    id: 'fluid-3d',
+    name: '3D',
+    description: 'Building elements (IFC) in 3D, alone or highlighted in their model.',
+    types: ['model3d', 'scene3d'],
   },
 ];

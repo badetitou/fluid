@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import {
   ApartmentOutlined,
   BarsOutlined,
+  BlockOutlined,
   AreaChartOutlined,
   BarChartOutlined,
   CodeOutlined,
@@ -9,6 +10,7 @@ import {
   DotChartOutlined,
   FileTextOutlined,
   HistoryOutlined,
+  HomeOutlined,
   LineChartOutlined,
   NumberOutlined,
   PieChartOutlined,
@@ -17,7 +19,7 @@ import {
 } from '@ant-design/icons';
 import type { CoreWidgetType } from '@fluid/shared';
 
-export type WidgetGroup = 'Data' | 'Charts' | 'Content';
+export type WidgetGroup = 'Data' | 'Charts' | 'Content' | '3D';
 
 /** How a widget type is presented in the catalog of the layout editor. */
 export interface WidgetInfo {
@@ -43,6 +45,8 @@ export const WIDGET_INFO: { [T in CoreWidgetType]: WidgetInfo } = {
   richtext: { label: 'Text', description: 'Markdown, plain text or a code block.', icon: <FileTextOutlined />, group: 'Content' },
   code: { label: 'Code', description: 'Source code, with diffs and annotations.', icon: <CodeOutlined />, group: 'Content' },
   history: { label: 'History', description: 'Versions and their lineage, like a git log.', icon: <HistoryOutlined />, group: 'Content' },
+  model3d: { label: '3D element', description: 'A building element (IFC) on its own, in 3D.', icon: <BlockOutlined />, group: '3D' },
+  scene3d: { label: '3D scene', description: 'A whole building (IFC), some elements highlighted.', icon: <HomeOutlined />, group: '3D' },
 };
 
-export const WIDGET_GROUPS: WidgetGroup[] = ['Data', 'Charts', 'Content'];
+export const WIDGET_GROUPS: WidgetGroup[] = ['Data', 'Charts', 'Content', '3D'];

@@ -81,6 +81,9 @@ export const WIDGET_DEFAULTS: { [T in CoreWidgetType]: Factory<T> } = {
     ...base(s),
     linksField: s.fields.all.find((p) => /(^|\.)(links|edges|dependencies|calls|callees|references|neighbou?rs)(\.|$)/i.test(p)) ?? 'links',
   }),
+  // The geometry comes from the query (IfcGeometry fragment): nothing to pick among the fields.
+  model3d: (s) => ({ type: 'model3d', ...base(s) }),
+  scene3d: (s) => ({ type: 'scene3d', ...base(s) }),
 };
 
 /** A new widget of `type`, with its type's defaults. */
