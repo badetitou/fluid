@@ -75,6 +75,12 @@ export const WIDGET_DEFAULTS: { [T in CoreWidgetType]: Factory<T> } = {
   }),
   // Folded panels titled by a text field; what each panel shows is added afterwards.
   accordion: (s) => ({ type: 'accordion', ...base(s), labelField: category(s.fields), widgets: [] }),
+  // A network needs its links: guess a list of linked items, a sample field when there is one.
+  network: (s) => ({
+    type: 'network',
+    ...base(s),
+    linksField: s.fields.all.find((p) => /(^|\.)(links|edges|dependencies|calls|callees|references|neighbou?rs)(\.|$)/i.test(p)) ?? 'links',
+  }),
 };
 
 /** A new widget of `type`, with its type's defaults. */

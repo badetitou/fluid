@@ -12,6 +12,7 @@ import {
   tableWidgetDoc,
 } from '../widgets/coreDocs';
 import { historyWidgetDoc } from '../widgets/history';
+import { networkWidgetDoc } from '../widgets/network';
 import { richTextWidgetDoc } from '../widgets/richtext';
 import { scatterWidgetDoc } from '../widgets/scatter';
 import { treeWidgetDoc } from '../widgets/tree';
@@ -101,6 +102,10 @@ export const BUILTIN_WIDGET_CONTRACTS: { [T in CoreWidgetType]: WidgetContract }
     'Folding panels nesting other widgets.',
     accordionWidgetDoc,
   ),
+  network: contract('network', 'Network', 'Items linked to each other, as nodes and arrows.', networkWidgetDoc, {
+    inputs: [DATA_INPUT, port('edges', 'Edge rows (source → target), when the nodes do not list their links.')],
+    outputs: [{ ...SELECTED_OUTPUT, description: 'The row of the node the user last clicked.' }],
+  }),
 };
 
 /** A built-in widget collection: shipped with fluid, enabled by default. */
@@ -138,5 +143,11 @@ export const BUILTIN_WIDGET_COLLECTIONS: BuiltinWidgetCollection[] = [
     name: 'Structure',
     description: 'Trees and accordions, for nested collections.',
     types: ['tree', 'accordion'],
+  },
+  {
+    id: 'fluid-graphs',
+    name: 'Graphs',
+    description: 'Networks of linked items (dependencies, call graphs), drawn with WebGL.',
+    types: ['network'],
   },
 ];

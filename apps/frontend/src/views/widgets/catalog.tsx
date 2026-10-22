@@ -12,6 +12,7 @@ import { ScatterWidget } from './scatter/ScatterWidget';
 import { HistoryWidget } from './history/HistoryWidget';
 import { LazyCodeWidget } from './code/lazy';
 import { AccordionWidget } from './accordion/AccordionWidget';
+import { LazyNetworkWidget } from './network/lazy';
 
 type Renderer<T extends CoreWidgetType> = ComponentType<WidgetProps<Extract<CoreWidget, { type: T }>>>;
 
@@ -43,10 +44,11 @@ export const WIDGET_RENDERERS: { [T in CoreWidgetType]: Renderer<T> } = {
   accordion: ({ widget, data, resolve }) => (
     <AccordionWidget widget={widget} data={data} resolve={resolve} Nested={NestedWidget} />
   ),
+  network: (props) => <LazyNetworkWidget {...props} />,
 };
 
 /** Widget types drawn as charts: they size themselves to their cell instead of scrolling. */
-const CHART_TYPES: ReadonlySet<CoreWidgetType> = new Set(['line', 'bar', 'area', 'pie', 'scatter']);
+const CHART_TYPES: ReadonlySet<CoreWidgetType> = new Set(['line', 'bar', 'area', 'pie', 'scatter', 'network']);
 
 /** The rendering definition of a built-in widget type. */
 export function builtinRenderer(type: CoreWidgetType): WidgetRendererDefinition {

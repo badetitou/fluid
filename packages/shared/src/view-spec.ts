@@ -9,6 +9,7 @@ import {
 import { accordionWidgetFields } from './widgets/accordion';
 import { codeWidgetSchema } from './widgets/code';
 import { historyWidgetDraftSchema, historyWidgetSchema } from './widgets/history';
+import { networkWidgetDraftSchema, networkWidgetSchema } from './widgets/network';
 import { pluginWidgetDraftSchema, pluginWidgetSchema, type PluginWidget } from './widgets/plugin';
 import { richTextWidgetSchema } from './widgets/richtext';
 import { scatterWidgetSchema } from './widgets/scatter';
@@ -19,6 +20,7 @@ export * from './widgets/code';
 export * from './widgets/common';
 export * from './widgets/coreDocs';
 export * from './widgets/history';
+export * from './widgets/network';
 export * from './widgets/plugin';
 export * from './widgets/richtext';
 export * from './widgets/scatter';
@@ -177,6 +179,7 @@ const leafWidgetSchemas = [
   scatterWidgetSchema,
   historyWidgetSchema,
   codeWidgetSchema,
+  networkWidgetSchema,
 ] as const;
 
 /** A widget fluid ships; plugin widgets are typed `PluginWidget`. */
@@ -206,6 +209,7 @@ export const WIDGET_TYPES = [
   'history',
   'code',
   'accordion',
+  'network',
 ] as const;
 
 /** Whether a view targets a concept's list (many rows) or the detail of a single item. */
@@ -310,6 +314,7 @@ const coreWidgetDraftSchema = z.discriminatedUnion('type', [
   historyWidgetDraftSchema,
   codeWidgetDraftSchema,
   accordionWidgetDraftSchema,
+  networkWidgetDraftSchema,
 ]);
 export const widgetDraftSchema = z.union([coreWidgetDraftSchema, pluginWidgetDraftSchema]);
 export type WidgetDraft = z.infer<typeof widgetDraftSchema>;

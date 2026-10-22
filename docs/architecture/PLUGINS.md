@@ -42,7 +42,13 @@ Un plugin peut contribuer les deux. D'autres types de contribution s'ajouteront 
 
 - **Intégrés** (`builtin`) : livrés avec fluid, désactivables, jamais supprimés.
   Les 13 widgets historiques sont répartis en 4 collections (`essentials`, `charts`, `code`,
-  `structure`) et le thème badetitou devient un plugin, à côté de deux autres thèmes.
+  `structure`) et le thème badetitou devient un plugin, à côté de deux autres thèmes. Une 5ᵉ
+  collection, `fluid-graphs` (« Graphs »), apporte le widget `network` (graphe nœuds-arêtes en
+  WebGL avec sigma + graphology, pour des milliers de nœuds).
+  Les types intégrés n'ont **pas** de préfixe (`scatter`, `network`) : le `/` est réservé aux
+  widgets de plugins (`<pluginId>/<nom>`), c'est lui qui distingue un type intégré d'un type externe.
+  Un renderer intégré dont les dépendances sont lourdes est chargé à la demande (`lazy.tsx` :
+  `code`, `richtext`, `network`) ; un calcul lourd part dans un Web Worker (disposition du réseau).
 - **Installés par URL** : on colle l'URL d'un manifeste dans *Settings → Plugins*. Le manifeste
   est mémorisé (localStorage) ; le module est rechargé au démarrage.
 
