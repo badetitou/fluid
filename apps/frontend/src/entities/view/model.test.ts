@@ -143,9 +143,10 @@ describe('preserveLayouts', () => {
 
 describe('draftViewEntry', () => {
   it('is a blank, unsaved view scoped to the column', () => {
-    const draft = draftViewEntry('Account', 'detail', 35);
+    const queries = { account: { query: 'query { account(id: $id) { id } }' } };
+    const draft = draftViewEntry('Account', 'detail', queries, 35);
     expect(draft).toMatchObject({ key: 'draft:account-view-z', source: 'draft', title: 'New view' });
-    expect(draft.spec).toMatchObject({ id: 'account-view-z', concept: 'Account', scope: 'detail', widgets: [] });
+    expect(draft.spec).toMatchObject({ id: 'account-view-z', concept: 'Account', scope: 'detail', queries, widgets: [] });
   });
 });
 

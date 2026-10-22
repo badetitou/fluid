@@ -20,6 +20,8 @@ export function useLayoutEditor({ viewKey, isFullscreen, onToggleFullscreen, onS
   const [draft, setDraft] = useState<{ key: string | undefined; widgets: Widget[]; title: string } | null>(null);
   // Whether entering layout edit switched the column to full screen.
   const enteredFullscreen = useRef(false);
+  // The widget whose options are shown next to the grid.
+  const [selectedId, setSelectedId] = useState<string>();
   const current = draft && draft.key === viewKey ? draft : null;
   const widgets = current?.widgets ?? null;
   const title = current?.title ?? '';
@@ -34,6 +36,7 @@ export function useLayoutEditor({ viewKey, isFullscreen, onToggleFullscreen, onS
 
   const exit = () => {
     setDraft(null);
+    setSelectedId(undefined);
     if (enteredFullscreen.current) {
       enteredFullscreen.current = false;
       onToggleFullscreen?.();
@@ -43,6 +46,16 @@ export function useLayoutEditor({ viewKey, isFullscreen, onToggleFullscreen, onS
   const change = (next: Widget[]) => setDraft({ key: viewKey, widgets: next, title });
   const rename = (next: string) => widgets && setDraft({ key: viewKey, widgets, title: next });
 
+  /** Adds a widget below the others and selects it. */
+  const add = (widget: Widget) => {
+    if (!widgets) return;
+    change([...widgets, widget]);
+    setSelectedId(widget.id);
+  };
+
+  /** Replaces the widget of the same id. */
+  const replace = (widget: Widget) => widgets && change(widgets.map((w) => (w.id === widget.id ? widget : w)));
+
   /** Close the gaps between widgets. */
   const tidy = () => widgets && change(applyLayout(widgets, compact(resolveLayout(widgets))));
 
@@ -51,7 +64,21 @@ export function useLayoutEditor({ viewKey, isFullscreen, onToggleFullscreen, onS
     if (await onSave(applyLayout(widgets, resolveLayout(widgets)), title.trim() || 'Untitled view')) exit();
   };
 
-  return { editing: widgets !== null, widgets, title, start, change, rename, tidy, save, exit };
+  return {
+    editing: widgets !== null,
+    widgets,
+    title,
+    start,
+    change,
+    rename,
+    tidy,
+    save,
+    exit,
+    selected: widgets?.find((w) => w.id === selectedId),
+    select: setSelectedId,
+    add,
+    replace,
+  };
 }
 
 export type LayoutEditor = ReturnType<typeof useLayoutEditor>;

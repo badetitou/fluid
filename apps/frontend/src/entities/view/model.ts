@@ -25,10 +25,18 @@ export function newViewDraft(concept: string, from: ViewSpec | undefined, scope:
   return { title: `${concept} view`, spec, isDefault: false };
 }
 
-/** A blank view being created in a column, shown until one of the editors saves it. */
-export function draftViewEntry(concept: string, scope: ColumnKind, now = Date.now()): ViewEntry {
+/**
+ * A blank view being created in a column, shown until one of the editors saves
+ * it. It starts with `queries` (the column's data) so widgets added by hand have something to show.
+ */
+export function draftViewEntry(
+  concept: string,
+  scope: ColumnKind,
+  queries: ViewSpec['queries'] = {},
+  now = Date.now(),
+): ViewEntry {
   const id = newViewId(concept, now);
-  const spec: ViewSpec = { version: 1, id, concept, scope, title: 'New view', queries: {}, widgets: [] };
+  const spec: ViewSpec = { version: 1, id, concept, scope, title: 'New view', queries, widgets: [] };
   return { key: `draft:${id}`, title: spec.title, source: 'draft', spec };
 }
 

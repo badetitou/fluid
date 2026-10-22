@@ -45,7 +45,7 @@ export function useColumnController(concept: Concept, { path, itemId, perspectiv
   const { queriesByType } = useRootConcepts();
   const newView = useNewView(
     useColumnPerspectives(concept, { itemId, initialKey: perspective, conceptByName, queriesByType }),
-    concept.name,
+    { concept: concept.name, itemId, byIdField: concept.queries.byId?.field },
   );
   const { perspectives } = newView;
   const { selected, columnKind, pick, refetch } = perspectives;

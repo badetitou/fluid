@@ -18,6 +18,9 @@ interface ViewRendererProps {
   editingLayout?: boolean;
   /** Receives the rearranged widgets while editing the layout. */
   onWidgetsChange?: (widgets: Widget[]) => void;
+  /** While editing the layout: the widget whose options are being edited, and how to pick one. */
+  selectedWidgetId?: string;
+  onSelectWidget?: (id: string | undefined) => void;
   /**
    * Actions shown in each widget's header. Injected by the caller so the engine
    * knows nothing of the features (assistant, editors) built on top of it.
@@ -40,6 +43,8 @@ export function ViewRenderer({
   editingLayout = false,
   onWidgetsChange,
   renderWidgetActions,
+  selectedWidgetId,
+  onSelectWidget,
 }: ViewRendererProps) {
   const view = useViewData(spec);
   const [containerRef, width] = useElementWidth<HTMLDivElement>();
@@ -75,11 +80,13 @@ export function ViewRenderer({
           className={styles.warning}
         />
       )}
-      {gridLayout && spec.widgets.length > 0 ? (
+      {gridLayout && (spec.widgets.length > 0 || editingLayout) ? (
         <WidgetGrid
           widgets={spec.widgets}
           editing={editingLayout}
           onChange={onWidgetsChange}
+          selectedId={selectedWidgetId}
+          onSelect={onSelectWidget}
           stacked={compact}
           renderWidget={(widget) => <WidgetCard widget={widget} view={view} renderActions={actions} fill />}
         />
