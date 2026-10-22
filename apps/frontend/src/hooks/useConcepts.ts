@@ -8,6 +8,7 @@ import {
   findWrapperCandidates,
   typeQuery,
   type Concept,
+  type ConceptMutations,
   type IntrospectionDepth,
   type ConceptQueries,
   type IntrospectionType,
@@ -17,6 +18,7 @@ import {
 import { isGraphConcept } from '@fluid/shared';
 import { buildGraphConcept } from '../graphql/graphConcept';
 import { useConnection, usePinnedConcepts } from '../store';
+import { useRootMutations } from '../entities/concept/useRootMutations';
 
 export type { Concept };
 
@@ -33,6 +35,8 @@ export interface UseRootConceptsResult {
   /** Root concepts first (sorted), then pinned deeper concepts in pin order. */
   concepts: ConceptEntry[];
   queriesByType: Map<string, ConceptQueries>;
+  /** Concept -> the root mutations writing it; empty for a read-only source. */
+  mutationsByType: Map<string, ConceptMutations>;
   /** The root Query type, once introspected. */
   rootType: IntrospectionType | null;
   /** Introspection depth this source accepts (see `IntrospectionDepth`). */
@@ -56,6 +60,7 @@ export interface UseRootConceptsResult {
 export function useRootConcepts(): UseRootConceptsResult {
   const [rootResult, reexecuteRoot] = useQuery<RootTypeResult>({ query: ROOT_TYPE_QUERY });
   const rootTypeName = rootResult.data?.__schema.queryType?.name;
+  const mutationTypeName = rootResult.data?.__schema.mutationType?.name;
 
   const [deepResult, reexecuteDeep] = useQuery<TypeResult>({
     query: typeQuery('deep'),
@@ -102,10 +107,14 @@ export function useRootConcepts(): UseRootConceptsResult {
       .map((name) => ({ name, isRoot: false, queries: {} }));
     return [...roots, ...extras];
   }, [queriesByType, pinned]);
+  const conceptNames = useMemo(() => new Set(concepts.map((c) => c.name)), [concepts]);
+  // Not part of `fetching`: a concept is usable before its mutations are known.
+  const { mutationsByType } = useRootMutations(mutationTypeName, depth, conceptNames);
 
   return {
     concepts,
     queriesByType,
+    mutationsByType,
     rootType,
     depth,
     fetching:
@@ -133,7 +142,8 @@ export interface UseConceptResult {
 
 /** Introspects a single concept's type on demand (cached by urql per type name). */
 export function useConcept(name: string | undefined): UseConceptResult {
-  const { queriesByType, rootType, depth, fetching: rootFetching, error: rootError } = useRootConcepts();
+  const { queriesByType, mutationsByType, rootType, depth, fetching: rootFetching, error: rootError } =
+    useRootConcepts();
   const isGraph = isGraphConcept(name);
   // Wait for the root so the source's accepted depth is known.
   const [result] = useQuery<TypeResult>({
@@ -143,12 +153,13 @@ export function useConcept(name: string | undefined): UseConceptResult {
   });
 
   const queries = name ? queriesByType.get(name) : undefined;
+  const mutations = name ? mutationsByType.get(name) : undefined;
   const concept = useMemo(() => {
     if (!name || rootFetching) return undefined;
     if (isGraph) return buildGraphConcept(rootType);
     if (!result.data) return undefined;
-    return buildConcept(result.data.__type, queries);
-  }, [name, rootFetching, isGraph, rootType, result.data, queries]);
+    return buildConcept(result.data.__type, queries, mutations);
+  }, [name, rootFetching, isGraph, rootType, result.data, queries, mutations]);
 
   return {
     concept,
