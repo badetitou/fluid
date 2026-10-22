@@ -12,6 +12,7 @@ import { ScatterWidget } from './scatter/ScatterWidget';
 import { HistoryWidget } from './history/HistoryWidget';
 import { LazyCodeWidget } from './code/lazy';
 import { AccordionWidget } from './accordion/AccordionWidget';
+import { LazyModel3dWidget, LazyScene3dWidget } from './model3d/lazy';
 
 type Renderer<T extends CoreWidgetType> = ComponentType<WidgetProps<Extract<CoreWidget, { type: T }>>>;
 
@@ -43,10 +44,14 @@ export const WIDGET_RENDERERS: { [T in CoreWidgetType]: Renderer<T> } = {
   accordion: ({ widget, data, resolve }) => (
     <AccordionWidget widget={widget} data={data} resolve={resolve} Nested={NestedWidget} />
   ),
+  model3d: ({ widget, data, fitHeight }) => <LazyModel3dWidget widget={widget} data={data} fitHeight={fitHeight} />,
+  scene3d: ({ widget, data, resolve, emit, fitHeight }) => (
+    <LazyScene3dWidget widget={widget} data={data} resolve={resolve} emit={emit} fitHeight={fitHeight} />
+  ),
 };
 
-/** Widget types drawn as charts: they size themselves to their cell instead of scrolling. */
-const CHART_TYPES: ReadonlySet<CoreWidgetType> = new Set(['line', 'bar', 'area', 'pie', 'scatter']);
+/** Widget types drawn as charts (or canvases): they size themselves to their cell instead of scrolling. */
+const CHART_TYPES: ReadonlySet<CoreWidgetType> = new Set(['line', 'bar', 'area', 'pie', 'scatter', 'model3d', 'scene3d']);
 
 /** The rendering definition of a built-in widget type. */
 export function builtinRenderer(type: CoreWidgetType): WidgetRendererDefinition {
