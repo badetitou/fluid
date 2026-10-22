@@ -61,6 +61,33 @@ describe('buildNetwork', () => {
     expect(pairs(network.edges)).toEqual(['A>B', 'B>A']);
   });
 
+  it('follows the links of linked objects at any depth', () => {
+    const leaf = { id: 'D', name: 'Delta', calls: [{ id: 'A' }] };
+    const rows = [{ id: 'A', calls: [{ id: 'B', calls: [{ id: 'C', calls: [leaf] }, leaf] }] }];
+    const network = buildNetwork(rows, undefined, { linksField: 'calls', labelField: 'name' });
+    expect(keys(network.nodes)).toEqual(['A', 'B', 'C', 'D']);
+    expect(pairs(network.edges)).toEqual(['A>B', 'B>C', 'B>D', 'C>D', 'D>A']);
+    expect(network.nodes.find((n) => n.key === 'D')?.label).toBe('Delta');
+  });
+
+  it('keeps following nested links of kept nodes when missing nodes are ignored', () => {
+    const rows = [
+      { id: 'A', calls: [{ id: 'B', calls: [{ id: 'X', calls: [{ id: 'A' }] }, { id: 'A' }] }] },
+      { id: 'B' },
+    ];
+    const network = buildNetwork(rows, undefined, { linksField: 'calls', missingNodes: 'ignore' });
+    expect(keys(network.nodes)).toEqual(['A', 'B']);
+    expect(pairs(network.edges)).toEqual(['A>B', 'B>A']);
+  });
+
+  it('reaches the linked node through an association object, at any depth', () => {
+    const superclass = (id: string, parent?: object) => ({ id, superInheritances: parent ? [{ superclass: parent }] : [] });
+    const rows = [superclass('C', superclass('B', superclass('A'))), superclass('D', superclass('B'))];
+    const network = buildNetwork(rows, undefined, { linksField: 'superInheritances.superclass' });
+    expect(keys(network.nodes)).toEqual(['C', 'D', 'B', 'A']);
+    expect(pairs(network.edges)).toEqual(['C>B', 'D>B', 'B>A']);
+  });
+
   it('reads edges from edge rows, with ids or objects at both ends', () => {
     const nodes = [{ id: 1 }, { id: 2 }, { id: 3 }];
     const edges = [

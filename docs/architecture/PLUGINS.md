@@ -45,7 +45,9 @@ Un plugin peut contribuer les deux. D'autres types de contribution s'ajouteront 
   `structure`) et le thème badetitou devient un plugin, à côté de deux autres thèmes. Une 5ᵉ
   collection, `fluid-3d` (`model3d`, `scene3d`, three.js chargé à la demande), affiche des éléments IFC.
   Une 6ᵉ collection, `fluid-graphs` (« Graphs »), apporte le widget `network` (graphe
-  nœuds-arêtes en WebGL avec sigma + graphology, pour des milliers de nœuds).
+  nœuds-arêtes en WebGL avec sigma + graphology, pour des milliers de nœuds) et le widget
+  `classDiagram` (diagramme de classes UML d'une hiérarchie d'héritage, en HTML/SVG maison,
+  branches repliables).
   Les types intégrés n'ont **pas** de préfixe (`scatter`, `network`) : le `/` est réservé aux
   widgets de plugins (`<pluginId>/<nom>`), c'est lui qui distingue un type intégré d'un type externe.
   Un renderer intégré dont les dépendances sont lourdes est chargé à la demande (`lazy.tsx` :

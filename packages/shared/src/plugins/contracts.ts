@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { CoreWidgetType } from '../view-spec';
 import { accordionWidgetDoc } from '../widgets/accordion';
+import { classDiagramWidgetDoc } from '../widgets/classDiagram';
 import { codeWidgetDoc } from '../widgets/code';
 import { formWidgetDoc } from '../widgets/form';
 import {
@@ -115,6 +116,13 @@ export const BUILTIN_WIDGET_CONTRACTS: { [T in CoreWidgetType]: WidgetContract }
     inputs: [DATA_INPUT, port('edges', 'Edge rows (source → target), when the nodes do not list their links.')],
     outputs: [{ ...SELECTED_OUTPUT, description: 'The row of the node the user last clicked.' }],
   }),
+  classDiagram: contract(
+    'classDiagram',
+    'Class diagram',
+    'An inheritance hierarchy as a UML class diagram, branches folding.',
+    classDiagramWidgetDoc,
+    { outputs: [{ ...SELECTED_OUTPUT, description: 'The row of the class the user last clicked.' }] },
+  ),
   model3d: contract('model3d', '3D element', 'One building element (IFC) in 3D.', model3dWidgetDoc),
   scene3d: contract(
     'scene3d',
@@ -167,8 +175,8 @@ export const BUILTIN_WIDGET_COLLECTIONS: BuiltinWidgetCollection[] = [
   {
     id: 'fluid-graphs',
     name: 'Graphs',
-    description: 'Networks of linked items (dependencies, call graphs), drawn with WebGL.',
-    types: ['network'],
+    description: 'Networks of linked items (dependencies, call graphs), drawn with WebGL, and UML class diagrams of inheritance hierarchies.',
+    types: ['network', 'classDiagram'],
   },
   {
     id: 'fluid-editing',
