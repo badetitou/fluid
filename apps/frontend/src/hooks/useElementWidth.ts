@@ -1,35 +1,32 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
+
+type Dimension = 'width' | 'height';
+
+// Returns a callback ref (not a ref object) so that the size follows whichever
+// element currently carries it: a component that swaps the measured element
+// (a loading skeleton, then the content) keeps measuring the live one instead
+// of the detached first one, which ResizeObserver reports as 0 wide.
+function useElementSize<T extends HTMLElement>(dimension: Dimension) {
+  const [el, setEl] = useState<T | null>(null);
+  const [size, setSize] = useState(0);
+
+  useLayoutEffect(() => {
+    if (!el) return;
+    setSize(el.getBoundingClientRect()[dimension]);
+    const observer = new ResizeObserver(([entry]) => setSize(entry.contentRect[dimension]));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [el, dimension]);
+
+  return [setEl, size] as const;
+}
 
 /** Tracks the rendered width of an element, updating whenever it is resized. */
 export function useElementWidth<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
-  const [width, setWidth] = useState(0);
-
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    setWidth(el.getBoundingClientRect().width);
-    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  return [ref, width] as const;
+  return useElementSize<T>('width');
 }
 
 /** Tracks the rendered height of an element, updating whenever it is resized. */
 export function useElementHeight<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
-  const [height, setHeight] = useState(0);
-
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    setHeight(el.getBoundingClientRect().height);
-    const observer = new ResizeObserver(([entry]) => setHeight(entry.contentRect.height));
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  return [ref, height] as const;
+  return useElementSize<T>('height');
 }
