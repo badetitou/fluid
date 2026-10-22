@@ -134,3 +134,36 @@ export function checkWidgetsAgainstCatalog(
     ];
   });
 }
+
+/** The action keys held by one action slot of a widget config: a key, or a list of `{ action }`. */
+function slotKeys(value: unknown): string[] {
+  if (typeof value === 'string') return [value];
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    const key = (item as { action?: unknown } | null)?.action;
+    return typeof key === 'string' ? [key] : [];
+  });
+}
+
+/**
+ * Action keys the widgets name (through their contract's action slots, nested
+ * widgets included) that the view does not declare in `actions`. Readable lines.
+ */
+export function checkActionReferences(
+  widgets: unknown,
+  actions: Record<string, unknown> | undefined,
+  contracts: WidgetContract[],
+  path = 'widgets',
+): string[] {
+  const byType = new Map(contracts.map((c) => [c.type, c]));
+  return asWidgets(widgets).flatMap((widget, index) => {
+    const at = `${path}.${index}`;
+    const slots = byType.get(String(widget.type))?.actions ?? [];
+    const missing = slots.flatMap((slot) =>
+      slotKeys((widget as Record<string, unknown>)[slot.name])
+        .filter((key) => !actions || !(key in actions))
+        .map((key) => `${at}.${slot.name}: "${key}" is not an action of the view (declare it in "actions")`),
+    );
+    return [...missing, ...checkActionReferences(widget.widgets, actions, contracts, `${at}.widgets`)];
+  });
+}

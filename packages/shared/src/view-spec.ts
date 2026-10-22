@@ -9,6 +9,7 @@ import {
 import { actionSpecSchema } from './actions/schema';
 import { accordionWidgetFields } from './widgets/accordion';
 import { codeWidgetSchema } from './widgets/code';
+import { formWidgetSchema, rowActionSchema } from './widgets/form';
 import { historyWidgetDraftSchema, historyWidgetSchema } from './widgets/history';
 import { pluginWidgetDraftSchema, pluginWidgetSchema, type PluginWidget } from './widgets/plugin';
 import { richTextWidgetSchema } from './widgets/richtext';
@@ -19,6 +20,7 @@ export * from './widgets/accordion';
 export * from './widgets/code';
 export * from './widgets/common';
 export * from './widgets/coreDocs';
+export * from './widgets/form';
 export * from './widgets/history';
 export * from './widgets/plugin';
 export * from './widgets/richtext';
@@ -79,6 +81,8 @@ export const tableWidgetSchema = z.object({
   sortable: z.boolean().optional(),
   /** Let the user filter rows by a column's values from its header (default true). */
   filterable: z.boolean().optional(),
+  /** Buttons on each row running a view action on it (shown when the source accepts writes). */
+  rowActions: z.array(rowActionSchema).optional(),
 });
 export type TableWidget = z.infer<typeof tableWidgetSchema>;
 
@@ -178,6 +182,7 @@ const leafWidgetSchemas = [
   scatterWidgetSchema,
   historyWidgetSchema,
   codeWidgetSchema,
+  formWidgetSchema,
 ] as const;
 
 /** A widget fluid ships; plugin widgets are typed `PluginWidget`. */
@@ -206,6 +211,7 @@ export const WIDGET_TYPES = [
   'scatter',
   'history',
   'code',
+  'form',
   'accordion',
 ] as const;
 
@@ -297,6 +303,7 @@ const treeWidgetDraftSchema = treeWidgetSchema.omit({ id: true });
 const richTextWidgetDraftSchema = richTextWidgetSchema.omit({ id: true });
 const scatterWidgetDraftSchema = scatterWidgetSchema.omit({ id: true });
 const codeWidgetDraftSchema = codeWidgetSchema.omit({ id: true });
+const formWidgetDraftSchema = formWidgetSchema.omit({ id: true });
 const accordionWidgetDraftSchema = accordionWidgetSchema.omit({ id: true });
 
 const coreWidgetDraftSchema = z.discriminatedUnion('type', [
@@ -312,6 +319,7 @@ const coreWidgetDraftSchema = z.discriminatedUnion('type', [
   scatterWidgetDraftSchema,
   historyWidgetDraftSchema,
   codeWidgetDraftSchema,
+  formWidgetDraftSchema,
   accordionWidgetDraftSchema,
 ]);
 export const widgetDraftSchema = z.union([coreWidgetDraftSchema, pluginWidgetDraftSchema]);

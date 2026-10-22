@@ -14,10 +14,10 @@ describe('parseMutationDocument', () => {
       document: {
         fields: ['updateTodo', 'logEvent'],
         variables: [
-          { name: 'id', required: true },
-          { name: 'input', required: true },
-          { name: 'note', required: false },
-          { name: 'tags', required: false },
+          { name: 'id', type: 'ID!', required: true },
+          { name: 'input', type: 'UpdateTodoInput!', required: true },
+          { name: 'note', type: 'String', required: false },
+          { name: 'tags', type: '[String!]', required: false },
         ],
       },
     });
@@ -29,7 +29,7 @@ describe('parseMutationDocument', () => {
 
   it('treats a required list as required', () => {
     const parsed = parseMutationDocument('mutation($ids: [ID!]!) { deleteTodos(ids: $ids) }');
-    expect(parsed.ok && parsed.document.variables).toEqual([{ name: 'ids', required: true }]);
+    expect(parsed.ok && parsed.document.variables).toEqual([{ name: 'ids', type: '[ID!]!', required: true }]);
   });
 
   it('rejects queries, several operations and fragments', () => {

@@ -5,6 +5,8 @@
 
 export interface DeclaredVariable {
   name: string;
+  /** Its GraphQL type as written, e.g. `UpdateTodoInput!` or `[ID!]`. */
+  type: string;
   /** Non-null without a default value: the action must provide it. */
   required: boolean;
 }
@@ -76,17 +78,17 @@ function readVariables(tokens: Token[], start: number, end: number): DeclaredVar
     if (tokens[i].text !== '$') return variables;
     const name = tokens[i + 1]?.text ?? '';
     i += 3; // `$`, name, `:`
-    let lastType = '';
+    let type = '';
     let depth = 0;
     while (i < end - 1 && (depth > 0 || !['=', '$', '@'].includes(tokens[i].text))) {
       if (tokens[i].text === '[') depth++;
       if (tokens[i].text === ']') depth--;
-      lastType = tokens[i].text;
+      type += tokens[i].text;
       i++;
     }
     const hasDefault = tokens[i]?.text === '=';
     while (i < end - 1 && tokens[i].text !== '$') i = /[([{]/.test(tokens[i].text) ? skipGroup(tokens, i) : i + 1;
-    variables.push({ name, required: lastType === '!' && !hasDefault });
+    variables.push({ name, type, required: type.endsWith('!') && !hasDefault });
   }
   return variables;
 }

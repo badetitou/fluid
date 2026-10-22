@@ -1,6 +1,6 @@
 # Mutations : modifier les données depuis fluid
 
-> Statut : **étapes 1 à 3 livrées** (2026-10-22). Ce document fixe comment fluid écrit dans l'API
+> Statut : **étapes 1 à 4 livrées** (2026-10-22). Ce document fixe comment fluid écrit dans l'API
 > GraphQL à laquelle il est connecté. Il s'appuie sur `PLUGINS.md` (contrats, ports, `@<widgetId>`).
 
 ## 1. Constat
@@ -131,15 +131,36 @@ Limites connues :
   l'ancienne valeur. Sans `refetch`, le patch local reste affiché.
 - La clé d'identité est `id` ; une source qui identifie autrement (`code`…) ne sera pas patchée.
 - L'aperçu de l'assistant de vue rend aussi les actions : un clic y écrit vraiment.
-- `WidgetContract.actions` (les actions qu'un widget sait déclencher, documentées au LLM) arrive
-  avec le premier widget qui en a besoin, à l'étape 4.
 
 ## 7. Widgets d'édition, collection `editing` (étape 4)
 
-- **`form`** : champs construits depuis le type d'entrée de la mutation (ou listés dans la config),
-  préremplis par `data` (ex. `@todos.selected`), bouton qui déclenche `submit` → `actions.<clé>`.
-- **`table.rowActions`** : boutons par ligne (supprimer, basculer un booléen) liés à une action.
-- Plus tard : édition en place dans `descriptions`.
+Collection intégrée **`fluid-editing`** (*Editing*), activée par défaut comme les autres.
+
+- **`form`** (`packages/shared/src/widgets/form.ts`, rendu dans `views/widgets/form/`) :
+  `{ type: "form", data?, action, fields?, submitLabel?, reset? }`.
+  - `data` : l'objet édité ; il préremplit les champs et devient `$target`. Sans `data`, le
+    formulaire crée (et se vide après succès, sauf `reset: false`).
+  - `fields` : `{ key, label?, input?, options?, required? }` ; `input` ∈ `text`, `textarea`,
+    `number`, `boolean`, `date` (chaîne ISO), `select`. Sans `fields`, les champs sont **déduits du
+    type d'entrée** que l'action remplit avec `$form` (`formInputType` lit le type déclaré de la
+    variable, `useInputType` l'introspecte) : scalaires et enums, ni listes ni objets imbriqués.
+    Avec `fields`, le type d'entrée complète seulement le genre de contrôle.
+  - Un interrupteur non touché vaut `false` (sinon un `Boolean!` requis manquerait).
+  - Tant qu'il ne peut pas soumettre (pas d'`invoke`, action inconnue, rien de lié), le formulaire
+    s'affiche désactivé avec la raison.
+- **`table.rowActions`** : `[{ action, label?, danger? }]`, une colonne de boutons qui lancent l'action
+  avec la ligne comme `$target`. Masquée sans `invoke`. Le clic sur un bouton ne sélectionne pas la ligne.
+- **`WidgetContract.actions`** : `ActionSlot[]` (`{ name, description }`), les champs de config par
+  lesquels un widget nomme des actions — une clé (`form.action`) ou une liste de `{ action }`
+  (`table.rowActions`). `checkActionReferences` s'en sert pour signaler une action nommée mais non
+  déclarée ; le BFF l'applique aux vues générées. Un plugin déclare les siens dans son manifeste.
+- `useViewAction(key)` (moteur) donne la déclaration d'une action, pour un libellé ou un formulaire.
+- Exemples curated (GraphQLZero) : `todoListExample` (table avec *Done* / *Delete*, formulaire
+  *New todo*) et `todoEditExample` (détail avec formulaire d'édition).
+- Plus tard : édition en place dans `descriptions`, options des enums dans `select`.
+
+Correctif au passage : le client urql envoie toujours ses requêtes en POST (`preferGetMethod: false`).
+GraphQLZero (Apollo) refuse les GET comme CSRF potentiel, ce qui cassait déjà l'introspection de cette source.
 
 ## 8. LLM et vues automatiques (étape 5)
 
@@ -152,9 +173,9 @@ Limites connues :
 
 | # | Contenu | État |
 | --- | --- | --- |
-| 1 | Introspection des mutations, classement par concept, types d’entrée (requête + modèle ; hook à l’étape 4) | ✅ |
+| 1 | Introspection des mutations, classement par concept, types d’entrée (requête + modèle ; hook `useInputType` à l’étape 4) | ✅ |
 | 2 | `actions` dans le ViewSpec (schéma, validation) | ✅ |
 | 3 | `useViewActions`, patch local, `invoke` dans `WidgetProps`, réglage « écriture » par connexion | ✅ |
-| 4 | Collection `editing` : widget `form`, `table.rowActions`, `WidgetContract.actions`, hook des types d'entrée | à faire |
+| 4 | Collection `editing` : widget `form`, `table.rowActions`, `WidgetContract.actions`, hook des types d'entrée | ✅ |
 | 5 | LLM (prompts, validation BFF) et vue détail automatique | à faire |
 | — | En-têtes d'authentification par connexion (indépendant) | à faire |

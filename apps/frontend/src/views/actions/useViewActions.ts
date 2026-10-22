@@ -49,7 +49,7 @@ export function useViewActions(spec: ViewSpec, view: ViewDataControls): RunActio
       const deleted = deletingFields(action).length > 0 ? context.target : undefined;
       patch((results) => patchResults(results, res.data, deleted));
       if (action.refetch?.length) await refetch(action.refetch);
-      message.success?.(`${action.label ?? key}: done`);
+      message.success?.(action.label ? `${action.label}: applied` : 'Change applied');
       return { ok: true, data: res.data };
     },
     [spec.actions, client, message, confirm, patch, refetch],

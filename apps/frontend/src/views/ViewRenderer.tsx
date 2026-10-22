@@ -8,11 +8,14 @@ import {
   useOutputsStore,
   useWriteAccess,
   ViewActionsContext,
+  ViewActionSpecsContext,
   ViewOutputsContext,
 } from './plugin-api';
 import { useViewData } from './useViewData';
 import { WidgetCard } from './WidgetCard';
 import styles from './ViewRenderer.module.css';
+
+const NO_ACTIONS = {};
 
 /** Narrowest a widget may get before the grid drops to fewer columns per row. */
 const MIN_WIDGET_WIDTH = 360;
@@ -83,45 +86,47 @@ export function ViewRenderer({
 
   return (
     <ViewOutputsContext.Provider value={outputs}>
-      <ViewActionsContext.Provider value={writable ? runAction : null}>
-        <div ref={containerRef}>
-          {view.error && (
-            <Alert
-              type="warning"
-              showIcon
-              title="Some data could not be loaded"
-              description={view.error.message}
-              className={styles.warning}
-            />
-          )}
-          {gridLayout && (spec.widgets.length > 0 || editingLayout) ? (
-            <WidgetGrid
-              widgets={spec.widgets}
-              editing={editingLayout}
-              onChange={onWidgetsChange}
-              selectedId={selectedWidgetId}
-              onSelect={onSelectWidget}
-              stacked={compact}
-              renderWidget={(widget) => (
-                <WidgetCard widget={widget} view={view} renderActions={actions} fill />
-              )}
-            />
-          ) : (
-            <Row gutter={compact ? [8, 8] : [16, 16]}>
-              {spec.widgets.map((widget) => (
-                <Col key={widget.id} span={columnSpan(widget)}>
-                  <WidgetCard widget={widget} view={view} renderActions={actions} />
-                </Col>
-              ))}
-              {spec.widgets.length === 0 && (
-                <Col span={24}>
-                  <Empty description="This view has no widgets yet." />
-                </Col>
-              )}
-            </Row>
-          )}
-        </div>
-      </ViewActionsContext.Provider>
+      <ViewActionSpecsContext.Provider value={spec.actions ?? NO_ACTIONS}>
+        <ViewActionsContext.Provider value={writable ? runAction : null}>
+          <div ref={containerRef}>
+            {view.error && (
+              <Alert
+                type="warning"
+                showIcon
+                title="Some data could not be loaded"
+                description={view.error.message}
+                className={styles.warning}
+              />
+            )}
+            {gridLayout && (spec.widgets.length > 0 || editingLayout) ? (
+              <WidgetGrid
+                widgets={spec.widgets}
+                editing={editingLayout}
+                onChange={onWidgetsChange}
+                selectedId={selectedWidgetId}
+                onSelect={onSelectWidget}
+                stacked={compact}
+                renderWidget={(widget) => (
+                  <WidgetCard widget={widget} view={view} renderActions={actions} fill />
+                )}
+              />
+            ) : (
+              <Row gutter={compact ? [8, 8] : [16, 16]}>
+                {spec.widgets.map((widget) => (
+                  <Col key={widget.id} span={columnSpan(widget)}>
+                    <WidgetCard widget={widget} view={view} renderActions={actions} />
+                  </Col>
+                ))}
+                {spec.widgets.length === 0 && (
+                  <Col span={24}>
+                    <Empty description="This view has no widgets yet." />
+                  </Col>
+                )}
+              </Row>
+            )}
+          </div>
+        </ViewActionsContext.Provider>
+      </ViewActionSpecsContext.Provider>
     </ViewOutputsContext.Provider>
   );
 }

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Table } from 'antd';
 import type { TableColumnsType } from 'antd';
 import type { Column, TableWidget as TableWidgetSpec } from '@fluid/shared';
+import type { InvokeAction } from '../plugin-api';
+import { RowActionButtons } from './RowActionButtons';
 import { useCellRenderer } from './useCellRenderer';
 import styles from './TableWidget.module.css';
 import { compareRows, filterOptions, humanize, inferColumns, matchesFilter, type Row } from './tableModel';
@@ -26,9 +28,11 @@ interface TableWidgetProps {
   rows: Row[];
   /** Clicking a row emits it on the `selected` output. */
   emit?: (port: string, value: unknown) => void;
+  /** Runs the row actions; without it (read-only source) they are not shown. */
+  invoke?: InvokeAction;
 }
 
-export function TableWidget({ widget, rows, emit }: TableWidgetProps) {
+export function TableWidget({ widget, rows, emit, invoke }: TableWidgetProps) {
   const renderCell = useCellRenderer();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
@@ -41,6 +45,18 @@ export function TableWidget({ widget, rows, emit }: TableWidgetProps) {
     ...interactions(col, rows, widget),
     render: (_value: unknown, record: Row) => renderCell(col, record),
   }));
+  if (invoke && widget.rowActions?.length) {
+    const actions = widget.rowActions;
+    columns.push({
+      key: '__actions',
+      title: '',
+      fixed: 'right',
+      render: (_value: unknown, record: Row) => {
+        const { __rowKey: _key, ...row } = record;
+        return <RowActionButtons actions={actions} row={row} invoke={invoke} />;
+      },
+    });
+  }
 
   const dataSource = rows.map((row, index) => ({
     ...row,

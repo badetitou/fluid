@@ -12,7 +12,8 @@ export const statisticWidgetDoc = `- { "id": string, "type": "statistic", "title
 export const tableWidgetDoc = `- { "id": string, "type": "table", "title"?: string, "span"?: 1..24,
     ${DATA},
     "columns": [ { "key": string, "title"?: string, "format"?: Format, "currency"?: string, "linkTo"?: LinkConfig, "width"?: number } ],
-    "pageSize"?: number, "sortable"?: boolean, "filterable"?: boolean }  // header sorting / value filters, default true; set false only on request
+    "pageSize"?: number, "sortable"?: boolean, "filterable"?: boolean,  // header sorting / value filters, default true; set false only on request
+    "rowActions"?: [ { "action": "<actions key>", "label"?: string, "danger"?: boolean } ] }  // a button per row running a view action with "$target" = the row
     ⭐ THE PRIMARY WIDGET FOR INTERACTIVE NAVIGATION: every column showing an id or a relationship MUST have "linkTo" ⭐`;
 
 export const descriptionsWidgetDoc = `- { "id": string, "type": "descriptions", "title"?: string, "span"?: 1..24,

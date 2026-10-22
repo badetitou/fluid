@@ -1,6 +1,7 @@
 import type { ViewSpec } from './view-spec';
 import { classMethodsExample } from './widgets/accordion';
 import { methodSourceExample } from './widgets/code';
+import { todoEditExample, todoListExample } from './widgets/form';
 import { postBodyExample } from './widgets/richtext';
 import { countryScatterExample } from './widgets/scatter';
 import { continentTreeExample } from './widgets/tree';
@@ -253,6 +254,7 @@ export const EXAMPLE_VIEWS: Record<string, ViewSpec[]> = {
   Transaction: [transactionAnalytics],
   Continent: [continentTreeExample],
   Post: [postBodyExample],
+  Todo: [todoListExample, todoEditExample],
   Country: [countryScatterExample],
   Method: [methodSourceExample],
   Class: [classMethodsExample],
