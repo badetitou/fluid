@@ -36,7 +36,10 @@ const networkWidgetShape = z.object({
   sourceField: z.string().min(1).optional(),
   /** Dot path of an edge's target id, or of an object holding it (default "target"). */
   targetField: z.string().min(1).optional(),
-  /** Dot path of a list in each node: the ids (or objects holding the id) it points to. */
+  /**
+   * Dot path of a list in each node: the ids (or objects holding the id) it points to, possibly through
+   * association objects ("superInheritances.superclass"). Linked objects' own links are followed at any depth.
+   */
   linksField: z.string().min(1).optional(),
   /** Links to items that are not nodes: added as nodes (default) or ignored. */
   missingNodes: z.enum(['add', 'ignore']).optional(),
@@ -88,11 +91,16 @@ export const networkWidgetDoc = `- { "id": string, "type": "network", "title"?: 
     "linkTo"?: LinkConfig, "linkToByGroup"?: { "<group value>": LinkConfig, ... } }
     Use it for ITEMS LINKED TO EACH OTHER, many-to-many, possibly thousands: class or package dependencies,
     call graphs (methods → methods they call), imports between modules, characters ↔ episodes, people who
-    follow each other… Prefer "tree" for a pure hierarchy and "history" for versions. The bound rows are
-    the NODES. The links (directed, at least one form):
+    follow each other… Prefer "tree" for a pure hierarchy, "classDiagram" for inheritance (superclasses)
+    and "history" for versions. The bound rows are the NODES. The links (directed, at least one form):
     * "linksField": a list in each node, of ids or of objects holding the id (e.g. \`dependencies { id }\`
       → "dependencies", \`calls { id name }\` → "calls"); linked objects that are not nodes become nodes
-      (built from their selected fields), unless "missingNodes": "ignore";
+      (built from their selected fields), unless "missingNodes": "ignore". Links are FOLLOWED AT ANY DEPTH:
+      a linked object that selects the same list again adds its own links, and so on (to draw a call graph
+      over N levels, nest \`calls { id name calls { id name calls { … } } }\` N times). When the list holds
+      association objects rather than the linked items (e.g. \`superInheritances { superclass { id } }\`),
+      point at the item through them with a dot path: "superInheritances.superclass" (nesting
+      \`superclass { id name superInheritances { superclass { … } } }\` walks up the whole hierarchy);
     * "edges": a second binding to edge rows, with "sourceField"/"targetField" (default source/target;
       ids or objects holding the id, e.g. \`calls { caller { id } callee { id } }\`).
     "idField" must be UNIQUE ACROSS ALL NODES: GraphQL ids are often unique per type only, so when types

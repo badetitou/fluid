@@ -98,6 +98,13 @@ export const WIDGET_DEFAULTS: { [T in CoreWidgetType]: Factory<T> } = {
     ...base(s),
     linksField: s.fields.all.find((p) => /(^|\.)(links|edges|dependencies|calls|callees|references|neighbou?rs)(\.|$)/i.test(p)) ?? 'links',
   }),
+  // A class diagram needs the superclasses: the shortest path through a superclass-ish field, without its id.
+  classDiagram: (s) => {
+    const path = s.fields.all
+      .filter((p) => /(^|\.)(super\w*|extends|parentClass|baseClass)(\.|$)/i.test(p))
+      .sort((a, b) => a.length - b.length)[0];
+    return { type: 'classDiagram', ...base(s), superField: path?.includes('.') ? path.replace(/\.[^.]+$/, '') : (path ?? 'superclass') };
+  },
   // The geometry comes from the query (IfcGeometry fragment): nothing to pick among the fields.
   model3d: (s) => ({ type: 'model3d', ...base(s) }),
   scene3d: (s) => ({ type: 'scene3d', ...base(s) }),

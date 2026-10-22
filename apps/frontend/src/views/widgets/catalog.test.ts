@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ALL_EXAMPLE_VIEWS,
   characterEpisodesNetworkExample,
+  classDiagramExample,
   historyWidgetExample,
   safeParseViewSpec,
   safeParseWidgetDraft,
@@ -26,7 +27,7 @@ describe('widget catalog', () => {
     for (const view of ALL_EXAMPLE_VIEWS) expect(safeParseViewSpec(view).success).toBe(true);
   });
 
-  it.each(['tree', 'richtext', 'scatter', 'code', 'accordion', 'model3d', 'scene3d', 'network'])('shows the %s widget in a curated example', (type) => {
+  it.each(['tree', 'richtext', 'scatter', 'code', 'accordion', 'model3d', 'scene3d', 'network', 'classDiagram'])('shows the %s widget in a curated example', (type) => {
     expect(ALL_EXAMPLE_VIEWS.some((v) => v.widgets.some((w) => w.type === type))).toBe(true);
   });
 
@@ -62,5 +63,15 @@ describe('widget catalog', () => {
     expect(safeParseWidgetDraft({ ...draft, edges: { query: 'calls' } }).success).toBe(true);
     const { groupField: _group, ...ungrouped } = network;
     expect(widgetSchema.safeParse(ungrouped).error?.issues[0].path).toEqual(['groupField']);
+  });
+
+  it('rejects a class diagram without its superclasses, generated or not', () => {
+    const diagram = classDiagramExample.widgets[0] as Record<string, unknown>;
+    const { superField: _super, ...flat } = diagram;
+    const { id: _id, ...draft } = flat;
+    expect(widgetSchema.safeParse(diagram).success).toBe(true);
+    expect(widgetSchema.safeParse(flat).success).toBe(false);
+    expect(safeParseWidgetDraft(draft).success).toBe(false);
+    expect(safeParseWidgetDraft({ ...draft, superField: 'superclass' }).success).toBe(true);
   });
 });
