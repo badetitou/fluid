@@ -78,6 +78,7 @@ interface WidgetContract {
   llmDoc: string;          // comment le LLM doit l'utiliser (concaténé dans les prompts)
   inputs: PortSpec[];      // ce que le widget lit
   outputs: PortSpec[];     // ce qu'il émet
+  actions: ActionSlot[];   // les champs de config qui nomment des actions de la vue (MUTATIONS.md)
   jsonSchema?: object;     // plugins : schéma JSON du widget (les intégrés ont leur zod)
   example?: Widget;        // une configuration valide de référence (testée)
 }
@@ -94,6 +95,7 @@ interface WidgetProps<W> {
   data: unknown;                               // l'entrée principale `data`, résolue
   resolve: (binding: DataBinding) => unknown;  // les autres entrées
   emit: (port: string, value: unknown) => void;// les sorties
+  invoke?: (action, { target, form }) => Promise<ActionResult>; // les mutations de la vue (MUTATIONS.md)
   fitHeight?: number;
 }
 ```

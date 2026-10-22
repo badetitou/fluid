@@ -31,7 +31,7 @@ export async function generateViewWithClaude(
   const answer = await claudeCodeCompletion(config, messages, onDelta);
   const { reasoning, content } = parseClaudeAnswer(answer);
 
-  let result = validateDraft(content, catalog);
+  let result = validateDraft(content, catalog, input.schema.mutationFields);
   if (!result.ok) {
     onDelta?.({ kind: 'text', text: '\n\n[Fixing validation errors…]\n\n' });
     const repaired = await claudeCodeCompletion(
@@ -39,7 +39,7 @@ export async function generateViewWithClaude(
       [...messages, { role: 'assistant', content: answer }, buildClaudeRepairMessage(result.errorText)],
       onDelta,
     );
-    const retry = validateDraft(parseClaudeAnswer(repaired).content, catalog);
+    const retry = validateDraft(parseClaudeAnswer(repaired).content, catalog, input.schema.mutationFields);
     if (!retry.ok) throw new LlmValidationError(retry.errorText, repaired);
     result = retry;
   }
@@ -67,18 +67,19 @@ export async function generateWidgetWithClaude(
 ): Promise<GenerateWidgetResult> {
   const catalog = resolveWidgetCatalog(input.widgets);
   const viewIds = (input.viewWidgets ?? []).map((w) => w.id);
+  const viewActions = Object.keys(input.viewActions ?? {});
   const messages = buildClaudeWidgetMessages(input);
   const answer = await claudeCodeCompletion(config, messages);
   const { reasoning, content } = parseClaudeAnswer(answer, 'widget');
 
-  let result = validateWidgetDraft(content, catalog, viewIds);
+  let result = validateWidgetDraft(content, catalog, viewIds, viewActions);
   if (!result.ok) {
     const repaired = await claudeCodeCompletion(config, [
       ...messages,
       { role: 'assistant', content: answer },
       buildClaudeWidgetRepairMessage(result.errorText),
     ]);
-    const retry = validateWidgetDraft(parseClaudeAnswer(repaired, 'widget').content, catalog, viewIds);
+    const retry = validateWidgetDraft(parseClaudeAnswer(repaired, 'widget').content, catalog, viewIds, viewActions);
     if (!retry.ok) throw new LlmValidationError(retry.errorText, repaired);
     result = retry;
   }

@@ -2,6 +2,7 @@ import type { ChatMessage, GenerateWidgetInput } from './types';
 import { renderPortDocs, renderWidgetDocs, resolveWidgetCatalog, type WidgetContract } from '@fluid/shared';
 import { renderLinkHints, renderSchema } from './claudePrompt';
 import { graphScopeInstructions, isGraphSchema } from './graphScope';
+import { renderViewActions } from './viewActionsPrompt';
 
 // Widget prompt tuned for Claude (used by the `claude-code` provider), built
 // like the view prompt in `claudePrompt.ts`: XML sections, a <reasoning> list
@@ -86,6 +87,10 @@ export function buildClaudeWidgetMessages(input: GenerateWidgetInput): ChatMessa
       '<view_widgets>',
       renderViewWidgets(input),
       '</view_widgets>',
+      '',
+      '<view_actions>',
+      renderViewActions(input),
+      '</view_actions>',
       '',
       '<link_candidates>',
       renderLinkHints(input.schema),

@@ -2,7 +2,14 @@ import { memo, Suspense, useCallback, useMemo } from 'react';
 import { Skeleton } from 'antd';
 import type { DataBinding, Widget } from '@fluid/shared';
 import { resolveBinding } from './data';
-import { MissingWidget, readsOutputs, useViewOutputs, useWidgetEmit, useWidgetRenderer } from './plugin-api';
+import {
+  MissingWidget,
+  readsOutputs,
+  useViewOutputs,
+  useWidgetEmit,
+  useWidgetInvoke,
+  useWidgetRenderer,
+} from './plugin-api';
 import type { ViewData } from './useViewData';
 
 interface WidgetBodyProps {
@@ -20,6 +27,7 @@ interface WidgetBodyProps {
 export const WidgetBody = memo(function WidgetBody({ widget, view, fitHeight }: WidgetBodyProps) {
   const definition = useWidgetRenderer(widget.type);
   const emit = useWidgetEmit(widget.id);
+  const invoke = useWidgetInvoke();
   const outputs = useViewOutputs(useMemo(() => readsOutputs(widget), [widget]));
   const resolve = useCallback(
     (binding: DataBinding) => resolveBinding(binding, { ...view.results, ...outputs }),
@@ -34,6 +42,7 @@ export const WidgetBody = memo(function WidgetBody({ widget, view, fitHeight }: 
         data={widget.data ? resolve(widget.data) : undefined}
         resolve={resolve}
         emit={emit}
+        invoke={invoke}
         fitHeight={fitHeight}
       />
     </Suspense>

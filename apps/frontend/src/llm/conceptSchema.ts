@@ -1,4 +1,5 @@
-import type { Concept, ConceptQueries } from '../graphql/introspection';
+import type { MutationInfo } from '@fluid/shared';
+import type { Concept, ConceptMutation, ConceptMutations, ConceptQueries, InputField } from '../graphql/introspection';
 import type { ConceptSchemaPayload, EntryPointPayload, LlmProvider, RelationPathPayload } from '../bff/client';
 
 /** How many relation hops below the concept the LLM is told about. */
@@ -93,6 +94,41 @@ export function buildConceptSchemaPayload(
     related,
     paths: buildRelationPaths(concept, conceptByName),
   };
+}
+
+/** Cap on the mutations listed per concept: create / update / delete come first. */
+const MAX_MUTATIONS = 8;
+
+/** The mutations of a concept the LLM is told about, create / update / delete first. */
+function listedMutations(mutations: ConceptMutations | undefined): ConceptMutation[] {
+  if (!mutations) return [];
+  return [mutations.create, mutations.update, mutations.delete, ...mutations.others]
+    .filter((m): m is ConceptMutation => m !== undefined)
+    .slice(0, MAX_MUTATIONS);
+}
+
+/** Input object types of those mutations (`UpdateTodoInput`), to introspect for their fields. */
+export function mutationInputTypes(mutations: ConceptMutations | undefined): string[] {
+  const names = listedMutations(mutations).flatMap((m) => m.args.filter((a) => a.isInput && a.typeName).map((a) => a.typeName!));
+  return [...new Set(names)];
+}
+
+/** The mutations writing a concept, as the LLM is told about them, with the fields of their input object. */
+export function buildMutationInfos(
+  mutations: ConceptMutations | undefined,
+  inputTypes: ReadonlyMap<string, InputField[]> = new Map(),
+): MutationInfo[] {
+  return listedMutations(mutations).map((m) => {
+    const inputType = m.args.find((a) => a.name === m.inputArg)?.typeName;
+    const inputFields = inputType ? inputTypes.get(inputType) : undefined;
+    return {
+      field: m.field,
+      kind: m.kind,
+      args: m.args.map((a) => ({ name: a.name, type: a.type ?? null })),
+      returnsConcept: m.returnsConcept,
+      ...(inputFields?.length && { inputFields: inputFields.map((f) => `${f.name}: ${f.type ?? f.typeName}`) }),
+    };
+  });
 }
 
 /**

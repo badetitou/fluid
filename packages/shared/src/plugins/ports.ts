@@ -43,3 +43,13 @@ export const SELECTED_OUTPUT: PortSpec = {
   shape: 'object',
   description: 'The row the user last clicked.',
 };
+
+/**
+ * A config field through which a widget runs view actions (mutations): a string
+ * holding an action key, or a list of objects each holding one in `action`.
+ */
+export const actionSlotSchema = z.object({
+  name: z.string().regex(/^[a-zA-Z][a-zA-Z0-9]*$/),
+  description: z.string(),
+});
+export type ActionSlot = z.infer<typeof actionSlotSchema>;

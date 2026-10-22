@@ -5,5 +5,7 @@ export function createGraphQLClient(url: string): Client {
     url,
     exchanges: [cacheExchange, fetchExchange],
     requestPolicy: 'cache-first',
+    // Always POST: Apollo servers (e.g. GraphQLZero) reject GET queries as potential CSRF.
+    preferGetMethod: false,
   });
 }

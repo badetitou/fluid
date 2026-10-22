@@ -19,6 +19,12 @@ describe('parseViewSpecText', () => {
     expect(!res.ok && res.error).toMatch(/^Invalid view spec:\n/);
   });
 
+  it('reports an action refetching an unknown query', () => {
+    const spec = { ...JSON.parse(valid), actions: { reset: { mutation: 'mutation { reset }', refetch: ['rows'] } } };
+    const res = parseViewSpecText(JSON.stringify(spec), 'T', 'Account');
+    expect(!res.ok && res.error).toBe('Invalid view spec:\nactions.reset.refetch: "rows" is not a query of the view.');
+  });
+
   it('applies the title and concept to a valid spec', () => {
     const res = parseViewSpecText(valid, ' New ', 'Account');
     expect(res.ok && res.spec).toMatchObject({ title: 'New', concept: 'Account', id: 'v' });

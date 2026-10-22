@@ -1,4 +1,4 @@
-import type { ViewScope, ViewSpec, ViewWidgetInfo, Widget, WidgetCatalogRequest } from '@fluid/shared';
+import type { MutationInfo, ViewScope, ViewSpec, ViewWidgetInfo, Widget, WidgetCatalogRequest } from '@fluid/shared';
 import { BFF_URL } from '../runtime-config';
 
 // Thin fetch wrapper around the Fluid BFF REST API (view persistence + prefs).
@@ -68,6 +68,9 @@ export interface ConceptSchemaPayload {
   paths?: RelationPathPayload[];
   /** Root query fields, one per concept: only for a whole-graph dashboard. */
   entryPoints?: EntryPointPayload[];
+  /** Mutations writing the concept, and every root mutation field of the source (to check actions). */
+  mutations?: MutationInfo[];
+  mutationFields?: string[];
 }
 
 /** How to read one concept from the root of the graph; `fields` lists its scalars as "name: Type". */
@@ -118,6 +121,8 @@ export interface GenerateWidgetPayload {
   prompt: string;
   existingWidget?: Widget;
   viewQueries?: Record<string, string>;
+  /** The view's actions (key → mutation), which a form or row action may run. */
+  viewActions?: Record<string, string>;
   /** The other widgets of the view, whose outputs the new widget may read. */
   viewWidgets?: ViewWidgetInfo[];
   widgets?: WidgetCatalogRequest;

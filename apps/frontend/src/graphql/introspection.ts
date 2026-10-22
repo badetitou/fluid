@@ -4,11 +4,12 @@
 // Concepts are the object types a user can explore, each with its scalar
 // fields, relations, and the root Query fields that return it (list / by-id).
 
-import type { Concept, ConceptField, ConceptQueries, IntrospectionField, IntrospectionType, TypeRef } from './introspectionTypes';
-import { unwrapType } from './introspectionTypes';
+import type { Concept, ConceptField, ConceptMutations, ConceptQueries, IntrospectionField, IntrospectionType } from './introspectionTypes';
+import { typeRefToString, unwrapType } from './introspectionTypes';
 
 export * from './introspectionQueries';
 export * from './introspectionTypes';
+export * from './mutations';
 
 const LEAF_KINDS = new Set(['SCALAR', 'ENUM']);
 const ROOT_TYPE_NAMES = new Set(['Query', 'Mutation', 'Subscription']);
@@ -16,20 +17,6 @@ const ROOT_TYPE_NAMES = new Set(['Query', 'Mutation', 'Subscription']);
 const LIMIT_ARGS = ['take', 'first', 'limit', 'pageSize', 'size'];
 // Preferred names for the rows field of a pagination wrapper, in order.
 const ITEMS_FIELDS = ['results', 'items', 'nodes', 'data', 'records', 'list'];
-
-/** Render a fully resolved type ref as GraphQL (e.g. `Int!`); undefined when truncated. */
-export function typeRefToString(ref: TypeRef | null | undefined): string | undefined {
-  if (!ref) return undefined;
-  if (ref.kind === 'NON_NULL') {
-    const inner = typeRefToString(ref.ofType);
-    return inner ? `${inner}!` : undefined;
-  }
-  if (ref.kind === 'LIST') {
-    const inner = typeRefToString(ref.ofType);
-    return inner ? `[${inner}]` : undefined;
-  }
-  return ref.name ?? undefined;
-}
 
 /**
  * The key argument of a single-item root field: `id` when only it is required,
@@ -157,6 +144,7 @@ export function buildRootQueries(
 export function buildConcept(
   type: IntrospectionType | null,
   queries: ConceptQueries = {},
+  mutations?: ConceptMutations,
 ): Concept | null {
   if (!type?.name || type.kind !== 'OBJECT') return null;
   if (type.name.startsWith('__') || ROOT_TYPE_NAMES.has(type.name)) return null;
@@ -183,5 +171,6 @@ export function buildConcept(
     // are kept in `fields` but are not offered as navigable relations.
     relationFields: fields.filter((f) => !f.isScalar && f.typeKind !== 'UNKNOWN'),
     queries,
+    ...(mutations ? { mutations } : {}),
   };
 }

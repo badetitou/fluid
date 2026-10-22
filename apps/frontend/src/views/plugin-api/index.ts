@@ -1,3 +1,4 @@
+export * from './actionsContext';
 export * from './catalogContext';
 export * from './MissingWidget';
 export * from './outputs';
