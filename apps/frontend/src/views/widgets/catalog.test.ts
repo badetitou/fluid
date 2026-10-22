@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ALL_EXAMPLE_VIEWS,
+  characterEpisodesNetworkExample,
   historyWidgetExample,
   safeParseViewSpec,
   safeParseWidgetDraft,
@@ -25,7 +26,7 @@ describe('widget catalog', () => {
     for (const view of ALL_EXAMPLE_VIEWS) expect(safeParseViewSpec(view).success).toBe(true);
   });
 
-  it.each(['tree', 'richtext', 'scatter', 'code', 'accordion', 'model3d', 'scene3d'])('shows the %s widget in a curated example', (type) => {
+  it.each(['tree', 'richtext', 'scatter', 'code', 'accordion', 'model3d', 'scene3d', 'network'])('shows the %s widget in a curated example', (type) => {
     expect(ALL_EXAMPLE_VIEWS.some((v) => v.widgets.some((w) => w.type === type))).toBe(true);
   });
 
@@ -49,5 +50,17 @@ describe('widget catalog', () => {
     expect(widgetSchema.safeParse(unlinked).error?.issues[0].path).toEqual(['parentsField']);
     expect(safeParseWidgetDraft(draft).success).toBe(false);
     expect(safeParseWidgetDraft({ ...draft, childrenField: 'children' }).success).toBe(true);
+  });
+
+  it('rejects a network without links, or with links by group but no group', () => {
+    const network = characterEpisodesNetworkExample.widgets[0] as Record<string, unknown>;
+    const { linksField: _links, ...unlinked } = network;
+    const { id: _id, ...draft } = unlinked;
+    expect(widgetSchema.safeParse(network).success).toBe(true);
+    expect(widgetSchema.safeParse(unlinked).error?.issues[0].path).toEqual(['linksField']);
+    expect(safeParseWidgetDraft(draft).success).toBe(false);
+    expect(safeParseWidgetDraft({ ...draft, edges: { query: 'calls' } }).success).toBe(true);
+    const { groupField: _group, ...ungrouped } = network;
+    expect(widgetSchema.safeParse(ungrouped).error?.issues[0].path).toEqual(['groupField']);
   });
 });

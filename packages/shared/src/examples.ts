@@ -1,6 +1,7 @@
 import type { ViewSpec } from './view-spec';
 import { classMethodsExample } from './widgets/accordion';
 import { methodSourceExample } from './widgets/code';
+import { characterEpisodesNetworkExample } from './widgets/network';
 import { todoEditExample, todoListExample } from './widgets/form';
 import { wall3dExample } from './widgets/model3dExample';
 import { postBodyExample } from './widgets/richtext';
@@ -259,6 +260,7 @@ export const EXAMPLE_VIEWS: Record<string, ViewSpec[]> = {
   Country: [countryScatterExample],
   Method: [methodSourceExample],
   Class: [classMethodsExample],
+  Character: [characterEpisodesNetworkExample],
   IfcWallStandardCase: [wall3dExample],
 };
 

@@ -13,6 +13,7 @@ import {
   tableWidgetDoc,
 } from '../widgets/coreDocs';
 import { historyWidgetDoc } from '../widgets/history';
+import { networkWidgetDoc } from '../widgets/network';
 import { model3dWidgetDoc, scene3dWidgetDoc } from '../widgets/model3d';
 import { richTextWidgetDoc } from '../widgets/richtext';
 import { scatterWidgetDoc } from '../widgets/scatter';
@@ -110,6 +111,10 @@ export const BUILTIN_WIDGET_CONTRACTS: { [T in CoreWidgetType]: WidgetContract }
     'Folding panels nesting other widgets.',
     accordionWidgetDoc,
   ),
+  network: contract('network', 'Network', 'Items linked to each other, as nodes and arrows.', networkWidgetDoc, {
+    inputs: [DATA_INPUT, port('edges', 'Edge rows (source → target), when the nodes do not list their links.')],
+    outputs: [{ ...SELECTED_OUTPUT, description: 'The row of the node the user last clicked.' }],
+  }),
   model3d: contract('model3d', '3D element', 'One building element (IFC) in 3D.', model3dWidgetDoc),
   scene3d: contract(
     'scene3d',
@@ -158,6 +163,12 @@ export const BUILTIN_WIDGET_COLLECTIONS: BuiltinWidgetCollection[] = [
     name: 'Structure',
     description: 'Trees and accordions, for nested collections.',
     types: ['tree', 'accordion'],
+  },
+  {
+    id: 'fluid-graphs',
+    name: 'Graphs',
+    description: 'Networks of linked items (dependencies, call graphs), drawn with WebGL.',
+    types: ['network'],
   },
   {
     id: 'fluid-editing',

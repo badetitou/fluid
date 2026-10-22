@@ -11,6 +11,7 @@ import { accordionWidgetFields } from './widgets/accordion';
 import { codeWidgetSchema } from './widgets/code';
 import { formWidgetSchema, rowActionSchema } from './widgets/form';
 import { historyWidgetDraftSchema, historyWidgetSchema } from './widgets/history';
+import { networkWidgetDraftSchema, networkWidgetSchema } from './widgets/network';
 import { model3dWidgetSchema, scene3dWidgetSchema } from './widgets/model3d';
 import { pluginWidgetDraftSchema, pluginWidgetSchema, type PluginWidget } from './widgets/plugin';
 import { richTextWidgetSchema } from './widgets/richtext';
@@ -23,6 +24,7 @@ export * from './widgets/common';
 export * from './widgets/coreDocs';
 export * from './widgets/form';
 export * from './widgets/history';
+export * from './widgets/network';
 export * from './widgets/model3d';
 export * from './widgets/model3dExample';
 export * from './widgets/plugin';
@@ -185,6 +187,7 @@ const leafWidgetSchemas = [
   scatterWidgetSchema,
   historyWidgetSchema,
   codeWidgetSchema,
+  networkWidgetSchema,
   formWidgetSchema,
   model3dWidgetSchema,
   scene3dWidgetSchema,
@@ -218,6 +221,7 @@ export const WIDGET_TYPES = [
   'code',
   'form',
   'accordion',
+  'network',
   'model3d',
   'scene3d',
 ] as const;
@@ -330,6 +334,7 @@ const coreWidgetDraftSchema = z.discriminatedUnion('type', [
   codeWidgetDraftSchema,
   formWidgetDraftSchema,
   accordionWidgetDraftSchema,
+  networkWidgetDraftSchema,
   model3dWidgetDraftSchema,
   scene3dWidgetDraftSchema,
 ]);
