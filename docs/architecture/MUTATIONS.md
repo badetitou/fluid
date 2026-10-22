@@ -1,6 +1,6 @@
 # Mutations : modifier les données depuis fluid
 
-> Statut : **étapes 1 et 2 livrées** (2026-10-22). Ce document fixe comment fluid écrit dans l'API
+> Statut : **étapes 1 à 3 livrées** (2026-10-22). Ce document fixe comment fluid écrit dans l'API
 > GraphQL à laquelle il est connecté. Il s'appuie sur `PLUGINS.md` (contrats, ports, `@<widgetId>`).
 
 ## 1. Constat
@@ -108,13 +108,31 @@ Reste pour l'étape 5 : vérifier côté BFF que les champs appelés existent da
 
 ## 6. Exécution dans le moteur (étape 3)
 
-- `useViewActions(spec)` (moteur, `views/`) : `run(key, { target, form })` résout les variables,
-  appelle `client.mutation`, patche les résultats de la vue, puis relance `refetch`.
-  La logique de résolution et de patch est pure (`actions/model.ts`) et testée.
-- `WidgetProps` gagne `invoke(action: string, context): Promise<ActionResult>` ;
-  `WidgetContract` gagne `actions: PortSpec[]` (les actions qu'un widget sait déclencher), documentés
-  au LLM comme les ports.
-- Si l'écriture est désactivée pour la connexion, `invoke` est absent : le widget s'affiche en lecture.
+Dans `apps/frontend/src/views/actions/` (moteur) :
+
+- `model.ts` (pur, testé) : `resolveActionVariables` remplace `$target` / `$form` ; `patchResults`
+  fusionne (en profondeur) chaque objet renvoyé par la mutation dans toutes ses copies des résultats
+  de la vue — même `id` et, quand les deux le disent, même `__typename` (urql l'ajoute aux requêtes) —
+  et retire la cible d'une suppression des listes qui la contiennent. Un objet créé n'est pas inséré :
+  c'est le rôle de `refetch`.
+- `useViewActions(spec, view)` : `run(key, { target, form })` demande la confirmation (`confirm`,
+  modale antd), résout les variables, appelle `client.mutation`, patche les résultats
+  (`useViewData().patch`), relance `refetch` en `network-only` (`useViewData().refetch`), et signale
+  succès ou erreur par un message. Il ne lève jamais : il renvoie `ActionResult`.
+- `WidgetProps.invoke?(action, { target, form })` : fourni par `ViewActionsContext` (posé par
+  `ViewRenderer`) **seulement** si la source accepte l'écriture et que la vue a des actions ;
+  sinon absent, et le widget s'affiche en lecture.
+- Écriture par source : `useWritableSources` (store persistant, clé = URL GraphQL), réglée dans
+  *Settings → Connection → Allow changes* via `useSourceWrites`, transmise au moteur par
+  `WriteAccessContext` (posé dans `App.tsx` ; `false` sans fournisseur).
+
+Limites connues :
+- GraphQLZero n'enregistre rien : un `refetch` (ou un remontage de la vue) affiche à nouveau
+  l'ancienne valeur. Sans `refetch`, le patch local reste affiché.
+- La clé d'identité est `id` ; une source qui identifie autrement (`code`…) ne sera pas patchée.
+- L'aperçu de l'assistant de vue rend aussi les actions : un clic y écrit vraiment.
+- `WidgetContract.actions` (les actions qu'un widget sait déclencher, documentées au LLM) arrive
+  avec le premier widget qui en a besoin, à l'étape 4.
 
 ## 7. Widgets d'édition, collection `editing` (étape 4)
 
@@ -136,7 +154,7 @@ Reste pour l'étape 5 : vérifier côté BFF que les champs appelés existent da
 | --- | --- | --- |
 | 1 | Introspection des mutations, classement par concept, types d’entrée (requête + modèle ; hook à l’étape 4) | ✅ |
 | 2 | `actions` dans le ViewSpec (schéma, validation) | ✅ |
-| 3 | `useViewActions`, patch local, `invoke` dans `WidgetProps`, réglage « écriture » par connexion | à faire |
-| 4 | Collection `editing` : widget `form`, `table.rowActions` | à faire |
+| 3 | `useViewActions`, patch local, `invoke` dans `WidgetProps`, réglage « écriture » par connexion | ✅ |
+| 4 | Collection `editing` : widget `form`, `table.rowActions`, `WidgetContract.actions`, hook des types d'entrée | à faire |
 | 5 | LLM (prompts, validation BFF) et vue détail automatique | à faire |
 | — | En-têtes d'authentification par connexion (indépendant) | à faire |

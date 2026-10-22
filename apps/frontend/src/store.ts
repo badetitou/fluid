@@ -22,6 +22,24 @@ export const useConnection = create<ConnectionState>()(
   ),
 );
 
+interface WritableSourcesState {
+  /** GraphQL source URL -> whether fluid may send it mutations (off unless set). */
+  byUrl: Record<string, boolean>;
+  setWritable: (url: string, writable: boolean) => void;
+}
+
+// Writing is opt-in per source: a view's actions only run on a source the user
+// allowed in the settings (see docs/architecture/MUTATIONS.md §2).
+export const useWritableSources = create<WritableSourcesState>()(
+  persist(
+    (set, get) => ({
+      byUrl: {},
+      setWritable: (url, writable) => set({ byUrl: { ...get().byUrl, [url]: writable } }),
+    }),
+    { name: 'fluid-writable-sources' },
+  ),
+);
+
 interface PinnedConceptsState {
   /** Pinned concept names, keyed by GraphQL source URL. */
   byUrl: Record<string, string[]>;

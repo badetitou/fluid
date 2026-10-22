@@ -87,6 +87,7 @@ interface WidgetProps<W> {
   data: unknown;                               // l'entrée principale `data`, résolue
   resolve: (binding: DataBinding) => unknown;  // les autres entrées
   emit: (port: string, value: unknown) => void;// les sorties
+  invoke?: (action, { target, form }) => Promise<ActionResult>; // les mutations de la vue (MUTATIONS.md)
   fitHeight?: number;
 }
 ```

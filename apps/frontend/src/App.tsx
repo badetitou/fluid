@@ -3,8 +3,10 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Provider as UrqlProvider } from 'urql';
 import { Skeleton } from 'antd';
 import { AppLayout } from './app/layout/AppLayout';
+import { useSourceWrites } from './entities/preferences/useSourceWrites';
 import { createGraphQLClient } from './graphql/client';
 import { useConnection } from './store';
+import { WriteAccessContext } from './views/plugin-api';
 
 // Each page is its own chunk: the first paint only loads the screen it shows.
 const ConnectPage = lazy(() => import('./pages/connect/ConnectPage').then((m) => ({ default: m.ConnectPage })));
@@ -16,6 +18,7 @@ const page = (element: React.ReactNode) => <Suspense fallback={<Skeleton active 
 export function App() {
   const graphqlUrl = useConnection((s) => s.graphqlUrl);
   const client = useMemo(() => (graphqlUrl ? createGraphQLClient(graphqlUrl) : null), [graphqlUrl]);
+  const { writable } = useSourceWrites();
 
   return (
     <Routes>
@@ -25,7 +28,9 @@ export function App() {
           path="/"
           element={
             <UrqlProvider value={client}>
-              <AppLayout />
+              <WriteAccessContext.Provider value={writable}>
+                <AppLayout />
+              </WriteAccessContext.Provider>
             </UrqlProvider>
           }
         >
