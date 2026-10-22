@@ -16,6 +16,10 @@ interface WidgetGridProps {
   onChange?: (widgets: Widget[]) => void;
   /** Narrow container: stack widgets full-width, in reading order (view mode only). */
   stacked?: boolean;
+  /** Edit mode: the widget whose options are being edited. */
+  selectedId?: string;
+  /** Edit mode: a widget was clicked, or the empty grid (`undefined`). */
+  onSelect?: (id: string | undefined) => void;
 }
 
 /** Extra empty rows shown below the widgets in edit mode, to drop things into. */
@@ -48,7 +52,7 @@ function rectFor(box: Box, colWidth: number, drag: Drag | null) {
  * "−" badge removes it and a right-click offers preset sizes. Widgets snap to
  * cells and never overlap; whatever is in the way moves aside.
  */
-export function WidgetGrid({ widgets, renderWidget, editing = false, onChange, stacked }: WidgetGridProps) {
+export function WidgetGrid({ widgets, renderWidget, editing = false, onChange, stacked, selectedId, onSelect }: WidgetGridProps) {
   const [containerRef, width] = useElementWidth<HTMLDivElement>();
   const boxes = useMemo(() => resolveLayout(widgets), [widgets]);
   const byId = useMemo(() => new Map(widgets.map((w) => [w.id, w])), [widgets]);
@@ -80,6 +84,7 @@ export function WidgetGrid({ widgets, renderWidget, editing = false, onChange, s
     <div
       ref={containerRef}
       className={className}
+      onClick={editing ? (e) => e.target === e.currentTarget && onSelect?.(undefined) : undefined}
       style={{
         height: cellsToPx(rows, ROW_HEIGHT),
         backgroundSize: step,
@@ -105,6 +110,8 @@ export function WidgetGrid({ widgets, renderWidget, editing = false, onChange, s
                       onKeyDown: (e) => onKeyDown(e, box),
                       onRemove: () => remove(box.id),
                       onResize: (w, h) => resize(box, w, h),
+                      selected: box.id === selectedId,
+                      onSelect: () => onSelect?.(box.id),
                     }
                   : undefined
               }
