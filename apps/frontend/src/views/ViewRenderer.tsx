@@ -88,7 +88,7 @@ export function ViewRenderer({
     <ViewOutputsContext.Provider value={outputs}>
       <ViewActionSpecsContext.Provider value={spec.actions ?? NO_ACTIONS}>
         <ViewActionsContext.Provider value={writable ? runAction : null}>
-          <div ref={containerRef}>
+          <div ref={containerRef} className={view.refreshing ? styles.refreshing : styles.settled} aria-busy={view.refreshing}>
             {view.error && (
               <Alert
                 type="warning"

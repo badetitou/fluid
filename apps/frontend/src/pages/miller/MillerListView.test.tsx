@@ -15,13 +15,21 @@ import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-vi.mock('./MillerColumn', () => ({
-  MillerColumn: ({ column, mode }: { column: { path: string }; mode: string }) => (
-    <div data-testid="miller-column" data-mode={mode}>
-      {column.path}
-    </div>
-  ),
-}));
+let mounts = 0;
+vi.mock('./MillerColumn', async () => {
+  const { useState } = await import('react');
+  return {
+    MillerColumn: ({ column, mode }: { column: { path: string }; mode: string }) => {
+      // Numbered once per mount: a column updated in place keeps its number.
+      const [mount] = useState(() => ++mounts);
+      return (
+        <div data-testid="miller-column" data-mode={mode} data-mount={mount}>
+          {column.path}
+        </div>
+      );
+    },
+  };
+});
 vi.mock('./ConceptsColumn', () => ({
   ConceptsColumn: ({ mode }: { mode: string }) => <div data-testid="concepts-column" data-mode={mode} />,
 }));
@@ -83,5 +91,20 @@ describe('MillerListView', () => {
     );
     expect(getByTestId('concepts-column').dataset.mode).toBe('column');
     expect(getAllByTestId('miller-column')).toHaveLength(1);
+  });
+
+  it('updates a column in place when it opens another item of the same concept', () => {
+    const { getAllByTestId, rerender } = render(tree([{ concept: 'Customer', itemId: 'C1' }]));
+    const before = getAllByTestId('miller-column')[1];
+    const mount = before.dataset.mount;
+
+    rerender(tree([{ concept: 'Customer', itemId: 'C2' }]));
+    const after = getAllByTestId('miller-column')[1];
+    expect(after.textContent).toBe('/d/Account/Customer@C2');
+    expect(after.dataset.mount).toBe(mount);
+
+    // Another concept at that position is another column.
+    rerender(tree([{ concept: 'Order', itemId: 'O1' }]));
+    expect(getAllByTestId('miller-column')[1].dataset.mount).not.toBe(mount);
   });
 });

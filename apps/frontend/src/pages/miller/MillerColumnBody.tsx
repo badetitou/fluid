@@ -25,7 +25,7 @@ interface MillerColumnBodyProps {
   concept: Concept;
   column: ColumnConfig;
   mode: ColumnMode;
-  onToggleFullscreen: (path: string) => void;
+  onToggleFullscreen: (slot: string) => void;
   onClose: (parentPath: string) => void;
 }
 
@@ -34,11 +34,11 @@ interface MillerColumnBodyProps {
  * one rendered compactly so it fits a narrow column, and the editors.
  */
 export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, onClose }: MillerColumnBodyProps) {
-  const { path, itemId, parentPath, perspective } = column;
+  const { path, slot, itemId, parentPath, perspective } = column;
   const compact = usePreferences((s) => s.density === 'compact');
   const isFullscreen = mode !== 'column';
-  const toggleFullscreen = mode === 'page' ? undefined : () => onToggleFullscreen(path);
-  const c = useColumnController(concept, { path, itemId, perspective, isFullscreen, onToggleFullscreen: toggleFullscreen });
+  const toggleFullscreen = mode === 'page' ? undefined : () => onToggleFullscreen(slot);
+  const c = useColumnController(concept, { path, slot, itemId, perspective, isFullscreen, onToggleFullscreen: toggleFullscreen });
   const { entries, selected, spec, columnKind, loading, bffAvailable, pick } = c.perspectives;
   const { layout, mutations, editorSwitch } = c;
   const { startWith } = editorSwitch;

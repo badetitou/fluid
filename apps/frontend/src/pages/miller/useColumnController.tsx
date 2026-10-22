@@ -26,6 +26,8 @@ import { useNewView } from './useNewView';
 interface Options {
   /** Miller path of the column, which dashboards open. */
   path: string;
+  /** Position of the column, under which its last perspective is remembered. */
+  slot: string;
   itemId?: string;
   /** Perspective shown first (a saved dashboard's). */
   perspective?: string;
@@ -39,12 +41,12 @@ interface Options {
  * features: perspectives, their mutations, layout editing, inline rename,
  * pinning and the editors' dialogs. The column body only lays it out.
  */
-export function useColumnController(concept: Concept, { path, itemId, perspective, isFullscreen, onToggleFullscreen }: Options) {
+export function useColumnController(concept: Concept, { path, slot, itemId, perspective, isFullscreen, onToggleFullscreen }: Options) {
   const { modal } = AntdApp.useApp();
   const { relatedNames, conceptByName, schema } = useConceptSchema(concept);
   const { queriesByType } = useRootConcepts();
   const newView = useNewView(
-    useColumnPerspectives(concept, { itemId, initialKey: perspective, conceptByName, queriesByType }),
+    useColumnPerspectives(concept, { itemId, slot, initialKey: perspective, conceptByName, queriesByType }),
     { concept: concept.name, itemId, byIdField: concept.queries.byId?.field },
   );
   const { perspectives } = newView;

@@ -21,6 +21,22 @@ export interface ColumnConfig {
   path: string;
   /** Path of the column before it, which closing this one goes back to. */
   parentPath?: string;
+  /**
+   * Position and shape of the column: its index, concept and whether it shows a
+   * work list or one item. Navigating to another item of the same concept at the
+   * same position keeps the slot, so the column updates in place instead of
+   * being rebuilt, and its last perspective is remembered under it.
+   */
+  slot: string;
+}
+
+/** The slot of a column at `index` (see `ColumnConfig.slot`). */
+export function columnSlot(index: number, column: Pick<ColumnConfig, 'kind' | 'conceptName' | 'itemId' | 'perspective'>): string {
+  if (column.kind === 'home') return `${index}:home`;
+  const shape = column.itemId === undefined ? 'list' : 'item';
+  // A saved dashboard opens on its own perspective: another one is another column.
+  const perspective = column.perspective === undefined ? '' : `:${column.perspective}`;
+  return `${index}:${column.conceptName}:${shape}${perspective}`;
 }
 
 /** The first column a root opens, or null for a saved dashboard that no longer exists. */
@@ -36,12 +52,27 @@ export function resolveRoot(root: RootRef, find: (id: string) => Dashboard | und
 /** The root column followed by one column per link followed from it. */
 export function buildColumns(rootSegment: string, root: RootColumn, stack: ColumnRef[]): ColumnConfig[] {
   const path = `${DASHBOARD_PREFIX}/${rootSegment}`;
-  const columns: ColumnConfig[] = [root.kind === 'home' ? { kind: 'home', conceptName: '', path } : { ...root, path }];
+  const first = root.kind === 'home' ? { kind: 'home' as const, conceptName: '' } : root;
+  const columns: ColumnConfig[] = [{ ...first, path, slot: columnSlot(0, first) }];
   for (const ref of stack) {
     const parentPath = columns[columns.length - 1].path;
-    columns.push({ kind: 'concept', conceptName: ref.concept, itemId: ref.itemId, path: appendColumn(parentPath, ref), parentPath });
+    const column = { kind: 'concept' as const, conceptName: ref.concept, itemId: ref.itemId };
+    columns.push({ ...column, path: appendColumn(parentPath, ref), parentPath, slot: columnSlot(columns.length, column) });
   }
   return columns;
+}
+
+/**
+ * `next`, reusing the column objects of `prev` that did not change, so the
+ * memoised columns left of a navigation do not re-render.
+ */
+export function reuseColumns(prev: ColumnConfig[], next: ColumnConfig[]): ColumnConfig[] {
+  return next.map((column, i) => (prev[i] && sameColumn(prev[i], column) ? prev[i] : column));
+}
+
+function sameColumn(a: ColumnConfig, b: ColumnConfig): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<keyof ColumnConfig>;
+  return [...keys].every((k) => a[k] === b[k]);
 }
 
 export function columnTitle({ kind, conceptName, itemId, title }: Pick<ColumnConfig, 'conceptName' | 'itemId'> & Partial<ColumnConfig>): string {
