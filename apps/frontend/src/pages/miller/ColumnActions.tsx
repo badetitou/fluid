@@ -20,7 +20,7 @@ export function ColumnActions({ onEditLayout, menu, isFullscreen, onToggleFullsc
   return (
     <Space size={2} className={styles.actions}>
       {onEditLayout && (
-        <Tooltip title="Edit layout — add, move, resize and configure widgets">
+        <Tooltip title="Edit — title, widgets (add, move, configure), or continue with AI / JSON">
           <Button type="text" size="small" aria-label="Edit layout" icon={<EditOutlined />} onClick={onEditLayout} />
         </Tooltip>
       )}

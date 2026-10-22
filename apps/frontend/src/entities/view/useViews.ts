@@ -4,7 +4,8 @@ import type { Concept } from '../../graphql/introspection';
 import { buildDefaultView } from '../../views/registry';
 import { bffClient, type SavedView } from '../../bff/client';
 
-export type ViewSource = 'saved' | 'curated' | 'auto';
+/** `draft` is a view being created, not persisted yet. */
+export type ViewSource = 'saved' | 'curated' | 'auto' | 'draft';
 
 export interface ViewEntry {
   /** Stable selection key: DB id for saved views, spec id for curated/auto. */

@@ -74,6 +74,10 @@
   background: var(--ant-geekblue-6);
 }
 
+.draft {
+  background: var(--ant-color-warning);
+}
+
 .star {
   color: var(--ant-color-warning);
   font-size: 10px;

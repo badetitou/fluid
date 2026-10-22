@@ -1,7 +1,8 @@
 import type { Concept } from '../../entities/concept';
-import { LayoutEditToolbar, LayoutHint } from '../../features/layout-editor';
+import { LayoutEditBar, LayoutEditToolbar } from '../../features/layout-editor';
 import { PerspectiveMenu } from '../../features/perspective-menu';
 import { PerspectivePills } from '../../features/perspective-switcher';
+import { NewViewChoices } from '../../features/view-creation';
 import { WidgetSidePanel } from '../../features/widget-builder';
 import { usePreferences } from '../../store';
 import { ViewRenderer } from '../../views/ViewRenderer';
@@ -39,11 +40,12 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
   const toggleFullscreen = mode === 'page' ? undefined : () => onToggleFullscreen(path);
   const c = useColumnController(concept, { path, itemId, perspective, isFullscreen, onToggleFullscreen: toggleFullscreen });
   const { entries, selected, spec, columnKind, loading, bffAvailable, pick } = c.perspectives;
-  const { layout, mutations } = c;
-  const createWithAssistant = bffAvailable ? c.actions.createWithAssistant : undefined;
+  const { layout, mutations, editorSwitch } = c;
+  const { startWith } = editorSwitch;
+  const createView = bffAvailable ? c.actions.createView : undefined;
 
   const bar = layout.editing ? (
-    <LayoutHint savesAsCopy={!selected?.saved} compact={compact} />
+    <LayoutEditBar editor={layout} savesAsCopy={!selected?.saved} compact={compact} />
   ) : (
     entries.length > 0 && (
       <PerspectivePills
@@ -53,16 +55,22 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
         rename={c.rename}
         onPick={pick}
         onDelete={c.remove}
-        onCreate={c.actions.createWithAssistant}
+        onCreate={c.actions.createView}
       />
     )
   );
 
   const actions = layout.editing ? (
-    <LayoutEditToolbar editor={layout} busy={mutations.busy} compact={compact} />
+    <LayoutEditToolbar
+      editor={layout}
+      busy={mutations.busy}
+      compact={compact}
+      onOpenAssistant={bffAvailable ? editorSwitch.toAssistant : undefined}
+      onOpenJson={editorSwitch.toJson}
+    />
   ) : (
     <ColumnActions
-      onEditLayout={spec && bffAvailable ? () => layout.start(spec.widgets) : undefined}
+      onEditLayout={selected && spec && bffAvailable ? () => layout.start(spec.widgets, selected.title) : undefined}
       menu={
         <PerspectiveMenu
           state={{ selected, bffAvailable, concept: concept.name, pinnable: c.pinning.pinnable }}
@@ -79,7 +87,9 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
   const shown = spec && layout.widgets ? { ...spec, widgets: layout.widgets } : spec;
   const body = (
     <div className={styles.body}>
-      {shown ? (
+      {selected?.source === 'draft' && !layout.editing ? (
+        <NewViewChoices onAssistant={startWith.assistant} onManual={startWith.manual} onJson={startWith.json} />
+      ) : shown ? (
         <div className={styles.padded}>
           <ViewRenderer
             key={selected?.key}
@@ -92,7 +102,7 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
           />
         </div>
       ) : (
-        <ColumnEmpty loading={loading} onCreate={createWithAssistant} />
+        <ColumnEmpty loading={loading} onCreate={createView} />
       )}
     </div>
   );

@@ -25,6 +25,30 @@ export function newViewDraft(concept: string, from: ViewSpec | undefined, scope:
   return { title: `${concept} view`, spec, isDefault: false };
 }
 
+/**
+ * A blank view being created in a column, shown until one of the editors saves
+ * it. It starts with `queries` (the column's data) so widgets added by hand have something to show.
+ */
+export function draftViewEntry(
+  concept: string,
+  scope: ColumnKind,
+  queries: ViewSpec['queries'] = {},
+  now = Date.now(),
+): ViewEntry {
+  const id = newViewId(concept, now);
+  const spec: ViewSpec = { version: 1, id, concept, scope, title: 'New view', queries, widgets: [] };
+  return { key: `draft:${id}`, title: spec.title, source: 'draft', spec };
+}
+
+/**
+ * Prefill of the JSON editor from a view being edited in place (layout editor):
+ * a saved view is updated, any other is saved as a new one.
+ */
+export function editedViewDraft(entry: ViewEntry, spec: ViewSpec, scope: ColumnKind): ViewDraft {
+  if (entry.saved) return { title: spec.title, spec, isDefault: entry.saved.isDefault, editingId: entry.saved.id };
+  return { ...newViewDraft(spec.concept, spec, scope), title: spec.title };
+}
+
 /** Prefill for editing a saved perspective. */
 export function savedViewDraft(entry: ViewEntry): ViewDraft | null {
   if (!entry.saved) return null;

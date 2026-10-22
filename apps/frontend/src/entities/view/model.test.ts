@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { ViewSpec, Widget } from '@fluid/shared';
 import {
   columnEntries,
+  draftViewEntry,
+  editedViewDraft,
   injectItemId,
   newViewDraft,
   newViewId,
@@ -136,5 +138,35 @@ describe('preserveLayouts', () => {
       { x: 5, y: 5, w: 1, h: 1 },
       undefined,
     ]);
+  });
+});
+
+describe('draftViewEntry', () => {
+  it('is a blank, unsaved view scoped to the column', () => {
+    const queries = { account: { query: 'query { account(id: $id) { id } }' } };
+    const draft = draftViewEntry('Account', 'detail', queries, 35);
+    expect(draft).toMatchObject({ key: 'draft:account-view-z', source: 'draft', title: 'New view' });
+    expect(draft.spec).toMatchObject({ id: 'account-view-z', concept: 'Account', scope: 'detail', queries, widgets: [] });
+  });
+});
+
+describe('editedViewDraft', () => {
+  const edited = spec('v', { title: 'Renamed', widgets: [widget('w')] });
+
+  it('updates a saved view in place', () => {
+    const saved: ViewEntry = {
+      ...entry('db'),
+      source: 'saved',
+      saved: { id: 'db', concept: 'Account', title: 'db', spec: spec('db'), isDefault: true, createdAt: '', updatedAt: '' },
+    };
+    expect(editedViewDraft(saved, edited, 'list')).toEqual({ title: 'Renamed', spec: edited, isDefault: true, editingId: 'db' });
+  });
+
+  it('saves any other view as a new one, keeping the edits', () => {
+    const draft = editedViewDraft(entry('v'), edited, 'list');
+    expect(draft.editingId).toBeUndefined();
+    expect(draft.title).toBe('Renamed');
+    expect(draft.spec.id).not.toBe('v');
+    expect(draft.spec).toMatchObject({ scope: 'list', widgets: [widget('w')] });
   });
 });

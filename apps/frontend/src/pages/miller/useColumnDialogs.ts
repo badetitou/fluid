@@ -1,9 +1,11 @@
 import { useMemo, useReducer } from 'react';
+import type { ViewSpec } from '@fluid/shared';
 import type { SavedView, ViewDraft } from '../../entities/view';
 
 /** The editor open in a column, if any: at most one at a time. */
 export type ColumnDialog =
-  | { kind: 'assistant'; editing?: SavedView }
+  /** `from`: the spec the conversation starts from (edits made in another editor). */
+  | { kind: 'assistant'; editing?: SavedView; from?: ViewSpec }
   | { kind: 'json'; draft: ViewDraft }
   | null;
 
@@ -34,7 +36,8 @@ export function useColumnDialogs() {
   const [state, dispatch] = useReducer(columnDialogsReducer, { dialog: null, settingsOpen: false });
   const actions = useMemo(
     () => ({
-      openAssistant: (editing?: SavedView) => dispatch({ type: 'open', dialog: { kind: 'assistant', editing } }),
+      openAssistant: (editing?: SavedView, from?: ViewSpec) =>
+        dispatch({ type: 'open', dialog: { kind: 'assistant', editing, from } }),
       openJson: (draft: ViewDraft) => dispatch({ type: 'open', dialog: { kind: 'json', draft } }),
       close: () => dispatch({ type: 'close' }),
       openSettings: () => dispatch({ type: 'settings', open: true }),
