@@ -108,3 +108,62 @@ describe('buildConcept', () => {
     expect(buildConcept(null)).toBeNull();
   });
 });
+
+// Shaped like a Moose model server: traits and superclasses are interfaces.
+describe('interfaces', () => {
+  const list = (kind: string, name: string) => ({
+    kind: 'NON_NULL',
+    name: null,
+    ofType: { kind: 'LIST', name: null, ofType: { kind: 'NON_NULL', name: null, ofType: { kind, name } } },
+  });
+  const mooseRoot: IntrospectionType = {
+    kind: 'OBJECT',
+    name: 'Query',
+    description: null,
+    fields: [
+      { name: 'classes', description: null, args: [{ name: 'take', type: INT }], type: list('OBJECT', 'Class') },
+      { name: 'class', description: null, args: [{ name: 'id', type: ID_REQUIRED }], type: { kind: 'OBJECT', name: 'Class', ofType: null } },
+      { name: 'namedEntities', description: null, args: [{ name: 'take', type: INT }], type: list('INTERFACE', 'NamedEntity') },
+      { name: 'namedEntity', description: null, args: [{ name: 'id', type: ID_REQUIRED }], type: { kind: 'INTERFACE', name: 'NamedEntity', ofType: null } },
+      { name: 'rootEntities', description: null, args: [{ name: 'take', type: INT }], type: list('INTERFACE', 'MooseEntity') },
+    ],
+  };
+
+  it('lists interface root fields as concepts', () => {
+    const { queriesByType } = buildRootQueries(mooseRoot);
+    expect(queriesByType.get('NamedEntity')).toEqual({
+      list: { field: 'namedEntities', limitArg: 'take' },
+      byId: { field: 'namedEntity', idType: undefined },
+    });
+    expect(queriesByType.get('MooseEntity')).toEqual({ list: { field: 'rootEntities', limitArg: 'take' } });
+    expect(queriesByType.has('Class')).toBe(true);
+  });
+
+  it('builds an interface concept with its concrete types, and an object with its supertypes', () => {
+    const iface = buildConcept({
+      kind: 'INTERFACE',
+      name: 'MooseEntity',
+      description: null,
+      interfaces: [],
+      possibleTypes: [{ name: 'Class' }, { name: 'Method' }],
+      fields: [
+        { name: 'id', description: null, args: [], type: { kind: 'SCALAR', name: 'ID', ofType: null } },
+        { name: 'children', description: null, args: [{ name: 'take', type: INT }], type: list('INTERFACE', 'MooseEntity') },
+      ],
+    })!;
+    expect(iface.possibleTypes).toEqual(['Class', 'Method']);
+    expect(iface.relationFields.map((f) => `${f.name}:${f.typeName}:${f.typeKind}`)).toEqual(['children:MooseEntity:INTERFACE']);
+
+    const cls = buildConcept({
+      kind: 'OBJECT',
+      name: 'Class',
+      description: null,
+      interfaces: [{ name: 'MooseEntity' }, { name: 'NamedEntity' }],
+      possibleTypes: null,
+      fields: [],
+    })!;
+    expect(cls.possibleTypes).toBeUndefined();
+    expect(cls.interfaces).toEqual(['MooseEntity', 'NamedEntity']);
+  });
+});
+

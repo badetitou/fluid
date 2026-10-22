@@ -5,8 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import type { DescriptionsWidget as DescriptionsWidgetSpec } from '@fluid/shared';
 import { getPath } from '../data';
 import { formatValue } from '../format';
-import { getNavigationId } from '../../navigation/linkExtractor';
-import { useNavigationHref } from '../../navigation/columnPath';
+import { useLinkHref } from '../../navigation/columnPath';
 
 export function DescriptionsWidget({
   widget,
@@ -16,7 +15,7 @@ export function DescriptionsWidget({
   object: Record<string, unknown> | null;
 }) {
   const navigate = useNavigate();
-  const hrefFor = useNavigationHref();
+  const hrefOf = useLinkHref();
 
   if (!object) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No data" />;
 
@@ -24,24 +23,18 @@ export function DescriptionsWidget({
     const value = getPath(object, item.key);
     const formatted = formatValue(value, item.format, { currency: item.currency });
 
-    // If the item has a linkTo config, render as a link
-    if (item.linkTo) {
-      const idFieldPath = item.linkTo.idField ?? 'id';
-      const idValue = getNavigationId(object, idFieldPath);
-      
-      if (idValue) {
-        const href = hrefFor(item.linkTo.concept, idValue);
-
-        return {
-          key: item.key,
-          label: item.label,
-          children: (
-            <a onClick={() => navigate(href)} style={{ cursor: 'pointer' }}>
-              {formatted} <RightOutlined style={{ fontSize: 10 }} />
-            </a>
-          ),
-        };
-      }
+    // An item with a linkTo config renders as a link (to the concrete type of an interface).
+    const href = hrefOf(object, item.linkTo);
+    if (href) {
+      return {
+        key: item.key,
+        label: item.label,
+        children: (
+          <a onClick={() => navigate(href)} style={{ cursor: 'pointer' }}>
+            {formatted} <RightOutlined style={{ fontSize: 10 }} />
+          </a>
+        ),
+      };
     }
 
     return {

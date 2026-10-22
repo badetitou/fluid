@@ -11,10 +11,15 @@ const CODE_NAMES = /(sourceCode|snippet|script|codeSnippet|codeBlock|sql|stylesh
 const LINK_NAMES = /^(dependencies|dependents|dependsOn|usedBy|uses|calls|callers|callees|invocations|imports|importedBy|references|referencedBy|links|edges|neighbou?rs|follows|followers|following)$/i;
 const TEXT_SCALARS = /^(markdown|md|richtext|json|jsonobject|jsonstring|code|sourcecode|yaml)$/i;
 
+/** The concept itself or one of its supertypes (e.g. `children: [MooseEntity]` on a Class). */
+const isSelfOrSupertype = (schema: ConceptSchemaInfo, typeName: string) =>
+  typeName === schema.name || Boolean(schema.interfaces?.includes(typeName));
+
 /** Self-referencing fields: a list of the concept itself (children) or a single one (parent). */
 function hierarchyHints(schema: ConceptSchemaInfo): string[] {
   const self = schema.fields.filter(
-    (f) => !f.isScalar && f.typeName === schema.name && !LINK_NAMES.test(f.name) && !SUPERCLASS_FIELD_NAMES.test(f.name),
+    (f) =>
+      !f.isScalar && isSelfOrSupertype(schema, f.typeName) && !LINK_NAMES.test(f.name) && !SUPERCLASS_FIELD_NAMES.test(f.name),
   );
   return self.map((f) =>
     f.isList
@@ -78,6 +83,25 @@ function textHints(schema: ConceptSchemaInfo): string[] {
     });
 }
 
+/**
+ * Interfaces (the concept or a related type): their items are of several
+ * concrete types, read with inline fragments and told apart by `__typename`.
+ */
+function interfaceHints(schema: ConceptSchemaInfo): string[] {
+  const own = schema.possibleTypes?.length
+    ? [`${schema.name} is an interface: each item is one of ${schema.possibleTypes.join(', ')}.`]
+    : [];
+  const related = (schema.related ?? [])
+    .filter((r) => r.possibleTypes?.length)
+    .map((r) => `${r.name} (related) is an interface: its items are ${r.possibleTypes!.join(', ')}.`);
+  if (own.length + related.length === 0) return [];
+  return [
+    ...own,
+    ...related,
+    'Select an interface\'s own fields directly, and the fields of one concrete type with an inline fragment: `... on <Type> { field }`. `__typename` gives each item\'s concrete type (group or color by it); a "linkTo" with the interface as "concept" opens each item in its concrete type.',
+  ];
+}
+
 /** Structure hints for the prompt, or null when the concept has nothing special. */
 export function renderStructureHints(schema: ConceptSchemaInfo): string | null {
   const hints = [
@@ -86,6 +110,7 @@ export function renderStructureHints(schema: ConceptSchemaInfo): string | null {
     ...inheritanceHints(schema),
     ...networkHints(schema),
     ...textHints(schema),
+    ...interfaceHints(schema),
   ];
   return hints.length ? ['Structure hints:', ...hints.map((h) => `  - ${h}`)].join('\n') : null;
 }

@@ -115,3 +115,19 @@ describe('buildDetailView with structure', () => {
     expect(view.widgets.filter((w) => w.type === 'code')).toMatchObject([{ field: 'sourceCode' }]);
   });
 });
+
+describe('trees over an interface', () => {
+  it('selects and links the children with the fields of their supertype', () => {
+    const entity = concept('MooseEntity', [relation('children', 'MooseEntity', true)], {
+      possibleTypes: ['Class', 'Package'],
+      scalarFields: [scalar('id', 'ID'), scalar('name')],
+    });
+    const pkg = concept('Package', [relation('children', 'MooseEntity', true)], { queries: { byId: { field: 'package' } } });
+    const view = buildDetailView(pkg, related(pkg, entity))!;
+    const tree = treeOf(view.widgets)!;
+    expect(tree.childrenField).toBe('children');
+    // MooseEntity has no by-id query: each node opens in its concrete type.
+    expect(tree.linkTo).toEqual({ concept: 'MooseEntity', idField: 'id' });
+  });
+});
+

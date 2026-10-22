@@ -13,7 +13,7 @@ import type {
   MutationArg,
 } from './introspectionTypes';
 import { splitMutationName } from '@fluid/shared';
-import { typeRefToString, unwrapType } from './introspectionTypes';
+import { COMPOSITE_KINDS, typeRefToString, unwrapType } from './introspectionTypes';
 
 /** A shallow introspection hides argument types: `input` is then the usual name of the input object. */
 const INPUT_ARG_NAMES = ['input', 'data'];
@@ -54,7 +54,7 @@ export function classifyMutation(
 ): { concept: string; mutation: ConceptMutation } | null {
   const { kind, subject } = splitMutationName(field.name);
   const returned = unwrapType(field.type);
-  const returnsConcept = returned.kind === 'OBJECT' && !!returned.name && concepts.has(returned.name);
+  const returnsConcept = COMPOSITE_KINDS.has(returned.kind) && !!returned.name && concepts.has(returned.name);
   const concept = returnsConcept ? returned.name! : matchConcept(subject, concepts);
   if (!concept) return null;
 

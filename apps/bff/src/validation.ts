@@ -49,8 +49,16 @@ const conceptSchemaInfo = z.object({
       description: z.string().nullish(),
     }),
   ),
+  possibleTypes: z.array(z.string()).optional(),
+  interfaces: z.array(z.string()).optional(),
   related: z
-    .array(z.object({ name: z.string(), fields: z.array(z.string()).optional() }))
+    .array(
+      z.object({
+        name: z.string(),
+        fields: z.array(z.string()).optional(),
+        possibleTypes: z.array(z.string()).optional(),
+      }),
+    )
     .optional(),
   paths: z
     .array(

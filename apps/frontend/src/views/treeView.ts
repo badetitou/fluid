@@ -20,11 +20,15 @@ function nodeFields(concept: Concept, related?: RelatedConcepts): { key?: string
   return { key: hasKey ? key : undefined, label, selection: [...names].join(' ') };
 }
 
-/** Link opening a node of `concept` in its own column, when it has a key and a by-id query. */
+/**
+ * Link opening a node of `concept` in its own column, when it has a key and a
+ * by-id query, or is an interface (the node then opens in its concrete type).
+ */
 function nodeLink(concept: Concept, related?: RelatedConcepts): LinkTo | null {
   const queries = related?.queriesByType.get(concept.name) ?? concept.queries;
   const { key } = nodeFields(concept, related);
-  return queries.byId && key !== undefined ? { concept: concept.name, idField: key } : null;
+  const canOpen = Boolean(queries.byId) || Boolean(concept.possibleTypes?.length);
+  return canOpen && key !== undefined ? { concept: concept.name, idField: key } : null;
 }
 
 /** `fields child { fields child { … } }`, `depth` levels of children deep. */
@@ -53,12 +57,21 @@ export function treePart(concept: Concept, hierarchy: Hierarchy, related?: Relat
   const own = nodeFields(concept, related);
   const linkTo = nodeLink(concept, related) ?? undefined;
   switch (hierarchy.kind) {
-    case 'children':
+    case 'children': {
+      // Children may be of a supertype (e.g. `children: [MooseEntity]`): select their own fields.
+      const childConcept = related?.conceptByName.get(hierarchy.field.typeName) ?? concept;
+      const child = childConcept === concept ? own : nodeFields(childConcept, related);
       return {
-        selection: `${hierarchy.field.name} { ${recursiveSelection(own.selection, hierarchy.field.name, TREE_DEPTH - 1)} }`,
-        widget: { childrenField: hierarchy.field.name, keyField: own.key, labelField: own.label, linkTo },
+        selection: `${hierarchy.field.name} { ${recursiveSelection(child.selection, hierarchy.field.name, TREE_DEPTH - 1)} }`,
+        widget: {
+          childrenField: hierarchy.field.name,
+          keyField: child.key,
+          labelField: child.label,
+          linkTo: childConcept === concept ? linkTo : (nodeLink(childConcept, related) ?? undefined),
+        },
         title: `${humanize(concept.name)} tree`,
       };
+    }
     case 'parent':
       return {
         selection: `${hierarchy.field.name} { ${own.key ?? own.label} }`,

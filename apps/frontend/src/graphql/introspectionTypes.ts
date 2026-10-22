@@ -23,7 +23,14 @@ export interface IntrospectionType {
   name: string | null;
   description: string | null;
   fields: IntrospectionField[] | null;
+  /** Interfaces an object (or interface) type implements; absent from older results. */
+  interfaces?: { name: string | null }[] | null;
+  /** Concrete types of an interface or union; null for an object type. */
+  possibleTypes?: { name: string | null }[] | null;
 }
+
+/** Kinds whose values have fields to select: concepts a user can explore. */
+export const COMPOSITE_KINDS: ReadonlySet<string> = new Set(['OBJECT', 'INTERFACE']);
 
 export interface RootTypeResult {
   __schema: {
@@ -127,6 +134,13 @@ export interface Concept {
   queries: ConceptQueries;
   /** Root mutations writing this concept; absent when the source has none. */
   mutations?: ConceptMutations;
+  /**
+   * Set for an interface: the concrete types its values may be (their
+   * `__typename`). Fields of a concrete type are read with `... on Type { }`.
+   */
+  possibleTypes?: string[];
+  /** Interfaces this type implements (its supertypes), when the source has any. */
+  interfaces?: string[];
 }
 
 

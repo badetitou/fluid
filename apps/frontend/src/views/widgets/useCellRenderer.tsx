@@ -4,21 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import type { Column, LinkTo } from '@fluid/shared';
 import { getPath } from '../data';
 import { formatValue } from '../format';
-import { getNavigationId } from '../../navigation/linkExtractor';
-import { useNavigationHref } from '../../navigation/columnPath';
+import { useLinkHref } from '../../navigation/columnPath';
 import styles from './Cell.module.css';
 
-/** The route opening the item a row links to, when the row has its id. */
-export function useLinkHref(): (row: Record<string, unknown>, linkTo?: LinkTo) => string | undefined {
-  const hrefFor = useNavigationHref();
-  return useCallback(
-    (row, linkTo) => {
-      const id = linkTo ? getNavigationId(row, linkTo.idField ?? 'id') : undefined;
-      return linkTo && id ? hrefFor(linkTo.concept, id) : undefined;
-    },
-    [hrefFor],
-  );
-}
+export { useLinkHref };
 
 /** Wraps `content` in a link opening the linked item's column, when `row` has its id. */
 export function useLinkRenderer(): (content: ReactNode, row: Record<string, unknown>, linkTo?: LinkTo) => ReactNode {

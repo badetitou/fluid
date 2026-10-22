@@ -75,6 +75,7 @@ export function buildConceptSchemaPayload(
     related.push({
       name: rf.typeName,
       fields: target ? target.scalarFields.slice(0, 6).map((f) => f.name) : undefined,
+      ...(target?.possibleTypes?.length && { possibleTypes: target.possibleTypes }),
     });
   }
 
@@ -95,6 +96,8 @@ export function buildConceptSchemaPayload(
       isScalar: f.isScalar,
       description: f.description,
     })),
+    ...(concept.possibleTypes?.length && { possibleTypes: concept.possibleTypes }),
+    ...(concept.interfaces?.length && { interfaces: concept.interfaces }),
     related,
     paths: buildRelationPaths(concept, conceptByName),
   };

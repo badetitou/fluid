@@ -35,6 +35,8 @@ function typeSelection(depth: IntrospectionDepth): string {
   return `kind
       name
       description
+      interfaces { name }
+      possibleTypes { name }
       fields(includeDeprecated: false) {
         name
         description
