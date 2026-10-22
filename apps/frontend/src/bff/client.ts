@@ -1,4 +1,4 @@
-import type { ViewScope, ViewSpec, Widget } from '@fluid/shared';
+import type { ViewScope, ViewSpec, ViewWidgetInfo, Widget, WidgetCatalogRequest } from '@fluid/shared';
 import { BFF_URL } from '../runtime-config';
 
 // Thin fetch wrapper around the Fluid BFF REST API (view persistence + prefs).
@@ -100,6 +100,7 @@ export interface GenerateViewPayload {
   prompt: string;
   /** List or detail column the view is generated for. */
   scope?: ViewScope;
+  widgets?: WidgetCatalogRequest;
   history?: ChatMessage[];
   config?: LlmConfigOverrides;
 }
@@ -117,6 +118,9 @@ export interface GenerateWidgetPayload {
   prompt: string;
   existingWidget?: Widget;
   viewQueries?: Record<string, string>;
+  /** The other widgets of the view, whose outputs the new widget may read. */
+  viewWidgets?: ViewWidgetInfo[];
+  widgets?: WidgetCatalogRequest;
   history?: ChatMessage[];
   config?: LlmConfigOverrides;
 }

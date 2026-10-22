@@ -1,5 +1,5 @@
 import type { ChatMessage, ConceptSchemaInfo, GenerateViewInput, GenerateWidgetInput } from './types';
-import { accordionWidgetDoc, codeWidgetDoc, historyWidgetDoc, richTextWidgetDoc, scatterWidgetDoc, treeWidgetDoc } from '@fluid/shared';
+import { renderPortDocs, renderWidgetDocs, resolveWidgetCatalog, type WidgetContract } from '@fluid/shared';
 import { detectLinkCandidates, formatLinkCandidatesForPrompt } from './linkDetection';
 import { renderStructureHints } from './structureHints';
 import { graphScopeInstructions, isGraphSchema } from './graphScope';
@@ -29,7 +29,7 @@ export const QUESTION_RULES = [
   '  * Follow relations as deep as the question needs (see the reachable relations).',
 ].join('\n');
 
-const CONTRACT = `You output a response with TWO SECTIONS:
+const contract = (widgets: WidgetContract[]) => `You output a response with TWO SECTIONS:
 
 1. REASONING (optional - help the user understand your thinking):
    Start with a "THINKING:" line, then list your reasoning steps. Each step starts with "- ".
@@ -52,31 +52,9 @@ The JSON is a Fluid "view draft" with this exact shape:
   "widgets": [ Widget, ... ]
 }
 
-Each Widget is one of these discriminated shapes (field "type"):
-- { "id": string, "type": "statistic", "title"?: string, "span"?: 1..24,
-    "data": { "query": "<queries key>", "path"?: "<dot path to array/object>", "transform"?: Transform },
-    "value": { "op": "count"|"sum"|"avg"|"min"|"max", "field"?: string }, "format"?: Format, "precision"?: number }
-- { "id": string, "type": "table", "title"?: string, "span"?: 1..24,
-    "data": { "query": ..., "path"?: ..., "transform"?: Transform },
-    "columns": [ { "key": string, "title"?: string, "format"?: Format, "linkTo"?: LinkConfig, "width"?: number } ], "pageSize"?: number,
-    "sortable"?: boolean, "filterable"?: boolean }  // header sorting / value filters, default true; set false only on request
-    ⭐ TABLE WIDGET IS THE PRIMARY WIDGET FOR INTERACTIVE NAVIGATION ⭐
-    ⭐ EVERY TABLE COLUMN REPRESENTING AN ID OR RELATIONSHIP MUST HAVE linkTo ⭐
-- { "id": string, "type": "descriptions", "title"?: string, "span"?: 1..24,
-    "data": { "query": ..., "path"?: ... },
-    "items": [ { "label": string, "key": string, "format"?: Format, "linkTo"?: LinkConfig } ] }
-- { "id": string, "type": "line"|"area"|"bar", "title"?: string, "span"?: 1..24,
-    "data": { "query": ..., "path"?: ..., "transform"?: Transform },
-    "xField": string, "yField": string, "seriesField"?: string, "height"?: number }   // "bar" renders vertical columns
-- { "id": string, "type": "pie", "title"?: string, "span"?: 1..24,
-    "data": { "query": ..., "path"?: ..., "transform"?: Transform },
-    "angleField": string, "colorField": string, "height"?: number }
-${treeWidgetDoc}
-${richTextWidgetDoc}
-${scatterWidgetDoc}
-${historyWidgetDoc}
-${codeWidgetDoc}
-${accordionWidgetDoc}
+Each Widget is one of these discriminated shapes (field "type"); use ONLY these types:
+${renderWidgetDocs(widgets)}
+${renderPortDocs(widgets)}
 
 LinkConfig (FEATURE: Infinite Navigation - enables Miller list-style drilling):
   "linkTo": { "concept": "<target concept name>", "idField"?: "<dot path to ID>" }
@@ -115,7 +93,7 @@ ${QUESTION_RULES.replace(/^/gm, '  ')}
   * If request mentions "detail", "single item", "this", "show relationships" → CREATE DESCRIPTIONS widget
   * If request asks for "links" or "clickable" → add linkTo to TABLE columns (not descriptions)
   * When in doubt, default to TABLE (lists with links are more useful for navigation)
-- Build a DASHBOARD: a couple of statistics, one table, and one or two charts. Minimal descriptive text (for a question, focus on the answer instead).
+- Build a DASHBOARD from the available widget types: a couple of statistics, one table, and one or two charts when charts are available. Minimal descriptive text (for a question, focus on the answer instead).
 - **ALWAYS ADD NAVIGATION LINKS (linkTo) - THIS IS ESSENTIAL FOR MILLER LIST INTERACTION**:
   * For TABLE widgets: EVERY column that displays an ID or represents a relationship MUST have linkTo
   * Example: A "customers" table MUST have linkTo on the "id" column: { "concept": "Customer" }
@@ -238,7 +216,7 @@ export function buildMessages(input: GenerateViewInput): ChatMessage[] {
     'You can make the dashboard INTERACTIVE by adding "linkTo" to table columns and description items,',
     'enabling users to navigate infinitely between related objects (Miller list style).',
     '',
-    CONTRACT,
+    contract(resolveWidgetCatalog(input.widgets)),
     '',
     'Concept schema:',
     renderSchema(input.schema),
@@ -304,7 +282,7 @@ export function buildRepairMessage(errorText: string, previous: string): ChatMes
 
 // Widget-specific contract and prompt building
 
-const WIDGET_CONTRACT = `You output a response with TWO SECTIONS:
+const widgetContract = (widgets: WidgetContract[]) => `You output a response with TWO SECTIONS:
 
 1. REASONING (optional - help the user understand your thinking):
    Start with a "THINKING:" line, then list your reasoning steps. Each step starts with "- ".
@@ -312,28 +290,9 @@ const WIDGET_CONTRACT = `You output a response with TWO SECTIONS:
 2. JSON OBJECT (required):
    Then, output ONE JSON widget object only — no markdown fences, no comments, no prose around it.
 
-The JSON is a Fluid "widget draft" with one of these discriminated shapes (field "type"):
-- { "type": "statistic", "title"?: string, "span"?: 1..24,
-    "data": { "query": "<query key>", "path"?: "<dot path>", "transform"?: Transform },
-    "value": { "op": "count"|"sum"|"avg"|"min"|"max", "field"?: string }, "format"?: Format, "precision"?: number }
-- { "type": "table", "title"?: string, "span"?: 1..24,
-    "data": { "query": "<query key>", "path"?: "<dot path>", "transform"?: Transform },
-    "columns": [ { "key": string, "title"?: string, "format"?: Format, "linkTo"?: LinkConfig, "width"?: number } ], "pageSize"?: number }
-- { "type": "descriptions", "title"?: string, "span"?: 1..24,
-    "data": { "query": "<query key>", "path"?: "<dot path>" },
-    "items": [ { "label": string, "key": string, "format"?: Format, "linkTo"?: LinkConfig } ] }
-- { "type": "line"|"area"|"bar", "title"?: string, "span"?: 1..24,
-    "data": { "query": "<query key>", "path"?: "<dot path>", "transform"?: Transform },
-    "xField": string, "yField": string, "colorField"?: string, "height"?: number }
-- { "type": "pie", "title"?: string, "span"?: 1..24,
-    "data": { "query": "<query key>", "path"?: "<dot path>", "transform"?: Transform },
-    "angleField": string, "colorField": string, "height"?: number }
-${treeWidgetDoc.replace('"id": string, ', '')}
-${richTextWidgetDoc.replace('"id": string, ', '')}
-${scatterWidgetDoc.replace('"id": string, ', '')}
-${historyWidgetDoc.replace('"id": string, ', '')}
-${codeWidgetDoc.replace('"id": string, ', '')}
-${accordionWidgetDoc.replace('"id": string, ', '')}
+The JSON is a Fluid "widget draft" with one of these discriminated shapes (field "type"); use ONLY these types:
+${renderWidgetDocs(widgets, { withId: false })}
+${renderPortDocs(widgets)}
 
 Transform: { "derive"?: [ { "as": string, "op": "count"|"sum"|"avg"|"min"|"max"|"first", "field"?: string } ], "groupBy"?: string, "aggregate"?: { "field"?: string }, "sort"?: { "by": string, "dir": "asc"|"desc" }, "limit"?: number }
   "derive" adds per-row computed fields over nested data (e.g. sum of "accounts.transactions.amount"), usable by sort, groupBy, columns and chart fields.
@@ -352,7 +311,7 @@ export function buildWidgetMessages(input: GenerateWidgetInput): ChatMessage[] {
     'You are Fluid\'s widget generator. Given a GraphQL concept and a user request, you generate a single dashboard widget as a JSON widget draft.',
     'You can make the widget INTERACTIVE by adding "linkTo" to table columns, enabling users to navigate between related objects (Miller list style).',
     '',
-    WIDGET_CONTRACT,
+    widgetContract(resolveWidgetCatalog(input.widgets)),
     '',
     'Concept schema:',
     renderSchema(input.schema),
@@ -375,6 +334,15 @@ export function buildWidgetMessages(input: GenerateWidgetInput): ChatMessage[] {
   if (input.existingWidget) {
     contextParts.push('EXISTING WIDGET (current state):');
     contextParts.push(JSON.stringify(input.existingWidget, null, 2));
+    contextParts.push('');
+  }
+
+  if (input.viewWidgets?.length) {
+    contextParts.push('OTHER WIDGETS OF THE VIEW (their outputs can feed this widget, see WIRING):');
+    for (const w of input.viewWidgets) {
+      const outputs = w.outputs?.length ? ` — outputs: ${w.outputs.join(', ')}` : '';
+      contextParts.push(`  "${w.id}": ${w.type}${w.title ? ` "${w.title}"` : ''}${outputs}`);
+    }
     contextParts.push('');
   }
 

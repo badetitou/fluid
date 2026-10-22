@@ -9,6 +9,7 @@ import {
 import { accordionWidgetFields } from './widgets/accordion';
 import { codeWidgetSchema } from './widgets/code';
 import { historyWidgetDraftSchema, historyWidgetSchema } from './widgets/history';
+import { pluginWidgetDraftSchema, pluginWidgetSchema, type PluginWidget } from './widgets/plugin';
 import { richTextWidgetSchema } from './widgets/richtext';
 import { scatterWidgetSchema } from './widgets/scatter';
 import { treeWidgetSchema } from './widgets/tree';
@@ -16,7 +17,9 @@ import { treeWidgetSchema } from './widgets/tree';
 export * from './widgets/accordion';
 export * from './widgets/code';
 export * from './widgets/common';
+export * from './widgets/coreDocs';
 export * from './widgets/history';
+export * from './widgets/plugin';
 export * from './widgets/richtext';
 export * from './widgets/scatter';
 export * from './widgets/tree';
@@ -176,10 +179,16 @@ const leafWidgetSchemas = [
   codeWidgetSchema,
 ] as const;
 
-export type Widget = z.infer<(typeof leafWidgetSchemas)[number]> | AccordionWidget;
-export const widgetSchema = z.discriminatedUnion('type', [...leafWidgetSchemas, accordionWidgetSchema]);
+/** A widget fluid ships; plugin widgets are typed `PluginWidget`. */
+export type CoreWidget = z.infer<(typeof leafWidgetSchemas)[number]> | AccordionWidget;
+export type Widget = CoreWidget | PluginWidget;
+const coreWidgetSchema = z.discriminatedUnion('type', [...leafWidgetSchemas, accordionWidgetSchema]);
+/** Any widget: a built-in one, or a plugin's (`"<pluginId>/<name>"`, checked against the plugin catalog). */
+export const widgetSchema = z.union([coreWidgetSchema, pluginWidgetSchema]);
+export type CoreWidgetType = CoreWidget['type'];
 export type WidgetType = Widget['type'];
 
+/** The built-in widget types. */
 export const WIDGET_TYPES = [
   'table',
   'statistic',
@@ -284,7 +293,7 @@ const scatterWidgetDraftSchema = scatterWidgetSchema.omit({ id: true });
 const codeWidgetDraftSchema = codeWidgetSchema.omit({ id: true });
 const accordionWidgetDraftSchema = accordionWidgetSchema.omit({ id: true });
 
-export const widgetDraftSchema = z.discriminatedUnion('type', [
+const coreWidgetDraftSchema = z.discriminatedUnion('type', [
   tableWidgetDraftSchema,
   statisticWidgetDraftSchema,
   descriptionsWidgetDraftSchema,
@@ -299,6 +308,7 @@ export const widgetDraftSchema = z.discriminatedUnion('type', [
   codeWidgetDraftSchema,
   accordionWidgetDraftSchema,
 ]);
+export const widgetDraftSchema = z.union([coreWidgetDraftSchema, pluginWidgetDraftSchema]);
 export type WidgetDraft = z.infer<typeof widgetDraftSchema>;
 
 /** Parse an unknown value as a draft widget (returns a SafeParseReturnType). */

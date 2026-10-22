@@ -1,10 +1,11 @@
 import { Button, Card, Col, Row, Segmented, Space, Typography } from 'antd';
 import { CompressOutlined, ExpandOutlined, MoonOutlined, SunOutlined } from '@ant-design/icons';
+import { ThemeSelect } from '../../features/plugin-manager';
 import { usePreferences } from '../../store';
 import type { Density, ThemeMode } from '../../theme';
 import styles from './SettingsPage.module.css';
 
-/** Theme, navbar side and density. */
+/** Theme, light/dark mode, navbar side and density. */
 export function InterfaceCard() {
   const themeMode = usePreferences((s) => s.themeMode);
   const setThemeMode = usePreferences((s) => s.setThemeMode);
@@ -18,7 +19,7 @@ export function InterfaceCard() {
       <Space orientation="vertical" className={styles.full}>
         <Row gutter={16}>
           <Col span={12}>
-            <Typography.Text strong>Theme</Typography.Text>
+            <Typography.Text strong>Mode</Typography.Text>
             <Segmented<ThemeMode>
               block
               className={styles.control}
@@ -50,6 +51,10 @@ export function InterfaceCard() {
                 { label: 'Compact', value: 'compact', icon: <CompressOutlined /> },
               ]}
             />
+          </Col>
+          <Col span={12}>
+            <Typography.Text strong>Theme</Typography.Text>
+            <ThemeSelect className={styles.control} />
           </Col>
         </Row>
       </Space>

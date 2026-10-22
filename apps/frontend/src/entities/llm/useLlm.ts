@@ -8,18 +8,20 @@ import {
 } from '../../bff/client';
 import { toConfigOverrides } from '../../llm/conceptSchema';
 import { useLlmSettings } from '../../store';
+import { currentCatalogRequest } from '../plugin';
 
-type WithoutConfig<T> = Omit<T, 'config'>;
+type WithoutConfig<T> = Omit<T, 'config' | 'widgets'>;
 
 /**
- * LLM generation through the BFF, with the user's provider settings applied.
- * Settings are read when a request starts, so the callbacks stay stable.
+ * LLM generation through the BFF, with the user's provider settings and the
+ * widgets of the enabled plugins applied. Both are read when a request starts,
+ * so the callbacks stay stable.
  */
 export function useLlmGenerate() {
   const generateView = useCallback(
     (payload: WithoutConfig<GenerateViewPayload>, onDelta: (d: LlmDelta) => void, signal?: AbortSignal) =>
       bffClient.generateViewStream(
-        { ...payload, config: toConfigOverrides(useLlmSettings.getState()) },
+        { ...payload, widgets: currentCatalogRequest(), config: toConfigOverrides(useLlmSettings.getState()) },
         onDelta,
         signal,
       ),
@@ -27,7 +29,11 @@ export function useLlmGenerate() {
   );
   const generateWidget = useCallback(
     (payload: WithoutConfig<GenerateWidgetPayload>) =>
-      bffClient.generateWidget({ ...payload, config: toConfigOverrides(useLlmSettings.getState()) }),
+      bffClient.generateWidget({
+        ...payload,
+        widgets: currentCatalogRequest(),
+        config: toConfigOverrides(useLlmSettings.getState()),
+      }),
     [],
   );
   return { generateView, generateWidget };

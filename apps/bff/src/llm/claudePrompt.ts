@@ -1,5 +1,5 @@
 import type { ChatMessage, ConceptSchemaInfo, GenerateViewInput } from './types';
-import { accordionWidgetDoc, codeWidgetDoc, historyWidgetDoc, richTextWidgetDoc, scatterWidgetDoc, treeWidgetDoc } from '@fluid/shared';
+import { renderPortDocs, renderWidgetDocs, resolveWidgetCatalog, type WidgetContract } from '@fluid/shared';
 import { detectLinkCandidates } from './linkDetection';
 import { renderStructureHints } from './structureHints';
 import {
@@ -15,7 +15,7 @@ import {
 // schema each get their own tag, and the answer is split into a short
 // <reasoning> list (streamed live to the user) and a <view> JSON object.
 
-const SYSTEM = `You are the view designer of Fluid, a web app that lets people explore a GraphQL backend the way a Smalltalk inspector explores objects. For one concept (a GraphQL object type) you design a compact, data-dense dashboard and return it as a declarative JSON "view draft" that Fluid renders with Ant Design widgets. Your output is parsed by a program, so the format rules below are strict.
+const system = (widgets: WidgetContract[]) => `You are the view designer of Fluid, a web app that lets people explore a GraphQL backend the way a Smalltalk inspector explores objects. For one concept (a GraphQL object type) you design a compact, data-dense dashboard and return it as a declarative JSON "view draft" that Fluid renders with Ant Design widgets. Your output is parsed by a program, so the format rules below are strict.
 
 <output_format>
 Answer with exactly two tagged sections and nothing else:
@@ -41,18 +41,9 @@ The <view> section holds raw JSON only: no markdown fences, no comments, no trai
 Every widget has: "id" (unique string), "type", optional "title", optional "span" (1..24, Ant Design grid; widgets wrap into rows of 24), optional "height" (px, charts), and
 "data": { "query": "<key of queries>", "path"?: "<dot path from the query result to the array or object>", "transform"?: Transform }
 
-Widget types:
-- "statistic": "value": { "op": "count"|"sum"|"avg"|"min"|"max"|"first", "field"?: "<numeric field, required except for count>" }, "format"?: "number"|"currency"|"percent", "currency"?: "EUR", "precision"?: 0..6, "prefix"?, "suffix"?
-- "table": "columns": [ { "key": "<dot path in the row>", "title"?, "format"?: Format, "currency"?, "width"?, "linkTo"?: LinkTo } ], "pageSize"?: number, "sortable"?: boolean, "filterable"?: boolean (header sorting and value filters, both on by default; set false only when the user asks)
-- "descriptions": binds ONE object (or the first array element); "items": [ { "label", "key", "format"?, "linkTo"? } ], "columns"?: 1..4
-- "line" | "area" | "bar": "xField", "yField", "colorField"? ("bar" renders vertical columns)
-- "pie": "angleField" (numeric), "colorField" (category)
-${treeWidgetDoc}
-${richTextWidgetDoc}
-${scatterWidgetDoc}
-${historyWidgetDoc}
-${codeWidgetDoc}
-${accordionWidgetDoc}
+Widget types (use ONLY these):
+${renderWidgetDocs(widgets)}
+${renderPortDocs(widgets)}
 
 Format: "text"|"number"|"currency"|"percent"|"date"|"datetime"|"tag"|"boolean"|"image"|"markdown"|"code"
   "image" only for String fields holding a picture URL (avatar, portrait, photo, logo…); the user must click to load it.
@@ -72,7 +63,7 @@ LinkTo: { "concept": "<target concept>", "idField"?: "<dot path to the target id
 - Statistics and charts on numbers must use numeric fields (Int/Float). Use enum fields for groupings and "tag" formatting.
 - Dates: "date"/"datetime" format; time-series charts sort by the date field ascending.
 - Add "linkTo" to identifier and relationship columns: { "concept": "<Self>" } on the row's own "id", and { "concept": "<Related>", "idField": "<relation>.id" } on a related object's column (select "<relation> { id ... }" in the query).
-- Lay out a dashboard: a row of 2 to 4 statistics, one or two charts, then a table (span 24). Little prose. For a question, lay out the answer instead (see <questions>).
+- Lay out a dashboard with the available widget types: a row of 2 to 4 statistics, one or two charts when charts are available, then a table (span 24). Little prose. For a question, lay out the answer instead (see <questions>).
 - When refining a previous view, start from it and change only what the user asks; keep widget ids stable.
 </rules>
 
@@ -139,7 +130,7 @@ function renderLinkHints(schema: ConceptSchemaInfo): string {
 
 /** Messages for a Claude view generation (system prompt + one user turn, plus history). */
 export function buildClaudeMessages(input: GenerateViewInput): ChatMessage[] {
-  const messages: ChatMessage[] = [{ role: 'system', content: SYSTEM }];
+  const messages: ChatMessage[] = [{ role: 'system', content: system(resolveWidgetCatalog(input.widgets)) }];
   for (const m of input.history ?? []) {
     if (m.role === 'user' || m.role === 'assistant') messages.push(m);
   }

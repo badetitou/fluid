@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Table } from 'antd';
 import type { TableColumnsType } from 'antd';
 import type { Column, TableWidget as TableWidgetSpec } from '@fluid/shared';
 import { useCellRenderer } from './useCellRenderer';
+import styles from './TableWidget.module.css';
 import { compareRows, filterOptions, humanize, inferColumns, matchesFilter, type Row } from './tableModel';
 
 const EMPTY_LABEL = '(empty)';
@@ -19,8 +21,16 @@ function interactions(col: Column, rows: Row[], widget: TableWidgetSpec): Partia
   return out;
 }
 
-export function TableWidget({ widget, rows }: { widget: TableWidgetSpec; rows: Row[] }) {
+interface TableWidgetProps {
+  widget: TableWidgetSpec;
+  rows: Row[];
+  /** Clicking a row emits it on the `selected` output. */
+  emit?: (port: string, value: unknown) => void;
+}
+
+export function TableWidget({ widget, rows, emit }: TableWidgetProps) {
   const renderCell = useCellRenderer();
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const specs = widget.columns && widget.columns.length > 0 ? widget.columns : inferColumns(rows);
 
@@ -36,6 +46,11 @@ export function TableWidget({ widget, rows }: { widget: TableWidgetSpec; rows: R
     ...row,
     __rowKey: (row.id as string | undefined) ?? String(index),
   }));
+  const select = (record: Row) => {
+    const index = dataSource.findIndex((r) => r.__rowKey === record.__rowKey);
+    setSelectedKey(String(record.__rowKey));
+    emit?.('selected', rows[index] ?? record);
+  };
 
   return (
     <Table<Row>
@@ -45,6 +60,8 @@ export function TableWidget({ widget, rows }: { widget: TableWidgetSpec; rows: R
       dataSource={dataSource}
       pagination={widget.pageSize ? { pageSize: widget.pageSize, size: 'small' } : false}
       scroll={{ x: 'max-content' }}
+      onRow={emit ? (record) => ({ onClick: () => select(record) }) : undefined}
+      rowClassName={(record) => (String(record.__rowKey) === selectedKey ? styles.selected : styles.row)}
     />
   );
 }

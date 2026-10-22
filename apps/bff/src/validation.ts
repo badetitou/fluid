@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { viewSpecSchema } from '@fluid/shared';
+import { viewSpecSchema, viewWidgetInfoSchema, widgetCatalogRequestSchema } from '@fluid/shared';
 
 // Request body schemas for the views API. The view spec itself is validated
 // with the shared zod schema so the BFF stores canonical, valid specs.
@@ -84,6 +84,7 @@ export const generateViewBody = z.object({
   schema: conceptSchemaInfo,
   prompt: z.string().min(1),
   scope: z.enum(['list', 'detail']).optional(),
+  widgets: widgetCatalogRequestSchema.optional(),
   history: z.array(chatMessage).optional(),
   config: z
     .object({
@@ -103,6 +104,8 @@ export const generateWidgetBody = z.object({
   prompt: z.string().min(1),
   existingWidget: z.unknown().optional(), // Will be validated as Widget if provided
   viewQueries: z.record(z.string(), z.string()).optional(),
+  viewWidgets: z.array(viewWidgetInfoSchema).optional(),
+  widgets: widgetCatalogRequestSchema.optional(),
   history: z.array(chatMessage).optional(),
   config: z
     .object({
