@@ -98,23 +98,34 @@ export function buildNetwork(nodesData: unknown, edgesData: unknown, opts: Netwo
     return key;
   };
 
-  const ends: [unknown, unknown][] = [];
+  const edges = new Map<string, NetworkEdge>();
+  const addEdge = (source: string | undefined, target: string | undefined) => {
+    if (source === undefined || target === undefined || source === target) return;
+    const key = `${source}→${target}`;
+    if (!edges.has(key)) edges.set(key, { key, source, target });
+  };
+
+  // Links are followed at any depth: a linked object listing its own links in
+  // `linksField` (a nested selection, e.g. calls { calls { calls … } }) adds
+  // those links too, and so on down, each object read once.
   if (opts.linksField) {
-    for (const node of [...nodes.values()]) {
-      for (const link of listOf(getPath(node.row, opts.linksField))) ends.push([node.key, link]);
+    const linksField = opts.linksField;
+    const pending: [string, Row][] = [...nodes.values()].map((node) => [node.key, node.row]);
+    const seen = new Set<Row>(pending.map(([, row]) => row));
+    for (let i = 0; i < pending.length; i++) {
+      const [source, row] = pending[i];
+      for (const link of listOf(getPath(row, linksField))) {
+        const target = endpoint(link);
+        addEdge(source, target);
+        const linked = rowSchema.safeParse(link);
+        if (target === undefined || !linked.success || Array.isArray(link) || seen.has(link as Row)) continue;
+        seen.add(link as Row);
+        pending.push([target, link as Row]);
+      }
     }
   }
   for (const row of rowsOf(edgesData)) {
-    ends.push([getPath(row, opts.sourceField ?? 'source'), getPath(row, opts.targetField ?? 'target')]);
-  }
-
-  const edges = new Map<string, NetworkEdge>();
-  for (const [from, to] of ends) {
-    const source = endpoint(from);
-    const target = endpoint(to);
-    if (source === undefined || target === undefined || source === target) continue;
-    const key = `${source}→${target}`;
-    if (!edges.has(key)) edges.set(key, { key, source, target });
+    addEdge(endpoint(getPath(row, opts.sourceField ?? 'source')), endpoint(getPath(row, opts.targetField ?? 'target')));
   }
 
   const list = [...nodes.values()];
