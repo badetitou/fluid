@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   ApartmentOutlined,
+  BarsOutlined,
   AreaChartOutlined,
   BarChartOutlined,
   CodeOutlined,
@@ -30,6 +31,7 @@ export const WIDGET_INFO: { [T in WidgetType]: WidgetInfo } = {
   table: { label: 'Table', description: 'Rows and columns, sortable and filterable.', icon: <TableOutlined />, group: 'Data' },
   statistic: { label: 'Statistic', description: 'One key figure: a count, a sum, an average…', icon: <NumberOutlined />, group: 'Data' },
   descriptions: { label: 'Details', description: 'The fields of a single item, as label / value pairs.', icon: <ProfileOutlined />, group: 'Data' },
+  accordion: { label: 'Accordion', description: 'One folding panel per item, with its details inside.', icon: <BarsOutlined />, group: 'Data' },
   tree: { label: 'Tree', description: 'A hierarchy, as a file explorer or expandable table.', icon: <ApartmentOutlined />, group: 'Data' },
   line: { label: 'Line chart', description: 'A value over an ordered axis, such as time.', icon: <LineChartOutlined />, group: 'Charts' },
   bar: { label: 'Bar chart', description: 'Values compared across categories.', icon: <BarChartOutlined />, group: 'Charts' },

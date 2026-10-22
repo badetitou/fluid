@@ -20,6 +20,8 @@ export interface OptionSuggestions {
   queries: string[];
   paths: string[];
   fields: string[];
+  /** Path of the rows the selected widget is bound to: where its fields are picked from. */
+  rowsPath?: string;
 }
 
 /**
@@ -40,6 +42,7 @@ export function useWidgetBuilder(spec: ViewSpec, target: WidgetBuilderTarget) {
       queries: Object.keys(spec.queries),
       paths: selected ? arrayPaths(results[selected.data.query]) : [],
       fields: selected ? sampleFields(resolveBinding(selected.data, results)).all : [],
+      rowsPath: selected?.data.path,
     }),
     [spec.queries, results, selected],
   );

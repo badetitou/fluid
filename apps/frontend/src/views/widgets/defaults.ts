@@ -67,7 +67,14 @@ export const WIDGET_DEFAULTS: { [T in WidgetType]: Factory<T> } = {
   }),
   richtext: (s) => ({ type: 'richtext', ...base(s), field: s.fields.text[0] }),
   code: (s) => ({ type: 'code', ...base(s), field: s.fields.text[0] }),
-  history: (s) => ({ type: 'history', ...base(s) }),
+  // A history needs links between versions: guess the git-like field, a sample field when there is one.
+  history: (s) => ({
+    type: 'history',
+    ...base(s),
+    parentsField: s.fields.all.find((p) => /(^|\.)parents?(\.|$)/i.test(p)) ?? 'parents',
+  }),
+  // Folded panels titled by a text field; what each panel shows is added afterwards.
+  accordion: (s) => ({ type: 'accordion', ...base(s), labelField: category(s.fields), widgets: [] }),
 };
 
 /** A new widget of `type`, with its type's defaults. */

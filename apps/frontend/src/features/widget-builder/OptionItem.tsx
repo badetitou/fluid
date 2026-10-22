@@ -1,5 +1,6 @@
-import { AutoComplete, Form, Input, InputNumber, Select } from 'antd';
+import { Form, Input, InputNumber, Select } from 'antd';
 import type { OptionField } from './options';
+import { PathInput } from './PathInput';
 import type { OptionSuggestions } from './useWidgetBuilder';
 import styles from './WidgetBuilder.module.css';
 
@@ -16,19 +17,15 @@ const BOOLEAN_OPTIONS = [
 
 const toOptions = (values: (string | number)[]) => values.map((value) => ({ value, label: String(value) }));
 
-const matches = (input: string, option?: { value: string | number }) =>
-  String(option?.value ?? '').toLowerCase().includes(input.toLowerCase());
-
 // A plain function, not a component: Form.Item hands its value to its direct child.
 function control(field: OptionField, suggestions: OptionSuggestions) {
   switch (field.kind) {
     case 'query':
       return <Select options={toOptions(suggestions.queries)} />;
     case 'path':
-    case 'field': {
-      const values = field.kind === 'path' ? suggestions.paths : suggestions.fields;
-      return <AutoComplete allowClear options={toOptions(values)} filterOption={matches} placeholder="dot.path" />;
-    }
+      return <PathInput mode="path" suggestions={suggestions.paths} />;
+    case 'field':
+      return <PathInput mode="field" base={suggestions.rowsPath} suggestions={suggestions.fields} />;
     case 'number':
       return <InputNumber min={field.min} max={field.max} className={styles.number} />;
     case 'boolean':
