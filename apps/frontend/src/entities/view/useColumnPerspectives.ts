@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { ViewSpec } from '@fluid/shared';
 import type { Concept, ConceptQueries } from '../../graphql/introspection';
-import { buildDetailView, buildTreeView } from '../../views/registry';
+import { buildDetailView, buildTreeView, withEditForm } from '../../views/registry';
+import { useSourceWrites } from '../preferences/useSourceWrites';
 import type { ColumnKind } from '../../views/viewScope';
 import { columnEntries, injectItemId, resolveActiveKey } from './model';
 import { useViews, type ViewEntry } from './useViews';
@@ -44,14 +45,17 @@ export function useColumnPerspectives(
   const [picked, setPicked] = useState<{ concept: string; key?: string }>({ concept: concept.name, key: initialKey });
   const columnKind: ColumnKind = itemId ? 'detail' : 'list';
   const byIdField = concept.queries.byId?.field;
+  // Where the source accepts writes, the auto detail also edits the item.
+  const { writable } = useSourceWrites();
 
   const detailEntry = useMemo<ViewEntry | null>(() => {
     if (!itemId) return null;
-    const detailSpec = buildDetailView(concept, { conceptByName, queriesByType });
+    const built = buildDetailView(concept, { conceptByName, queriesByType });
+    const detailSpec = built && writable ? withEditForm(built, concept) : built;
     return detailSpec
       ? { key: detailSpec.id, title: `${concept.name} detail`, source: 'auto', spec: detailSpec }
       : null;
-  }, [itemId, concept, conceptByName, queriesByType]);
+  }, [itemId, concept, conceptByName, queriesByType, writable]);
 
   // Concepts whose data forms a hierarchy also get a tree perspective in list columns.
   const treeEntry = useMemo<ViewEntry | null>(() => {

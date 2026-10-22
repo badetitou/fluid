@@ -1,5 +1,8 @@
 import type { ComponentType } from 'react';
 import type { DataBinding, Widget } from '@fluid/shared';
+import type { ActionContext, ActionResult } from '../actions/model';
+
+export type { ActionContext, ActionResult };
 
 /**
  * What a widget renderer receives. The same props for a built-in widget and
@@ -14,6 +17,11 @@ export interface WidgetProps<W extends Widget = Widget> {
   resolve: (binding: DataBinding) => unknown;
   /** Publishes a value on an output port; widgets bound to `@<id>` receive it. */
   emit: (port: string, value: unknown) => void;
+  /**
+   * Runs one of the view's `actions` (a mutation) on `target` / `form`. Absent
+   * when the source is read-only or the view has no action: render read-only then.
+   */
+  invoke?: (action: string, context?: ActionContext) => Promise<ActionResult>;
   /** Height to fill exactly (grid layout); charts honour it. */
   fitHeight?: number;
 }

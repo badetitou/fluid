@@ -19,6 +19,11 @@ function queryTexts(spec: ViewSpec): Record<string, string> {
   return Object.fromEntries(Object.entries(spec.queries).map(([key, q]) => [key, q.query]));
 }
 
+/** Each action of the view, which the widget may run. */
+function actionTexts(spec: ViewSpec): Record<string, string> {
+  return Object.fromEntries(Object.entries(spec.actions ?? {}).map(([key, a]) => [key, a.mutation]));
+}
+
 /**
  * A conversation that rewrites one widget of a saved view with the LLM. The
  * model sees the widgets the enabled plugins provide and the other widgets of
@@ -46,6 +51,7 @@ export function useWidgetAssistant({ concept, schema, viewId, viewSpec, widget }
         prompt: trimmed,
         existingWidget: widget,
         viewQueries: queryTexts(viewSpec),
+        viewActions: actionTexts(viewSpec),
         viewWidgets: otherWidgets(viewSpec, widget.id, contracts),
         history,
       });

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { CoreWidgetType } from '../view-spec';
 import { accordionWidgetDoc } from '../widgets/accordion';
 import { codeWidgetDoc } from '../widgets/code';
+import { formWidgetDoc } from '../widgets/form';
 import {
   areaWidgetDoc,
   barWidgetDoc,
@@ -16,7 +17,7 @@ import { model3dWidgetDoc, scene3dWidgetDoc } from '../widgets/model3d';
 import { richTextWidgetDoc } from '../widgets/richtext';
 import { scatterWidgetDoc } from '../widgets/scatter';
 import { treeWidgetDoc } from '../widgets/tree';
-import { DATA_INPUT, portSpecSchema, SELECTED_OUTPUT, type PortSpec } from './ports';
+import { actionSlotSchema, DATA_INPUT, portSpecSchema, SELECTED_OUTPUT, type ActionSlot, type PortSpec } from './ports';
 import { PLUGIN_WIDGET_TYPE } from './widgetType';
 
 // -----------------------------------------------------------------------------
@@ -34,6 +35,8 @@ export const widgetContractSchema = z.object({
   llmDoc: z.string().min(1),
   inputs: z.array(portSpecSchema).default([]),
   outputs: z.array(portSpecSchema).default([]),
+  /** Config fields naming the view actions the widget runs (see docs/architecture/MUTATIONS.md). */
+  actions: z.array(actionSlotSchema).default([]),
   /** JSON schema of the whole widget (plugins only; the built-ins have their zod schema). */
   jsonSchema: z.record(z.string(), z.unknown()).optional(),
   /** A valid configuration of the widget, for reference. */
@@ -53,7 +56,7 @@ const contract = (
   label: string,
   description: string,
   llmDoc: string,
-  ports: { inputs?: PortSpec[]; outputs?: PortSpec[] } = {},
+  ports: { inputs?: PortSpec[]; outputs?: PortSpec[]; actions?: ActionSlot[] } = {},
 ): WidgetContract => ({
   type,
   label,
@@ -61,6 +64,7 @@ const contract = (
   llmDoc,
   inputs: ports.inputs ?? [DATA_INPUT],
   outputs: ports.outputs ?? [],
+  actions: ports.actions ?? [],
 });
 
 const port = (name: string, description: string): PortSpec => ({
@@ -73,6 +77,7 @@ const port = (name: string, description: string): PortSpec => ({
 export const BUILTIN_WIDGET_CONTRACTS: { [T in CoreWidgetType]: WidgetContract } = {
   table: contract('table', 'Table', 'Rows with sorting, filters and links.', tableWidgetDoc, {
     outputs: [SELECTED_OUTPUT],
+    actions: [{ name: 'rowActions', description: 'Buttons per row; each runs its action with the row as $target.' }],
   }),
   statistic: contract('statistic', 'Statistic', 'One aggregated number.', statisticWidgetDoc),
   descriptions: contract(
@@ -96,6 +101,9 @@ export const BUILTIN_WIDGET_CONTRACTS: { [T in CoreWidgetType]: WidgetContract }
     ],
   }),
   history: contract('history', 'History', 'A version graph (commits).', historyWidgetDoc),
+  form: contract('form', 'Form', 'Edits or creates an item through a view action.', formWidgetDoc, {
+    actions: [{ name: 'action', description: 'Run on submit with $target (the bound object) and $form (the values).' }],
+  }),
   accordion: contract(
     'accordion',
     'Accordion',
@@ -150,6 +158,12 @@ export const BUILTIN_WIDGET_COLLECTIONS: BuiltinWidgetCollection[] = [
     name: 'Structure',
     description: 'Trees and accordions, for nested collections.',
     types: ['tree', 'accordion'],
+  },
+  {
+    id: 'fluid-editing',
+    name: 'Editing',
+    description: 'Forms and row buttons that change data through the view actions (needs “Allow changes”).',
+    types: ['form'],
   },
   {
     id: 'fluid-3d',

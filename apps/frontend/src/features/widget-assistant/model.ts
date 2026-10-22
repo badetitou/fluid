@@ -1,4 +1,5 @@
 import {
+  checkActionReferences,
   checkWidgetsAgainstCatalog,
   describeIssues,
   widgetSchema,
@@ -42,7 +43,10 @@ export function checkProposal(
   if (!parsed.success)
     return { error: `The model returned an invalid widget:\n${describeIssues(parsed.error, 3)}` };
   const ids = new Set(allWidgets(spec.widgets).map((w) => w.id));
-  const problems = checkWidgetsAgainstCatalog([parsed.data], contracts, 'widget', ids);
+  const problems = [
+    ...checkWidgetsAgainstCatalog([parsed.data], contracts, 'widget', ids),
+    ...checkActionReferences([parsed.data], spec.actions, contracts, 'widget'),
+  ];
   if (problems.length)
     return { error: `The model returned an unusable widget:\n${problems.slice(0, 3).join('\n')}` };
   return { widget: parsed.data };

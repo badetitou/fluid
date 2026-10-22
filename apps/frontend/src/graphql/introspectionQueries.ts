@@ -6,6 +6,9 @@ export const ROOT_TYPE_QUERY = /* GraphQL */ `
       queryType {
         name
       }
+      mutationType {
+        name
+      }
     }
   }
 `;
@@ -76,4 +79,34 @@ export function buildWrapperTypesQuery(
     }`,
   );
   return `query FluidWrapperTypes {\n    ${parts.join('\n    ')}\n  }`;
+}
+
+const INPUT_TYPE_QUERIES: Record<IntrospectionDepth, string> = {
+  deep: `query FluidInputTypeDeep($name: String!) {
+    __type(name: $name) {
+      kind
+      name
+      inputFields {
+        name
+        description
+        type { ${TYPE_REF.deep} }
+      }
+    }
+  }`,
+  shallow: `query FluidInputType($name: String!) {
+    __type(name: $name) {
+      kind
+      name
+      inputFields {
+        name
+        description
+        type { ${TYPE_REF.shallow} }
+      }
+    }
+  }`,
+};
+
+/** Introspection of an input object type's fields (a mutation's `input` argument), at the given depth. */
+export function inputTypeQuery(depth: IntrospectionDepth): string {
+  return INPUT_TYPE_QUERIES[depth];
 }

@@ -45,7 +45,7 @@ export async function generateView(
   let fullContent = await chatCompletion(config, messages);
   const { reasoning, content } = extractReasoning(fullContent);
 
-  let result = validateDraft(content, catalog);
+  let result = validateDraft(content, catalog, input.schema.mutationFields);
 
   if (!result.ok) {
     const repair = buildRepairMessage(result.errorText, content);
@@ -55,7 +55,7 @@ export async function generateView(
       repair,
     ]);
     const { content: repairedContent } = extractReasoning(fullContent);
-    const retry = validateDraft(repairedContent, catalog);
+    const retry = validateDraft(repairedContent, catalog, input.schema.mutationFields);
     if (!retry.ok) throw new LlmValidationError(retry.errorText, repairedContent);
     result = retry;
   }
@@ -98,11 +98,12 @@ export async function generateWidget(input: GenerateWidgetInput): Promise<Genera
 
   const catalog = resolveWidgetCatalog(input.widgets);
   const viewIds = (input.viewWidgets ?? []).map((w) => w.id);
+  const viewActions = Object.keys(input.viewActions ?? {});
   const messages = buildWidgetMessages(input);
   let fullContent = await chatCompletion(config, messages);
   const { reasoning, content } = extractReasoning(fullContent);
 
-  let result = validateWidgetDraft(content, catalog, viewIds);
+  let result = validateWidgetDraft(content, catalog, viewIds, viewActions);
 
   if (!result.ok) {
     const repair = buildWidgetRepairMessage(result.errorText, content);
@@ -112,7 +113,7 @@ export async function generateWidget(input: GenerateWidgetInput): Promise<Genera
       repair,
     ]);
     const { content: repairedContent } = extractReasoning(fullContent);
-    const retry = validateWidgetDraft(repairedContent, catalog, viewIds);
+    const retry = validateWidgetDraft(repairedContent, catalog, viewIds, viewActions);
     if (!retry.ok) throw new LlmValidationError(retry.errorText, repairedContent);
     result = retry;
   }

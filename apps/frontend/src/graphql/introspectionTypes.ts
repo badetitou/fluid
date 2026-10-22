@@ -1,5 +1,9 @@
 // Shapes of introspection results and of the concepts built from them.
 
+import type { MutationKind } from '@fluid/shared';
+
+export type { MutationKind };
+
 export interface TypeRef {
   kind: string;
   name: string | null;
@@ -24,11 +28,23 @@ export interface IntrospectionType {
 export interface RootTypeResult {
   __schema: {
     queryType: { name: string } | null;
+    /** Absent from sources that do not accept writes. */
+    mutationType?: { name: string } | null;
   };
 }
 
 export interface TypeResult {
   __type: IntrospectionType | null;
+}
+
+export interface IntrospectionInputType {
+  kind: string;
+  name: string | null;
+  inputFields: { name: string; description: string | null; type: TypeRef }[] | null;
+}
+
+export interface InputTypeResult {
+  __type: IntrospectionInputType | null;
 }
 
 
@@ -53,6 +69,20 @@ export function unwrapType(ref: TypeRef): UnwrappedType {
     current = current.ofType;
   }
   return { name: null, kind: 'UNKNOWN', isList, nonNull };
+}
+
+/** Render a fully resolved type ref as GraphQL (e.g. `Int!`); undefined when truncated. */
+export function typeRefToString(ref: TypeRef | null | undefined): string | undefined {
+  if (!ref) return undefined;
+  if (ref.kind === 'NON_NULL') {
+    const inner = typeRefToString(ref.ofType);
+    return inner ? `${inner}!` : undefined;
+  }
+  if (ref.kind === 'LIST') {
+    const inner = typeRefToString(ref.ofType);
+    return inner ? `[${inner}]` : undefined;
+  }
+  return ref.name ?? undefined;
 }
 
 export interface ConceptField {
@@ -95,4 +125,51 @@ export interface Concept {
   scalarFields: ConceptField[];
   relationFields: ConceptField[];
   queries: ConceptQueries;
+  /** Root mutations writing this concept; absent when the source has none. */
+  mutations?: ConceptMutations;
+}
+
+
+export interface MutationArg {
+  name: string;
+  /** Rendered GraphQL type (e.g. `ID!`), undefined when truncated by a shallow introspection. */
+  type?: string;
+  /** Named type once unwrapped (e.g. `UpdateTodoInput`), when known. */
+  typeName?: string;
+  required: boolean;
+  /** True for an input object argument (the values to write). */
+  isInput: boolean;
+}
+
+export interface ConceptMutation {
+  /** Root Mutation field to call. */
+  field: string;
+  kind: MutationKind;
+  args: MutationArg[];
+  /** Argument naming the item to update / delete (`id` unless stated). */
+  idArg?: string;
+  /** Input object argument carrying the values to write (`input`, `data`…). */
+  inputArg?: string;
+  /** True when the mutation returns the written item itself (its fields can be selected). */
+  returnsConcept: boolean;
+}
+
+export interface ConceptMutations {
+  create?: ConceptMutation;
+  update?: ConceptMutation;
+  delete?: ConceptMutation;
+  /** Every other mutation of the concept, including extra ones of an already taken kind. */
+  others: ConceptMutation[];
+}
+
+/** One field of an input object type, as a form would edit it. */
+export interface InputField {
+  name: string;
+  description: string | null;
+  /** Rendered GraphQL type (e.g. `Boolean!`), undefined when truncated. */
+  type?: string;
+  typeName: string;
+  typeKind: string;
+  isList: boolean;
+  required: boolean;
 }

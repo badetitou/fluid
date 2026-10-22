@@ -12,6 +12,7 @@ import { ScatterWidget } from './scatter/ScatterWidget';
 import { HistoryWidget } from './history/HistoryWidget';
 import { LazyCodeWidget } from './code/lazy';
 import { AccordionWidget } from './accordion/AccordionWidget';
+import { FormWidget } from './form/FormWidget';
 import { LazyModel3dWidget, LazyScene3dWidget } from './model3d/lazy';
 
 type Renderer<T extends CoreWidgetType> = ComponentType<WidgetProps<Extract<CoreWidget, { type: T }>>>;
@@ -29,7 +30,9 @@ const PieChart = lazy(() => charts().then((m) => ({ default: m.PieChartWidget })
  * widget type added to the shared schema does not compile until it can be rendered.
  */
 export const WIDGET_RENDERERS: { [T in CoreWidgetType]: Renderer<T> } = {
-  table: ({ widget, data, emit }) => <TableWidget widget={widget} rows={asRows(data)} emit={emit} />,
+  table: ({ widget, data, emit, invoke }) => (
+    <TableWidget widget={widget} rows={asRows(data)} emit={emit} invoke={invoke} />
+  ),
   statistic: ({ widget, data }) => <StatisticWidget widget={widget} data={data} />,
   descriptions: ({ widget, data }) => <DescriptionsWidget widget={widget} object={asObject(data)} />,
   line: ({ widget, data, fitHeight }) => <LineChart widget={widget} rows={asRows(data)} fitHeight={fitHeight} />,
@@ -41,6 +44,7 @@ export const WIDGET_RENDERERS: { [T in CoreWidgetType]: Renderer<T> } = {
   scatter: ({ widget, data, fitHeight }) => <ScatterWidget widget={widget} rows={asRows(data)} fitHeight={fitHeight} />,
   history: ({ widget, data, fitHeight }) => <HistoryWidget widget={widget} rows={asRows(data)} fitHeight={fitHeight} />,
   code: ({ widget, data, resolve }) => <LazyCodeWidget widget={widget} data={data} resolve={resolve} />,
+  form: ({ widget, data, invoke }) => <FormWidget widget={widget} data={data} invoke={invoke} />,
   accordion: ({ widget, data, resolve }) => (
     <AccordionWidget widget={widget} data={data} resolve={resolve} Nested={NestedWidget} />
   ),

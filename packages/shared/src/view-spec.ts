@@ -6,8 +6,10 @@ import {
   linkToSchema,
   widgetBase,
 } from './widgets/common';
+import { actionSpecSchema } from './actions/schema';
 import { accordionWidgetFields } from './widgets/accordion';
 import { codeWidgetSchema } from './widgets/code';
+import { formWidgetSchema, rowActionSchema } from './widgets/form';
 import { historyWidgetDraftSchema, historyWidgetSchema } from './widgets/history';
 import { model3dWidgetSchema, scene3dWidgetSchema } from './widgets/model3d';
 import { pluginWidgetDraftSchema, pluginWidgetSchema, type PluginWidget } from './widgets/plugin';
@@ -19,6 +21,7 @@ export * from './widgets/accordion';
 export * from './widgets/code';
 export * from './widgets/common';
 export * from './widgets/coreDocs';
+export * from './widgets/form';
 export * from './widgets/history';
 export * from './widgets/model3d';
 export * from './widgets/model3dExample';
@@ -81,6 +84,8 @@ export const tableWidgetSchema = z.object({
   sortable: z.boolean().optional(),
   /** Let the user filter rows by a column's values from its header (default true). */
   filterable: z.boolean().optional(),
+  /** Buttons on each row running a view action on it (shown when the source accepts writes). */
+  rowActions: z.array(rowActionSchema).optional(),
 });
 export type TableWidget = z.infer<typeof tableWidgetSchema>;
 
@@ -180,6 +185,7 @@ const leafWidgetSchemas = [
   scatterWidgetSchema,
   historyWidgetSchema,
   codeWidgetSchema,
+  formWidgetSchema,
   model3dWidgetSchema,
   scene3dWidgetSchema,
 ] as const;
@@ -210,6 +216,7 @@ export const WIDGET_TYPES = [
   'scatter',
   'history',
   'code',
+  'form',
   'accordion',
   'model3d',
   'scene3d',
@@ -236,6 +243,8 @@ export const viewSpecSchema = z.object({
   description: z.string().optional(),
   /** Named GraphQL queries widgets pull their data from. */
   queries: z.record(z.string(), querySpecSchema),
+  /** Named GraphQL mutations widgets can trigger (see docs/architecture/MUTATIONS.md). */
+  actions: z.record(z.string(), actionSpecSchema).optional(),
   widgets: z.array(widgetSchema),
 });
 export type ViewSpec = z.infer<typeof viewSpecSchema>;
@@ -301,6 +310,7 @@ const treeWidgetDraftSchema = treeWidgetSchema.omit({ id: true });
 const richTextWidgetDraftSchema = richTextWidgetSchema.omit({ id: true });
 const scatterWidgetDraftSchema = scatterWidgetSchema.omit({ id: true });
 const codeWidgetDraftSchema = codeWidgetSchema.omit({ id: true });
+const formWidgetDraftSchema = formWidgetSchema.omit({ id: true });
 const accordionWidgetDraftSchema = accordionWidgetSchema.omit({ id: true });
 const model3dWidgetDraftSchema = model3dWidgetSchema.omit({ id: true });
 const scene3dWidgetDraftSchema = scene3dWidgetSchema.omit({ id: true });
@@ -318,6 +328,7 @@ const coreWidgetDraftSchema = z.discriminatedUnion('type', [
   scatterWidgetDraftSchema,
   historyWidgetDraftSchema,
   codeWidgetDraftSchema,
+  formWidgetDraftSchema,
   accordionWidgetDraftSchema,
   model3dWidgetDraftSchema,
   scene3dWidgetDraftSchema,

@@ -31,7 +31,9 @@ const category = (f: SampleFields) => f.text.find((p) => !isId(p)) ?? f.all[0] ?
 function axes(s: WidgetSeed) {
   const x = category(s.fields);
   const y = s.fields.numeric[0];
-  return y ? { data: s.data, x, y } : { data: { ...s.data, transform: { groupBy: x } }, x, y: 'count' };
+  return y
+    ? { data: s.data, x, y }
+    : { data: { ...s.data, transform: { groupBy: x } }, x, y: 'count' };
 }
 
 function cartesian<T extends 'line' | 'bar' | 'area'>(type: T, s: WidgetSeed) {
@@ -73,8 +75,23 @@ export const WIDGET_DEFAULTS: { [T in CoreWidgetType]: Factory<T> } = {
     ...base(s),
     parentsField: s.fields.all.find((p) => /(^|\.)parents?(\.|$)/i.test(p)) ?? 'parents',
   }),
+  // Runs a view action named "save": declare it in the view's actions (JSON editor or assistant).
+  form: (s) => ({
+    type: 'form',
+    ...base(s),
+    action: 'save',
+    fields: s.fields.all
+      .filter((p) => !isId(p))
+      .slice(0, 4)
+      .map((key) => ({ key })),
+  }),
   // Folded panels titled by a text field; what each panel shows is added afterwards.
-  accordion: (s) => ({ type: 'accordion', ...base(s), labelField: category(s.fields), widgets: [] }),
+  accordion: (s) => ({
+    type: 'accordion',
+    ...base(s),
+    labelField: category(s.fields),
+    widgets: [],
+  }),
   // The geometry comes from the query (IfcGeometry fragment): nothing to pick among the fields.
   model3d: (s) => ({ type: 'model3d', ...base(s) }),
   scene3d: (s) => ({ type: 'scene3d', ...base(s) }),

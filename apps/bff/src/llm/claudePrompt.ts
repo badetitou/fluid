@@ -1,5 +1,5 @@
 import type { ChatMessage, ConceptSchemaInfo, GenerateViewInput } from './types';
-import { renderPortDocs, renderWidgetDocs, resolveWidgetCatalog, type WidgetContract } from '@fluid/shared';
+import { renderActionsSection, renderPortDocs, renderWidgetDocs, resolveWidgetCatalog, type WidgetContract } from '@fluid/shared';
 import { detectLinkCandidates } from './linkDetection';
 import { renderStructureHints } from './structureHints';
 import {
@@ -35,6 +35,7 @@ The <view> section holds raw JSON only: no markdown fences, no comments, no trai
   "title": string,
   "description"?: string,                       // one short sentence
   "queries": { "<key>": { "query": "<GraphQL document>", "variables"?: { ... } } },
+  "actions"?: { "<key>": Action },              // mutations the widgets may run, see <actions>
   "widgets": [ Widget, ... ]
 }
 
@@ -148,6 +149,10 @@ export function buildClaudeMessages(input: GenerateViewInput): ChatMessage[] {
       '<scope>',
       scopeInstructions(input),
       '</scope>',
+      '',
+      '<actions>',
+      renderActionsSection(input.schema.mutations),
+      '</actions>',
       '',
       '<request>',
       input.prompt,

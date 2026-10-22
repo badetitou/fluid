@@ -1,4 +1,4 @@
-import type { ViewSpec, ViewSpecDraft, ViewWidgetInfo, Widget, WidgetCatalogRequest, WidgetDraft } from '@fluid/shared';
+import type { MutationInfo, ViewSpec, ViewSpecDraft, ViewWidgetInfo, Widget, WidgetCatalogRequest, WidgetDraft } from '@fluid/shared';
 
 export type LlmProvider = 'openai' | 'ollama' | 'claude-code' | 'mock';
 
@@ -71,6 +71,10 @@ export interface ConceptSchemaInfo {
    * whole-graph dashboard (concept `@graph`), whose queries may start anywhere.
    */
   entryPoints?: EntryPointInfo[];
+  /** Mutations writing the concept: what a view's actions may call. */
+  mutations?: MutationInfo[];
+  /** Every root mutation field of the source, to check the actions a view declares. */
+  mutationFields?: string[];
 }
 
 /** How to read one concept from the root of the graph. */
@@ -127,6 +131,8 @@ export interface GenerateWidgetInput {
   existingWidget?: Widget;
   /** Named queries available in the current view for context. */
   viewQueries?: Record<string, string>;
+  /** The view's actions (key → mutation document), which a form or row action may run. */
+  viewActions?: Record<string, string>;
   /** The other widgets of the view, whose outputs the widget may read (`@<id>`). */
   viewWidgets?: ViewWidgetInfo[];
   /** The widgets the user enabled (plugins); every built-in widget when omitted. */
