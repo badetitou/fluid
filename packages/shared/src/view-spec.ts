@@ -182,10 +182,13 @@ const leafWidgetSchemas = [
 /** A widget fluid ships; plugin widgets are typed `PluginWidget`. */
 export type CoreWidget = z.infer<(typeof leafWidgetSchemas)[number]> | AccordionWidget;
 export type Widget = CoreWidget | PluginWidget;
-const coreWidgetSchema = z.discriminatedUnion('type', [...leafWidgetSchemas, accordionWidgetSchema]);
+export const coreWidgetSchema = z.discriminatedUnion('type', [...leafWidgetSchemas, accordionWidgetSchema]);
 /** Any widget: a built-in one, or a plugin's (`"<pluginId>/<name>"`, checked against the plugin catalog). */
 export const widgetSchema = z.union([coreWidgetSchema, pluginWidgetSchema]);
 export type CoreWidgetType = CoreWidget['type'];
+
+/** Whether a widget is a built-in one (plugin widgets are typed `"<pluginId>/<name>"`). */
+export const isCoreWidget = (widget: Widget): widget is CoreWidget => !widget.type.includes('/');
 export type WidgetType = Widget['type'];
 
 /** The built-in widget types. */

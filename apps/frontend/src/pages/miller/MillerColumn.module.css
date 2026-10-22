@@ -66,6 +66,13 @@
   overflow: auto;
 }
 
+/* Editing the layout: the grid, with the widget catalog / options at its side. */
+.editing {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
 .empty {
   height: 100%;
   padding: 16px;

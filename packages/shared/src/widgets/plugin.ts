@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { PLUGIN_WIDGET_TYPE } from '../plugins/widgetType';
 import { dataBindingSchema, widgetBase } from './common';
 
 /**
@@ -8,10 +7,10 @@ import { dataBindingSchema, widgetBase } from './common';
  * catalog validates it against the plugin's own schema (see `plugins/catalog.ts`).
  */
 export const pluginWidgetSchema = z.looseObject({
-  type: z.custom<`${string}/${string}`>(
-    (v) => typeof v === 'string' && PLUGIN_WIDGET_TYPE.test(v),
-    'Plugin widget types are "<pluginId>/<name>"',
-  ),
+  // `<pluginId>/<name>`; the exact format is enforced on plugin contracts, and an
+  // unknown type is rejected by the catalog check. A template literal (not a
+  // refinement) keeps the widget schema convertible to JSON Schema.
+  type: z.templateLiteral([z.string().min(1), '/', z.string().min(1)]),
   ...widgetBase,
   data: dataBindingSchema.optional(),
 });
