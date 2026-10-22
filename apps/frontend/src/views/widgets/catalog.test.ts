@@ -8,10 +8,17 @@ import {
   widgetSchema,
 } from '@fluid/shared';
 import { WIDGET_RENDERERS } from './catalog';
+import { WIDGET_DEFAULTS } from './defaults';
+import { WIDGET_INFO } from './widgetInfo';
 
 describe('widget catalog', () => {
   it('has a renderer for every widget type of the shared schema', () => {
     expect(Object.keys(WIDGET_RENDERERS).sort()).toEqual([...WIDGET_TYPES].sort());
+  });
+
+  it('can add every widget type from the layout editor', () => {
+    expect(Object.keys(WIDGET_INFO).sort()).toEqual([...WIDGET_TYPES].sort());
+    expect(Object.keys(WIDGET_DEFAULTS).sort()).toEqual([...WIDGET_TYPES].sort());
   });
 
   it('has valid curated examples', () => {

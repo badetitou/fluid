@@ -5,7 +5,7 @@ import styles from './LayoutEditor.module.css';
 export function LayoutHint({ savesAsCopy, compact }: { savesAsCopy: boolean; compact: boolean }) {
   return (
     <Typography.Text type="secondary" ellipsis className={`${styles.hint} ${compact ? styles.grow : ''}`}>
-      Drag to move · drag the corner to resize · right-click for sizes
+      Drag to move · drag the corner to resize · click to edit options
       {savesAsCopy ? ' · saved as a new perspective' : ''}
     </Typography.Text>
   );
