@@ -25,7 +25,11 @@ Le code nouveau ou modifié suit ces règles ; la dette existante est suivie dan
 3. **Données** : les composants d'UI n'appellent ni `bffClient`, ni urql, ni zustand en écriture
    directement ; ils passent par un hook. Côté BFF, une route n'appelle pas Prisma.
 4. **Logique pure** hors de React (`model.ts`), avec un `*.test.ts` à côté.
-5. **Widgets** : un type de widget = schéma + doc LLM + renderer + exemple + test, ajoutés ensemble.
+5. **Widgets et plugins** : un type de widget = contrat (schéma, doc LLM, ports d'entrée/sortie, dans
+   `packages/shared/src/plugins/contracts.ts`) + renderer + exemple + test, ajoutés ensemble, dans une
+   collection (plugin). Les prompts ne décrivent jamais un widget à la main : ils passent par
+   `renderWidgetDocs`. Un renderer reçoit `WidgetProps` et lit le thème via `useWidgetTheme` (pas de
+   couleur en dur). Voir `docs/architecture/PLUGINS.md`.
 6. **Styles** : au plus 3 `style={{…}}` par fichier ; sinon CSS module ou hook `useXxxStyles`.
 7. **Typage** : pas de `any` ; valider avec zod toute donnée entrante (LLM, BFF, GraphQL).
 8. Fichiers modules (`.ts`) ≤ 250 lignes. Le code généré (`**/generated/**`) est exclu.

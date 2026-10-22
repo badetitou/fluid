@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Alert, Button, Collapse, Form, Tooltip, Typography } from 'antd';
 import { ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons';
-import type { Widget } from '@fluid/shared';
+import type { CoreWidget, Widget } from '@fluid/shared';
 import { WIDGET_INFO } from '../../views/widgets/widgetInfo';
 import { OptionItem } from './OptionItem';
 import { fromFormValues, toFormValues, widgetOptions, type OptionField, type OptionValues } from './options';
@@ -9,7 +9,7 @@ import type { OptionSuggestions } from './useWidgetBuilder';
 import styles from './WidgetBuilder.module.css';
 
 interface WidgetInspectorProps {
-  widget: Widget;
+  widget: CoreWidget;
   suggestions: OptionSuggestions;
   /** Receives the widget each time its options form a valid widget. */
   onChange: (widget: Widget) => void;

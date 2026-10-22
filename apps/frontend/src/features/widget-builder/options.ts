@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { widgetSchema, type Widget, type WidgetType } from '@fluid/shared';
+import { coreWidgetSchema, type CoreWidget, type CoreWidgetType } from '@fluid/shared';
 import { humanize } from '../../views/fieldHeuristics';
 
 // The options form of a widget is derived from its zod schema, so every widget
@@ -23,7 +23,7 @@ export interface OptionField {
 /** Form values, keyed by `OptionField.key`. */
 export type OptionValues = Record<string, unknown>;
 
-export type OptionsResult = { ok: true; widget: Widget } | { ok: false; errors: Record<string, string> };
+export type OptionsResult = { ok: true; widget: CoreWidget } | { ok: false; errors: Record<string, string> };
 
 type JsonSchema = z.core.JSONSchema.BaseSchema;
 
@@ -54,13 +54,13 @@ function kindOf(key: string, schema: JsonSchema): Omit<OptionField, 'key' | 'lab
   return { kind: 'json' };
 }
 
-const cache = new Map<WidgetType, OptionField[]>();
+const cache = new Map<CoreWidgetType, OptionField[]>();
 
 /** The editable options of a widget type: title first, then its own options, nested ones last. */
-export function widgetOptions(type: WidgetType): OptionField[] {
+export function widgetOptions(type: CoreWidgetType): OptionField[] {
   const cached = cache.get(type);
   if (cached) return cached;
-  const member = widgetSchema.options.find((m) => m.shape.type.value === type)!;
+  const member = coreWidgetSchema.options.find((m) => m.shape.type.value === type)!;
   const json = z.toJSONSchema(member, { io: 'input' }) as JsonSchema;
   const required = new Set(json.required ?? []);
   const own = Object.entries(json.properties ?? {})
@@ -92,7 +92,7 @@ function setAt(obj: Record<string, unknown>, key: string, value: unknown): Recor
 }
 
 /** The form values showing a widget's options. */
-export function toFormValues(widget: Widget, fields: OptionField[]): OptionValues {
+export function toFormValues(widget: CoreWidget, fields: OptionField[]): OptionValues {
   const values: OptionValues = {};
   for (const field of fields) {
     const value = getAt(widget, field.key);
@@ -102,7 +102,7 @@ export function toFormValues(widget: Widget, fields: OptionField[]): OptionValue
 }
 
 /** Applies form values to a widget, validated against the widget schema. */
-export function fromFormValues(widget: Widget, values: OptionValues, fields: OptionField[]): OptionsResult {
+export function fromFormValues(widget: CoreWidget, values: OptionValues, fields: OptionField[]): OptionsResult {
   const errors: Record<string, string> = {};
   let next: Record<string, unknown> = widget;
   for (const field of fields) {
@@ -124,7 +124,7 @@ export function fromFormValues(widget: Widget, values: OptionValues, fields: Opt
   }
   if (Object.keys(errors).length > 0) return { ok: false, errors };
 
-  const parsed = widgetSchema.safeParse(next);
+  const parsed = coreWidgetSchema.safeParse(next);
   if (parsed.success) return { ok: true, widget: parsed.data };
   for (const issue of parsed.error.issues) {
     const path = issue.path.join('.');

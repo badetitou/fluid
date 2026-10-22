@@ -1,9 +1,9 @@
-import { memo, Suspense, type ComponentType } from 'react';
+import { memo, Suspense, useCallback, useMemo } from 'react';
 import { Skeleton } from 'antd';
 import type { DataBinding, Widget } from '@fluid/shared';
 import { resolveBinding } from './data';
+import { MissingWidget, readsOutputs, useViewOutputs, useWidgetEmit, useWidgetRenderer } from './plugin-api';
 import type { ViewData } from './useViewData';
-import { WIDGET_RENDERERS, type WidgetRendererProps } from './widgets/catalog';
 
 interface WidgetBodyProps {
   widget: Widget;
@@ -12,14 +12,30 @@ interface WidgetBodyProps {
   fitHeight?: number;
 }
 
-/** Resolves a widget's data binding and renders it with the catalog's renderer for its type. */
+/**
+ * Resolves a widget's inputs and renders it with the active catalog's renderer
+ * for its type. Inputs read the view's query results and, through `@<id>`
+ * queries, what the other widgets emitted.
+ */
 export const WidgetBody = memo(function WidgetBody({ widget, view, fitHeight }: WidgetBodyProps) {
-  const Render = WIDGET_RENDERERS[widget.type] as ComponentType<WidgetRendererProps> | undefined;
-  if (!Render) return null;
-  const resolve = (binding: DataBinding) => resolveBinding(binding, view.results);
+  const definition = useWidgetRenderer(widget.type);
+  const emit = useWidgetEmit(widget.id);
+  const outputs = useViewOutputs(useMemo(() => readsOutputs(widget), [widget]));
+  const resolve = useCallback(
+    (binding: DataBinding) => resolveBinding(binding, { ...view.results, ...outputs }),
+    [view.results, outputs],
+  );
+  if (!definition) return <MissingWidget type={widget.type} />;
+  const { Render } = definition;
   return (
     <Suspense fallback={<Skeleton active />}>
-      <Render widget={widget} data={resolve(widget.data)} resolve={resolve} fitHeight={fitHeight} />
+      <Render
+        widget={widget}
+        data={widget.data ? resolve(widget.data) : undefined}
+        resolve={resolve}
+        emit={emit}
+        fitHeight={fitHeight}
+      />
     </Suspense>
   );
 });

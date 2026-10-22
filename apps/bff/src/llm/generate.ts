@@ -1,5 +1,16 @@
 import { randomUUID } from 'node:crypto';
-import { finalizeViewSpec, safeParseViewSpecDraft, finalizeWidget, safeParseWidgetDraft, type ViewSpecDraft, type WidgetDraft } from '@fluid/shared';
+import {
+  checkWidgetsAgainstCatalog,
+  describeIssues,
+  finalizeViewSpec,
+  finalizeWidget,
+  resolveWidgetCatalog,
+  safeParseViewSpecDraft,
+  safeParseWidgetDraft,
+  type ViewSpecDraft,
+  type WidgetContract,
+  type WidgetDraft,
+} from '@fluid/shared';
 import type {
   ChatMessage,
   GenerateViewInput,
@@ -17,9 +28,10 @@ import { claudeCodeCompletion } from './claudeCode';
 import { mockDraft, mockWidgetDraft } from './mock';
 import { LlmValidationError } from './errors';
 
-function validateDraft(
-  content: string,
-): { ok: true; draft: ViewSpecDraft } | { ok: false; errorText: string } {
+type Validation<T> = { ok: true; draft: T } | { ok: false; errorText: string };
+
+/** Parses a view draft and checks its widgets against the enabled catalog. */
+function validateDraft(content: string, catalog: WidgetContract[]): Validation<ViewSpecDraft> {
   let raw: unknown;
   try {
     raw = extractJson(content);
@@ -27,17 +39,14 @@ function validateDraft(
     return { ok: false, errorText: (err as Error).message };
   }
   const parsed = safeParseViewSpecDraft(raw);
-  if (parsed.success) return { ok: true, draft: parsed.data };
-  const errorText = parsed.error.issues
-    .slice(0, 8)
-    .map((i) => `${i.path.map(String).join('.') || '(root)'}: ${i.message}`)
-    .join('\n');
-  return { ok: false, errorText };
+  if (!parsed.success) return { ok: false, errorText: describeIssues(parsed.error) };
+  const problems = checkWidgetsAgainstCatalog(parsed.data.widgets, catalog);
+  if (problems.length) return { ok: false, errorText: problems.slice(0, 8).join('\n') };
+  return { ok: true, draft: parsed.data };
 }
 
-function validateWidgetDraft(
-  content: string,
-): { ok: true; draft: WidgetDraft } | { ok: false; errorText: string } {
+/** Parses a widget draft and checks it against the enabled catalog and the view's other widgets. */
+function validateWidgetDraft(content: string, catalog: WidgetContract[], viewIds: string[]): Validation<WidgetDraft> {
   let raw: unknown;
   try {
     raw = extractJson(content);
@@ -45,12 +54,10 @@ function validateWidgetDraft(
     return { ok: false, errorText: (err as Error).message };
   }
   const parsed = safeParseWidgetDraft(raw);
-  if (parsed.success) return { ok: true, draft: parsed.data };
-  const errorText = parsed.error.issues
-    .slice(0, 8)
-    .map((i: any) => `${i.path.map(String).join('.') || '(root)'}: ${i.message}`)
-    .join('\n');
-  return { ok: false, errorText };
+  if (!parsed.success) return { ok: false, errorText: describeIssues(parsed.error) };
+  const problems = checkWidgetsAgainstCatalog([parsed.data], catalog, 'widget', new Set(viewIds));
+  if (problems.length) return { ok: false, errorText: problems.slice(0, 8).join('\n') };
+  return { ok: true, draft: parsed.data };
 }
 
 /** Send a chat to the configured (non-mock) provider. */
@@ -73,11 +80,12 @@ async function generateViewWithClaude(
   config: LlmConfig,
   onDelta?: LlmDeltaHandler,
 ): Promise<GenerateViewResult> {
+  const catalog = resolveWidgetCatalog(input.widgets);
   const messages = buildClaudeMessages(input);
   const answer = await complete(config, messages, onDelta);
   const { reasoning, content } = parseClaudeAnswer(answer);
 
-  let result = validateDraft(content);
+  let result = validateDraft(content, catalog);
   if (!result.ok) {
     onDelta?.({ kind: 'text', text: '\n\n[Fixing validation errors…]\n\n' });
     const repaired = await complete(
@@ -85,7 +93,7 @@ async function generateViewWithClaude(
       [...messages, { role: 'assistant', content: answer }, buildClaudeRepairMessage(result.errorText)],
       onDelta,
     );
-    const retry = validateDraft(parseClaudeAnswer(repaired).content);
+    const retry = validateDraft(parseClaudeAnswer(repaired).content, catalog);
     if (!retry.ok) throw new LlmValidationError(retry.errorText, repaired);
     result = retry;
   }
@@ -133,11 +141,12 @@ export async function generateView(
     return generateViewWithClaude(input, config, onDelta);
   }
 
+  const catalog = resolveWidgetCatalog(input.widgets);
   const messages = buildMessages(input);
   let fullContent = await chatCompletion(config, messages);
   const { reasoning, content } = extractReasoning(fullContent);
 
-  let result = validateDraft(content);
+  let result = validateDraft(content, catalog);
 
   if (!result.ok) {
     const repair = buildRepairMessage(result.errorText, content);
@@ -147,7 +156,7 @@ export async function generateView(
       repair,
     ]);
     const { content: repairedContent } = extractReasoning(fullContent);
-    const retry = validateDraft(repairedContent);
+    const retry = validateDraft(repairedContent, catalog);
     if (!retry.ok) throw new LlmValidationError(retry.errorText, repairedContent);
     result = retry;
   }
@@ -184,11 +193,13 @@ export async function generateWidget(input: GenerateWidgetInput): Promise<Genera
     };
   }
 
+  const catalog = resolveWidgetCatalog(input.widgets);
+  const viewIds = (input.viewWidgets ?? []).map((w) => w.id);
   const messages = buildWidgetMessages(input);
   let fullContent = await complete(config, messages);
   const { reasoning, content } = extractReasoning(fullContent);
 
-  let result = validateWidgetDraft(content);
+  let result = validateWidgetDraft(content, catalog, viewIds);
 
   if (!result.ok) {
     const repair = buildWidgetRepairMessage(result.errorText, content);
@@ -198,7 +209,7 @@ export async function generateWidget(input: GenerateWidgetInput): Promise<Genera
       repair,
     ]);
     const { content: repairedContent } = extractReasoning(fullContent);
-    const retry = validateWidgetDraft(repairedContent);
+    const retry = validateWidgetDraft(repairedContent, catalog, viewIds);
     if (!retry.ok) throw new LlmValidationError(retry.errorText, repairedContent);
     result = retry;
   }

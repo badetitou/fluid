@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Empty } from 'antd';
 import { Area, Column, Line, Pie } from '@ant-design/plots';
 import type {
@@ -8,7 +8,7 @@ import type {
   PieWidget as PieWidgetSpec,
 } from '@fluid/shared';
 import { useElementWidth } from '../../hooks/useElementWidth';
-import { usePreferences } from '../../store';
+import { useWidgetTheme } from '../plugin-api/widgetTheme';
 
 type Row = Record<string, unknown>;
 
@@ -21,9 +21,20 @@ interface ChartProps<W> {
   fitHeight?: number;
 }
 
-/** G2 theme matching the app's light/dark mode. */
-function useChartTheme() {
-  return usePreferences((s) => (s.themeMode === 'dark' ? 'classicDark' : 'classic'));
+/**
+ * G2 options following the active theme: light/dark base, the theme's series
+ * palette for coloured series, its first color for a single series.
+ */
+function useChartTheme(type: string, colorField: string | undefined) {
+  const theme = useWidgetTheme(type);
+  return useMemo(() => {
+    const single = theme.series[0];
+    return {
+      theme: theme.mode === 'dark' ? 'classicDark' : 'classic',
+      scale: { color: { range: theme.series } },
+      style: colorField ? undefined : { fill: single, stroke: single },
+    };
+  }, [theme, colorField]);
 }
 
 /**
@@ -50,7 +61,7 @@ function ChartEmpty({ height }: { height: number }) {
 
 export function LineChartWidget({ widget, rows, fitHeight }: ChartProps<LineWidgetSpec>) {
   const height = fitHeight ?? widget.height ?? DEFAULT_HEIGHT;
-  const chartTheme = useChartTheme();
+  const chart = useChartTheme(widget.type, widget.colorField);
   if (rows.length === 0) return <ChartEmpty height={height} />;
   return (
     <ChartFrame height={height}>
@@ -61,7 +72,7 @@ export function LineChartWidget({ widget, rows, fitHeight }: ChartProps<LineWidg
           yField={widget.yField}
           colorField={widget.colorField}
           height={height}
-          theme={chartTheme}
+          {...chart}
           width={width}
           autoFit={false}
         />
@@ -72,7 +83,7 @@ export function LineChartWidget({ widget, rows, fitHeight }: ChartProps<LineWidg
 
 export function AreaChartWidget({ widget, rows, fitHeight }: ChartProps<AreaWidgetSpec>) {
   const height = fitHeight ?? widget.height ?? DEFAULT_HEIGHT;
-  const chartTheme = useChartTheme();
+  const chart = useChartTheme(widget.type, widget.colorField);
   if (rows.length === 0) return <ChartEmpty height={height} />;
   return (
     <ChartFrame height={height}>
@@ -83,7 +94,7 @@ export function AreaChartWidget({ widget, rows, fitHeight }: ChartProps<AreaWidg
           yField={widget.yField}
           colorField={widget.colorField}
           height={height}
-          theme={chartTheme}
+          {...chart}
           width={width}
           autoFit={false}
         />
@@ -94,7 +105,7 @@ export function AreaChartWidget({ widget, rows, fitHeight }: ChartProps<AreaWidg
 
 export function BarChartWidget({ widget, rows, fitHeight }: ChartProps<BarWidgetSpec>) {
   const height = fitHeight ?? widget.height ?? DEFAULT_HEIGHT;
-  const chartTheme = useChartTheme();
+  const chart = useChartTheme(widget.type, widget.colorField);
   if (rows.length === 0) return <ChartEmpty height={height} />;
   return (
     <ChartFrame height={height}>
@@ -105,7 +116,7 @@ export function BarChartWidget({ widget, rows, fitHeight }: ChartProps<BarWidget
           yField={widget.yField}
           colorField={widget.colorField}
           height={height}
-          theme={chartTheme}
+          {...chart}
           width={width}
           autoFit={false}
         />
@@ -116,7 +127,7 @@ export function BarChartWidget({ widget, rows, fitHeight }: ChartProps<BarWidget
 
 export function PieChartWidget({ widget, rows, fitHeight }: ChartProps<PieWidgetSpec>) {
   const height = fitHeight ?? widget.height ?? DEFAULT_HEIGHT;
-  const chartTheme = useChartTheme();
+  const chart = useChartTheme(widget.type, widget.colorField);
   if (rows.length === 0) return <ChartEmpty height={height} />;
   return (
     <ChartFrame height={height}>
@@ -126,7 +137,7 @@ export function PieChartWidget({ widget, rows, fitHeight }: ChartProps<PieWidget
           angleField={widget.angleField}
           colorField={widget.colorField}
           height={height}
-          theme={chartTheme}
+          {...chart}
           width={width}
           autoFit={false}
         />

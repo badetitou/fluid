@@ -87,6 +87,9 @@ Chaque dossier expose un `index.ts` ; on n'importe pas les fichiers internes d'u
 
 ## 4. Catalogue de widgets en plugins
 
+> Mis en œuvre (2026-10-22) sous une forme plus large : collections de widgets et thèmes en plugins,
+> installables par URL. Voir `PLUGINS.md`, qui fait foi.
+
 Aujourd'hui le type `pie` est câblé à la main dans 5 fichiers (schéma, `WidgetRenderer`, `ViewRenderer`,
 exemples, prompt BFF). Cible :
 

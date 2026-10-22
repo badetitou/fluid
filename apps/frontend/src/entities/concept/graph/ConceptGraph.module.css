@@ -1,0 +1,147 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(600px, 80vw);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.crumbs {
+  flex: 1;
+  min-width: 0;
+}
+
+.crumb {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ant-color-link);
+  font: inherit;
+  cursor: pointer;
+}
+
+.crumb:disabled {
+  color: var(--ant-color-text-tertiary);
+  cursor: default;
+}
+
+.filter {
+  width: 160px;
+}
+
+.stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-bg-layout);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-size: 12px;
+  user-select: none;
+}
+
+.edgeRelation,
+.edgeProperty {
+  stroke: var(--ant-color-border);
+  stroke-width: 1.2;
+}
+
+.edgeProperty {
+  stroke-dasharray: 3 3;
+}
+
+.arrow {
+  fill: var(--ant-color-border);
+}
+
+.center rect {
+  fill: var(--ant-color-primary);
+}
+
+.centerTitle {
+  fill: var(--ant-color-white);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.centerSub {
+  fill: var(--ant-color-white);
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+.node rect {
+  stroke-width: 1;
+  transition:
+    fill var(--ant-motion-duration-fast),
+    stroke var(--ant-motion-duration-fast);
+}
+
+.relation rect {
+  fill: var(--ant-color-primary-bg);
+  stroke: var(--ant-color-primary-border);
+}
+
+.property rect {
+  fill: var(--ant-color-bg-container);
+  stroke: var(--ant-color-border);
+}
+
+.name {
+  fill: var(--ant-color-text);
+  font-weight: 500;
+}
+
+.type {
+  fill: var(--ant-color-text-tertiary);
+}
+
+.active {
+  cursor: pointer;
+  outline: none;
+}
+
+.active:hover rect,
+.active:focus-visible rect {
+  stroke: var(--ant-color-primary);
+  stroke-width: 2;
+}
+
+.property:not(.active) {
+  opacity: 0.55;
+}
+
+.selected rect {
+  fill: var(--ant-color-primary);
+  stroke: var(--ant-color-primary);
+}
+
+.selected .name,
+.selected .type {
+  fill: var(--ant-color-white);
+}
+
+.hidden {
+  fill: var(--ant-color-text-tertiary);
+  font-size: 11px;
+}

@@ -1,4 +1,4 @@
-import { ACCORDION_ITEM_QUERY, type DataBinding, type Widget, type WidgetType } from '@fluid/shared';
+import type { CoreWidget, CoreWidgetType, DataBinding } from '@fluid/shared';
 import { humanize } from '../fieldHeuristics';
 
 /** Fields seen in a sample of the rows a new widget will be bound to. */
@@ -19,7 +19,7 @@ export interface WidgetSeed {
   fields: SampleFields;
 }
 
-type Factory<T extends WidgetType> = (seed: WidgetSeed) => Extract<Widget, { type: T }>;
+type Factory<T extends CoreWidgetType> = (seed: WidgetSeed) => Extract<CoreWidget, { type: T }>;
 
 const base = ({ id, title, data }: WidgetSeed) => ({ id, title, data });
 
@@ -43,7 +43,7 @@ function cartesian<T extends 'line' | 'bar' | 'area'>(type: T, s: WidgetSeed) {
  * A ready-to-render widget of each type, added from the layout editor's catalog.
  * Typed exhaustively: a new widget type does not compile until it has defaults.
  */
-export const WIDGET_DEFAULTS: { [T in WidgetType]: Factory<T> } = {
+export const WIDGET_DEFAULTS: { [T in CoreWidgetType]: Factory<T> } = {
   table: (s) => ({ type: 'table', ...base(s) }),
   statistic: (s) => ({ type: 'statistic', ...base(s), value: { op: 'count' } }),
   descriptions: (s) => ({
@@ -67,17 +67,17 @@ export const WIDGET_DEFAULTS: { [T in WidgetType]: Factory<T> } = {
   }),
   richtext: (s) => ({ type: 'richtext', ...base(s), field: s.fields.text[0] }),
   code: (s) => ({ type: 'code', ...base(s), field: s.fields.text[0] }),
-  // A history needs the links between versions: assume the usual `parents`, editable in the options.
-  history: (s) => ({ type: 'history', ...base(s), parentsField: 'parents' }),
-  // One panel per row, unfolding onto the row's fields.
-  accordion: (s) => ({
-    type: 'accordion',
+  // A history needs links between versions: guess the git-like field, a sample field when there is one.
+  history: (s) => ({
+    type: 'history',
     ...base(s),
-    widgets: [{ ...WIDGET_DEFAULTS.descriptions({ ...s, id: `${s.id}-item`, data: { query: ACCORDION_ITEM_QUERY } }), title: undefined }],
+    parentsField: s.fields.all.find((p) => /(^|\.)parents?(\.|$)/i.test(p)) ?? 'parents',
   }),
+  // Folded panels titled by a text field; what each panel shows is added afterwards.
+  accordion: (s) => ({ type: 'accordion', ...base(s), labelField: category(s.fields), widgets: [] }),
 };
 
 /** A new widget of `type`, with its type's defaults. */
-export function defaultWidget(type: WidgetType, seed: WidgetSeed): Widget {
-  return (WIDGET_DEFAULTS[type] as (seed: WidgetSeed) => Widget)(seed);
+export function defaultWidget(type: CoreWidgetType, seed: WidgetSeed): CoreWidget {
+  return (WIDGET_DEFAULTS[type] as (seed: WidgetSeed) => CoreWidget)(seed);
 }

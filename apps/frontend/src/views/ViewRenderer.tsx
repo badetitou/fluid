@@ -3,6 +3,7 @@ import { Alert, Card, Col, Empty, Row, Skeleton } from 'antd';
 import type { ViewSpec, Widget } from '@fluid/shared';
 import { useElementWidth } from '../hooks/useElementWidth';
 import { WidgetGrid } from './grid/WidgetGrid';
+import { useOutputsStore, ViewOutputsContext } from './plugin-api';
 import { useViewData } from './useViewData';
 import { WidgetCard } from './WidgetCard';
 import styles from './ViewRenderer.module.css';
@@ -35,7 +36,8 @@ interface ViewRendererProps {
  * `WidgetGrid`; the others flow on Ant's 24-column grid by `span`. Either way the
  * layout follows the width actually available to the renderer (not the
  * viewport), so a lone Miller column uses the whole screen while side-by-side
- * columns stack their widgets.
+ * columns stack their widgets. Widgets pass values to each other through the
+ * view's outputs store (`@<widgetId>` bindings).
  */
 export function ViewRenderer({
   spec,
@@ -47,6 +49,7 @@ export function ViewRenderer({
   onSelectWidget,
 }: ViewRendererProps) {
   const view = useViewData(spec);
+  const outputs = useOutputsStore();
   const [containerRef, width] = useElementWidth<HTMLDivElement>();
   const fit = Math.max(1, Math.min(maxColumns, Math.floor(width / MIN_WIDGET_WIDTH)));
   const compact = fit === 1;
@@ -70,40 +73,44 @@ export function ViewRenderer({
   }
 
   return (
-    <div ref={containerRef}>
-      {view.error && (
-        <Alert
-          type="warning"
-          showIcon
-          title="Some data could not be loaded"
-          description={view.error.message}
-          className={styles.warning}
-        />
-      )}
-      {gridLayout && (spec.widgets.length > 0 || editingLayout) ? (
-        <WidgetGrid
-          widgets={spec.widgets}
-          editing={editingLayout}
-          onChange={onWidgetsChange}
-          selectedId={selectedWidgetId}
-          onSelect={onSelectWidget}
-          stacked={compact}
-          renderWidget={(widget) => <WidgetCard widget={widget} view={view} renderActions={actions} fill />}
-        />
-      ) : (
-        <Row gutter={compact ? [8, 8] : [16, 16]}>
-          {spec.widgets.map((widget) => (
-            <Col key={widget.id} span={columnSpan(widget)}>
-              <WidgetCard widget={widget} view={view} renderActions={actions} />
-            </Col>
-          ))}
-          {spec.widgets.length === 0 && (
-            <Col span={24}>
-              <Empty description="This view has no widgets yet." />
-            </Col>
-          )}
-        </Row>
-      )}
-    </div>
+    <ViewOutputsContext.Provider value={outputs}>
+      <div ref={containerRef}>
+        {view.error && (
+          <Alert
+            type="warning"
+            showIcon
+            title="Some data could not be loaded"
+            description={view.error.message}
+            className={styles.warning}
+          />
+        )}
+        {gridLayout && (spec.widgets.length > 0 || editingLayout) ? (
+          <WidgetGrid
+            widgets={spec.widgets}
+            editing={editingLayout}
+            onChange={onWidgetsChange}
+            selectedId={selectedWidgetId}
+            onSelect={onSelectWidget}
+            stacked={compact}
+            renderWidget={(widget) => (
+              <WidgetCard widget={widget} view={view} renderActions={actions} fill />
+            )}
+          />
+        ) : (
+          <Row gutter={compact ? [8, 8] : [16, 16]}>
+            {spec.widgets.map((widget) => (
+              <Col key={widget.id} span={columnSpan(widget)}>
+                <WidgetCard widget={widget} view={view} renderActions={actions} />
+              </Col>
+            ))}
+            {spec.widgets.length === 0 && (
+              <Col span={24}>
+                <Empty description="This view has no widgets yet." />
+              </Col>
+            )}
+          </Row>
+        )}
+      </div>
+    </ViewOutputsContext.Provider>
   );
 }
