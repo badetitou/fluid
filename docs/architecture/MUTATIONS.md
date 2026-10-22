@@ -1,6 +1,6 @@
 # Mutations : modifier les données depuis fluid
 
-> Statut : **étapes 1 à 4 livrées** (2026-10-22). Ce document fixe comment fluid écrit dans l'API
+> Statut : **étapes 1 à 5 livrées** (2026-10-22). Ce document fixe comment fluid écrit dans l'API
 > GraphQL à laquelle il est connecté. Il s'appuie sur `PLUGINS.md` (contrats, ports, `@<widgetId>`).
 
 ## 1. Constat
@@ -104,7 +104,7 @@ Validation, dans `packages/shared/src/actions/` (testée) :
 | Une suppression a un `confirm` | `actionSpecSchema` (`splitMutationName`, partagé avec l'introspection) |
 | Les clés de `refetch` sont des requêtes de la vue | `checkViewActions`, appelé par le BFF (`validateDraft`) et l'éditeur JSON |
 
-Reste pour l'étape 5 : vérifier côté BFF que les champs appelés existent dans le schéma de la source.
+La vérification des champs appelés contre le schéma de la source est faite côté BFF (§8).
 
 ## 6. Exécution dans le moteur (étape 3)
 
@@ -164,10 +164,31 @@ GraphQLZero (Apollo) refuse les GET comme CSRF potentiel, ce qui cassait déjà 
 
 ## 8. LLM et vues automatiques (étape 5)
 
-- Le prompt reçoit la signature des mutations du concept (`ConceptMutations` + champs d'entrée)
-  et la doc de `actions` ; `form` est documenté par `renderWidgetDocs`.
-- La vue détail automatique (`registry.ts`) ajoute un formulaire « Modifier » quand le concept a une
-  mutation `update` et que l'écriture est activée.
+**Ce que le frontend envoie** (`ConceptSchemaPayload`, construit par `useConceptSchema`) :
+- `mutations: MutationInfo[]` : les mutations du concept (create / update / delete d'abord, 8 au plus),
+  avec leur signature et les champs de leur objet d'entrée (`buildMutationInfos`, types d'entrée lus par
+  `useMutationInputs`) ;
+- `mutationFields` : **tous** les champs racine de `Mutation` de la source, pour la validation ;
+- pour l'agent de widget, `viewActions` (clé → document) : les actions de la vue.
+
+**Prompts** (`packages/shared/src/actions/llm.ts`, testé) : `renderActionsSection(mutations)` documente
+`actions` (forme, références `$target` / `$form`, `confirm` obligatoire pour une suppression, sélection
+de l'objet écrit) et liste les mutations du concept ; sans mutation, il interdit `actions`, `form` et
+`rowActions`. Il est ajouté aux deux prompts de vue (générique, section `ACTIONS:` ; Claude, section
+`<actions>`), et le contrat de la vue gagne `"actions"?`. Les prompts de widget listent les actions de
+la vue (`renderViewActions`, `apps/bff/src/llm/viewActionsPrompt.ts`) : un widget ne peut qu'en utiliser
+une, pas en déclarer.
+
+**Validation BFF** (avant le tour de réparation) :
+- `checkActionFields(actions, mutationFields)` : chaque champ appelé par une action existe dans le type
+  `Mutation` de la source (rien n'est vérifié si le frontend n'a pas envoyé `mutationFields`) ;
+- `checkActionReferences` : les actions nommées par les widgets sont déclarées (vue), ou font partie des
+  actions de la vue (widget). Le frontend refait ce contrôle sur la proposition de l'agent de widget.
+
+**Vue détail automatique** : quand la source accepte l'écriture, `withEditForm` (`views/editView.ts`)
+ajoute l'action `update` et un formulaire *Edit* lié à l'élément affiché, dont les champs viennent du type
+d'entrée. Seulement si la mutation `update` du concept se laisse appeler ainsi : argument clé et argument
+d'entrée connus avec leur type, aucun autre argument requis, et une réponse qui est l'élément lui-même.
 
 ## 9. Étapes
 
@@ -177,5 +198,5 @@ GraphQLZero (Apollo) refuse les GET comme CSRF potentiel, ce qui cassait déjà 
 | 2 | `actions` dans le ViewSpec (schéma, validation) | ✅ |
 | 3 | `useViewActions`, patch local, `invoke` dans `WidgetProps`, réglage « écriture » par connexion | ✅ |
 | 4 | Collection `editing` : widget `form`, `table.rowActions`, `WidgetContract.actions`, hook des types d'entrée | ✅ |
-| 5 | LLM (prompts, validation BFF) et vue détail automatique | à faire |
+| 5 | LLM (prompts, validation BFF) et vue détail automatique | ✅ |
 | — | En-têtes d'authentification par connexion (indépendant) | à faire |

@@ -20,7 +20,7 @@ export function useRootMutations(
   mutationTypeName: string | undefined,
   depth: IntrospectionDepth,
   concepts: ReadonlySet<string>,
-): { mutationsByType: Map<string, ConceptMutations>; fetching: boolean } {
+): { mutationsByType: Map<string, ConceptMutations>; mutationFields: string[]; fetching: boolean } {
   const [result] = useQuery<TypeResult>({
     query: typeQuery(depth),
     variables: { name: mutationTypeName ?? '' },
@@ -31,5 +31,6 @@ export function useRootMutations(
     () => (mutationType ? buildRootMutations(mutationType, concepts) : NO_MUTATIONS),
     [mutationType, concepts],
   );
-  return { mutationsByType, fetching: result.fetching };
+  const mutationFields = useMemo(() => (mutationType?.fields ?? []).map((f) => f.name), [mutationType]);
+  return { mutationsByType, mutationFields, fetching: result.fetching };
 }

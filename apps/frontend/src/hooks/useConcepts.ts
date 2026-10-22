@@ -37,6 +37,8 @@ export interface UseRootConceptsResult {
   queriesByType: Map<string, ConceptQueries>;
   /** Concept -> the root mutations writing it; empty for a read-only source. */
   mutationsByType: Map<string, ConceptMutations>;
+  /** Every root mutation field of the source. */
+  mutationFields: string[];
   /** The root Query type, once introspected. */
   rootType: IntrospectionType | null;
   /** Introspection depth this source accepts (see `IntrospectionDepth`). */
@@ -109,12 +111,13 @@ export function useRootConcepts(): UseRootConceptsResult {
   }, [queriesByType, pinned]);
   const conceptNames = useMemo(() => new Set(concepts.map((c) => c.name)), [concepts]);
   // Not part of `fetching`: a concept is usable before its mutations are known.
-  const { mutationsByType } = useRootMutations(mutationTypeName, depth, conceptNames);
+  const { mutationsByType, mutationFields } = useRootMutations(mutationTypeName, depth, conceptNames);
 
   return {
     concepts,
     queriesByType,
     mutationsByType,
+    mutationFields,
     rootType,
     depth,
     fetching:

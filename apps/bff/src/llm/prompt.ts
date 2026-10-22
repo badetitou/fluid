@@ -1,5 +1,6 @@
 import type { ChatMessage, ConceptSchemaInfo, GenerateViewInput, GenerateWidgetInput } from './types';
-import { renderPortDocs, renderWidgetDocs, resolveWidgetCatalog, type WidgetContract } from '@fluid/shared';
+import { renderActionsSection, renderPortDocs, renderWidgetDocs, resolveWidgetCatalog, type WidgetContract } from '@fluid/shared';
+import { renderViewActions } from './viewActionsPrompt';
 import { detectLinkCandidates, formatLinkCandidatesForPrompt } from './linkDetection';
 import { renderStructureHints } from './structureHints';
 import { graphScopeInstructions, isGraphSchema } from './graphScope';
@@ -49,6 +50,7 @@ The JSON is a Fluid "view draft" with this exact shape:
   "queries": {                      // named GraphQL queries the widgets read from
     "<key>": { "query": "<GraphQL document string>", "variables"?: { ... } }
   },
+  "actions"?: { "<key>": Action },   // mutations the widgets may run (see ACTIONS below)
   "widgets": [ Widget, ... ]
 }
 
@@ -220,6 +222,9 @@ export function buildMessages(input: GenerateViewInput): ChatMessage[] {
     '',
     'Concept schema:',
     renderSchema(input.schema),
+    '',
+    'ACTIONS:',
+    renderActionsSection(input.schema.mutations),
   ].join('\n');
 
   const messages: ChatMessage[] = [{ role: 'system', content: system }];
@@ -354,6 +359,8 @@ export function buildWidgetMessages(input: GenerateWidgetInput): ChatMessage[] {
     contextParts.push('');
   }
 
+  contextParts.push(renderViewActions(input));
+  contextParts.push('');
   contextParts.push(linkCandidatesText);
   contextParts.push('');
   if (isGraphSchema(input.schema)) {

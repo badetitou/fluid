@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Concept, ConceptField } from '../graphql/introspection';
-import { buildEntryPoints, buildRelationPaths } from './conceptSchema';
+import { buildEntryPoints, buildMutationInfos, buildRelationPaths, mutationInputTypes } from './conceptSchema';
 
 function field(name: string, typeName: string, opts: Partial<ConceptField> = {}): ConceptField {
   const isScalar = ['ID', 'String', 'Float', 'Int'].includes(typeName);
@@ -99,5 +99,43 @@ describe('buildEntryPoints', () => {
         fields: ['id: ID', 'fullName: String'],
       },
     ]);
+  });
+});
+
+describe('buildMutationInfos', () => {
+  const update = {
+    field: 'updateTodo',
+    kind: 'update' as const,
+    args: [
+      { name: 'id', type: 'ID!', typeName: 'ID', required: true, isInput: false },
+      { name: 'input', type: 'UpdateTodoInput!', typeName: 'UpdateTodoInput', required: true, isInput: true },
+    ],
+    idArg: 'id',
+    inputArg: 'input',
+    returnsConcept: true,
+  };
+  const remove = { ...update, field: 'deleteTodo', kind: 'delete' as const, args: [update.args[0]], inputArg: undefined, returnsConcept: false };
+  const mutations = { update, delete: remove, others: [] };
+
+  it('lists the input types to introspect', () => {
+    expect(mutationInputTypes(mutations)).toEqual(['UpdateTodoInput']);
+    expect(mutationInputTypes(undefined)).toEqual([]);
+  });
+
+  it('describes each mutation with the fields of its input object', () => {
+    const inputs = new Map([
+      ['UpdateTodoInput', [{ name: 'title', description: null, type: 'String', typeName: 'String', typeKind: 'SCALAR', isList: false, required: false }]],
+    ]);
+    expect(buildMutationInfos(mutations, inputs)).toEqual([
+      {
+        field: 'updateTodo',
+        kind: 'update',
+        args: [{ name: 'id', type: 'ID!' }, { name: 'input', type: 'UpdateTodoInput!' }],
+        returnsConcept: true,
+        inputFields: ['title: String'],
+      },
+      { field: 'deleteTodo', kind: 'delete', args: [{ name: 'id', type: 'ID!' }], returnsConcept: false },
+    ]);
+    expect(buildMutationInfos(undefined)).toEqual([]);
   });
 });
