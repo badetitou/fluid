@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Alert, Card, Col, Empty, Row, Skeleton } from 'antd';
 import type { ViewSpec, Widget } from '@fluid/shared';
 import { useElementWidth } from '../hooks/useElementWidth';
@@ -11,6 +11,7 @@ import {
   ViewActionSpecsContext,
   ViewOutputsContext,
 } from './plugin-api';
+import { rowSpans } from './spanLayout';
 import { useViewData } from './useViewData';
 import { WidgetCard } from './WidgetCard';
 import styles from './ViewRenderer.module.css';
@@ -68,11 +69,9 @@ export function ViewRenderer({
   const actions = editingLayout ? undefined : renderWidgetActions;
   const gridLayout = editingLayout || spec.widgets.some((w) => w.layout);
 
-  // Column width (in Ant's 24-unit grid) for each widget. When only one widget
-  // fits, stack them full-width; otherwise respect the authored span but never
-  // let a widget be narrower than 24/fit (so at most `fit` share a row).
-  const columnSpan = (widget: Widget): number =>
-    compact ? 24 : Math.max(Math.ceil(24 / fit), Math.min(24, widget.span ?? 24));
+  // Column width (in Ant's 24-unit grid) of each widget: the authored spans, at
+  // most `fit` per row, each row stretched to the full width (see spanLayout).
+  const spans = useMemo(() => rowSpans(spec.widgets.map((w) => w.span), compact ? 1 : fit), [spec.widgets, compact, fit]);
 
   if (view.fetching) {
     return (
@@ -112,8 +111,8 @@ export function ViewRenderer({
               />
             ) : (
               <Row gutter={compact ? [8, 8] : [16, 16]}>
-                {spec.widgets.map((widget) => (
-                  <Col key={widget.id} span={columnSpan(widget)}>
+                {spec.widgets.map((widget, i) => (
+                  <Col key={widget.id} span={spans[i]}>
                     <WidgetCard widget={widget} view={view} renderActions={actions} />
                   </Col>
                 ))}
