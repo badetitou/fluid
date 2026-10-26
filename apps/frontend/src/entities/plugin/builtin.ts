@@ -5,6 +5,7 @@ import { autoViewBuilder } from './builders/autoViews';
 import { curatedViewBuilder } from './builders/curatedViews';
 import { ENDPOINT_SETTING, specFluidViewBuilder } from './builders/specFluid';
 import { HIGH_CONTRAST_THEME, SOLARIZED_THEME } from './builtinThemes';
+import { CATPPUCCIN_THEMES } from './catppuccin';
 import type { PluginManifest } from './manifest';
 import type { FluidPlugin, ThemePlugin, ViewBuilderPlugin, WidgetPlugin } from './types';
 import type { ViewBuilder } from './viewBuilder';
@@ -30,21 +31,22 @@ const widgetPlugins: WidgetPlugin[] = BUILTIN_WIDGET_COLLECTIONS.map((collection
   renderers: collection.types.map(builtinRenderer),
 }));
 
-const themePlugin = (theme: ThemeDefinition, required = false): ThemePlugin => ({
+type ThemeManifest = Pick<PluginManifest, 'id' | 'name' | 'description'>;
+
+const themesPlugin = (manifest: ThemeManifest, themes: ThemeDefinition[], required = false): ThemePlugin => ({
   ...BUILTIN,
   kind: 'theme',
-  manifest: {
-    id: `fluid-theme-${theme.id}`,
-    name: `${theme.label} theme`,
-    version: VERSION,
-    kind: 'theme',
-    description: theme.description,
-    author: 'fluid',
-    contributes: { themes: [theme] },
-  },
+  manifest: { ...manifest, version: VERSION, kind: 'theme', author: 'fluid', contributes: { themes } },
   required,
-  themes: [theme],
+  themes,
 });
+
+const themePlugin = (theme: ThemeDefinition, required = false): ThemePlugin =>
+  themesPlugin(
+    { id: `fluid-theme-${theme.id}`, name: `${theme.label} theme`, description: theme.description },
+    [theme],
+    required,
+  );
 
 type BuilderManifest = Pick<PluginManifest, 'id' | 'name' | 'description' | 'settings'>;
 
@@ -107,4 +109,12 @@ export const BUILTIN_PLUGINS: FluidPlugin[] = [
   themePlugin(BADETITOU_THEME, true),
   themePlugin(SOLARIZED_THEME),
   themePlugin(HIGH_CONTRAST_THEME),
+  themesPlugin(
+    {
+      id: 'fluid-theme-catppuccin',
+      name: 'Catppuccin themes',
+      description: 'The Catppuccin pastel palettes (catppuccin.com): Latte in light mode, Frappé, Macchiato or Mocha in dark mode.',
+    },
+    CATPPUCCIN_THEMES,
+  ),
 ];
