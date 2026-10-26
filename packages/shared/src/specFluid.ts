@@ -67,6 +67,8 @@ export type SpecFluidNode =
   | { kind: 'svg'; svg: string; refs?: z.infer<typeof specFluidHotspotSchema>[] }
   | { kind: 'text'; text: string; language?: string; highlights?: SpecFluidTextRange[] }
   | { kind: 'composite'; direction: 'row' | 'column'; children: SpecFluidNode[] }
+  /** A Pharo diff (`SpDiffPresenter`): the older and newer texts. */
+  | { kind: 'diff'; before: string; after: string; beforeLabel?: string; afterLabel?: string; language?: string }
   /** A Pharo notebook (`SpNotebookPresenter`): titled pages, `selected` is the 0-based index of the open one. */
   | { kind: 'notebook'; pages: { title: string; node: SpecFluidNode }[]; selected?: number }
   | { kind: 'unsupported'; presenter: string; message?: string };
@@ -96,6 +98,14 @@ export const specFluidNodeSchema: z.ZodType<SpecFluidNode> = z.lazy(() =>
       kind: z.literal('composite'),
       direction: z.enum(['row', 'column']),
       children: z.array(specFluidNodeSchema),
+    }),
+    z.object({
+      kind: z.literal('diff'),
+      before: z.string(),
+      after: z.string(),
+      beforeLabel: z.string().optional(),
+      afterLabel: z.string().optional(),
+      language: z.string().optional(),
     }),
     z.object({
       kind: z.literal('notebook'),

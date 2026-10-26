@@ -7,12 +7,13 @@ import {
   refKey,
   rootKeys,
   linkedCells,
+  diffCodeWidget,
   openPageKey,
   rowRef,
   tableRows,
   treeRows,
 } from './model';
-import { fameTab, methodsTable, packagesTree, sourceNotebook } from './specPresenterFixture';
+import { fameTab, methodsTable, packagesTree, methodDiff, sourceNotebook } from './specPresenterFixture';
 
 describe('parseSpecNode', () => {
   it('accepts a Spec-Fluid document, composites included', () => {
@@ -101,5 +102,17 @@ describe('notebooks', () => {
     expect(openPageKey(2, 1)).toBe('1');
     expect(openPageKey(2, undefined)).toBe('0');
     expect(openPageKey(2, 5)).toBe('0');
+  });
+});
+
+describe('diffCodeWidget', () => {
+  it('compares the newer text to the older one, under its label', () => {
+    expect(parseSpecNode(methodDiff).node).toEqual(methodDiff);
+    expect(diffCodeWidget(methodDiff as Extract<typeof methodDiff, { kind: 'diff' }>)).toMatchObject({
+      type: 'code',
+      field: 'after',
+      language: 'smalltalk',
+      compare: { field: 'before', label: 'parent' },
+    });
   });
 });

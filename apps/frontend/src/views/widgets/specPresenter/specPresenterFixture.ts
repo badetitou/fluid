@@ -56,3 +56,12 @@ export const sourceNotebook: SpecFluidNode = {
     { title: 'Source', node: { kind: 'text', text: 'size\n\t^ tally' } },
   ],
 };
+
+/** A diff (SpDiffPresenter) of a method between two commits. */
+export const methodDiff: SpecFluidNode = {
+  kind: 'diff',
+  before: 'size\n\t^ tally',
+  after: 'size\n\t^ array size',
+  beforeLabel: 'parent',
+  language: 'smalltalk',
+};
