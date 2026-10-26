@@ -1,0 +1,49 @@
+/* Presenting: the content alone fills the window, above the app's chrome. */
+.presenting {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: auto;
+  padding: 16px;
+  background: var(--ant-color-bg-layout);
+}
+
+.exit {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 1001;
+  opacity: 0;
+  transition: opacity var(--ant-motion-duration-mid);
+}
+
+/* Out of the way on a big screen: it shows when the pointer or focus reaches it. */
+.exit:hover,
+.exit:focus-visible {
+  opacity: 1;
+}
+
+.hint {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 1001;
+  translate: -50% 0;
+  padding: 6px 14px;
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-bg-spotlight);
+  color: var(--ant-color-white);
+  font-size: 13px;
+  pointer-events: none;
+  animation: fade-out 3.5s ease-in forwards;
+}
+
+@keyframes fade-out {
+  0%,
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
