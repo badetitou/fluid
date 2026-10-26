@@ -6,6 +6,14 @@
   background: var(--ant-color-bg-layout);
 }
 
+/*
+ * The pager floats over the bottom of the columns: what plugins draw there
+ * (column overlays) keeps clear of it with this inset.
+ */
+.root:has(> .pager) {
+  --column-overlay-inset: 40px;
+}
+
 .columns {
   display: flex;
   height: 100%;

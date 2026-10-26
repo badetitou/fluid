@@ -61,7 +61,8 @@ export interface ViewBuilder {
   /**
    * Drawn over the body of every column, whatever its perspective (e.g. a
    * floating menu); it lies in a positioned flex column, under the body, and
-   * draws nothing (null) where it does not apply.
+   * draws nothing (null) where it does not apply. It keeps the bottom
+   * `var(--column-overlay-inset, 0px)` clear: fluid's own controls float there.
    */
   ColumnOverlay?: ComponentType<ColumnOverlayProps>;
 }
