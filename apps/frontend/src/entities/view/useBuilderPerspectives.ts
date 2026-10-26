@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useActiveViewBuilders, type Perspective, type ViewBuilderContext } from '../plugin';
+import { useActiveViewBuilders, type BuiltPerspective, type Perspective, type ViewBuilderContext } from '../plugin';
 
 type ColumnContext = Omit<ViewBuilderContext, 'settings'>;
 
 /**
  * The perspectives the enabled view builders propose for a column, in plugin
  * order: those built from the column at once, those asked to a backend as
- * they arrive (a builder that fails proposes nothing).
+ * they arrive (a builder that fails proposes nothing), each marked with its
+ * builder's label and colour.
  */
-export function useBuilderPerspectives(context: ColumnContext): Perspective[] {
+export function useBuilderPerspectives(context: ColumnContext): BuiltPerspective[] {
   const builders = useActiveViewBuilders();
   const { concept, columnKind, itemId, conceptByName, queriesByType, writable } = context;
 
@@ -41,6 +42,8 @@ export function useBuilderPerspectives(context: ColumnContext): Perspective[] {
 
   return useMemo(() => {
     const byBuilder = fetched.for === columnKey ? fetched.byBuilder : {};
-    return builders.flatMap(({ builder }, i) => [...built[i], ...(byBuilder[builder.id] ?? [])]);
+    return builders.flatMap(({ builder, color }, i) =>
+      [...built[i], ...(byBuilder[builder.id] ?? [])].map((p) => ({ ...p, builder: { label: builder.label, color } })),
+    );
   }, [builders, built, fetched, columnKey]);
 }

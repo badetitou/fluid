@@ -1,4 +1,5 @@
 import { useCallback, useContext, useMemo } from 'react';
+import { builderColors } from './builderColors';
 import { BUILTIN_PLUGINS, DEFAULT_THEME_ID } from './builtin';
 import { fetchManifest, resolveManifestUrl } from './loader';
 import {
@@ -50,12 +51,25 @@ export function usePluginActions() {
   return { setEnabled, uninstall, inspect, install };
 }
 
-/** The view builders of the enabled plugins, with their settings, in plugin order. */
+/** The view builders of the enabled plugins, with their settings and colours, in plugin order. */
 export function useActiveViewBuilders() {
   const plugins = useContext(PluginsContext);
   const disabled = usePluginStore((s) => s.disabled);
   const settings = usePluginStore((s) => s.settings);
-  return useMemo(() => activeViewBuilders(plugins, disabled, settings), [plugins, disabled, settings]);
+  const chosen = usePluginStore((s) => s.builderColors);
+  return useMemo(
+    () => activeViewBuilders(plugins, disabled, settings, chosen),
+    [plugins, disabled, settings, chosen],
+  );
+}
+
+/** The colour of every view builder, by id, whether the user chose it, and the setter. */
+export function useBuilderColors() {
+  const plugins = useContext(PluginsContext);
+  const chosen = usePluginStore((s) => s.builderColors);
+  const setColor = usePluginStore((s) => s.setBuilderColor);
+  const colors = useMemo(() => builderColors(plugins, chosen), [plugins, chosen]);
+  return { colors, chosen, setColor };
 }
 
 /** The data sources the enabled view builders bring, by id. */

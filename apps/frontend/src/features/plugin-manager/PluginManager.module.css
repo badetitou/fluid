@@ -137,6 +137,18 @@
   width: 100%;
 }
 
+.builderColors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.builderColor {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .settings {
   display: flex;
   flex-direction: column;

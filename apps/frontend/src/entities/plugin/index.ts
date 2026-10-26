@@ -8,6 +8,7 @@ export {
   currentWidgetContracts,
   useActiveDataSources,
   useActiveViewBuilders,
+  useBuilderColors,
   usePluginActions,
   usePluginSettings,
   usePlugins,
@@ -22,4 +23,4 @@ export type {
   ViewBuilderPlugin,
   WidgetPlugin,
 } from './types';
-export type { Perspective, PerspectiveOrigin, ViewBuilder, ViewBuilderContext } from './viewBuilder';
+export type { BuiltPerspective, Perspective, PerspectiveOrigin, ViewBuilder, ViewBuilderContext } from './viewBuilder';

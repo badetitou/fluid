@@ -8,6 +8,7 @@ import {
 import type { ThemeDefinition } from '../../shared/theme';
 import type { WidgetCatalog, WidgetRendererDefinition } from '../../views/plugin-api';
 import type { DataSource } from '../../views/plugin-api';
+import { builderColors } from './builderColors';
 import { pluginKind, type PluginSetting } from './manifest';
 import type { FluidPlugin, InstalledPlugin, PluginLoadState } from './types';
 import type { ViewBuilder } from './viewBuilder';
@@ -143,21 +144,30 @@ export function settingsOf(
   return Object.fromEntries(declared.map((s) => [s.key, mine[s.key]?.trim() || s.default || '']));
 }
 
-/** A view builder of an enabled plugin, with that plugin's settings. */
+/** A view builder of an enabled plugin, with that plugin's settings and its colour. */
 export interface ActiveViewBuilder {
   builder: ViewBuilder;
   settings: Record<string, string>;
+  color: string;
 }
 
-/** The view builders of the enabled plugins, in plugin order, with their settings. */
+/** The view builders of the enabled plugins, in plugin order, with their settings and colours. */
 export function activeViewBuilders(
   plugins: FluidPlugin[],
   disabled: readonly string[],
   filled: Readonly<Record<string, Record<string, string>>>,
+  chosenColors: Readonly<Record<string, string>> = {},
 ): ActiveViewBuilder[] {
+  const colors = builderColors(plugins, chosenColors);
   return plugins
     .filter((p) => isEnabled(p, disabled))
-    .flatMap((p) => buildersOf(p).map((builder) => ({ builder, settings: settingsOf(p, filled) })));
+    .flatMap((p) =>
+      buildersOf(p).map((builder) => ({
+        builder,
+        settings: settingsOf(p, filled),
+        color: colors.get(builder.id) ?? 'currentColor',
+      })),
+    );
 }
 
 /** The data sources the active view builders bring, by builder id. */
