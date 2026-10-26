@@ -16,7 +16,7 @@ type SpecPresenterWidgetProps = Pick<WidgetProps<SpecPresenterWidgetSpec>, 'widg
  * `selected` as `{ id, type? }`.
  *
  * Colors come from the theme; a theme may set, under `widgets.specPresenter`:
- * `mutedColor`, `selectionColor`, `textBackground`.
+ * `mutedColor`, `selectionColor`, `textBackground`, `highlightColor` (selected part of a text).
  */
 export function SpecPresenterWidget({ widget, data, emit, fitHeight }: SpecPresenterWidgetProps) {
   const theme = useWidgetTheme(widget.type);
@@ -27,6 +27,7 @@ export function SpecPresenterWidget({ widget, data, emit, fitHeight }: SpecPrese
     '--spec-selection': theme.vars.selectionColor ?? theme.primary,
     '--spec-selected-bg': theme.selected,
     '--spec-text-bg': theme.vars.textBackground ?? theme.surfaceElevated,
+    '--spec-highlight': theme.vars.highlightColor ?? theme.selected,
     '--spec-border': theme.borderSubtle,
     maxHeight: fitHeight ?? widget.maxHeight,
   } as CSSProperties;

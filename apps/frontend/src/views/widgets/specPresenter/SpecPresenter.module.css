@@ -56,6 +56,13 @@
   border-radius: 4px;
 }
 
+.highlight {
+  color: inherit;
+  background: var(--spec-highlight);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px var(--spec-selection);
+}
+
 .clickable {
   cursor: pointer;
 }
