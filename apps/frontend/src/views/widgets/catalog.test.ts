@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   ALL_EXAMPLE_VIEWS,
+  butterflyExample,
   characterEpisodesNetworkExample,
   classDiagramExample,
+  classDependencyMatrixExample,
   historyWidgetExample,
   safeParseViewSpec,
   safeParseWidgetDraft,
+  specPresenterWidgetExample,
   WIDGET_TYPES,
   widgetSchema,
 } from '@fluid/shared';
@@ -27,7 +30,7 @@ describe('widget catalog', () => {
     for (const view of ALL_EXAMPLE_VIEWS) expect(safeParseViewSpec(view).success).toBe(true);
   });
 
-  it.each(['tree', 'richtext', 'scatter', 'code', 'accordion', 'model3d', 'scene3d', 'network', 'classDiagram'])('shows the %s widget in a curated example', (type) => {
+  it.each(['tree', 'richtext', 'scatter', 'sankey', 'code', 'accordion', 'model3d', 'scene3d', 'network', 'classDiagram', 'boxes', 'matrix', 'blueprint', 'butterfly', 'pyramid'])('shows the %s widget in a curated example', (type) => {
     expect(ALL_EXAMPLE_VIEWS.some((v) => v.widgets.some((w) => w.type === type))).toBe(true);
   });
 
@@ -43,6 +46,14 @@ describe('widget catalog', () => {
   it('has a valid reference config for the history widget, without curated view', () => {
     expect(widgetSchema.safeParse(historyWidgetExample).success).toBe(true);
     expect(ALL_EXAMPLE_VIEWS.some((v) => v.widgets.some((w) => w.type === 'history'))).toBe(false);
+  });
+
+  // Inspector tabs come from a Spec-Fluid backend, not a public GraphQL API: only a reference config.
+  it('has a valid reference config for the spec presenter, which needs its data', () => {
+    expect(widgetSchema.safeParse(specPresenterWidgetExample).success).toBe(true);
+    const { id: _id, data: _data, ...unbound } = specPresenterWidgetExample;
+    expect(safeParseWidgetDraft({ ...unbound, data: { query: 'tab', path: 'root' } }).success).toBe(true);
+    expect(safeParseWidgetDraft(unbound).success).toBe(false);
   });
 
   it('rejects a history without links between versions, generated or not', () => {
@@ -73,5 +84,27 @@ describe('widget catalog', () => {
     expect(widgetSchema.safeParse(flat).success).toBe(false);
     expect(safeParseWidgetDraft(draft).success).toBe(false);
     expect(safeParseWidgetDraft({ ...draft, superField: 'superclass' }).success).toBe(true);
+  });
+
+  it('rejects a butterfly without any side, generated or not', () => {
+    const butterfly = butterflyExample.widgets[0] as Record<string, unknown>;
+    const { incomingField: _in, outgoingField: _out, ...flat } = butterfly;
+    const { id: _id, ...draft } = flat;
+    expect(widgetSchema.safeParse(butterfly).success).toBe(true);
+    expect(widgetSchema.safeParse(flat).success).toBe(false);
+    expect(safeParseWidgetDraft(draft).success).toBe(false);
+    expect(safeParseWidgetDraft({ ...draft, outgoingField: 'calls' }).success).toBe(true);
+    expect(widgetSchema.safeParse({ ...butterfly, depth: 3 }).success).toBe(false);
+  });
+
+  it('rejects a matrix without the targets of its elements, generated or not', () => {
+    const matrix = classDependencyMatrixExample.widgets[0] as Record<string, unknown>;
+    const { targetsField: _targets, ...flat } = matrix;
+    const { id: _id, ...draft } = flat;
+    expect(widgetSchema.safeParse(matrix).success).toBe(true);
+    expect(widgetSchema.safeParse(flat).success).toBe(false);
+    expect(safeParseWidgetDraft(draft).success).toBe(false);
+    expect(safeParseWidgetDraft({ ...draft, targetsField: 'dependencies' }).success).toBe(true);
+    expect(widgetSchema.safeParse({ ...matrix, columns: 'both' }).success).toBe(false);
   });
 });

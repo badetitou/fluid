@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { ViewSpec } from '@fluid/shared';
 import type { Concept, ConceptQueries } from '../../graphql/introspection';
-import { buildDetailView, buildTreeView, withEditForm } from '../../views/registry';
 import { useSourceWrites } from '../preferences/useSourceWrites';
 import type { ColumnKind } from '../../views/viewScope';
-import { columnEntries, injectItemId, resolveActiveKey } from './model';
+import { columnEntries, injectItemId, perspectiveEntries, resolveActiveKey } from './model';
 import { usePerspectiveMemory } from './perspectiveMemory';
+import { useBuilderPerspectives } from './useBuilderPerspectives';
 import { useViews, type ViewEntry } from './useViews';
 
 export interface ColumnPerspectives {
@@ -35,9 +35,10 @@ interface Options {
 }
 
 /**
- * The perspectives (saved / curated / auto views) of one Miller column and the
- * one currently shown. A detail column also gets an auto detail perspective,
- * bound to the by-id query, as its default.
+ * The perspectives of one Miller column — the saved views, then those the
+ * view builder plugins propose (curated, auto, remote) — and the one shown.
+ * A perspective a builder makes the default of this kind of column (the auto
+ * detail of a drilled-in item) comes first and is shown by default.
  */
 export function useColumnPerspectives(
   concept: Concept,
@@ -56,29 +57,16 @@ export function useColumnPerspectives(
   // Where the source accepts writes, the auto detail also edits the item.
   const { writable } = useSourceWrites();
 
-  const detailEntry = useMemo<ViewEntry | null>(() => {
-    if (!itemId) return null;
-    const built = buildDetailView(concept, { conceptByName, queriesByType });
-    const detailSpec = built && writable ? withEditForm(built, concept) : built;
-    return detailSpec
-      ? { key: detailSpec.id, title: `${concept.name} detail`, source: 'auto', spec: detailSpec }
-      : null;
-  }, [itemId, concept, conceptByName, queriesByType, writable]);
-
-  // Concepts whose data forms a hierarchy also get a tree perspective in list columns.
-  const treeEntry = useMemo<ViewEntry | null>(() => {
-    if (itemId) return null;
-    const treeSpec = buildTreeView(concept, { conceptByName, queriesByType });
-    return treeSpec ? { key: treeSpec.id, title: treeSpec.title, source: 'auto', spec: treeSpec } : null;
-  }, [itemId, concept, conceptByName, queriesByType]);
+  const proposed = useBuilderPerspectives({ concept, columnKind, itemId, conceptByName, queriesByType, writable });
+  const built = useMemo(() => perspectiveEntries(proposed, columnKind), [proposed, columnKind]);
 
   const entries = useMemo(
-    () => columnEntries(treeEntry ? [...views.entries, treeEntry] : views.entries, columnKind, byIdField, detailEntry),
-    [views.entries, treeEntry, columnKind, byIdField, detailEntry],
+    () => columnEntries([...views.entries, ...built.others], columnKind, byIdField, built.preferred ?? null),
+    [views.entries, built, columnKind, byIdField],
   );
 
   const pickedKey = picked.concept === concept.name ? picked.key : undefined;
-  const activeKey = resolveActiveKey(entries, pickedKey, itemId ? detailEntry?.key : views.defaultKey);
+  const activeKey = resolveActiveKey(entries, pickedKey, built.preferred?.key ?? views.defaultKey);
   const selected = entries.find((e) => e.key === activeKey);
 
   const spec = useMemo(

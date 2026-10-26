@@ -1,7 +1,9 @@
 import type { ComponentType } from 'react';
 import { describeIssues } from '@fluid/shared';
-import type { WidgetProps, WidgetRendererDefinition } from '../../views/plugin-api';
+import type { DataSource, WidgetProps } from '../../views/plugin-api';
 import { pluginManifestSchema, type PluginManifest } from './manifest';
+import type { ModuleProvided } from './model';
+import type { ViewBuilder } from './viewBuilder';
 
 /**
  * Where a manifest may be read from: any `https:` URL, or fluid's own origin
@@ -35,18 +37,47 @@ export async function fetchManifest(url: URL): Promise<PluginManifest> {
   return parsed.data;
 }
 
-type ModuleWidgets = Record<string, { Render?: unknown; sizing?: unknown } | undefined>;
+type ModuleEntries = Record<string, Record<string, unknown> | undefined>;
+
+/** The renderers the module provides for the widgets its manifest declares. */
+function moduleRenderers(manifest: PluginManifest, widgets: ModuleEntries | undefined): ModuleProvided['renderers'] {
+  return (manifest.contributes.widgets ?? []).map(({ type }) => {
+    const entry = widgets?.[type];
+    if (typeof entry?.Render !== 'function') throw new Error(`The plugin module does not render “${type}”.`);
+    return {
+      type,
+      Render: entry.Render as ComponentType<WidgetProps>,
+      sizing: entry.sizing === 'chart' ? 'chart' : 'flow',
+    };
+  });
+}
+
+/** The view builders the module provides for those its manifest declares. */
+function moduleBuilders(manifest: PluginManifest, builders: ModuleEntries | undefined): ViewBuilder[] {
+  return (manifest.contributes.viewBuilders ?? []).map(({ id, label }) => {
+    const entry = builders?.[id];
+    const { perspectives, fetchPerspectives, dataSource } = entry ?? {};
+    if (typeof perspectives !== 'function' && typeof fetchPerspectives !== 'function')
+      throw new Error(`The plugin module does not build “${id}” views.`);
+    return {
+      id,
+      label,
+      perspectives: typeof perspectives === 'function' ? (perspectives as ViewBuilder['perspectives']) : undefined,
+      fetchPerspectives:
+        typeof fetchPerspectives === 'function' ? (fetchPerspectives as ViewBuilder['fetchPerspectives']) : undefined,
+      dataSource: typeof dataSource === 'function' ? (dataSource as (s: Record<string, string>) => DataSource) : undefined,
+    };
+  });
+}
 
 /**
- * Imports a plugin's module and returns a renderer for each widget its
- * manifest declares. The module's default export receives the plugin host
- * and returns `{ widgets: { "<type>": { Render, sizing? } } }`.
+ * Imports a plugin's module and returns what it provides for its manifest's
+ * contributions. The module's default export receives the plugin host and
+ * returns `{ widgets: { "<type>": { Render, sizing? } } }` (widget plugin) or
+ * `{ viewBuilders: { "<id>": { perspectives | fetchPerspectives, dataSource? } } }` (view builder plugin).
  */
-export async function loadPluginModule(
-  manifestUrl: string,
-  manifest: PluginManifest,
-): Promise<WidgetRendererDefinition[]> {
-  if (!manifest.module) return [];
+export async function loadPluginModule(manifestUrl: string, manifest: PluginManifest): Promise<ModuleProvided> {
+  if (!manifest.module) return {};
   const href = new URL(manifest.module, manifestUrl).href;
   const [mod, { createPluginHost }] = await Promise.all([
     import(/* @vite-ignore */ href),
@@ -55,15 +86,9 @@ export async function loadPluginModule(
   if (typeof mod.default !== 'function')
     throw new Error('The plugin module has no default export function.');
   const provided = (await mod.default(createPluginHost())) as
-    { widgets?: ModuleWidgets } | undefined;
-  return (manifest.contributes.widgets ?? []).map(({ type }) => {
-    const entry = provided?.widgets?.[type];
-    if (typeof entry?.Render !== 'function')
-      throw new Error(`The plugin module does not render “${type}”.`);
-    return {
-      type,
-      Render: entry.Render as ComponentType<WidgetProps>,
-      sizing: entry.sizing === 'chart' ? 'chart' : 'flow',
-    };
-  });
+    { widgets?: ModuleEntries; viewBuilders?: ModuleEntries } | undefined;
+  return {
+    renderers: moduleRenderers(manifest, provided?.widgets),
+    builders: moduleBuilders(manifest, provided?.viewBuilders),
+  };
 }

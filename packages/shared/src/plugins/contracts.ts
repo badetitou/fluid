@@ -1,9 +1,13 @@
 import { z } from 'zod';
 import type { CoreWidgetType } from '../view-spec';
 import { accordionWidgetDoc } from '../widgets/accordion';
+import { blueprintWidgetDoc } from '../widgets/blueprint';
+import { boxesWidgetDoc } from '../widgets/boxes';
 import { classDiagramWidgetDoc } from '../widgets/classDiagram';
+import { butterflyWidgetDoc } from '../widgets/butterfly';
 import { codeWidgetDoc } from '../widgets/code';
 import { formWidgetDoc } from '../widgets/form';
+import { matrixWidgetDoc } from '../widgets/matrix';
 import {
   areaWidgetDoc,
   barWidgetDoc,
@@ -17,7 +21,10 @@ import { historyWidgetDoc } from '../widgets/history';
 import { networkWidgetDoc } from '../widgets/network';
 import { model3dWidgetDoc, scene3dWidgetDoc } from '../widgets/model3d';
 import { richTextWidgetDoc } from '../widgets/richtext';
+import { sankeyWidgetDoc } from '../widgets/sankey';
 import { scatterWidgetDoc } from '../widgets/scatter';
+import { pyramidWidgetDoc } from '../widgets/pyramid';
+import { specPresenterWidgetDoc } from '../widgets/specPresenter';
 import { treeWidgetDoc } from '../widgets/tree';
 import { actionSlotSchema, DATA_INPUT, portSpecSchema, SELECTED_OUTPUT, type ActionSlot, type PortSpec } from './ports';
 import { PLUGIN_WIDGET_TYPE } from './widgetType';
@@ -93,6 +100,9 @@ export const BUILTIN_WIDGET_CONTRACTS: { [T in CoreWidgetType]: WidgetContract }
   area: contract('area', 'Area chart', 'Volumes over an axis.', areaWidgetDoc),
   pie: contract('pie', 'Pie chart', 'Shares of a whole.', pieWidgetDoc),
   scatter: contract('scatter', 'Scatter plot', 'Two measures per row, as dots.', scatterWidgetDoc),
+  sankey: contract('sankey', 'Sankey', 'Weighted flows between a few groups, as ribbons.', sankeyWidgetDoc, {
+    outputs: [{ ...SELECTED_OUTPUT, description: 'The clicked node `{ group, rows }` or ribbon `{ source, target, value, rows }`.' }],
+  }),
   tree: contract('tree', 'Tree', 'A hierarchy, folded level by level.', treeWidgetDoc),
   richtext: contract('richtext', 'Rich text', 'Markdown or long text.', richTextWidgetDoc),
   code: contract('code', 'Code', 'Source code with annotations and diffs.', codeWidgetDoc, {
@@ -123,6 +133,36 @@ export const BUILTIN_WIDGET_CONTRACTS: { [T in CoreWidgetType]: WidgetContract }
     classDiagramWidgetDoc,
     { outputs: [{ ...SELECTED_OUTPUT, description: 'The row of the class the user last clicked.' }] },
   ),
+  boxes: contract(
+    'boxes',
+    'Polymetric boxes',
+    'Items as boxes sized and colored by metrics, as a hierarchy, grouped in frames, or a treemap.',
+    boxesWidgetDoc,
+    { outputs: [{ ...SELECTED_OUTPUT, description: 'The row of the box the user last clicked.' }] },
+  ),
+  matrix: contract('matrix', 'Dependency matrix', 'Who depends on whom, as a grid (DSM, co-usage map).', matrixWidgetDoc, {
+    outputs: [
+      {
+        ...SELECTED_OUTPUT,
+        description:
+          'The last click: on a cell `{ source, target, weight }` (the element row, the target row or object, the summed weight); on a label, that row.',
+      },
+    ],
+  }),
+  blueprint: contract('blueprint', 'Class blueprint', 'One class: methods by layer, internal calls, attribute accesses.', blueprintWidgetDoc, {
+    inputs: [{ ...DATA_INPUT, description: 'The class: an object holding its methods and attributes.' }],
+    outputs: [{ ...SELECTED_OUTPUT, description: 'The row of the method or attribute the user last clicked.' }],
+  }),
+  butterfly: contract(
+    'butterfly',
+    'Butterfly',
+    'One element in the middle, what depends on it on the left, what it depends on on the right.',
+    butterflyWidgetDoc,
+    {
+      inputs: [{ ...DATA_INPUT, description: 'The central element: one object (or the first row of a list).' }],
+      outputs: [{ ...SELECTED_OUTPUT, description: 'The row of the neighbour (dependent or dependency) the user last clicked.' }],
+    },
+  ),
   model3d: contract('model3d', '3D element', 'One building element (IFC) in 3D.', model3dWidgetDoc),
   scene3d: contract(
     'scene3d',
@@ -134,60 +174,20 @@ export const BUILTIN_WIDGET_CONTRACTS: { [T in CoreWidgetType]: WidgetContract }
       outputs: [{ ...SELECTED_OUTPUT, description: 'The element the user last clicked.' }],
     },
   ),
+  pyramid: contract(
+    'pyramid',
+    'Overview pyramid',
+    'A system or package in one figure: size, complexity, coupling and inheritance metrics, ratios colored against thresholds.',
+    pyramidWidgetDoc,
+  ),
+  specPresenter: contract(
+    'specPresenter',
+    'Inspector tab',
+    'A Pharo inspector tab (Spec-Fluid): tables, trees, Roassal SVG, text.',
+    specPresenterWidgetDoc,
+    {
+      inputs: [{ ...DATA_INPUT, description: 'The Spec-Fluid node to draw (the "root" of a tab).' }],
+      outputs: [{ ...SELECTED_OUTPUT, description: 'The entity the user last clicked: `{ id, type? }`.' }],
+    },
+  ),
 };
-
-/** A built-in widget collection: shipped with fluid, enabled by default. */
-export interface BuiltinWidgetCollection {
-  id: string;
-  name: string;
-  description: string;
-  types: CoreWidgetType[];
-  /** The app needs it (the prompts lean on tables): it cannot be disabled. */
-  required?: boolean;
-}
-
-export const BUILTIN_WIDGET_COLLECTIONS: BuiltinWidgetCollection[] = [
-  {
-    id: 'fluid-essentials',
-    name: 'Essentials',
-    description: 'Tables, statistics and descriptions: the widgets every view starts from.',
-    types: ['table', 'statistic', 'descriptions'],
-    required: true,
-  },
-  {
-    id: 'fluid-charts',
-    name: 'Charts',
-    description: 'Line, bar, area, pie and scatter charts.',
-    types: ['line', 'bar', 'area', 'pie', 'scatter'],
-  },
-  {
-    id: 'fluid-code',
-    name: 'Code & text',
-    description: 'Source code, version histories and rich text.',
-    types: ['code', 'history', 'richtext'],
-  },
-  {
-    id: 'fluid-structure',
-    name: 'Structure',
-    description: 'Trees and accordions, for nested collections.',
-    types: ['tree', 'accordion'],
-  },
-  {
-    id: 'fluid-graphs',
-    name: 'Graphs',
-    description: 'Networks of linked items (dependencies, call graphs), drawn with WebGL, and UML class diagrams of inheritance hierarchies.',
-    types: ['network', 'classDiagram'],
-  },
-  {
-    id: 'fluid-editing',
-    name: 'Editing',
-    description: 'Forms and row buttons that change data through the view actions (needs “Allow changes”).',
-    types: ['form'],
-  },
-  {
-    id: 'fluid-3d',
-    name: '3D',
-    description: 'Building elements (IFC) in 3D, alone or highlighted in their model.',
-    types: ['model3d', 'scene3d'],
-  },
-];

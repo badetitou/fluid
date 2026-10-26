@@ -9,12 +9,19 @@ import { TableWidget } from './TableWidget';
 import { TreeWidget } from './tree/TreeWidget';
 import { LazyRichTextWidget } from './richtext/lazy';
 import { ScatterWidget } from './scatter/ScatterWidget';
+import { SankeyWidget } from './sankey/SankeyWidget';
 import { HistoryWidget } from './history/HistoryWidget';
 import { LazyCodeWidget } from './code/lazy';
 import { AccordionWidget } from './accordion/AccordionWidget';
 import { LazyNetworkWidget } from './network/lazy';
 import { ClassDiagramWidget } from './classDiagram/ClassDiagramWidget';
+import { BoxesWidget } from './boxes/BoxesWidget';
+import { MatrixWidget } from './matrix/MatrixWidget';
+import { BlueprintWidget } from './blueprint/BlueprintWidget';
+import { ButterflyWidget } from './butterfly/ButterflyWidget';
 import { FormWidget } from './form/FormWidget';
+import { SpecPresenterWidget } from './specPresenter/SpecPresenterWidget';
+import { PyramidWidget } from './pyramid/PyramidWidget';
 import { LazyModel3dWidget, LazyScene3dWidget } from './model3d/lazy';
 
 type Renderer<T extends CoreWidgetType> = ComponentType<WidgetProps<Extract<CoreWidget, { type: T }>>>;
@@ -44,6 +51,7 @@ export const WIDGET_RENDERERS: { [T in CoreWidgetType]: Renderer<T> } = {
   tree: ({ widget, data }) => <TreeWidget widget={widget} data={data} />,
   richtext: ({ widget, data }) => <LazyRichTextWidget widget={widget} data={data} />,
   scatter: ({ widget, data, fitHeight }) => <ScatterWidget widget={widget} rows={asRows(data)} fitHeight={fitHeight} />,
+  sankey: (props) => <SankeyWidget {...props} />,
   history: ({ widget, data, fitHeight }) => <HistoryWidget widget={widget} rows={asRows(data)} fitHeight={fitHeight} />,
   code: ({ widget, data, resolve }) => <LazyCodeWidget widget={widget} data={data} resolve={resolve} />,
   form: ({ widget, data, invoke }) => <FormWidget widget={widget} data={data} invoke={invoke} />,
@@ -54,14 +62,24 @@ export const WIDGET_RENDERERS: { [T in CoreWidgetType]: Renderer<T> } = {
   classDiagram: ({ widget, data, resolve, emit, fitHeight }) => (
     <ClassDiagramWidget widget={widget} data={data} resolve={resolve} emit={emit} fitHeight={fitHeight} />
   ),
+  boxes: ({ widget, data, emit, fitHeight }) => <BoxesWidget widget={widget} data={data} emit={emit} fitHeight={fitHeight} />,
+  matrix: (props) => <MatrixWidget {...props} />,
+  blueprint: ({ widget, data, resolve, emit, fitHeight }) => (
+    <BlueprintWidget widget={widget} data={data} resolve={resolve} emit={emit} fitHeight={fitHeight} />
+  ),
+  butterfly: (props) => <ButterflyWidget {...props} />,
   model3d: ({ widget, data, fitHeight }) => <LazyModel3dWidget widget={widget} data={data} fitHeight={fitHeight} />,
   scene3d: ({ widget, data, resolve, emit, fitHeight }) => (
     <LazyScene3dWidget widget={widget} data={data} resolve={resolve} emit={emit} fitHeight={fitHeight} />
   ),
+  specPresenter: ({ widget, data, emit, fitHeight }) => (
+    <SpecPresenterWidget widget={widget} data={data} emit={emit} fitHeight={fitHeight} />
+  ),
+  pyramid: ({ widget, data, fitHeight }) => <PyramidWidget widget={widget} data={data} fitHeight={fitHeight} />,
 };
 
 /** Widget types drawn as charts (or canvases): they size themselves to their cell instead of scrolling. */
-const CHART_TYPES: ReadonlySet<CoreWidgetType> = new Set(['line', 'bar', 'area', 'pie', 'scatter', 'network', 'classDiagram', 'model3d', 'scene3d']);
+const CHART_TYPES: ReadonlySet<CoreWidgetType> = new Set(['line', 'bar', 'area', 'pie', 'scatter', 'sankey', 'network', 'classDiagram', 'boxes', 'matrix', 'blueprint', 'butterfly', 'model3d', 'scene3d']);
 
 /** The rendering definition of a built-in widget type. */
 export function builtinRenderer(type: CoreWidgetType): WidgetRendererDefinition {

@@ -1,0 +1,89 @@
+/* Colors come from the variables set by SpecPresenterWidget (theme). */
+.frame {
+  overflow: auto;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.part {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.link {
+  cursor: pointer;
+}
+
+.linkIcon {
+  font-size: 10px;
+}
+
+.muted {
+  color: var(--spec-muted);
+}
+
+.hint {
+  color: var(--spec-muted);
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.notice {
+  color: var(--spec-muted);
+  font-style: italic;
+  padding: 8px;
+}
+
+.text {
+  margin: 0;
+  padding: 8px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  background: var(--spec-text-bg);
+  border: 1px solid var(--spec-border);
+  border-radius: 4px;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.selected {
+  cursor: pointer;
+}
+
+.selected > td {
+  background: var(--spec-selected-bg) !important;
+}
+
+.selected > td:first-child {
+  box-shadow: inset 3px 0 0 0 var(--spec-selection);
+}
+
+.svg svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.svg [data-fluid-ref] {
+  cursor: pointer;
+}
+
+.svg [data-fluid-ref]:hover,
+.svg [data-fluid-ref]:focus-visible {
+  outline: 2px solid var(--spec-selection);
+  outline-offset: 1px;
+}

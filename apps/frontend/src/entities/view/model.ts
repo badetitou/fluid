@@ -1,4 +1,5 @@
 import type { ViewSpec, Widget } from '@fluid/shared';
+import type { Perspective } from '../plugin';
 import { getViewScope, type ColumnKind } from '../../views/viewScope';
 import type { ViewEntry } from './useViews';
 
@@ -54,6 +55,25 @@ export function savedViewDraft(entry: ViewEntry): ViewDraft | null {
   if (!entry.saved) return null;
   const { title, spec, isDefault, id } = entry.saved;
   return { title, spec, isDefault, editingId: id };
+}
+
+/**
+ * The view builders' perspectives as column entries: the first one a builder
+ * made the default of this kind of column, and the others in order.
+ */
+export function perspectiveEntries(
+  perspectives: Perspective[],
+  columnKind: ColumnKind,
+): { preferred?: ViewEntry; others: ViewEntry[] } {
+  const entries = perspectives.map<ViewEntry>(({ key, title, origin, spec, defaultFor }) => ({
+    key,
+    title,
+    source: origin,
+    spec,
+    defaultFor,
+  }));
+  const preferred = entries.find((e) => e.defaultFor === columnKind);
+  return { preferred, others: entries.filter((e) => e !== preferred) };
 }
 
 /**

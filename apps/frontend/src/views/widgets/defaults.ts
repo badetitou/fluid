@@ -67,6 +67,11 @@ export const WIDGET_DEFAULTS: { [T in CoreWidgetType]: Factory<T> } = {
     xField: s.fields.numeric[0] ?? category(s.fields),
     yField: s.fields.numeric[1] ?? s.fields.numeric[0] ?? category(s.fields),
   }),
+  // A sankey needs a source and a target: the first two categories, each row counting one flow.
+  sankey: (s) => {
+    const [source = 'source', target = 'target'] = s.fields.text.filter((p) => !isId(p));
+    return { type: 'sankey', ...base(s), sourceField: source, targetField: target };
+  },
   richtext: (s) => ({ type: 'richtext', ...base(s), field: s.fields.text[0] }),
   code: (s) => ({ type: 'code', ...base(s), field: s.fields.text[0] }),
   // A history needs links between versions: guess the git-like field, a sample field when there is one.
@@ -105,9 +110,43 @@ export const WIDGET_DEFAULTS: { [T in CoreWidgetType]: Factory<T> } = {
       .sort((a, b) => a.length - b.length)[0];
     return { type: 'classDiagram', ...base(s), superField: path?.includes('.') ? path.replace(/\.[^.]+$/, '') : (path ?? 'superclass') };
   },
+  // Boxes: size from the first numbers, color from the second, name from the usual label fields.
+  boxes: (s) => ({
+    type: 'boxes',
+    ...base(s),
+    ...(s.fields.numeric[0] ? { widthField: s.fields.numeric[0] } : {}),
+    ...(s.fields.numeric[1] ? { heightField: s.fields.numeric[1] } : {}),
+    ...(s.fields.numeric[2] ? { colorField: s.fields.numeric[2] } : {}),
+  }),
+  // A blueprint reads the class's methods and attributes: the sampled lists of those names (else the usual ones).
+  blueprint: (s) => {
+    const list = (name: RegExp) => s.fields.all.map((p) => p.match(name)?.[1]).find((p) => p !== undefined);
+    const attributesField = list(/^(.*?\b(?:attributes|fields))\./i);
+    return { type: 'blueprint', ...base(s), methodsField: list(/^(.*?\bmethods)\./i) ?? 'methods', attributesField };
+  },
+  // A butterfly needs the element's dependents or dependencies: the shortest such path, without its scalar.
+  butterfly: (s) => {
+    const side = (pattern: RegExp) => {
+      const path = s.fields.all.filter((p) => pattern.test(p)).sort((a, b) => a.length - b.length)[0];
+      return path?.includes('.') ? path.replace(/\.[^.]+$/, '') : undefined;
+    };
+    const incomingField = side(/(^|\.)(incoming\w*|callers|dependents|usedBy|clients)(\.|$)/i);
+    const outgoingField = side(/(^|\.)(outgoing\w*|callees|calls|dependencies|imports)(\.|$)/i);
+    return { type: 'butterfly', ...base(s), incomingField, outgoingField: outgoingField ?? (incomingField ? undefined : 'dependencies') };
+  },
+  // A matrix needs the targets of each element: guess a list of linked items among the sample fields.
+  matrix: (s) => ({
+    type: 'matrix',
+    ...base(s),
+    targetsField: s.fields.all.find((p) => /(^|\.)(dependencies|calls|callees|references|imports|uses|links|invocations)(\.|$)/i.test(p))?.replace(/\.[^.]+$/, '') ?? 'dependencies',
+  }),
   // The geometry comes from the query (IfcGeometry fragment): nothing to pick among the fields.
   model3d: (s) => ({ type: 'model3d', ...base(s) }),
   scene3d: (s) => ({ type: 'scene3d', ...base(s) }),
+  // A Spec-Fluid tab draws the node Pharo sent: nothing to pick among the fields.
+  specPresenter: (s) => ({ type: 'specPresenter', ...base(s) }),
+  // An overview pyramid needs one metric at least: a class count field, or the bound rows counted as classes.
+  pyramid: (s) => ({ type: 'pyramid', ...base(s), noc: s.fields.numeric.find((p) => /classes/i.test(p)) ?? { op: 'count' } }),
 };
 
 /** A new widget of `type`, with its type's defaults. */

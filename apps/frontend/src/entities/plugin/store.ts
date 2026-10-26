@@ -10,10 +10,13 @@ interface PluginState {
   installed: InstalledPlugin[];
   /** The chosen theme (see `pickTheme` for the fallback). */
   themeId: string;
+  /** What the user filled in the plugins' settings, by plugin id then setting key. */
+  settings: Record<string, Record<string, string>>;
   setEnabled: (id: string, enabled: boolean) => void;
   install: (plugin: InstalledPlugin) => void;
   uninstall: (id: string) => void;
   setTheme: (id: string) => void;
+  setSetting: (pluginId: string, key: string, value: string) => void;
 }
 
 // Plugins are a per-browser choice, like the other interface preferences. Only
@@ -24,6 +27,7 @@ export const usePluginStore = create<PluginState>()(
       disabled: [],
       installed: [],
       themeId: DEFAULT_THEME_ID,
+      settings: {},
       setEnabled: (id, enabled) => {
         const rest = get().disabled.filter((d) => d !== id);
         set({ disabled: enabled ? rest : [...rest, id] });
@@ -37,6 +41,10 @@ export const usePluginStore = create<PluginState>()(
       },
       uninstall: (id) => set({ installed: get().installed.filter((p) => p.manifest.id !== id) }),
       setTheme: (id) => set({ themeId: id }),
+      setSetting: (pluginId, key, value) => {
+        const { settings } = get();
+        set({ settings: { ...settings, [pluginId]: { ...settings[pluginId], [key]: value } } });
+      },
     }),
     { name: 'fluid-plugins' },
   ),

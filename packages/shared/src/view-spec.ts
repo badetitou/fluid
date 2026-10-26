@@ -8,7 +8,11 @@ import {
 } from './widgets/common';
 import { actionSpecSchema } from './actions/schema';
 import { accordionWidgetFields } from './widgets/accordion';
+import { blueprintWidgetSchema } from './widgets/blueprint';
+import { boxesWidgetDraftSchema, boxesWidgetSchema } from './widgets/boxes';
 import { classDiagramWidgetSchema } from './widgets/classDiagram';
+import { matrixWidgetSchema } from './widgets/matrix';
+import { butterflyWidgetDraftSchema, butterflyWidgetSchema } from './widgets/butterfly';
 import { codeWidgetSchema } from './widgets/code';
 import { formWidgetSchema, rowActionSchema } from './widgets/form';
 import { historyWidgetDraftSchema, historyWidgetSchema } from './widgets/history';
@@ -16,11 +20,19 @@ import { networkWidgetDraftSchema, networkWidgetSchema } from './widgets/network
 import { model3dWidgetSchema, scene3dWidgetSchema } from './widgets/model3d';
 import { pluginWidgetDraftSchema, pluginWidgetSchema, type PluginWidget } from './widgets/plugin';
 import { richTextWidgetSchema } from './widgets/richtext';
+import { sankeyWidgetDraftSchema, sankeyWidgetSchema } from './widgets/sankey';
 import { scatterWidgetSchema } from './widgets/scatter';
+import { pyramidWidgetDraftSchema, pyramidWidgetSchema } from './widgets/pyramid';
+import { specPresenterWidgetSchema } from './widgets/specPresenter';
 import { treeWidgetSchema } from './widgets/tree';
 
 export * from './widgets/accordion';
+export * from './widgets/blueprint';
+export * from './widgets/boxes';
 export * from './widgets/classDiagram';
+export * from './widgets/matrix';
+export * from './widgets/matrixExample';
+export * from './widgets/butterfly';
 export * from './widgets/code';
 export * from './widgets/common';
 export * from './widgets/coreDocs';
@@ -31,7 +43,10 @@ export * from './widgets/model3d';
 export * from './widgets/model3dExample';
 export * from './widgets/plugin';
 export * from './widgets/richtext';
+export * from './widgets/sankey';
 export * from './widgets/scatter';
+export * from './widgets/pyramid';
+export * from './widgets/specPresenter';
 export * from './widgets/tree';
 
 // -----------------------------------------------------------------------------
@@ -60,10 +75,18 @@ export const VIEW_SPEC_VERSION = 1;
 
 /** A named GraphQL query a widget can pull data from. */
 export const querySpecSchema = z.object({
-  /** A GraphQL document, e.g. `query($take: Int) { accounts(take: $take) { id } }`. */
+  /**
+   * A GraphQL document, e.g. `query($take: Int) { accounts(take: $take) { id } }`,
+   * or, with a `source`, a request that data source understands.
+   */
   query: z.string().min(1),
   /** Static variables passed to the query. */
   variables: z.record(z.string(), z.unknown()).optional(),
+  /**
+   * The data source answering the query: absent for the GraphQL source, else
+   * the id of a data source a view builder plugin provides (e.g. `spec-fluid`).
+   */
+  source: z.string().min(1).optional(),
 });
 export type QuerySpec = z.infer<typeof querySpecSchema>;
 
@@ -191,9 +214,16 @@ const leafWidgetSchemas = [
   codeWidgetSchema,
   networkWidgetSchema,
   classDiagramWidgetSchema,
+  boxesWidgetSchema,
+  matrixWidgetSchema,
+  blueprintWidgetSchema,
+  butterflyWidgetSchema,
+  sankeyWidgetSchema,
   formWidgetSchema,
   model3dWidgetSchema,
   scene3dWidgetSchema,
+  specPresenterWidgetSchema,
+  pyramidWidgetSchema,
 ] as const;
 
 /** A widget fluid ships; plugin widgets are typed `PluginWidget`. */
@@ -226,8 +256,15 @@ export const WIDGET_TYPES = [
   'accordion',
   'network',
   'classDiagram',
+  'boxes',
+  'matrix',
+  'blueprint',
+  'butterfly',
+  'sankey',
   'model3d',
   'scene3d',
+  'specPresenter',
+  'pyramid',
 ] as const;
 
 /** Whether a view targets a concept's list (many rows) or the detail of a single item. */
@@ -323,6 +360,9 @@ const accordionWidgetDraftSchema = accordionWidgetSchema.omit({ id: true });
 const model3dWidgetDraftSchema = model3dWidgetSchema.omit({ id: true });
 const scene3dWidgetDraftSchema = scene3dWidgetSchema.omit({ id: true });
 const classDiagramWidgetDraftSchema = classDiagramWidgetSchema.omit({ id: true });
+const matrixWidgetDraftSchema = matrixWidgetSchema.omit({ id: true });
+const blueprintWidgetDraftSchema = blueprintWidgetSchema.omit({ id: true });
+const specPresenterWidgetDraftSchema = specPresenterWidgetSchema.omit({ id: true });
 
 const coreWidgetDraftSchema = z.discriminatedUnion('type', [
   tableWidgetDraftSchema,
@@ -341,8 +381,15 @@ const coreWidgetDraftSchema = z.discriminatedUnion('type', [
   accordionWidgetDraftSchema,
   networkWidgetDraftSchema,
   classDiagramWidgetDraftSchema,
+  boxesWidgetDraftSchema,
+  matrixWidgetDraftSchema,
+  blueprintWidgetDraftSchema,
+  butterflyWidgetDraftSchema,
+  sankeyWidgetDraftSchema,
   model3dWidgetDraftSchema,
   scene3dWidgetDraftSchema,
+  specPresenterWidgetDraftSchema,
+  pyramidWidgetDraftSchema,
 ]);
 export const widgetDraftSchema = z.union([coreWidgetDraftSchema, pluginWidgetDraftSchema]);
 export type WidgetDraft = z.infer<typeof widgetDraftSchema>;

@@ -3,17 +3,19 @@ import { ConfigProvider } from 'antd';
 import {
   activeWidgetCatalog,
   PluginsContext,
+  useActiveDataSources,
   usePluginRuntime,
   usePlugins,
   useThemeChoice,
 } from '../entities/plugin';
 import { buildAntdTheme, themeCssVariables, tokensFor } from '../shared/theme';
 import { usePreferences } from '../store';
-import { WidgetCatalogContext, WidgetThemeContext } from '../views/plugin-api';
+import { DataSourcesContext, WidgetCatalogContext, WidgetThemeContext } from '../views/plugin-api';
 
 /**
- * Loads the plugins and provides what they contribute: the widget catalog to
- * the engine, the active theme to antd, to the widgets and to the CSS variables.
+ * Loads the plugins and provides what they contribute: the widget catalog and
+ * the view builders' data sources to the engine, the active theme to antd, to
+ * the widgets and to the CSS variables.
  */
 export function PluginRuntime({ children }: { children: ReactNode }) {
   const plugins = usePluginRuntime();
@@ -27,6 +29,7 @@ export function PluginRuntime({ children }: { children: ReactNode }) {
 function ActivePlugins({ children }: { children: ReactNode }) {
   const entries = usePlugins();
   const { active } = useThemeChoice();
+  const dataSources = useActiveDataSources();
   const preferredMode = usePreferences((s) => s.themeMode);
 
   const catalog = useMemo(() => {
@@ -51,9 +54,11 @@ function ActivePlugins({ children }: { children: ReactNode }) {
 
   return (
     <WidgetCatalogContext.Provider value={catalog}>
-      <WidgetThemeContext.Provider value={theme}>
-        <ConfigProvider theme={antdTheme}>{children}</ConfigProvider>
-      </WidgetThemeContext.Provider>
+      <DataSourcesContext.Provider value={dataSources}>
+        <WidgetThemeContext.Provider value={theme}>
+          <ConfigProvider theme={antdTheme}>{children}</ConfigProvider>
+        </WidgetThemeContext.Provider>
+      </DataSourcesContext.Provider>
     </WidgetCatalogContext.Provider>
   );
 }

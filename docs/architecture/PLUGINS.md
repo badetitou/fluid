@@ -1,6 +1,6 @@
 # Système de plugins de fluid
 
-> Statut : **étape 1 livrée** (2026-10-22). Ce document fixe l'API des plugins, celle des widgets,
+> Statut : **étape 1 livrée** (2026-10-22) ; **trois types de plugins** et View Builders (2026-10-26). Ce document fixe l'API des plugins, celle des widgets,
 > et ce qu'il reste à faire. Il prolonge `REARCHITECTURE.md` §4 (« un widget = un dossier »).
 
 ## 1. Pourquoi
@@ -13,15 +13,18 @@ et ce qui les remplit vient de **plugins** que l'utilisateur active, désactive 
 ## 2. Ce qu'est un plugin
 
 Un plugin a un **manifeste** (JSON, validé par zod) et, optionnellement, un **module** (code).
-Il *contribue* des éléments typés ; aujourd'hui deux types de contribution :
+Il est d'**un seul type** (`kind`), qui dit ce qu'il contribue :
 
-| Contribution | Contenu | Code ? |
-| --- | --- | --- |
-| `themes` | jetons de couleur, polices, rayon, palette de séries, surcharges par widget | non (JSON pur) |
-| `widgets` | une collection de types de widgets : contrat (schéma, doc LLM, ports) + renderer | oui (module ESM) |
+| Type (`kind`) | Contribution | Contenu | Code ? |
+| --- | --- | --- | --- |
+| `theme` | `themes` | jetons de couleur, polices, rayon, palette de séries, surcharges par widget | non (JSON pur) |
+| `widget` | `widgets` | des types de widgets : contrat (schéma, doc LLM, ports) + renderer. Un widget **affiche** les données qu'on lui donne, il ne fait jamais de requête | oui (module ESM) |
+| `viewBuilder` | `viewBuilders` | propose des **perspectives** (des `ViewSpec`) pour une colonne, et peut apporter la **source de données** que lisent leurs requêtes (autre chose que GraphQL) | oui (module ESM) |
 
-Un plugin peut contribuer les deux. D'autres types de contribution s'ajouteront à côté de
-`themes` et `widgets` dans `contributes` (cf. §9), sans changer le reste.
+`kind` peut être omis : il se déduit de la contribution (anciens manifestes). Un manifeste qui
+mélange deux contributions est refusé. Un plugin peut déclarer des **réglages** (`settings` :
+`key`, `label`, `placeholder`, `default`…) que l'utilisateur remplit dans *Settings → Plugins*
+(ex. l'URL d'un backend) ; ils sont passés à ses View Builders.
 
 ```jsonc
 // https://exemple.org/plugins/tagcloud/manifest.json
@@ -30,10 +33,10 @@ Un plugin peut contribuer les deux. D'autres types de contribution s'ajouteront 
   "name": "Tag cloud",
   "version": "1.0.0",
   "description": "…",
-  "module": "./index.js",               // relatif au manifeste ; requis si `widgets`
+  "kind": "widget",                     // theme | widget | viewBuilder (déduit si absent)
+  "module": "./index.js",               // relatif au manifeste ; requis sauf pour un thème
   "contributes": {
-    "themes": [ ThemeDefinition, … ],
-    "widgets": [ WidgetContract, … ]
+    "widgets": [ WidgetContract, … ]    // ou "themes": [ThemeDefinition] / "viewBuilders": [{ id, label }]
   }
 }
 ```
@@ -44,10 +47,34 @@ Un plugin peut contribuer les deux. D'autres types de contribution s'ajouteront 
   Les 13 widgets historiques sont répartis en 4 collections (`essentials`, `charts`, `code`,
   `structure`) et le thème badetitou devient un plugin, à côté de deux autres thèmes. Une 5ᵉ
   collection, `fluid-3d` (`model3d`, `scene3d`, three.js chargé à la demande), affiche des éléments IFC.
+  La collection `charts` compte aussi le widget `sankey` (flux pondérés entre quelques groupes, en SVG
+  maison, disposition calculée sans dépendance ; clic → `selected` = `{ group, rows }` ou
+  `{ source, target, value, rows }`).
   Une 6ᵉ collection, `fluid-graphs` (« Graphs »), apporte le widget `network` (graphe
   nœuds-arêtes en WebGL avec sigma + graphology, pour des milliers de nœuds) et le widget
   `classDiagram` (diagramme de classes UML d'une hiérarchie d'héritage, en HTML/SVG maison,
   branches repliables).
+  Elle compte aussi le widget `butterfly` (vue de détail d'un élément : ses dépendants à gauche,
+  ses dépendances à droite, en SVG maison, liens répétés plus épais, profondeur 1 ou 2, regroupés
+  par `groupField` au-delà de 60 voisins par côté ; clic sur un voisin → `linkTo` + `selected`).
+  Elle compte enfin le widget `matrix` (matrice de dépendances : DSM carrée avec diagonale grisée et
+  cycles en couleur d'alerte, ou carte de co-usage `columns: "targets"` ; cellules colorées selon le
+  poids, axes triables et groupés, SVG maison jusqu'à 300 × 300 ; clic sur une cellule →
+  `selected` = `{ source, target, weight }`, clic sur un libellé → `linkTo` + `selected`).
+  La collection `fluid-software-maps` (« Software maps ») compte le widget `pyramid` (Overview
+  Pyramid de Lanza & Marinescu : taille, couplage et héritage d'un système ou d'un paquet en une
+  figure, ratios colorés selon les seuils Java / C++ / Smalltalk de Moose ; ni navigation ni sortie).
+  Elle compte aussi le widget `blueprint` (Class Blueprint de Moose : les méthodes d'une classe en
+  cinq colonnes, initialisation, interface externe, implémentation interne par profondeur d'appel,
+  accesseurs, attributs, avec appels internes et accès aux attributs, en SVG maison ; survol → liens
+  mis en évidence, clic → `linkTo` + `selected` ; message au-delà de 300 méthodes).
+  Elle compte aussi le widget `boxes` (vue polymétrique : une boîte par ligne, largeur / hauteur /
+  couleur issues de métriques, en arbre (`parentField`), en cadres par groupe ou en treemap, SVG
+  maison avec zoom et déplacement ; survol → métriques, clic → `linkTo` + `selected` ; message
+  au-delà de 2 000 boîtes).
+  Une collection `fluid-inspectors` (« Inspectors ») apporte le widget `specPresenter`, qui dessine
+  un onglet d'inspecteur Pharo servi par Spec-Fluid (tables, arbres, SVG Roassal, texte), ses
+  entités ouvrant une colonne et sortant sur `selected`.
   Les types intégrés n'ont **pas** de préfixe (`scatter`, `network`) : le `/` est réservé aux
   widgets de plugins (`<pluginId>/<nom>`), c'est lui qui distingue un type intégré d'un type externe.
   Un renderer intégré dont les dépendances sont lourdes est chargé à la demande (`lazy.tsx` :
@@ -144,6 +171,44 @@ Le thème actif et le mode (clair/sombre) sont deux réglages distincts ; un th�
 l'impose. `buildTheme(tokens, mode)` produit la config antd, `themeCssVariables(tokens)` les
 variables CSS.
 
+## 4 bis. View Builders et sources de données
+
+Une colonne Miller montre des **perspectives** : les vues enregistrées dans le BFF, puis celles
+que proposent les View Builders actifs, dans l'ordre des plugins. Les intégrés :
+
+| Plugin | View Builder | Perspectives |
+| --- | --- | --- |
+| `fluid-curated-views` | `curated-views` | les exemples livrés (`EXAMPLE_VIEWS`) |
+| `fluid-auto-views` | `auto-views` | vue d'ensemble, détail (+ édition), arbre, tirés de l'introspection |
+| `spec-fluid` | `spec-fluid` | les onglets d'inspecteur Pharo d'une entité Moose (projet **Spec-Fluid** de l'image) |
+
+```ts
+interface ViewBuilder {
+  id: string; label: string;
+  perspectives?(ctx): Perspective[];                              // calculées depuis la colonne
+  fetchPerspectives?(ctx, signal): Promise<Perspective[]>;        // demandées à un backend
+  dataSource?(settings): DataSource;                              // le backend lu par leurs requêtes
+}
+interface ViewBuilderContext { concept; columnKind; itemId?; conceptByName; queriesByType; writable; settings }
+interface Perspective { key; title; origin: 'curated' | 'auto' | 'remote'; spec: ViewSpec; defaultFor?: 'list' | 'detail' }
+interface DataSource { id; run(query, variables, signal?): Promise<unknown> }
+```
+
+Une requête de vue qui porte `source: "<id>"` n'est pas envoyée à urql : `useViewData` la confie à
+la `DataSource` de ce nom (contexte `DataSourcesContext` du moteur, rempli par l'app). La `ViewSpec`
+reste déclarative : on peut l'enregistrer, l'éditer ou la faire modifier par le LLM.
+
+**Spec-Fluid.** Le projet Pharo `Spec-Fluid` (paquets `Spec-Fluid*` de l'image, serveur
+`SFServer start`, port 8081) sert, pour une entité (id GraphQL `<modelId>:<mooseID>`), la liste de
+ses onglets d'inspecteur (pragma `<inspectorPresentationOrder:title:>`) et chaque onglet converti
+en document JSON (`packages/shared/src/specFluid.ts` : `table`, `tree`, `svg` pour Roassal,
+`text`, `composite`). Les cellules qui désignent une entité portent `ref: { id, type }` : le widget
+`specPresenter` en fait des liens vers la colonne suivante et les émet sur `selected`. Renseigner
+l'URL dans *Settings → Plugins → Spec-Fluid* (vide = désactivé).
+
+Un module de plugin `viewBuilder` exporte
+`{ viewBuilders: { "<id>": { perspectives | fetchPerspectives, dataSource? } } }`.
+
 ## 5. Le LLM et l'agent de création de widgets
 
 - Les prompts ne décrivent plus les widgets à la main : `renderWidgetDocs(catalogue)` concatène les
@@ -183,6 +248,10 @@ Installer `/plugins/tagcloud/manifest.json` depuis *Settings → Plugins* pour e
 | Thèmes intégrés, schéma de manifeste | `apps/frontend/src/entities/plugin/` |
 | API de rendu (`WidgetProps`, `useWidgetRenderer`, `useWidgetTheme`, sorties) | `apps/frontend/src/views/plugin-api/` (moteur) |
 | Plugins intégrés, store, chargeur, hooks, runtime | `apps/frontend/src/entities/plugin/` |
+| View Builders intégrés (curated, auto, Spec-Fluid) | `apps/frontend/src/entities/plugin/builders/` |
+| Perspectives d'une colonne (vues enregistrées + View Builders) | `apps/frontend/src/entities/view/` |
+| `DataSource`, `DataSourcesContext` | `apps/frontend/src/views/plugin-api/dataSources.ts` (moteur) |
+| Documents Spec-Fluid (zod) | `packages/shared/src/specFluid.ts` |
 | Écran *Settings → Plugins* | `apps/frontend/src/features/plugin-manager/` |
 | Prompts | `apps/bff/src/llm/` (consomment `renderWidgetDocs`) |
 
@@ -196,9 +265,11 @@ Le moteur (`views/`) ne dépend pas des plugins : il expose des contextes que l'
 | 2 | Déplacer chaque widget intégré dans `catalog/<type>/` (contrat + renderer + exemple + test côte à côte) | à faire |
 | 3 | Registre distant : une page web qui liste des manifestes, installable en un clic | à faire |
 | 4 | Isolation optionnelle des modules tiers (iframe sandbox) | à étudier |
+| 5 | Trois types de plugins (thème, widget, View Builder), sources de données non GraphQL, Spec-Fluid | ✅ |
+| 6 | Bus entre colonnes (suivre / figer / surligner, comme `MiBus` de MooseIDE) | à faire |
 
 ## 9. Autres types de plugins envisageables
 
-À discuter : sources de données (autre chose que GraphQL), sections de la barre latérale,
-actions sur une perspective (export CSV…), formats de cellule (`format`), fournisseurs LLM,
-gabarits de vues (dashboards prêts à l'emploi par schéma connu).
+À discuter : sections de la barre latérale, actions sur une perspective (export CSV…), formats de
+cellule (`format`), fournisseurs LLM. Les sources de données et les gabarits de vues sont couverts
+par les View Builders (§4 bis).

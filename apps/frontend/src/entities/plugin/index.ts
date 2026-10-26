@@ -1,13 +1,25 @@
 export { BUILTIN_PLUGINS, DEFAULT_THEME_ID } from './builtin';
-export { contributionKinds, pluginManifestSchema, type PluginManifest } from './manifest';
-export { activeWidgetCatalog, availableThemes, pickTheme } from './model';
+export { contributionLabel, pluginKind, pluginManifestSchema, type PluginKind, type PluginManifest, type PluginSetting } from './manifest';
+export { activeWidgetCatalog, availableThemes, contractsOf, pickTheme, themesOf, type ActiveViewBuilder } from './model';
 export { PluginsContext } from './PluginsContext';
 export { usePluginRuntime } from './usePluginRuntime';
 export {
   currentCatalogRequest,
   currentWidgetContracts,
+  useActiveDataSources,
+  useActiveViewBuilders,
   usePluginActions,
+  usePluginSettings,
   usePlugins,
   useThemeChoice,
 } from './usePlugins';
-export type { FluidPlugin, InstalledPlugin, PluginLoadState, PluginSource } from './types';
+export type {
+  FluidPlugin,
+  InstalledPlugin,
+  PluginLoadState,
+  PluginSource,
+  ThemePlugin,
+  ViewBuilderPlugin,
+  WidgetPlugin,
+} from './types';
+export type { Perspective, PerspectiveOrigin, ViewBuilder, ViewBuilderContext } from './viewBuilder';

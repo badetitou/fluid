@@ -1,0 +1,113 @@
+/* Colors come from the palette (matrixStyle.ts) as --matrix-* variables, and from the theme. */
+
+.frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+
+.sort {
+  width: 150px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--ink-muted);
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: var(--matrix-cell);
+}
+
+.cycleSwatch {
+  margin-left: 8px;
+  background: var(--matrix-cycle);
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--matrix-background);
+}
+
+.svg {
+  display: block;
+}
+
+.cell {
+  cursor: pointer;
+}
+
+.cell:focus-visible {
+  outline: none;
+  stroke: var(--matrix-selection);
+  stroke-width: 2;
+}
+
+.label {
+  cursor: pointer;
+  fill: var(--matrix-label);
+}
+
+.label:hover,
+.label[data-active] {
+  fill: var(--matrix-selection);
+  font-weight: 600;
+}
+
+.label:focus-visible {
+  outline: 1px solid var(--matrix-selection);
+}
+
+.hit {
+  fill: transparent;
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 2;
+  max-width: 320px;
+  padding: 4px 8px;
+  pointer-events: none;
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.tooltipPair {
+  font-weight: 600;
+}
+
+.tooltipCycle {
+  color: var(--matrix-cycle);
+  font-weight: 600;
+}

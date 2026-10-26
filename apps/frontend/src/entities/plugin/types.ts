@@ -1,7 +1,8 @@
 import type { WidgetContract } from '@fluid/shared';
 import type { ThemeDefinition } from '../../shared/theme';
 import type { WidgetRendererDefinition } from '../../views/plugin-api';
-import type { PluginManifest } from './manifest';
+import type { PluginKind, PluginManifest } from './manifest';
+import type { ViewBuilder } from './viewBuilder';
 
 /** Where a plugin comes from: shipped with fluid, or installed from a manifest URL. */
 export type PluginSource = { kind: 'builtin' } | { kind: 'url'; url: string };
@@ -10,17 +11,37 @@ export type PluginSource = { kind: 'builtin' } | { kind: 'url'; url: string };
 export type PluginLoadState =
   { status: 'loading' } | { status: 'ready' } | { status: 'error'; message: string };
 
-/** A plugin as the app uses it: its manifest and what it provides once loaded. */
-export interface FluidPlugin {
+interface PluginBase {
   manifest: PluginManifest;
   source: PluginSource;
   /** The app needs it: it cannot be disabled. */
   required?: boolean;
-  contracts: WidgetContract[];
-  renderers: WidgetRendererDefinition[];
-  themes: ThemeDefinition[];
   load: PluginLoadState;
 }
+
+/** A theme plugin: colour tokens, fonts, per-widget overrides. Plain data. */
+export interface ThemePlugin extends PluginBase {
+  kind: 'theme';
+  themes: ThemeDefinition[];
+}
+
+/** A widget plugin: widget types (contract + renderer). Renders the data it is given, never fetches. */
+export interface WidgetPlugin extends PluginBase {
+  kind: 'widget';
+  contracts: WidgetContract[];
+  renderers: WidgetRendererDefinition[];
+}
+
+/** A view builder plugin: proposes perspectives for a column, and may bring the data source they read. */
+export interface ViewBuilderPlugin extends PluginBase {
+  kind: 'viewBuilder';
+  builders: ViewBuilder[];
+}
+
+/** A plugin as the app uses it: its manifest and what it provides once loaded. */
+export type FluidPlugin = ThemePlugin | WidgetPlugin | ViewBuilderPlugin;
+
+export type { PluginKind };
 
 /** An installed plugin, as persisted: its URL and the manifest read at install time. */
 export interface InstalledPlugin {
