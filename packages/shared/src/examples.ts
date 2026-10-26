@@ -1,11 +1,17 @@
 import type { ViewSpec } from './view-spec';
 import { classMethodsExample } from './widgets/accordion';
+import { blueprintExample } from './widgets/blueprint';
+import { boxesExample } from './widgets/boxes';
+import { butterflyExample } from './widgets/butterfly';
 import { classDiagramExample } from './widgets/classDiagram';
 import { methodSourceExample } from './widgets/code';
+import { characterEpisodesMatrixExample, classDependencyMatrixExample } from './widgets/matrixExample';
 import { characterEpisodesNetworkExample } from './widgets/network';
 import { todoEditExample, todoListExample } from './widgets/form';
 import { wall3dExample } from './widgets/model3dExample';
+import { overviewPyramidExample } from './widgets/pyramid';
 import { postBodyExample } from './widgets/richtext';
+import { characterFlowSankeyExample } from './widgets/sankey';
 import { countryScatterExample } from './widgets/scatter';
 import { continentTreeExample } from './widgets/tree';
 
@@ -259,10 +265,11 @@ export const EXAMPLE_VIEWS: Record<string, ViewSpec[]> = {
   Post: [postBodyExample],
   Todo: [todoListExample, todoEditExample],
   Country: [countryScatterExample],
-  Method: [methodSourceExample],
-  Class: [classMethodsExample, classDiagramExample],
-  Character: [characterEpisodesNetworkExample],
+  Method: [methodSourceExample, butterflyExample],
+  Class: [classMethodsExample, classDiagramExample, boxesExample, blueprintExample, classDependencyMatrixExample],
+  Character: [characterEpisodesNetworkExample, characterFlowSankeyExample, characterEpisodesMatrixExample],
   IfcWallStandardCase: [wall3dExample],
+  Package: [overviewPyramidExample],
 };
 
 /** All curated views as a flat list. */

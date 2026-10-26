@@ -1,0 +1,100 @@
+/* Colors come from the theme through the --bf-* variables (see butterflyStyle.ts). */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 22px;
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  color: var(--ink-muted);
+}
+
+.viewport {
+  overflow: auto;
+  min-width: 0;
+}
+
+.svg {
+  display: block;
+}
+
+.edge {
+  fill: none;
+  stroke: var(--bf-line);
+  opacity: 0.7;
+  transition: opacity 120ms;
+}
+
+.lit {
+  stroke: var(--bf-selection);
+  opacity: 1;
+}
+
+.arrow {
+  fill: var(--bf-line);
+}
+
+.arrowLit {
+  fill: var(--bf-selection);
+}
+
+.box .frame {
+  fill: var(--bf-box);
+  stroke: var(--bf-border);
+  stroke-width: 1;
+}
+
+.label {
+  fill: var(--bf-ink);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.center .frame {
+  fill: var(--bf-center);
+  stroke-width: 2;
+}
+
+.center .label {
+  font-weight: 600;
+  text-anchor: middle;
+}
+
+.node {
+  cursor: pointer;
+}
+
+.node:focus {
+  outline: none;
+}
+
+.node:focus-visible .frame,
+.hovered .frame {
+  stroke: var(--bf-selection);
+}
+
+.group .label {
+  font-style: italic;
+}
+
+.selected .frame {
+  stroke: var(--bf-selection);
+  stroke-width: 2;
+}

@@ -3,12 +3,15 @@ import { BUILTIN_PLUGINS, DEFAULT_THEME_ID } from './builtin';
 import { fetchManifest, resolveManifestUrl } from './loader';
 import {
   activeContracts,
+  activeDataSources,
+  activeViewBuilders,
   availableThemes,
   catalogRequest,
   conflictingId,
   installedPlugin,
   isEnabled,
   pickTheme,
+  settingsOf,
 } from './model';
 import { PluginsContext } from './PluginsContext';
 import { usePluginStore } from './store';
@@ -45,6 +48,32 @@ export function usePluginActions() {
   );
 
   return { setEnabled, uninstall, inspect, install };
+}
+
+/** The view builders of the enabled plugins, with their settings, in plugin order. */
+export function useActiveViewBuilders() {
+  const plugins = useContext(PluginsContext);
+  const disabled = usePluginStore((s) => s.disabled);
+  const settings = usePluginStore((s) => s.settings);
+  return useMemo(() => activeViewBuilders(plugins, disabled, settings), [plugins, disabled, settings]);
+}
+
+/** The data sources the enabled view builders bring, by id. */
+export function useActiveDataSources() {
+  const builders = useActiveViewBuilders();
+  return useMemo(() => activeDataSources(builders), [builders]);
+}
+
+/** A plugin's settings (filled or default) and the setter. */
+export function usePluginSettings(plugin: FluidPlugin) {
+  const filled = usePluginStore((s) => s.settings);
+  const setSetting = usePluginStore((s) => s.setSetting);
+  const values = useMemo(() => settingsOf(plugin, filled), [plugin, filled]);
+  const set = useCallback(
+    (key: string, value: string) => setSetting(plugin.manifest.id, key, value),
+    [plugin.manifest.id, setSetting],
+  );
+  return { values, set };
 }
 
 /** The themes of the enabled plugins and the chosen one. */

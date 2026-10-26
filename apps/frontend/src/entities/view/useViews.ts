@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { EXAMPLE_VIEWS, type ViewSpec } from '@fluid/shared';
+import type { ViewSpec } from '@fluid/shared';
 import type { Concept } from '../../graphql/introspection';
-import { buildDefaultView } from '../../views/registry';
 import { bffClient, type SavedView } from '../../bff/client';
 
-/** `draft` is a view being created, not persisted yet. */
-export type ViewSource = 'saved' | 'curated' | 'auto' | 'draft';
+/**
+ * How a perspective was made: saved in the BFF, proposed by a view builder
+ * plugin (curated, auto, or remote — asked to another backend), or `draft`:
+ * being created, not persisted yet.
+ */
+export type ViewSource = 'saved' | 'curated' | 'auto' | 'remote' | 'draft';
 
 export interface ViewEntry {
   /** Stable selection key: DB id for saved views, spec id for curated/auto. */
@@ -15,6 +18,8 @@ export interface ViewEntry {
   spec: ViewSpec;
   /** Present only when the entry is persisted in the BFF. */
   saved?: SavedView;
+  /** Shown first, and by default, in columns of this kind (a builder said so). */
+  defaultFor?: 'list' | 'detail';
 }
 
 export interface UseViewsResult {
@@ -27,9 +32,9 @@ export interface UseViewsResult {
 }
 
 /**
- * Resolves every view available for a concept, merging persisted views from the
- * BFF with the curated examples and the auto-generated overview. Stays usable
- * when the BFF is unreachable (saved list is simply empty).
+ * The views saved in the BFF for a concept (view builder plugins propose the
+ * others, see `useBuilderPerspectives`). Stays usable when the BFF is
+ * unreachable (the list is simply empty).
  */
 export function useViews(concept: Concept | undefined): UseViewsResult {
   const [saved, setSaved] = useState<SavedView[]>([]);
@@ -67,24 +72,12 @@ export function useViews(concept: Concept | undefined): UseViewsResult {
     };
   }, [conceptName, nonce]);
 
-  const entries = useMemo<ViewEntry[]>(() => {
-    if (!concept) return [];
-    const list: ViewEntry[] = [];
-    for (const v of saved) {
-      list.push({ key: v.id, title: v.title, source: 'saved', spec: v.spec, saved: v });
-    }
-    for (const c of EXAMPLE_VIEWS[concept.name] ?? []) {
-      list.push({ key: c.id, title: c.title, source: 'curated', spec: c });
-    }
-    const auto = buildDefaultView(concept);
-    if (auto) list.push({ key: auto.id, title: auto.title, source: 'auto', spec: auto });
-    return list;
-  }, [saved, concept]);
+  const entries = useMemo<ViewEntry[]>(
+    () => (concept ? saved.map((v) => ({ key: v.id, title: v.title, source: 'saved', spec: v.spec, saved: v })) : []),
+    [saved, concept],
+  );
 
-  const defaultKey = useMemo(() => {
-    const def = saved.find((v) => v.isDefault);
-    return def ? def.id : entries[0]?.key;
-  }, [saved, entries]);
+  const defaultKey = useMemo(() => saved.find((v) => v.isDefault)?.id, [saved]);
 
   const refetch = useCallback(() => setNonce((n) => n + 1), []);
 

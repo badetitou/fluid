@@ -1,0 +1,80 @@
+.frame {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.svg {
+  display: block;
+  overflow: visible;
+  font-size: 11px;
+}
+
+.link {
+  stroke-opacity: 0.4;
+  cursor: pointer;
+  outline: none;
+  transition: stroke-opacity 0.15s;
+}
+
+.link.back {
+  stroke-dasharray: 6 4;
+}
+
+.link.lit {
+  stroke-opacity: 0.75;
+}
+
+.link.dim {
+  stroke-opacity: 0.12;
+}
+
+.node {
+  cursor: pointer;
+  outline: none;
+}
+
+.nodeBar {
+  stroke: var(--surface-card, var(--ant-color-bg-container));
+  stroke-width: 1;
+}
+
+.node.lit .nodeBar,
+.node:focus-visible .nodeBar {
+  stroke: var(--ink, var(--ant-color-text));
+  stroke-width: 1.5;
+}
+
+.node.dim {
+  opacity: 0.45;
+}
+
+.label {
+  pointer-events: none;
+  font-weight: 500;
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 1;
+  max-width: 280px;
+  padding: 6px 10px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  background: var(--ant-color-bg-elevated);
+  border-radius: var(--ant-border-radius);
+  box-shadow: var(--ant-box-shadow-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.tooltipNote {
+  color: var(--ant-color-text-secondary);
+}
+
+.note {
+  height: 20px;
+  padding-top: 4px;
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
+}

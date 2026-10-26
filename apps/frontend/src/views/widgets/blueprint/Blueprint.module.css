@@ -1,0 +1,152 @@
+/* Colors come from blueprintStyle.ts as --bp-* variables; sizes mirror blueprintLayout.ts. */
+
+.frame {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid var(--bp-border);
+}
+
+.legendItem[data-kind='constructor'] .swatch {
+  background: var(--bp-constructor);
+}
+.legendItem[data-kind='abstract'] .swatch {
+  background: var(--bp-abstract);
+}
+.legendItem[data-kind='overriding'] .swatch {
+  background: var(--bp-overriding);
+}
+.legendItem[data-kind='accessor'] .swatch {
+  background: var(--bp-accessor);
+}
+.legendItem[data-kind='plain'] .swatch {
+  background: var(--bp-plain);
+}
+.legendItem[data-kind='attribute'] .swatch {
+  background: var(--bp-attribute);
+}
+
+.viewport {
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--fluid-radius);
+}
+
+.svg {
+  display: block;
+  font-size: 11px;
+}
+
+.columnBand {
+  fill: var(--surface-card);
+  opacity: 0.5;
+}
+
+.columnTitle {
+  fill: var(--ink-secondary);
+  font-weight: 600;
+  text-anchor: middle;
+}
+
+.edge {
+  fill: none;
+  stroke: var(--bp-edge);
+  stroke-width: 1;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+
+.edge[data-kind='access'] {
+  stroke-dasharray: 3 2;
+}
+
+.arrowHead {
+  fill: var(--bp-edge);
+}
+
+.hot {
+  stroke: var(--bp-highlight);
+  stroke-width: 1.8;
+  opacity: 1;
+}
+
+.dim {
+  opacity: 0.15;
+}
+
+.box {
+  cursor: pointer;
+  outline: none;
+  transition: opacity 0.15s;
+}
+
+.box rect.body {
+  fill: var(--bp-box);
+  stroke: var(--bp-border);
+}
+
+.box[data-kind='constructor'] .stripe {
+  fill: var(--bp-constructor);
+}
+.box[data-kind='abstract'] .stripe {
+  fill: var(--bp-abstract);
+}
+.box[data-kind='overriding'] .stripe {
+  fill: var(--bp-overriding);
+}
+.box[data-kind='accessor'] .stripe {
+  fill: var(--bp-accessor);
+}
+.box[data-kind='plain'] .stripe {
+  fill: var(--bp-plain);
+}
+.box[data-kind='attribute'] .stripe {
+  fill: var(--bp-attribute);
+}
+
+.box text {
+  fill: var(--bp-ink);
+  dominant-baseline: central;
+}
+
+.box:hover rect.body,
+.box:focus-visible rect.body {
+  stroke: var(--bp-highlight);
+}
+
+.box.dim {
+  opacity: 0.3;
+}
+
+.box.selected rect.body {
+  stroke: var(--bp-highlight);
+  stroke-width: 2;
+}

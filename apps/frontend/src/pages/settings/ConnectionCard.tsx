@@ -18,7 +18,7 @@ export function ConnectionCard() {
   };
 
   return (
-    <Card title="Connection">
+    <Card>
       <Space orientation="vertical" className={styles.full}>
         <div>
           <Typography.Text strong>GraphQL URL</Typography.Text>

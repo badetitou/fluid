@@ -7,14 +7,20 @@ import {
   WIDGET_TYPES,
 } from '@fluid/shared';
 import { BUILTIN_PLUGINS, DEFAULT_THEME_ID } from './builtin';
-import { pluginManifestSchema, type PluginManifest } from './manifest';
+import { pluginKind, pluginManifestSchema, type PluginManifest } from './manifest';
 import {
+  activeDataSources,
+  activeViewBuilders,
   activeWidgetCatalog,
   availableThemes,
   catalogRequest,
   conflictingId,
+  contractsOf,
   installedPlugin,
   pickTheme,
+  renderersOf,
+  settingsOf,
+  themesOf,
 } from './model';
 
 const manifest: PluginManifest = {
@@ -43,7 +49,7 @@ const tagcloud = installedPlugin(
 
 describe('built-in plugins', () => {
   it('ship every built-in widget type exactly once', () => {
-    const types = BUILTIN_PLUGINS.flatMap((p) => p.renderers.map((r) => r.type));
+    const types = BUILTIN_PLUGINS.flatMap((p) => renderersOf(p).map((r) => r.type));
     expect(types.sort()).toEqual([...WIDGET_TYPES].sort());
     expect(BUILTIN_WIDGET_COLLECTIONS.flatMap((c) => c.types).sort()).toEqual(
       [...WIDGET_TYPES].sort(),
@@ -52,7 +58,7 @@ describe('built-in plugins', () => {
 
   it('give each renderer its contract', () => {
     for (const plugin of BUILTIN_PLUGINS) {
-      expect(plugin.contracts.map((c) => c.type)).toEqual(plugin.renderers.map((r) => r.type));
+      expect(contractsOf(plugin).map((c) => c.type)).toEqual(renderersOf(plugin).map((r) => r.type));
     }
   });
 
@@ -138,7 +144,7 @@ describe('pluginManifestSchema', () => {
   });
 
   it('accepts a theme-only plugin without code', () => {
-    const theme = BUILTIN_PLUGINS.find((p) => p.themes.length)!.themes[0];
+    const theme = BUILTIN_PLUGINS.flatMap(themesOf)[0];
     const themeOnly = {
       id: 'nord',
       name: 'Nord',
@@ -146,5 +152,53 @@ describe('pluginManifestSchema', () => {
       contributes: { themes: [{ ...theme, id: 'nord' }] },
     };
     expect(pluginManifestSchema.safeParse(themeOnly).success).toBe(true);
+  });
+
+  it('accepts one kind of contribution per plugin, and the kind it says', () => {
+    const theme = BUILTIN_PLUGINS.flatMap(themesOf)[0];
+    const both = structuredClone(manifest);
+    both.contributes.themes = [theme];
+    expect(pluginManifestSchema.safeParse(both).success).toBe(false);
+    expect(pluginManifestSchema.safeParse({ ...manifest, kind: 'theme' }).success).toBe(false);
+    expect(pluginManifestSchema.safeParse({ ...manifest, kind: 'widget' }).success).toBe(true);
+  });
+
+  it('requires a module for view builders', () => {
+    const builder = {
+      id: 'inspectors',
+      name: 'Inspectors',
+      version: '1.0.0',
+      contributes: { viewBuilders: [{ id: 'tabs', label: 'Tabs' }] },
+    };
+    expect(pluginManifestSchema.safeParse(builder).success).toBe(false);
+    const parsed = pluginManifestSchema.parse({ ...builder, module: './index.js' });
+    expect(pluginKind(parsed)).toBe('viewBuilder');
+  });
+});
+
+describe('view builders', () => {
+  const specFluid = BUILTIN_PLUGINS.find((p) => p.manifest.id === 'spec-fluid')!;
+
+  it('are built in, curated before auto, Spec-Fluid last', () => {
+    expect(activeViewBuilders(BUILTIN_PLUGINS, [], {}).map((b) => b.builder.id)).toEqual([
+      'curated-views',
+      'auto-views',
+      'spec-fluid',
+    ]);
+    expect(activeViewBuilders(BUILTIN_PLUGINS, ['spec-fluid'], {}).map((b) => b.builder.id)).not.toContain(
+      'spec-fluid',
+    );
+  });
+
+  it('get their plugin settings, filled or empty', () => {
+    expect(settingsOf(specFluid, {})).toEqual({ endpoint: '' });
+    expect(settingsOf(specFluid, { 'spec-fluid': { endpoint: ' http://h/sf ', other: 'x' } })).toEqual({
+      endpoint: 'http://h/sf',
+    });
+  });
+
+  it('bring their data sources', () => {
+    const sources = activeDataSources(activeViewBuilders(BUILTIN_PLUGINS, [], {}));
+    expect([...sources.keys()]).toEqual(['spec-fluid']);
   });
 });

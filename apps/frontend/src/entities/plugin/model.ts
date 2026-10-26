@@ -7,27 +7,50 @@ import {
 } from '@fluid/shared';
 import type { ThemeDefinition } from '../../shared/theme';
 import type { WidgetCatalog, WidgetRendererDefinition } from '../../views/plugin-api';
+import type { DataSource } from '../../views/plugin-api';
+import { pluginKind, type PluginSetting } from './manifest';
 import type { FluidPlugin, InstalledPlugin, PluginLoadState } from './types';
+import type { ViewBuilder } from './viewBuilder';
+
+/** The widget contracts a plugin provides (none unless it is a widget plugin). */
+export const contractsOf = (p: FluidPlugin): WidgetContract[] => (p.kind === 'widget' ? p.contracts : []);
+/** The widget renderers a plugin provides. */
+export const renderersOf = (p: FluidPlugin): WidgetRendererDefinition[] => (p.kind === 'widget' ? p.renderers : []);
+/** The themes a plugin provides. */
+export const themesOf = (p: FluidPlugin): ThemeDefinition[] => (p.kind === 'theme' ? p.themes : []);
+/** The view builders a plugin provides. */
+export const buildersOf = (p: FluidPlugin): ViewBuilder[] => (p.kind === 'viewBuilder' ? p.builders : []);
 
 /** Whether a plugin is in use: required ones always are. */
 export const isEnabled = (plugin: FluidPlugin, disabled: readonly string[]): boolean =>
   plugin.required === true || !disabled.includes(plugin.manifest.id);
 
-/** An installed plugin with what its module provided (renderers by type), or why it did not. */
+/** What a plugin module provides once imported. */
+export interface ModuleProvided {
+  renderers?: WidgetRendererDefinition[];
+  builders?: ViewBuilder[];
+}
+
+/** An installed plugin with what its module provided, or why it did not. */
 export function installedPlugin(
   installed: InstalledPlugin,
   load: PluginLoadState,
-  renderers: WidgetRendererDefinition[] = [],
+  provided: ModuleProvided = {},
 ): FluidPlugin {
   const { manifest } = installed;
-  return {
+  const base = {
     manifest,
-    source: { kind: 'url', url: installed.url },
-    contracts: manifest.contributes.widgets ?? [],
-    renderers,
-    themes: manifest.contributes.themes ?? [],
-    load: manifest.module ? load : { status: 'ready' },
+    source: { kind: 'url', url: installed.url } as const,
+    load: manifest.module ? load : ({ status: 'ready' } as const),
   };
+  switch (pluginKind(manifest)) {
+    case 'theme':
+      return { ...base, kind: 'theme', themes: manifest.contributes.themes ?? [] };
+    case 'widget':
+      return { ...base, kind: 'widget', contracts: manifest.contributes.widgets ?? [], renderers: provided.renderers ?? [] };
+    case 'viewBuilder':
+      return { ...base, kind: 'viewBuilder', builders: provided.builders ?? [] };
+  }
 }
 
 /** The renderers of the enabled plugins, and why the others' widgets are missing. */
@@ -38,10 +61,10 @@ export function activeWidgetCatalog(
   const renderers = new Map<string, WidgetRendererDefinition>();
   for (const plugin of plugins) {
     if (!isEnabled(plugin, disabled)) continue;
-    for (const r of plugin.renderers) renderers.set(r.type, r);
+    for (const r of renderersOf(plugin)) renderers.set(r.type, r);
   }
   const owner = (type: string) =>
-    plugins.find((p) => p.contracts.some((c) => c.type === type)) ??
+    plugins.find((p) => contractsOf(p).some((c) => c.type === type)) ??
     plugins.find((p) => p.manifest.id === pluginOfWidgetType(type));
   return {
     renderers,
@@ -69,7 +92,7 @@ export function activeContracts(
   plugins: FluidPlugin[],
   disabled: readonly string[],
 ): WidgetContract[] {
-  return plugins.filter((p) => isEnabled(p, disabled)).flatMap((p) => p.contracts);
+  return plugins.filter((p) => isEnabled(p, disabled)).flatMap(contractsOf);
 }
 
 /** The catalog sent with LLM requests: enabled built-in types, and the plugins' own contracts. */
@@ -91,7 +114,7 @@ export function availableThemes(
   plugins: FluidPlugin[],
   disabled: readonly string[],
 ): ThemeDefinition[] {
-  return plugins.filter((p) => isEnabled(p, disabled)).flatMap((p) => p.themes);
+  return plugins.filter((p) => isEnabled(p, disabled)).flatMap(themesOf);
 }
 
 /** The chosen theme when available, else the default one, else the first. */
@@ -108,4 +131,41 @@ export function conflictingId(plugins: FluidPlugin[], id: string, url: string): 
   return plugins.some(
     (p) => p.manifest.id === id && !(p.source.kind === 'url' && p.source.url === url),
   );
+}
+
+/** A plugin's settings: what the user filled, else each setting's default. */
+export function settingsOf(
+  plugin: FluidPlugin,
+  filled: Readonly<Record<string, Record<string, string>>>,
+): Record<string, string> {
+  const declared: PluginSetting[] = plugin.manifest.settings ?? [];
+  const mine = filled[plugin.manifest.id] ?? {};
+  return Object.fromEntries(declared.map((s) => [s.key, mine[s.key]?.trim() || s.default || '']));
+}
+
+/** A view builder of an enabled plugin, with that plugin's settings. */
+export interface ActiveViewBuilder {
+  builder: ViewBuilder;
+  settings: Record<string, string>;
+}
+
+/** The view builders of the enabled plugins, in plugin order, with their settings. */
+export function activeViewBuilders(
+  plugins: FluidPlugin[],
+  disabled: readonly string[],
+  filled: Readonly<Record<string, Record<string, string>>>,
+): ActiveViewBuilder[] {
+  return plugins
+    .filter((p) => isEnabled(p, disabled))
+    .flatMap((p) => buildersOf(p).map((builder) => ({ builder, settings: settingsOf(p, filled) })));
+}
+
+/** The data sources the active view builders bring, by builder id. */
+export function activeDataSources(builders: ActiveViewBuilder[]): Map<string, DataSource> {
+  const sources = new Map<string, DataSource>();
+  for (const { builder, settings } of builders) {
+    const source = builder.dataSource?.(settings);
+    if (source) sources.set(source.id, source);
+  }
+  return sources;
 }

@@ -6,19 +6,25 @@ import {
   AreaChartOutlined,
   BarChartOutlined,
   ClusterOutlined,
+  AppstoreOutlined,
   CodeOutlined,
   DeploymentUnitOutlined,
   DotChartOutlined,
   EditOutlined,
+  FileSearchOutlined,
   FileTextOutlined,
+  ForkOutlined,
+  GoldOutlined,
   HistoryOutlined,
   HomeOutlined,
   LineChartOutlined,
   NumberOutlined,
   PieChartOutlined,
   ProfileOutlined,
+  SwapOutlined,
   TableOutlined,
 } from '@ant-design/icons';
+import { HeatMapOutlined } from '@ant-design/icons';
 import type { CoreWidgetType } from '@fluid/shared';
 
 export type WidgetGroup = 'Data' | 'Charts' | 'Content' | '3D';
@@ -43,7 +49,12 @@ export const WIDGET_INFO: { [T in CoreWidgetType]: WidgetInfo } = {
   area: { label: 'Area chart', description: 'A line chart with filled volume.', icon: <AreaChartOutlined />, group: 'Charts' },
   pie: { label: 'Pie chart', description: 'Shares of a whole.', icon: <PieChartOutlined />, group: 'Charts' },
   scatter: { label: 'Scatter plot', description: 'Rows as dots on two numeric axes.', icon: <DotChartOutlined />, group: 'Charts' },
+  sankey: { label: 'Sankey', description: 'Weighted flows between a few groups, as ribbons.', icon: <ForkOutlined />, group: 'Charts' },
+  boxes: { label: 'Polymetric boxes', description: 'Items as boxes sized and colored by metrics, in a hierarchy, frames or treemap.', icon: <AppstoreOutlined />, group: 'Charts' },
   classDiagram: { label: 'Class diagram', description: 'An inheritance hierarchy, as UML classes and arrows.', icon: <ClusterOutlined />, group: 'Charts' },
+  matrix: { label: 'Dependency matrix', description: 'Who depends on whom, as a grid: DSM, co-usage map.', icon: <HeatMapOutlined />, group: 'Charts' },
+  blueprint: { label: 'Class blueprint', description: 'The inner structure of one class: methods by layer, calls and attribute accesses.', icon: <ProfileOutlined />, group: 'Charts' },
+  butterfly: { label: 'Butterfly', description: 'What depends on an element and what it depends on.', icon: <SwapOutlined />, group: 'Charts' },
   network: { label: 'Network', description: 'Items linked to each other: dependencies, call graphs…', icon: <DeploymentUnitOutlined />, group: 'Charts' },
   richtext: { label: 'Text', description: 'Markdown, plain text or a code block.', icon: <FileTextOutlined />, group: 'Content' },
   code: { label: 'Code', description: 'Source code, with diffs and annotations.', icon: <CodeOutlined />, group: 'Content' },
@@ -51,6 +62,8 @@ export const WIDGET_INFO: { [T in CoreWidgetType]: WidgetInfo } = {
   history: { label: 'History', description: 'Versions and their lineage, like a git log.', icon: <HistoryOutlined />, group: 'Content' },
   model3d: { label: '3D element', description: 'A building element (IFC) on its own, in 3D.', icon: <BlockOutlined />, group: '3D' },
   scene3d: { label: '3D scene', description: 'A whole building (IFC), some elements highlighted.', icon: <HomeOutlined />, group: '3D' },
+  pyramid: { label: 'Overview pyramid', description: 'A system or package in one figure: size, coupling, inheritance.', icon: <GoldOutlined />, group: 'Charts' },
+  specPresenter: { label: 'Inspector tab', description: 'A Pharo inspector tab served by Spec-Fluid.', icon: <FileSearchOutlined />, group: 'Content' },
 };
 
 export const WIDGET_GROUPS: WidgetGroup[] = ['Data', 'Charts', 'Content', '3D'];

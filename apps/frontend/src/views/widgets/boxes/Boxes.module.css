@@ -1,0 +1,235 @@
+/* Colors: the --boxes-* variables come from boxesStyle.ts (theme tokens and `widgets.boxes` overrides). */
+
+.frame {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.viewport {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--fluid-radius);
+  cursor: grab;
+  touch-action: none;
+}
+
+.viewport:active {
+  cursor: grabbing;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  font-size: 10px;
+  user-select: none;
+}
+
+/* Boxes */
+
+.box {
+  cursor: pointer;
+  outline: none;
+  transition: opacity 0.15s;
+}
+
+.box rect {
+  stroke: var(--boxes-border);
+  stroke-width: 0.75;
+  vector-effect: non-scaling-stroke;
+}
+
+.box:hover rect,
+.box:focus-visible rect {
+  stroke: var(--boxes-selection);
+  stroke-width: 1.5;
+}
+
+.box.selected rect {
+  stroke: var(--boxes-selection);
+  stroke-width: 2.5;
+}
+
+.box.peer rect {
+  stroke: var(--boxes-selection);
+  stroke-width: 1.5;
+}
+
+.box.dimmed {
+  opacity: 0.25;
+}
+
+.label {
+  fill: var(--ink);
+  stroke: var(--surface-card);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+  pointer-events: none;
+}
+
+.container > .label {
+  font-weight: 600;
+}
+
+/* Frames (groups) and edges */
+
+.frameRect {
+  fill: none;
+  stroke: var(--boxes-frame);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.frameHeader {
+  fill: var(--boxes-header);
+  stroke: var(--boxes-frame);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.frameTitle {
+  fill: var(--ink-secondary);
+  font-weight: 600;
+}
+
+.edges path {
+  fill: none;
+  stroke: var(--boxes-line);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Overlays */
+
+.toolbar {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  font-size: 12px;
+  color: var(--ink-secondary);
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--fluid-radius);
+}
+
+.toolbar button {
+  display: inline-flex;
+  padding: 3px;
+  color: inherit;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-radius: 4px;
+}
+
+.toolbar button:hover,
+.toolbar button:focus-visible {
+  color: var(--fluid-primary);
+  background: var(--surface);
+}
+
+.count {
+  margin-right: 4px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 1;
+  padding: 6px 10px;
+  pointer-events: none;
+  color: var(--ink);
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--fluid-radius);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--ink) 15%, transparent);
+  font-size: 12px;
+}
+
+.tooltipTitle {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.tooltipGroup {
+  color: var(--ink-muted);
+}
+
+.metrics {
+  margin: 4px 0 0;
+}
+
+.metrics > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.metrics dt {
+  color: var(--ink-secondary);
+}
+
+.metrics dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.role {
+  color: var(--ink-muted);
+}
+
+/* Legend */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  min-height: 24px;
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+
+.legendField {
+  font-weight: 600;
+}
+
+.gradient {
+  width: 120px;
+  height: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 2px;
+}
+
+.category {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 2px;
+}
+
+.more {
+  color: var(--ink-muted);
+}

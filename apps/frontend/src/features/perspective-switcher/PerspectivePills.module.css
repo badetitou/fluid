@@ -112,6 +112,10 @@
   background: var(--ant-geekblue-6);
 }
 
+.remote {
+  background: var(--ant-purple-6);
+}
+
 .draft {
   background: var(--ant-color-warning);
 }

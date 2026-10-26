@@ -11,7 +11,7 @@ const LlmSettingsModal = lazy(() =>
 export function LlmCard() {
   const [open, setOpen] = useState(false);
   return (
-    <Card title="Assistant (LLM) Configuration">
+    <Card>
       <Space orientation="vertical" className={styles.full}>
         <Typography.Text type="secondary">
           Configure the LLM provider and settings used for generating views and suggestions.

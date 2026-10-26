@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert, Button, Input, Space, Typography } from 'antd';
-import { contributionKinds } from '../../entities/plugin';
+import { contributionLabel } from '../../entities/plugin';
 import { useInstallPlugin } from './useInstallPlugin';
 import styles from './PluginManager.module.css';
 
@@ -44,7 +44,7 @@ export function InstallPluginForm() {
         <Alert
           type={runsCode ? 'warning' : 'info'}
           showIcon
-          title={`${pending.manifest.name} v${pending.manifest.version} — ${contributionKinds(pending.manifest).join(' and ')}`}
+          title={`${pending.manifest.name} v${pending.manifest.version} — ${contributionLabel(pending.manifest)}`}
           description={
             runsCode
               ? 'This plugin runs its own code in fluid: it can read the data you browse and your settings, LLM key included. Only install plugins you trust.'

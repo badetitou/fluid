@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { WidgetRendererDefinition } from '../../views/plugin-api';
 import { BUILTIN_PLUGINS } from './builtin';
 import { loadPluginModule } from './loader';
-import { installedPlugin } from './model';
+import { installedPlugin, type ModuleProvided } from './model';
 import { usePluginStore } from './store';
 import type { FluidPlugin, PluginLoadState } from './types';
 
-type Loaded = { load: PluginLoadState; renderers?: WidgetRendererDefinition[] };
+type Loaded = { load: PluginLoadState; provided?: ModuleProvided };
 
 /**
  * Loads the modules of the installed plugins (once per manifest URL and
@@ -22,8 +21,8 @@ export function usePluginRuntime(): FluidPlugin[] {
       if (!plugin.manifest.module || loaded[key]) continue;
       setLoaded((l) => ({ ...l, [key]: { load: { status: 'loading' } } }));
       loadPluginModule(plugin.url, plugin.manifest)
-        .then((renderers) =>
-          setLoaded((l) => ({ ...l, [key]: { load: { status: 'ready' }, renderers } })),
+        .then((provided) =>
+          setLoaded((l) => ({ ...l, [key]: { load: { status: 'ready' }, provided } })),
         )
         .catch((err: unknown) => {
           const message = err instanceof Error ? err.message : String(err);
@@ -37,7 +36,7 @@ export function usePluginRuntime(): FluidPlugin[] {
       ...BUILTIN_PLUGINS,
       ...installed.map((p) => {
         const entry = loaded[`${p.url}@${p.manifest.version}`];
-        return installedPlugin(p, entry?.load ?? { status: 'loading' }, entry?.renderers);
+        return installedPlugin(p, entry?.load ?? { status: 'loading' }, entry?.provided);
       }),
     ],
     [installed, loaded],

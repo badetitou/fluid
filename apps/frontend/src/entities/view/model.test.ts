@@ -7,6 +7,7 @@ import {
   injectItemId,
   newViewDraft,
   newViewId,
+  perspectiveEntries,
   preserveLayouts,
   resolveActiveKey,
   savedViewDraft,
@@ -168,5 +169,21 @@ describe('editedViewDraft', () => {
     expect(draft.title).toBe('Renamed');
     expect(draft.spec.id).not.toBe('v');
     expect(draft.spec).toMatchObject({ scope: 'list', widgets: [widget('w')] });
+  });
+});
+
+describe('perspectiveEntries', () => {
+  const spec = (id: string) => ({ version: 1, id, concept: 'C', title: id, queries: {}, widgets: [] }) as ViewSpec;
+  it('puts aside the perspective a builder made the default of this column kind', () => {
+    const { preferred, others } = perspectiveEntries(
+      [
+        { key: 'a', title: 'A', origin: 'auto', spec: spec('a'), defaultFor: 'detail' },
+        { key: 'b', title: 'B', origin: 'remote', spec: spec('b') },
+      ],
+      'detail',
+    );
+    expect(preferred?.key).toBe('a');
+    expect(others.map((e) => [e.key, e.source])).toEqual([['b', 'remote']]);
+    expect(perspectiveEntries([{ key: 'a', title: 'A', origin: 'auto', spec: spec('a'), defaultFor: 'detail' }], 'list').preferred).toBeUndefined();
   });
 });
