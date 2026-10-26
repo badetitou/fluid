@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react';
 import type { ViewSpec } from '@fluid/shared';
 import type { Concept, ConceptQueries } from '../../graphql/introspection';
 import type { DataSource } from '../../views/plugin-api';
@@ -36,6 +37,16 @@ export interface BuiltPerspective extends Perspective {
   builder?: { label: string; color: string };
 }
 
+/** What a column overlay of a view builder knows of its column. */
+export interface ColumnOverlayProps {
+  concept: string;
+  columnKind: ColumnKind;
+  /** The item shown, in a detail column. */
+  itemId?: string;
+  /** The plugin's settings, as the user filled them in Settings → Plugins. */
+  settings: Readonly<Record<string, string>>;
+}
+
 /**
  * The code half of a view builder: `perspectives` when it only reads the
  * column (auto views), `fetchPerspectives` when it asks a backend.
@@ -47,4 +58,10 @@ export interface ViewBuilder {
   fetchPerspectives?: (context: ViewBuilderContext, signal: AbortSignal) => Promise<Perspective[]>;
   /** The backend its perspectives' queries name in `source`, bound to the plugin's settings. */
   dataSource?: (settings: Readonly<Record<string, string>>) => DataSource;
+  /**
+   * Drawn over the body of every column, whatever its perspective (e.g. a
+   * floating menu); it lies in a positioned flex column, under the body, and
+   * draws nothing (null) where it does not apply.
+   */
+  ColumnOverlay?: ComponentType<ColumnOverlayProps>;
 }

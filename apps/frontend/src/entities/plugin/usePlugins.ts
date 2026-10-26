@@ -4,6 +4,7 @@ import { BUILTIN_PLUGINS, DEFAULT_THEME_ID } from './builtin';
 import { fetchManifest, resolveManifestUrl } from './loader';
 import {
   activeContracts,
+  activeColumnOverlays,
   activeDataSources,
   activeViewBuilders,
   availableThemes,
@@ -122,4 +123,10 @@ export function currentCatalogRequest() {
 export function currentWidgetContracts() {
   const { plugins, disabled } = currentPlugins();
   return activeContracts(plugins, disabled);
+}
+
+/** The column overlays of the enabled view builders, in plugin order. */
+export function useActiveColumnOverlays() {
+  const builders = useActiveViewBuilders();
+  return useMemo(() => activeColumnOverlays(builders), [builders]);
 }

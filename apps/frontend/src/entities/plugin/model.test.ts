@@ -9,6 +9,7 @@ import {
 import { BUILTIN_PLUGINS, DEFAULT_THEME_ID } from './builtin';
 import { pluginKind, pluginManifestSchema, type PluginManifest } from './manifest';
 import {
+  activeColumnOverlays,
   activeDataSources,
   activeViewBuilders,
   activeWidgetCatalog,
@@ -200,5 +201,10 @@ describe('view builders', () => {
   it('bring their data sources', () => {
     const sources = activeDataSources(activeViewBuilders(BUILTIN_PLUGINS, [], {}));
     expect([...sources.keys()]).toEqual(['spec-fluid']);
+  });
+
+  it('bring their column overlays', () => {
+    const overlays = activeColumnOverlays(activeViewBuilders(BUILTIN_PLUGINS, [], { 'spec-fluid': { endpoint: 'http://h/sf' } }));
+    expect(overlays.map((o) => [o.id, o.settings])).toEqual([['spec-fluid', { endpoint: 'http://h/sf' }]]);
   });
 });

@@ -191,7 +191,9 @@ interface ViewBuilder {
   perspectives?(ctx): Perspective[];                              // calculées depuis la colonne
   fetchPerspectives?(ctx, signal): Promise<Perspective[]>;        // demandées à un backend
   dataSource?(settings): DataSource;                              // le backend lu par leurs requêtes
+  ColumnOverlay?: ComponentType<ColumnOverlayProps>;              // dessiné sur le corps de chaque colonne
 }
+interface ColumnOverlayProps { concept; columnKind; itemId?; settings }
 interface ViewBuilderContext { concept; columnKind; itemId?; conceptByName; queriesByType; writable; settings }
 interface Perspective { key; title; origin: 'curated' | 'auto' | 'remote'; spec: ViewSpec; defaultFor?: 'list' | 'detail' }
 interface DataSource { id; run(query, variables, signal?): Promise<unknown> }
@@ -209,13 +211,23 @@ en document JSON (`packages/shared/src/specFluid.ts` : `table`, `tree`, `svg` po
 `specPresenter` en fait des liens vers la colonne suivante et les émet sur `selected`. Renseigner
 l'URL dans *Settings → Plugins → Spec-Fluid* (vide = désactivé).
 
+**Overlays de colonne.** Le cœur ne fait que réserver la place (`ColumnStage` de `pages/miller`) :
+le corps de la colonne dans une colonne flex positionnée, suivi du `ColumnOverlay` de chaque view
+builder actif, qui décide seul où il s'applique (`null` sinon). Spec-Fluid y met, dans les colonnes de
+détail, un menu flottant (`FloatButton`) ouvrant un panneau Smalltalk ancré en bas
+(`builders/specFluid/script/`) : le code, qui commence par `self`, est évalué par l'image
+(`POST <endpoint>/entities/<id>/evaluate`, `{ code }`) avec l'entité comme receveur ; un résultat qui
+est une entité du modèle s'ouvre dans la colonne suivante, une collection liste ses éléments. Côté
+image, l'évaluation est **désactivée par défaut** (elle exécute n'importe quel code) :
+`SFServer enableEvaluation`.
+
 **Couleurs.** Chaque view builder a sa couleur, marquée sur le point des pastilles de ses
 perspectives : `color` (`#rrggbb`) de son contrat dans le manifeste, sinon la suivante d'une palette
 (`builderColors.ts`). L'utilisateur la change dans *Settings → Plugins* (sélecteur sur la carte du
 plugin, ↶ pour revenir à celle du builder) ; le choix est gardé par navigateur.
 
 Un module de plugin `viewBuilder` exporte
-`{ viewBuilders: { "<id>": { perspectives | fetchPerspectives, dataSource? } } }`.
+`{ viewBuilders: { "<id>": { perspectives | fetchPerspectives, dataSource?, ColumnOverlay? } } }`.
 
 ## 5. Le LLM et l'agent de création de widgets
 

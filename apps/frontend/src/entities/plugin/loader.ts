@@ -56,7 +56,7 @@ function moduleRenderers(manifest: PluginManifest, widgets: ModuleEntries | unde
 function moduleBuilders(manifest: PluginManifest, builders: ModuleEntries | undefined): ViewBuilder[] {
   return (manifest.contributes.viewBuilders ?? []).map(({ id, label }) => {
     const entry = builders?.[id];
-    const { perspectives, fetchPerspectives, dataSource } = entry ?? {};
+    const { perspectives, fetchPerspectives, dataSource, ColumnOverlay } = entry ?? {};
     if (typeof perspectives !== 'function' && typeof fetchPerspectives !== 'function')
       throw new Error(`The plugin module does not build “${id}” views.`);
     return {
@@ -66,6 +66,7 @@ function moduleBuilders(manifest: PluginManifest, builders: ModuleEntries | unde
       fetchPerspectives:
         typeof fetchPerspectives === 'function' ? (fetchPerspectives as ViewBuilder['fetchPerspectives']) : undefined,
       dataSource: typeof dataSource === 'function' ? (dataSource as (s: Record<string, string>) => DataSource) : undefined,
+      ColumnOverlay: typeof ColumnOverlay === 'function' ? (ColumnOverlay as ViewBuilder['ColumnOverlay']) : undefined,
     };
   });
 }
@@ -74,7 +75,7 @@ function moduleBuilders(manifest: PluginManifest, builders: ModuleEntries | unde
  * Imports a plugin's module and returns what it provides for its manifest's
  * contributions. The module's default export receives the plugin host and
  * returns `{ widgets: { "<type>": { Render, sizing? } } }` (widget plugin) or
- * `{ viewBuilders: { "<id>": { perspectives | fetchPerspectives, dataSource? } } }` (view builder plugin).
+ * `{ viewBuilders: { "<id>": { perspectives | fetchPerspectives, dataSource?, ColumnOverlay? } } }` (view builder plugin).
  */
 export async function loadPluginModule(manifestUrl: string, manifest: PluginManifest): Promise<ModuleProvided> {
   if (!manifest.module) return {};
