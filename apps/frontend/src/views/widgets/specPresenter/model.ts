@@ -108,3 +108,10 @@ export function diffCodeWidget(node: Extract<SpecFluidNode, { kind: 'diff' }>): 
     compare: { field: 'before', label: node.beforeLabel || undefined },
   };
 }
+
+/** The text of a row of labels only (a Pharo header line), drawn as one line; undefined for other composites. */
+export function labelLine(node: Extract<SpecFluidNode, { kind: 'composite' }>): string | undefined {
+  if (node.direction !== 'row') return undefined;
+  const texts = node.children.map((child) => (child.kind === 'label' ? child.text : undefined));
+  return texts.every((text) => text !== undefined) ? texts.join('').replace(/\s+/g, ' ').trim() : undefined;
+}

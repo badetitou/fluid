@@ -205,7 +205,7 @@ reste déclarative : on peut l'enregistrer, l'éditer ou la faire modifier par l
 `SFServer start`, port 8081) sert, pour une entité (id GraphQL `<modelId>:<mooseID>`), la liste de
 ses onglets d'inspecteur (pragma `<inspectorPresentationOrder:title:>`) et chaque onglet converti
 en document JSON (`packages/shared/src/specFluid.ts` : `table`, `tree`, `svg` pour Roassal,
-`text`, `composite`, `notebook` pour les onglets `SpNotebookPresenter`, `diff` pour `SpDiffPresenter`, dessiné par le widget `code`). Les cellules qui désignent une entité portent `ref: { id, type }` : le widget
+`text`, `label` (affiché en ligne), `composite` (qui suit le layout Spec), `notebook` pour les onglets `SpNotebookPresenter`, `diff` pour `SpDiffPresenter`, dessiné par le widget `code`). Les cellules qui désignent une entité portent `ref: { id, type }` : le widget
 `specPresenter` en fait des liens vers la colonne suivante et les émet sur `selected`. Renseigner
 l'URL dans *Settings → Plugins → Spec-Fluid* (vide = désactivé).
 

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { SpecFluidNode } from '@fluid/shared';
-import { tableRows, treeRows } from './model';
+import { labelLine, tableRows, treeRows } from './model';
 import { SpecRowsTable } from './SpecRowsTable';
 import { SpecDiff } from './SpecDiff';
 import { SpecNotebook } from './SpecNotebook';
@@ -29,16 +29,21 @@ export function SpecNodeView({ node, interaction }: SpecNodeViewProps) {
       return <SpecSvg svg={node.svg} hotspots={node.refs} interaction={interaction} />;
     case 'text':
       return <SpecText text={node.text} language={node.language} highlights={node.highlights} />;
-    case 'composite':
+    case 'label':
+      return <span className={styles.label}>{node.text}</span>;
+    case 'composite': {
+      const line = labelLine(node);
+      if (line !== undefined) return <div className={styles.line}>{line}</div>;
       return (
         <div className={node.direction === 'row' ? styles.row : styles.column}>
           {node.children.map((child, index) => (
-            <div key={index} className={styles.part}>
+            <div key={index} className={child.kind === 'label' ? styles.inline : styles.part}>
               <SpecNodeView node={child} interaction={interaction} />
             </div>
           ))}
         </div>
       );
+    }
     case 'diff':
       return <SpecDiff node={node} />;
     case 'notebook':

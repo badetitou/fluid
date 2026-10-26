@@ -6,6 +6,7 @@ import {
   parseSpecNode,
   refKey,
   rootKeys,
+  labelLine,
   linkedCells,
   diffCodeWidget,
   openPageKey,
@@ -13,7 +14,7 @@ import {
   tableRows,
   treeRows,
 } from './model';
-import { fameTab, methodsTable, packagesTree, methodDiff, sourceNotebook } from './specPresenterFixture';
+import { commitHeader, fameTab, methodsTable, packagesTree, methodDiff, sourceNotebook } from './specPresenterFixture';
 
 describe('parseSpecNode', () => {
   it('accepts a Spec-Fluid document, composites included', () => {
@@ -114,5 +115,17 @@ describe('diffCodeWidget', () => {
       language: 'smalltalk',
       compare: { field: 'before', label: 'parent' },
     });
+  });
+});
+
+describe('labelLine', () => {
+  const [header, message] = (commitHeader as Extract<typeof commitHeader, { kind: 'composite' }>).children;
+  it('joins a row of labels into one line', () => {
+    expect(labelLine(header as Extract<typeof header, { kind: 'composite' }>)).toBe('Commit authored 2/10/2026 by');
+  });
+
+  it('leaves other composites alone', () => {
+    expect(labelLine({ kind: 'composite', direction: 'row', children: [header, message] })).toBeUndefined();
+    expect(labelLine({ kind: 'composite', direction: 'column', children: [{ kind: 'label', text: 'a' }] })).toBeUndefined();
   });
 });

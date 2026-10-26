@@ -65,3 +65,22 @@ export const methodDiff: SpecFluidNode = {
   beforeLabel: 'parent',
   language: 'smalltalk',
 };
+
+/** A commit view: a header line of labels above the message (GLHSpCommitView). */
+export const commitHeader: SpecFluidNode = {
+  kind: 'composite',
+  direction: 'column',
+  children: [
+    {
+      kind: 'composite',
+      direction: 'row',
+      children: [
+        { kind: 'label', text: 'Commit ' },
+        { kind: 'label', text: ' authored ' },
+        { kind: 'label', text: '2/10/2026' },
+        { kind: 'label', text: ' by ' },
+      ],
+    },
+    { kind: 'text', text: 'do not import already imported information' },
+  ],
+};
