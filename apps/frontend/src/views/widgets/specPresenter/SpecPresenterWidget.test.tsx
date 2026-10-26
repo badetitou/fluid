@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { specPresenterWidgetExample, type SpecFluidNode } from '@fluid/shared';
 import { OpenableConceptsContext } from '../../../navigation/columnPath';
 import { SpecPresenterWidget } from './SpecPresenterWidget';
-import { fameTab, hierarchySvg, methodsTable, sourceNotebook } from './specPresenterFixture';
+import { fameTab, hierarchySvg, methodDiff, methodsTable, sourceNotebook } from './specPresenterFixture';
 
 function Location() {
   return <output data-testid="location">{useLocation().pathname}</output>;
@@ -120,6 +120,13 @@ describe('SpecPresenterWidget', () => {
     expect(container.querySelector('pre')?.textContent).toBe('size\n\t^ tally');
     fireEvent.click(screen.getByRole('tab', { name: 'Methods' }));
     expect(screen.getByRole('link', { name: /printOn:/ })).toBeTruthy();
+  });
+
+  it('draws a diff with the code widget: removed and added lines', async () => {
+    renderWidget(methodDiff);
+    expect(await screen.findByText(/array size/)).toBeTruthy();
+    expect(screen.getByText(/tally/)).toBeTruthy();
+    expect(screen.getByText(/parent/)).toBeTruthy();
   });
 
   it('says when an svg node is not an SVG document', () => {

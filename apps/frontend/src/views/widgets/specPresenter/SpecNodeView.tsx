@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { SpecFluidNode } from '@fluid/shared';
 import { tableRows, treeRows } from './model';
 import { SpecRowsTable } from './SpecRowsTable';
+import { SpecDiff } from './SpecDiff';
 import { SpecNotebook } from './SpecNotebook';
 import { SpecSvg } from './SpecSvg';
 import { SpecText } from './SpecText';
@@ -14,7 +15,7 @@ interface SpecNodeViewProps {
 }
 
 /** One node of a Spec-Fluid tab, drawn by kind; composites draw their children in a row or column,
- * notebooks their pages as tabs. */
+ * notebooks their pages as tabs, diffs go to the code widget. */
 export function SpecNodeView({ node, interaction }: SpecNodeViewProps) {
   const rows = useMemo(
     () => (node.kind === 'table' ? tableRows(node.rows) : node.kind === 'tree' ? treeRows(node.roots) : []),
@@ -38,6 +39,8 @@ export function SpecNodeView({ node, interaction }: SpecNodeViewProps) {
           ))}
         </div>
       );
+    case 'diff':
+      return <SpecDiff node={node} />;
     case 'notebook':
       return (
         <SpecNotebook

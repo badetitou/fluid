@@ -1,5 +1,6 @@
 import {
   specFluidNodeSchema,
+  type CodeWidget,
   type SpecFluidCell,
   type SpecFluidNode,
   type SpecFluidRef,
@@ -94,4 +95,16 @@ export function columnCount(columns: { title: string }[], rows: SpecRow[]): numb
 /** The tab key of the page a notebook opens on: Pharo's selected page, else the first one. */
 export function openPageKey(pageCount: number, selected: number | undefined): string {
   return String(selected !== undefined && selected < pageCount ? selected : 0);
+}
+
+/** A diff node as a code widget comparing its two texts (`data` is the node itself). */
+export function diffCodeWidget(node: Extract<SpecFluidNode, { kind: 'diff' }>): CodeWidget {
+  return {
+    id: 'spec-diff',
+    type: 'code',
+    data: { query: 'spec-diff' },
+    field: 'after',
+    language: node.language,
+    compare: { field: 'before', label: node.beforeLabel || undefined },
+  };
 }
