@@ -106,7 +106,7 @@ export const pyramidWidgetDoc = `- { "id": string, "type": "pyramid", "title"?: 
     lines of code / complexity…); otherwise prefer "statistic" or "descriptions". Bind "data" to ONE object (the
     model or package). Each metric is either a field of it ("noc": "numberOfClasses") or an aggregate over one of
     its lists: "noc": { "rows": "classes", "op": "count" }, "loc": { "rows": "classes.methods", "op": "sum",
-    "field": "linesOfCode" }, "andc": { "rows": "classes", "op": "avg", "field": "subclasses" } (a list-valued
+    "field": "numberOfLinesOfCode" }, "andc": { "rows": "classes", "op": "avg", "field": "subclasses" } (a list-valued
     field counts its items). Leave out what the API cannot give: its brick stays empty. "thresholdPreset": the
     language of the code ("smalltalk" for Pharo, default "java"). No navigation, no output: pair it with tables.`;
 
@@ -116,23 +116,16 @@ const packageMetrics = /* GraphQL */ `
     package(id: $id) {
       id
       name
-      childPackages {
-        id
-      }
       classes {
         id
         fanOut
         hierarchyNestingLevel
-        subclasses {
-          id
-        }
+        numberOfDirectSubclasses
         methods {
           id
-          linesOfCode
+          numberOfLinesOfCode
           cyclomaticComplexity
-          outgoingInvocations {
-            id
-          }
+          numberOfOutgoingInvocations
         }
       }
     }
@@ -159,14 +152,13 @@ export const overviewPyramidExample: ViewSpec = {
       title: 'Overview pyramid',
       span: 24,
       data: { query: 'package', path: 'package' },
-      nop: { rows: 'childPackages', op: 'count' },
       noc: { rows: 'classes', op: 'count' },
       nom: { rows: 'classes.methods', op: 'count' },
-      loc: { rows: 'classes.methods', op: 'sum', field: 'linesOfCode' },
+      loc: { rows: 'classes.methods', op: 'sum', field: 'numberOfLinesOfCode' },
       cyclo: { rows: 'classes.methods', op: 'sum', field: 'cyclomaticComplexity' },
-      calls: { rows: 'classes.methods', op: 'sum', field: 'outgoingInvocations' },
+      calls: { rows: 'classes.methods', op: 'sum', field: 'numberOfOutgoingInvocations' },
       fanout: { rows: 'classes', op: 'sum', field: 'fanOut' },
-      andc: { rows: 'classes', op: 'avg', field: 'subclasses' },
+      andc: { rows: 'classes', op: 'avg', field: 'numberOfDirectSubclasses' },
       ahh: { rows: 'classes', op: 'avg', field: 'hierarchyNestingLevel' },
       thresholdPreset: 'smalltalk',
     },

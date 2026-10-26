@@ -81,9 +81,10 @@ function idsAt(row: Row, field: string | undefined, idField: string, prefix: str
   return [...new Set(ids)];
 }
 
+/** Lines of code: never negative, so a negative count is unknown (Moose answers -1). */
 const sizeOf = (row: Row, field: string | undefined): number | undefined => {
   const n = field ? Number(getPath(row, field)) : NaN;
-  return Number.isFinite(n) ? n : undefined;
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
 };
 
 /** The class bound to the widget: the object itself, or the first row of a list. */
@@ -171,8 +172,10 @@ export function buildBlueprint(data: unknown, opts: BlueprintOptions): Blueprint
 
   for (const m of methods) {
     const internal = calledInternally.has(m.key);
+    // A set flag makes a constructor; an unset one does not rule out an initializer by name
+    // (Pharo's `initialize` is no constructor for Famix, but is in the blueprint's first layer).
     const constructor =
-      flag(m.row, opts.isConstructorField) ?? (!internal && CONSTRUCTOR_NAME.test(m.label));
+      flag(m.row, opts.isConstructorField) === true || (!internal && CONSTRUCTOR_NAME.test(m.label));
     const accessor =
       flag(m.row, opts.isAccessorField) ??
       (m.accesses.length === 1 &&

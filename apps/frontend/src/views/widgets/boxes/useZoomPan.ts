@@ -27,10 +27,19 @@ const MAX_K = 8;
 const DRAG_THRESHOLD = 3;
 const clampK = (k: number) => Math.min(MAX_K, Math.max(MIN_K, k));
 
-/** The initial view: the whole drawing when it fits at most 1:1, else its width (scroll down by dragging). */
+/** Below this scale boxes and labels are unreadable: the initial view never goes under it. */
+export const READABLE_K = 0.4;
+
+/**
+ * The initial view: the whole width when it fits at a readable scale (at most
+ * 1:1), else the top of the drawing at that scale, centred — where the roots of
+ * a wide hierarchy are — to be panned by dragging (the fit button shows it all).
+ */
 export function initialTransform(content: { width: number; height: number }, view: { width: number; height: number }): Transform {
   if (content.width <= 0 || view.width <= 0) return { x: 0, y: 0, k: 1 };
-  return { x: 0, y: 0, k: clampK(Math.min(1, view.width / content.width)) };
+  const k = clampK(Math.max(READABLE_K, Math.min(1, view.width / content.width)));
+  const overflow = content.width * k - view.width;
+  return { x: overflow > 0 ? -overflow / 2 : 0, y: 0, k };
 }
 
 /** The view fitting the whole drawing. */

@@ -1,25 +1,26 @@
 // Test fixture: a class as the Pharo / Moose API answers the curated blueprint
 // query (calls through invocation candidates, callers through senders,
-// accesses through variables). "x:1" is a method of another class.
+// accesses through candidates). "x:1" is a method of another class.
 
 const ref = (id: string) => ({ id });
 const calls = (...ids: string[]) => ids.map((id) => ({ candidates: [ref(id)] }));
 const callers = (...ids: string[]) => ids.map((id) => ({ sender: ref(id) }));
-const accesses = (...ids: string[]) => ids.map((id) => ({ variable: ref(id) }));
+const accesses = (...ids: string[]) => ids.map((id) => ({ candidates: [ref(id)] }));
 
 const method = (
   id: string,
-  selector: string,
-  linesOfCode: number,
+  name: string,
+  numberOfLinesOfCode: number,
   more: Record<string, unknown> = {},
 ) => ({
   id,
-  selector,
+  name,
   protocol: 'public',
-  linesOfCode,
+  numberOfLinesOfCode,
   isAbstract: false,
   isOverriding: false,
-  sourceCode: `${selector}\n\t"..."`,
+  isConstructor: false,
+  sourceText: `${name}\n\t"..."`,
   outgoingInvocations: [],
   incomingInvocations: [],
   accesses: [],

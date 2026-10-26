@@ -6,7 +6,7 @@ import { classify, emptyReason, formatMetric, formatRatio, ratioValue, readMetri
 describe('pyramid metrics', () => {
   it('computes every metric of the curated example from the lists', () => {
     const values = readMetrics(pyramidData, pyramidSpec);
-    expect(values).toMatchObject({ nop: 2, noc: 3, nom: 3, loc: 24, cyclo: 6, calls: 6, fanout: 3 });
+    expect(values).toMatchObject({ nop: null, noc: 3, nom: 3, loc: 24, cyclo: 6, calls: 6, fanout: 3 });
     expect(values.andc).toBeCloseTo(2 / 3);
     expect(values.ahh).toBeCloseTo(5 / 3);
   });
@@ -80,5 +80,13 @@ describe('pyramid schema', () => {
   it('rejects a sum without field and unordered thresholds', () => {
     expect(widgetSchema.safeParse({ ...bare, loc: { rows: 'methods', op: 'sum' } }).success).toBe(false);
     expect(widgetSchema.safeParse({ ...pyramidSpec, thresholds: { ahh: [3, 2, 1] } }).success).toBe(false);
+  });
+
+  it('takes negative values for unknown, as Moose answers -1', () => {
+    const data = { methods: [{ cyclo: -1 }, { cyclo: -1 }], loc: -1 };
+    expect(readMetric(data, { rows: 'methods', op: 'sum', field: 'cyclo' })).toBeNull();
+    expect(readMetric({ methods: [{ cyclo: -1 }, { cyclo: 3 }] }, { rows: 'methods', op: 'sum', field: 'cyclo' })).toBe(3);
+    expect(readMetric({ methods: [] }, { rows: 'methods', op: 'sum', field: 'cyclo' })).toBe(0);
+    expect(readMetric(data, 'loc')).toBeNull();
   });
 });

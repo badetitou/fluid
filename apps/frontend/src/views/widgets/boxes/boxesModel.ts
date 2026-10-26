@@ -72,6 +72,11 @@ export function toNumber(value: unknown): number | undefined {
 
 const firstOf = (value: unknown): unknown => (Array.isArray(value) ? value.find((v) => v != null) : value);
 const metric = (row: Row, field?: string) => (field ? toNumber(firstOf(getPath(row, field))) : undefined);
+/** A dimension (width, height, area): never negative, so a negative one is unknown (Moose answers -1). */
+const dimension = (row: Row, field?: string) => {
+  const n = metric(row, field);
+  return n !== undefined && n >= 0 ? n : undefined;
+};
 
 function scalarOf(row: Row, field?: string): string | undefined {
   const value = field ? firstOf(getPath(row, field)) : undefined;
@@ -145,9 +150,9 @@ export function buildBoxes(data: unknown, opts: BoxesOptions): BoxesModel {
       group: scalarOf(row, opts.groupField),
       children: [],
       descendants: 0,
-      width: metric(row, opts.widthField),
-      height: metric(row, opts.heightField),
-      size: metric(row, opts.sizeField),
+      width: dimension(row, opts.widthField),
+      height: dimension(row, opts.heightField),
+      size: dimension(row, opts.sizeField),
       color: colorValue(row, opts, sequential),
     });
     const parent = opts.parentField ? idOf(firstOf(getPath(row, opts.parentField)), idField) : undefined;

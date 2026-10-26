@@ -32,7 +32,7 @@ export const blueprintWidgetSchema = z.object({
   labelField: path().optional(),
   /** Dot path, in a method, of the methods it calls: ids or objects holding them ("outgoingInvocations.candidates"). */
   callsField: path().optional(),
-  /** Dot path, in a method, of the attributes it reads or writes: ids or objects ("accesses.variable"). */
+  /** Dot path, in a method, of the attributes it reads or writes: ids or objects ("accesses.candidates"). */
   accessesField: path().optional(),
   /**
    * Dot path, in a method, of its callers ("incomingInvocations.sender"): a method called from outside the
@@ -49,7 +49,7 @@ export const blueprintWidgetSchema = z.object({
   isAbstractField: path().optional(),
   /** Dot path of a boolean: the method overrides one of a superclass. */
   isOverridingField: path().optional(),
-  /** Dot path of a method's size in lines (e.g. "linesOfCode"): the height of its box. */
+  /** Dot path of a method's size in lines (e.g. "numberOfLinesOfCode"): the height of its box. */
   sizeField: path().optional(),
   /** Opens the clicked method in a new column. */
   linkTo: linkToSchema.optional(),
@@ -74,7 +74,7 @@ export const blueprintWidgetDoc = `- { "id": string, "type": "blueprint", "title
     points to its methods, "attributesField" to its attributes, each with an id ("idField", default id) and a
     name ("labelField", default name/selector). In each method: "callsField" lists the methods it calls (ids
     or objects, e.g. "outgoingInvocations.candidates"), "accessesField" the attributes it reads/writes (e.g.
-    "accesses.variable"), "callersField" its callers (e.g. "incomingInvocations.sender"); select their ids.
+    "accesses.candidates"), "callersField" its callers (e.g. "incomingInvocations.sender"); select their ids.
     Booleans "isConstructorField", "isAccessorField", "isPublicField", "isAbstractField", "isOverridingField";
     "sizeField" the lines of code (box height). Without them, constructors are methods named initialize*/
     init/new not called internally, accessors those accessing one attribute, calling nothing, ≤ 3 lines.
@@ -109,12 +109,13 @@ export const blueprintExample: ViewSpec = {
             }
             methods {
               id
-              selector
+              name
               protocol
-              linesOfCode
+              numberOfLinesOfCode
               isAbstract
               isOverriding
-              sourceCode
+              isConstructor
+              sourceText
               outgoingInvocations {
                 candidates {
                   id
@@ -126,7 +127,7 @@ export const blueprintExample: ViewSpec = {
                 }
               }
               accesses {
-                variable {
+                candidates {
                   id
                 }
               }
@@ -146,13 +147,14 @@ export const blueprintExample: ViewSpec = {
       data: { query: 'class', path: 'class' },
       methodsField: 'methods',
       attributesField: 'attributes',
-      labelField: 'selector',
+      labelField: 'name',
       callsField: 'outgoingInvocations.candidates',
       callersField: 'incomingInvocations.sender',
-      accessesField: 'accesses.variable',
+      accessesField: 'accesses.candidates',
       isAbstractField: 'isAbstract',
       isOverridingField: 'isOverriding',
-      sizeField: 'linesOfCode',
+      sizeField: 'numberOfLinesOfCode',
+      isConstructorField: 'isConstructor',
       linkTo: { concept: 'Method', idField: 'id' },
       attributeLinkTo: { concept: 'Attribute', idField: 'id' },
     },
@@ -164,11 +166,10 @@ export const blueprintExample: ViewSpec = {
       data: { query: '@blueprint', path: 'selected' },
       columns: 1,
       items: [
-        { label: 'Name', key: 'selector' },
-        { label: 'Attribute', key: 'name' },
+        { label: 'Name', key: 'name' },
         { label: 'Protocol', key: 'protocol', format: 'tag' },
-        { label: 'Lines', key: 'linesOfCode', format: 'number' },
-        { label: 'Source', key: 'sourceCode', format: 'code' },
+        { label: 'Lines', key: 'numberOfLinesOfCode', format: 'number' },
+        { label: 'Source', key: 'sourceText', format: 'code' },
       ],
     },
   ],

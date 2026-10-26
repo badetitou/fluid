@@ -12,10 +12,11 @@ import { RATIOS, THRESHOLD_PRESETS, type Triple } from './pyramidDefinitions';
 export type Level = 'low' | 'average' | 'high';
 export type PyramidValues = Record<PyramidMetricKey, number | null>;
 
+/** A metric value: counts and sizes are never negative, so a negative one is unknown (Moose answers -1). */
 function toNumber(value: unknown): number | null {
   if (typeof value === 'boolean' || value == null || value === '') return null;
   const n = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(n) ? n : null;
+  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 /** A list-valued field counts its items; anything else is read as a number. */
@@ -40,7 +41,8 @@ export function readMetric(data: unknown, source: PyramidMetric | undefined): nu
   const rows = Array.isArray(list) ? list : [list];
   if (source.op === 'count') return rows.length;
   const values = rows.map((row) => measure(getPath(row, source.field))).filter((n): n is number => n !== null);
-  if (values.length === 0) return source.op === 'sum' ? 0 : null;
+  // No rows sum to 0; rows whose values are all unknown leave the metric unknown.
+  if (values.length === 0) return source.op === 'sum' && rows.length === 0 ? 0 : null;
   const sum = values.reduce((a, b) => a + b, 0);
   return source.op === 'sum' ? sum : sum / values.length;
 }

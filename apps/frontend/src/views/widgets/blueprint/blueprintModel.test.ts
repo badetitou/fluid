@@ -54,8 +54,9 @@ describe('buildBlueprint', () => {
       {
         methods: [
           { id: 1, name: 'build', ctor: true, open: true },
-          { id: 2, name: 'initializeCache', ctor: false, open: false },
+          { id: 2, name: 'resetCache', ctor: false, open: false },
           { id: 3, name: 'x', getter: true, open: true },
+          { id: 4, name: 'initialize', ctor: false, open: true },
         ],
       },
       {
@@ -65,7 +66,8 @@ describe('buildBlueprint', () => {
         isAccessorField: 'getter',
       },
     );
-    expect(flagged.methods.map((m) => m.layer)).toEqual(['initialization', 'internal', 'accessor']);
+    // An initializer stays in the first layer though the source says it is no constructor (Pharo).
+    expect(flagged.methods.map((m) => m.layer)).toEqual(['initialization', 'internal', 'accessor', 'initialization']);
   });
 
   it('reads the class from a list, labels by name then selector', () => {
