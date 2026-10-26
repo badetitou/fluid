@@ -11,6 +11,10 @@
   --kind-accent: var(--fluid-series-3, var(--ant-green-6));
 }
 
+.accentPageAction {
+  --kind-accent: var(--fluid-series-4, var(--ant-orange-6));
+}
+
 .accentTheme {
   --kind-accent: var(--fluid-series-1, var(--ant-magenta-6));
 }

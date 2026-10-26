@@ -2,8 +2,14 @@ import { z } from 'zod';
 import { externalWidgetContractSchema } from '@fluid/shared';
 import { themeDefinitionSchema } from '../../shared/theme';
 
-/** The four kinds of plugins; a plugin is of exactly one. */
-export const PLUGIN_KINDS = ['theme', 'widget', 'viewBuilder', 'sourceProvider'] as const;
+/** The five kinds of plugins; a plugin is of exactly one. */
+export const PLUGIN_KINDS = [
+  'theme',
+  'widget',
+  'viewBuilder',
+  'sourceProvider',
+  'pageAction',
+] as const;
 export type PluginKind = (typeof PLUGIN_KINDS)[number];
 
 /** The serializable half of a view builder (its code is in the plugin's module). */
@@ -12,7 +18,10 @@ export const viewBuilderContractSchema = z.object({
   label: z.string().min(1).max(60),
   description: z.string().max(500).optional(),
   /** The colour of its perspectives' marks (`#rrggbb`); the user may change it. */
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'A colour is written #rrggbb').optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, 'A colour is written #rrggbb')
+    .optional(),
 });
 
 /** A GraphQL source a source provider offers: a name and the endpoint URL. */
@@ -35,6 +44,16 @@ export const sourceProviderContractSchema = z.object({
 });
 export type SourceProviderContract = z.infer<typeof sourceProviderContractSchema>;
 
+/** The serializable half of a page action: what the floating button of every page lists. */
+export const pageActionContractSchema = z.object({
+  id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
+  label: z.string().min(1).max(60),
+  description: z.string().max(300).optional(),
+  /** A short symbol (an emoji) shown on its button; a generic icon otherwise. */
+  icon: z.string().min(1).max(8).optional(),
+});
+export type PageActionContract = z.infer<typeof pageActionContractSchema>;
+
 /** A setting the user fills in Settings → Plugins (e.g. a backend URL). */
 export const pluginSettingSchema = z.object({
   key: z.string().regex(/^[a-zA-Z][a-zA-Z0-9]*$/),
@@ -50,6 +69,7 @@ const CONTRIBUTION_OF_KIND = {
   widget: 'widgets',
   viewBuilder: 'viewBuilders',
   sourceProvider: 'sourceProviders',
+  pageAction: 'pageActions',
 } as const;
 
 /** Plain data needs no module: themes, and source providers that list their sources. */
@@ -79,6 +99,7 @@ export const pluginManifestSchema = z
       widgets: z.array(externalWidgetContractSchema).optional(),
       viewBuilders: z.array(viewBuilderContractSchema).optional(),
       sourceProviders: z.array(sourceProviderContractSchema).optional(),
+      pageActions: z.array(pageActionContractSchema).optional(),
     }),
   })
   .superRefine((m, ctx) => {
@@ -91,11 +112,15 @@ export const pluginManifestSchema = z
         path: ['contributes'],
         message: m.kind
           ? `A ${m.kind} plugin contributes ${CONTRIBUTION_OF_KIND[m.kind]}, and nothing else`
-          : 'A plugin contributes themes, widgets, viewBuilders or sourceProviders (one kind only)',
+          : 'A plugin contributes themes, widgets, viewBuilders, sourceProviders or pageActions (one kind only)',
       });
     }
     if (given.length === 1 && needsModule(given[0], m.contributes.sourceProviders) && !m.module) {
-      ctx.addIssue({ code: 'custom', path: ['module'], message: `A plugin contributing ${CONTRIBUTION_OF_KIND[given[0]]} needs a "module"` });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['module'],
+        message: `A plugin contributing ${CONTRIBUTION_OF_KIND[given[0]]} needs a "module"`,
+      });
     }
     (m.contributes.widgets ?? []).forEach((w, i) => {
       if (!w.type.startsWith(`${m.id}/`)) {
@@ -114,12 +139,18 @@ export function pluginKind(manifest: PluginManifest): PluginKind {
   if (manifest.kind) return manifest.kind;
   if (manifest.contributes.widgets?.length) return 'widget';
   if (manifest.contributes.sourceProviders?.length) return 'sourceProvider';
+  if (manifest.contributes.pageActions?.length) return 'pageAction';
   return manifest.contributes.viewBuilders?.length ? 'viewBuilder' : 'theme';
 }
 
 /** What a plugin contributes, for display. */
 export function contributionLabel(manifest: PluginManifest): string {
-  return { theme: 'themes', widget: 'widgets', viewBuilder: 'view builders', sourceProvider: 'sources' }[
-    pluginKind(manifest)
-  ];
+  const labels = {
+    theme: 'themes',
+    widget: 'widgets',
+    viewBuilder: 'view builders',
+    sourceProvider: 'sources',
+    pageAction: 'page actions',
+  };
+  return labels[pluginKind(manifest)];
 }

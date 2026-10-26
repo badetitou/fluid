@@ -2,6 +2,7 @@ import type { WidgetContract } from '@fluid/shared';
 import type { ThemeDefinition } from '../../shared/theme';
 import type { WidgetRendererDefinition } from '../../views/plugin-api';
 import type { PluginKind, PluginManifest } from './manifest';
+import type { PageAction } from './pageAction';
 import type { SourceProvider } from './sourceProvider';
 import type { ViewBuilder } from './viewBuilder';
 
@@ -45,8 +46,14 @@ export interface SourceProviderPlugin extends PluginBase {
   providers: SourceProvider[];
 }
 
+/** A page action plugin: actions on the whole page, offered by a floating button on every page. */
+export interface PageActionPlugin extends PluginBase {
+  kind: 'pageAction';
+  actions: PageAction[];
+}
+
 /** A plugin as the app uses it: its manifest and what it provides once loaded. */
-export type FluidPlugin = ThemePlugin | WidgetPlugin | ViewBuilderPlugin | SourceProviderPlugin;
+export type FluidPlugin = ThemePlugin | WidgetPlugin | ViewBuilderPlugin | SourceProviderPlugin | PageActionPlugin;
 
 export type { PluginKind };
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ApiOutlined, AppstoreOutlined, BgColorsOutlined, LayoutOutlined } from '@ant-design/icons';
+import { ApiOutlined, AppstoreOutlined, BgColorsOutlined, LayoutOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import type { PluginKind } from '../../entities/plugin';
 import styles from './PluginManager.module.css';
 
@@ -31,6 +31,12 @@ export const PLUGIN_KIND_META: Record<PluginKind, PluginKindMeta> = {
     help: 'GraphQL sources (a name and a URL) offered in the source switcher of the top bar, written in the plugin or listed by a backend.',
     icon: <ApiOutlined />,
     accent: styles.accentSource,
+  },
+  pageAction: {
+    title: 'Page actions',
+    help: 'Commands of the floating button shown on every page: an effect on the page, or a panel such as the Pharo script.',
+    icon: <ThunderboltOutlined />,
+    accent: styles.accentPageAction,
   },
   theme: {
     title: 'Themes',

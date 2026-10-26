@@ -3,6 +3,7 @@ import { describeIssues } from '@fluid/shared';
 import type { DataSource, WidgetProps } from '../../views/plugin-api';
 import { pluginManifestSchema, type PluginManifest } from './manifest';
 import type { ModuleProvided } from './model';
+import { modulePageAction, type PageAction } from './pageAction';
 import { checkedSourceProvider, type SourceProvider } from './sourceProvider';
 import type { ViewBuilder } from './viewBuilder';
 
@@ -83,12 +84,18 @@ function moduleProviders(manifest: PluginManifest, providers: ModuleEntries | un
   });
 }
 
+/** The page actions the module runs or draws, for those its manifest declares. */
+function moduleActions(manifest: PluginManifest, actions: ModuleEntries | undefined): PageAction[] {
+  return (manifest.contributes.pageActions ?? []).map((contract) => modulePageAction(contract, actions?.[contract.id]));
+}
+
 /**
  * Imports a plugin's module and returns what it provides for its manifest's
  * contributions. The module's default export receives the plugin host and
  * returns `{ widgets: { "<type>": { Render, sizing? } } }` (widget plugin) or
  * `{ viewBuilders: { "<id>": { perspectives | fetchPerspectives, dataSource?, ColumnOverlay? } } }` (view builder plugin)
- * or `{ sourceProviders: { "<id>": { listSources(settings, signal) } } }` (source provider plugin).
+ * or `{ sourceProviders: { "<id>": { listSources(settings, signal) } } }` (source provider plugin)
+ * or `{ pageActions: { "<id>": { run | Panel, available? } } }` (page action plugin).
  */
 export async function loadPluginModule(manifestUrl: string, manifest: PluginManifest): Promise<ModuleProvided> {
   if (!manifest.module) return {};
@@ -100,10 +107,12 @@ export async function loadPluginModule(manifestUrl: string, manifest: PluginMani
   if (typeof mod.default !== 'function')
     throw new Error('The plugin module has no default export function.');
   const provided = (await mod.default(createPluginHost())) as
-    { widgets?: ModuleEntries; viewBuilders?: ModuleEntries; sourceProviders?: ModuleEntries } | undefined;
+    | { widgets?: ModuleEntries; viewBuilders?: ModuleEntries; sourceProviders?: ModuleEntries; pageActions?: ModuleEntries }
+    | undefined;
   return {
     renderers: moduleRenderers(manifest, provided?.widgets),
     builders: moduleBuilders(manifest, provided?.viewBuilders),
     providers: moduleProviders(manifest, provided?.sourceProviders),
+    actions: moduleActions(manifest, provided?.pageActions),
   };
 }

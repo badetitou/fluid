@@ -1,6 +1,6 @@
 # Système de plugins de fluid
 
-> Statut : **étape 1 livrée** (2026-10-22) ; **quatre types de plugins**, View Builders et sources (2026-10-26). Ce document fixe l'API des plugins, celle des widgets,
+> Statut : **étape 1 livrée** (2026-10-22) ; **cinq types de plugins**, View Builders, sources et actions de page (2026-10-26). Ce document fixe l'API des plugins, celle des widgets,
 > et ce qu'il reste à faire. Il prolonge `REARCHITECTURE.md` §4 (« un widget = un dossier »).
 
 ## 1. Pourquoi
@@ -21,6 +21,7 @@ Il est d'**un seul type** (`kind`), qui dit ce qu'il contribue :
 | `widget` | `widgets` | des types de widgets : contrat (schéma, doc LLM, ports) + renderer. Un widget **affiche** les données qu'on lui donne, il ne fait jamais de requête | oui (module ESM) |
 | `viewBuilder` | `viewBuilders` | propose des **perspectives** (des `ViewSpec`) pour une colonne, et peut apporter la **source de données** que lisent leurs requêtes (autre chose que GraphQL) | oui (module ESM) |
 | `sourceProvider` | `sourceProviders` | une liste de **sources GraphQL** (nom + URL) proposées dans le sélecteur de la barre du haut (§4 ter) | non si la liste est dans le manifeste, oui si un backend la donne |
+| `pageAction` | `pageActions` | des **commandes du bouton flottant** présent sur toutes les pages (§4 quater) : un effet sur la page ou un panneau | oui (module ESM) |
 
 `kind` peut être omis : il se déduit de la contribution (anciens manifestes). Un manifeste qui
 mélange deux contributions est refusé. Un plugin peut déclarer des **réglages** (`settings` :
@@ -34,11 +35,12 @@ mélange deux contributions est refusé. Un plugin peut déclarer des **réglage
   "name": "Tag cloud",
   "version": "1.0.0",
   "description": "…",
-  "kind": "widget",                     // theme | widget | viewBuilder | sourceProvider (déduit si absent)
+  "kind": "widget",                     // theme | widget | viewBuilder | sourceProvider | pageAction (déduit si absent)
   "module": "./index.js",               // relatif au manifeste ; requis sauf pour un thème
   "contributes": {
     "widgets": [ WidgetContract, … ]    // ou "themes": [ThemeDefinition] / "viewBuilders": [{ id, label, color? }]
                                         // ou "sourceProviders": [{ id, label, sources?: [{ name, url, description? }] }]
+                                        // ou "pageActions": [{ id, label, description?, icon? }]
   }
 }
 ```
@@ -216,13 +218,8 @@ l'URL dans *Settings → Plugins → Spec-Fluid* (vide = désactivé).
 **Overlays de colonne.** Le cœur ne fait que réserver la place (`ColumnStage` de `pages/miller`) :
 le corps de la colonne dans une colonne flex positionnée, suivi du `ColumnOverlay` de chaque view
 builder actif, qui décide seul où il s'applique (`null` sinon). Il laisse libre le bas de la colonne
-sur `var(--column-overlay-inset, 0px)` : le pager du Miller y flotte. Spec-Fluid y met, dans les colonnes de
-détail, un menu flottant (`FloatButton`) ouvrant un panneau Smalltalk ancré en bas
-(`builders/specFluid/script/`) : le code, qui commence par `self`, est évalué par l'image
-(`POST <endpoint>/entities/<id>/evaluate`, `{ code }`) avec l'entité comme receveur ; un résultat qui
-est une entité du modèle s'ouvre dans la colonne suivante, une collection liste ses éléments. Côté
-image, l'évaluation est **désactivée par défaut** (elle exécute n'importe quel code) :
-`SFServer enableEvaluation`.
+sur `var(--column-overlay-inset, 0px)` : le pager du Miller y flotte. Aucun builder intégré n'en
+dessine plus : le script Pharo est devenu une action de page (§4 quater).
 
 **Couleurs.** Chaque view builder a sa couleur, marquée sur le point des pastilles de ses
 perspectives : `color` (`#rrggbb`) de son contrat dans le manifeste, sinon la suivante d'une palette
@@ -258,6 +255,35 @@ thème). Sinon le module exporte `{ sourceProviders: { "<id>": { listSources(set
 (ex. un serveur qui liste ses images Moose) ; la réponse est validée, seules les URL `http(s)` passent.
 Intégré : `fluid-demo-sources` (« Demo APIs » : Rick and Morty, Countries, GraphQLZero, la liste
 de l'écran de connexion). Exemple installable : `/plugins/local-sources/manifest.json`.
+
+## 4 quater. Actions de page
+
+Chaque page (accueil, colonnes Miller, Settings…) a **un** bouton flottant, en bas à droite du contenu
+(`features/page-actions`, posé par `AppLayout`). Ses commandes sont les actions des plugins
+`pageAction` actifs qui s'offrent sur la page ; sans commande, pas de bouton.
+
+```ts
+interface PageAction {
+  id; label; description?; icon?;                 // icon : un emoji, sinon une icône générique
+  available?(ctx): boolean;                        // proposée ici ? (toujours, si absent)
+  run?(ctx): void;                                 // un effet immédiat…
+  Panel?: ComponentType<{ context; onClose }>;     // …ou un panneau, ancré en bas de la page
+}
+interface PageActionContext {
+  settings;                                        // ceux du plugin
+  palette: string[]; mode: 'light' | 'dark';       // le thème actif
+  focus?: { concept; itemId?; path };              // la colonne la plus à droite du Miller
+}
+```
+
+Intégrés :
+
+| Plugin | Action | Ce qu'elle fait |
+| --- | --- | --- |
+| `fluid-pharo-script` | `pharo-script` | sur une colonne de détail, ouvre le panneau Smalltalk (Spec-Fluid) : le code, qui commence par `self`, est évalué par l'image (`POST <endpoint>/entities/<id>/evaluate`, `{ code }`) avec l'entité de la colonne comme receveur ; un résultat qui est une entité s'ouvre dans la colonne suivante, une collection liste ses éléments. Son propre réglage `endpoint` (vide = désactivé). Côté image, l'évaluation est **désactivée par défaut** : `SFServer enableEvaluation` |
+| `fluid-fireworks` | `fireworks` | easter egg : un feu d'artifice sur toute la page, aux couleurs du thème (canvas qui laisse passer les clics et se retire à la fin ; simulation pure dans `actions/fireworks/model.ts`) |
+
+Un module de plugin `pageAction` exporte `{ pageActions: { "<id>": { run | Panel, available? } } }`.
 
 ## 5. Le LLM et l'agent de création de widgets
 
@@ -299,6 +325,7 @@ Installer `/plugins/tagcloud/manifest.json` depuis *Settings → Plugins* pour e
 | API de rendu (`WidgetProps`, `useWidgetRenderer`, `useWidgetTheme`, sorties) | `apps/frontend/src/views/plugin-api/` (moteur) |
 | Plugins intégrés, store, chargeur, hooks, runtime | `apps/frontend/src/entities/plugin/` |
 | View Builders intégrés (curated, auto, Spec-Fluid) | `apps/frontend/src/entities/plugin/builders/` |
+| Actions de page intégrées (feu d'artifice ; script Pharo dans `builders/specFluid/script/`) ; bouton flottant | `apps/frontend/src/entities/plugin/actions/` ; `apps/frontend/src/features/page-actions/` |
 | Perspectives d'une colonne (vues enregistrées + View Builders) | `apps/frontend/src/entities/view/` |
 | `DataSource`, `DataSourcesContext` | `apps/frontend/src/views/plugin-api/dataSources.ts` (moteur) |
 | Documents Spec-Fluid (zod) | `packages/shared/src/specFluid.ts` |
@@ -318,10 +345,12 @@ Le moteur (`views/`) ne dépend pas des plugins : il expose des contextes que l'
 | 4 | Isolation optionnelle des modules tiers (iframe sandbox) | à étudier |
 | 5 | Trois types de plugins (thème, widget, View Builder), sources de données non GraphQL, Spec-Fluid | ✅ |
 | 5 bis | Plugins de sources (`sourceProvider`) et sélecteur de source dans la barre du haut | ✅ |
+| 5 ter | Actions de page (`pageAction`) : un bouton flottant sur toutes les pages, le script Pharo et le feu d'artifice en plugins | ✅ |
 | 6 | Bus entre colonnes (suivre / figer / surligner, comme `MiBus` de MooseIDE) | à faire |
 
 ## 9. Autres types de plugins envisageables
 
-À discuter : sections de la barre latérale, actions sur une perspective (export CSV…), formats de
+À discuter : sections de la barre latérale, actions sur une perspective (export CSV… — une action de
+page peut déjà le faire sur la colonne `focus`), formats de
 cellule (`format`), fournisseurs LLM. Les sources de données et les gabarits de vues sont couverts
 par les View Builders (§4 bis).

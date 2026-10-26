@@ -16,6 +16,7 @@ import {
   pickTheme,
   settingsOf,
 } from './model';
+import { activePageActions } from './pageAction';
 import { PluginsContext } from './PluginsContext';
 import { usePluginStore } from './store';
 import type { FluidPlugin, InstalledPlugin } from './types';
@@ -86,6 +87,14 @@ export function useActiveSourceProviders() {
   const disabled = usePluginStore((s) => s.disabled);
   const settings = usePluginStore((s) => s.settings);
   return useMemo(() => activeSourceProviders(plugins, disabled, settings), [plugins, disabled, settings]);
+}
+
+/** The page actions of the enabled plugins, with their settings, in plugin order. */
+export function useActivePageActions() {
+  const plugins = useContext(PluginsContext);
+  const disabled = usePluginStore((s) => s.disabled);
+  const settings = usePluginStore((s) => s.settings);
+  return useMemo(() => activePageActions(plugins, disabled, settings), [plugins, disabled, settings]);
 }
 
 /** A plugin's settings (filled or default) and the setter. */

@@ -2,10 +2,10 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import type { SpecFluidEvaluation } from '@fluid/shared';
-import { MillerColumnPathContext, OpenableConceptsContext } from '../../../../../navigation/columnPath';
-import type { ColumnOverlayProps } from '../../../viewBuilder';
+import { OpenableConceptsContext } from '../../../../../navigation/columnPath';
+import type { PageActionContext } from '../../../pageAction';
 import { evaluate } from '../api';
-import { ScriptOverlay } from './ScriptOverlay';
+import { pharoScriptAction } from './ScriptCommand';
 
 vi.mock('../api', () => ({ evaluate: vi.fn() }));
 const evaluateMock = vi.mocked(evaluate);
@@ -15,27 +15,31 @@ function Location() {
   return <output data-testid="location">{useLocation().pathname}</output>;
 }
 
-function renderOverlay(props: Partial<ColumnOverlayProps> = {}) {
-  const overlay = (
-    <ScriptOverlay concept="Class" columnKind="detail" itemId="1:1" settings={{ endpoint: ENDPOINT }} {...props} />
-  );
+const CONTEXT: PageActionContext = {
+  settings: { endpoint: ENDPOINT },
+  palette: ['#000'],
+  mode: 'light',
+  focus: { concept: 'Class', itemId: '1:1', path: '/d/Class/Class@1:1' },
+};
+
+function renderPanel() {
+  const Panel = pharoScriptAction.Panel!;
+  const overlay = <Panel context={CONTEXT} onClose={() => {}} />;
   render(
     <MemoryRouter initialEntries={['/d/Class/Class@1:1']}>
-      <MillerColumnPathContext.Provider value="/d/Class/Class@1:1">
-        <OpenableConceptsContext.Provider value={new Set(['Class', 'Method'])}>
-          <Routes>
-            <Route
-              path="*"
-              element={
-                <>
-                  {overlay}
-                  <Location />
-                </>
-              }
-            />
-          </Routes>
-        </OpenableConceptsContext.Provider>
-      </MillerColumnPathContext.Provider>
+      <OpenableConceptsContext.Provider value={new Set(['Class', 'Method'])}>
+        <Routes>
+          <Route
+            path="*"
+            element={
+              <>
+                {overlay}
+                <Location />
+              </>
+            }
+          />
+        </Routes>
+      </OpenableConceptsContext.Provider>
     </MemoryRouter>,
   );
 }
@@ -43,8 +47,6 @@ function renderOverlay(props: Partial<ColumnOverlayProps> = {}) {
 async function typeAndRun(code: string, result: SpecFluidEvaluation | Error) {
   if (result instanceof Error) evaluateMock.mockRejectedValueOnce(result);
   else evaluateMock.mockResolvedValueOnce(result);
-  fireEvent.click(screen.getByRole('button', { name: 'Pharo' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Pharo script' }));
   const editor = screen.getByLabelText('Smalltalk code');
   expect((editor as HTMLTextAreaElement).value).toBe('self ');
   fireEvent.change(editor, { target: { value: code } });
@@ -63,23 +65,30 @@ afterEach(() => {
   evaluateMock.mockReset();
 });
 
-describe('Pharo script overlay', () => {
-  it('shows only on a detail column, once the endpoint is set', () => {
-    renderOverlay({ columnKind: 'list', itemId: undefined });
-    renderOverlay({ settings: { endpoint: '' } });
-    expect(screen.queryByRole('button', { name: 'Pharo' })).toBeNull();
+describe('Pharo script command', () => {
+  it('is offered on a detail column, once the endpoint is set', () => {
+    const offered = pharoScriptAction.available!;
+    expect(offered(CONTEXT)).toBe(true);
+    expect(offered({ ...CONTEXT, focus: { concept: 'Class', path: '/d/Class' } })).toBe(false);
+    expect(offered({ ...CONTEXT, focus: undefined })).toBe(false);
+    expect(offered({ ...CONTEXT, settings: { endpoint: '' } })).toBe(false);
   });
 
   it('opens the entity a script answers in the next column', async () => {
-    renderOverlay();
+    renderPanel();
     await typeAndRun('self methods anyOne', { display: 'bar', ref: { id: '1:2', type: 'Method' } });
-    expect(evaluateMock).toHaveBeenCalledWith(ENDPOINT, '1:1', 'self methods anyOne', expect.any(AbortSignal));
+    expect(evaluateMock).toHaveBeenCalledWith(
+      ENDPOINT,
+      '1:1',
+      'self methods anyOne',
+      expect.any(AbortSignal),
+    );
     expect(await screen.findByText(/Opened bar in the next column/)).toBeTruthy();
     expect(screen.getByTestId('location').textContent).toContain('Method');
   });
 
   it('shows what a script prints and the entities it holds', async () => {
-    renderOverlay();
+    renderPanel();
     await typeAndRun('self methods', {
       display: 'a MooseGroup',
       items: [{ text: 'bar', ref: { id: '1:2', type: 'Method' } }, { text: 'plain' }],
@@ -91,8 +100,11 @@ describe('Pharo script overlay', () => {
   });
 
   it('shows the error of a script that fails', async () => {
-    renderOverlay();
-    await typeAndRun('self zork', new Error('Spec-Fluid: Message not understood: FamixStClass >> #zork'));
+    renderPanel();
+    await typeAndRun(
+      'self zork',
+      new Error('Spec-Fluid: Message not understood: FamixStClass >> #zork'),
+    );
     expect(await screen.findByText(/Message not understood/)).toBeTruthy();
   });
 });

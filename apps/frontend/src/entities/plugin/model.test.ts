@@ -203,8 +203,11 @@ describe('view builders', () => {
     expect([...sources.keys()]).toEqual(['spec-fluid']);
   });
 
-  it('bring their column overlays', () => {
-    const overlays = activeColumnOverlays(activeViewBuilders(BUILTIN_PLUGINS, [], { 'spec-fluid': { endpoint: 'http://h/sf' } }));
-    expect(overlays.map((o) => [o.id, o.settings])).toEqual([['spec-fluid', { endpoint: 'http://h/sf' }]]);
+  it('bring their column overlays (none built in: the Pharo script is a page action)', () => {
+    const builders = activeViewBuilders(BUILTIN_PLUGINS, [], { 'spec-fluid': { endpoint: 'http://h/sf' } });
+    expect(activeColumnOverlays(builders)).toEqual([]);
+    const Overlay = () => null;
+    const withOverlay = builders.map((b) => (b.builder.id === 'spec-fluid' ? { ...b, builder: { ...b.builder, ColumnOverlay: Overlay } } : b));
+    expect(activeColumnOverlays(withOverlay).map((o) => [o.id, o.settings])).toEqual([['spec-fluid', { endpoint: 'http://h/sf' }]]);
   });
 });
