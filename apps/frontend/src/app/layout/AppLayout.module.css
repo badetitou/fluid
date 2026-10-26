@@ -2,6 +2,11 @@
   height: 100vh;
 }
 
+/* The floating commands are placed over the content (features/page-actions). */
+.main {
+  position: relative;
+}
+
 .content {
   min-height: 0;
   padding: 24px;

@@ -6,6 +6,7 @@ export {
   pluginManifestSchema,
   type PluginKind,
   type PluginManifest,
+  type PageActionContract,
   type PluginSetting,
   type SourceEntry,
 } from './manifest';
@@ -19,6 +20,7 @@ export {
   currentWidgetContracts,
   useActiveColumnOverlays,
   useActiveDataSources,
+  useActivePageActions,
   useActiveViewBuilders,
   useBuilderColors,
   usePluginActions,
@@ -29,6 +31,7 @@ export {
 export type {
   FluidPlugin,
   InstalledPlugin,
+  PageActionPlugin,
   PluginLoadState,
   PluginSource,
   SourceProviderPlugin,
@@ -37,6 +40,7 @@ export type {
   WidgetPlugin,
 } from './types';
 export type { SourceProvider } from './sourceProvider';
+export { isOffered, type ActivePageAction, type PageAction, type PageActionContext, type PageActionPanelProps, type PageFocus } from './pageAction';
 export type {
   BuiltPerspective,
   ColumnOverlayProps,

@@ -10,6 +10,7 @@ import type { WidgetCatalog, WidgetRendererDefinition } from '../../views/plugin
 import type { DataSource } from '../../views/plugin-api';
 import { builderColors } from './builderColors';
 import { pluginKind, type PluginSetting } from './manifest';
+import type { PageAction } from './pageAction';
 import { staticSourceProvider, type SourceProvider } from './sourceProvider';
 import type { FluidPlugin, InstalledPlugin, PluginLoadState } from './types';
 import type { ViewBuilder } from './viewBuilder';
@@ -24,6 +25,8 @@ export const themesOf = (p: FluidPlugin): ThemeDefinition[] => (p.kind === 'them
 export const buildersOf = (p: FluidPlugin): ViewBuilder[] => (p.kind === 'viewBuilder' ? p.builders : []);
 /** The source providers a plugin provides. */
 export const providersOf = (p: FluidPlugin): SourceProvider[] => (p.kind === 'sourceProvider' ? p.providers : []);
+/** The page actions a plugin provides. */
+export const pageActionsOf = (p: FluidPlugin): PageAction[] => (p.kind === 'pageAction' ? p.actions : []);
 
 /** Whether a plugin is in use: required ones always are. */
 export const isEnabled = (plugin: FluidPlugin, disabled: readonly string[]): boolean =>
@@ -34,6 +37,7 @@ export interface ModuleProvided {
   renderers?: WidgetRendererDefinition[];
   builders?: ViewBuilder[];
   providers?: SourceProvider[];
+  actions?: PageAction[];
 }
 
 /** An installed plugin with what its module provided, or why it did not. */
@@ -64,6 +68,8 @@ export function installedPlugin(
       });
       return { ...base, kind: 'sourceProvider', providers };
     }
+    case 'pageAction':
+      return { ...base, kind: 'pageAction', actions: provided.actions ?? [] };
   }
 }
 
