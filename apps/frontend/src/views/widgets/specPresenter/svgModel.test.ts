@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { readRef, sanitizeSvg } from './svgModel';
+import { frameHeight, readRef, sanitizeSvg, type SanitizedSvg } from './svgModel';
 
 const svg = (body: string, attributes = 'width="200" height="100"') =>
   `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ${attributes}>${body}</svg>`;
 
-const parse = (markup: string | undefined) => {
-  if (markup === undefined) throw new Error('not sanitized');
-  return new DOMParser().parseFromString(markup, 'image/svg+xml').documentElement;
+const parse = (sanitized: SanitizedSvg | undefined) => {
+  if (sanitized === undefined) throw new Error('not sanitized');
+  return new DOMParser().parseFromString(sanitized.markup, 'image/svg+xml').documentElement;
 };
 
 describe('sanitizeSvg', () => {
@@ -44,12 +44,16 @@ describe('sanitizeSvg', () => {
     expect(root.querySelector('style')?.textContent).not.toMatch(/http|@import/);
   });
 
-  it('scales to the widget: a viewBox from the pixel size, no fixed size', () => {
-    const root = parse(sanitizeSvg(svg('')));
+  it('keeps the drawing at a fixed pixel size, taken from its viewBox when it has none', () => {
+    const sanitized = sanitizeSvg(svg(''));
+    expect(sanitized).toMatchObject({ width: 200, height: 100 });
+    const root = parse(sanitized);
     expect(root.getAttribute('viewBox')).toBe('0 0 200 100');
-    expect(root.getAttribute('width')).toBeNull();
-    expect(root.getAttribute('height')).toBeNull();
-    expect(parse(sanitizeSvg(svg('', 'viewBox="5 5 10 10" width="300"'))).getAttribute('viewBox')).toBe('5 5 10 10');
+    expect(root.getAttribute('width')).toBe('200');
+    const boxed = sanitizeSvg(svg('', 'viewBox="5 5 10 20" width="300"'));
+    expect(boxed).toMatchObject({ width: 300, height: 20 });
+    expect(parse(boxed).getAttribute('viewBox')).toBe('5 5 10 20');
+    expect(sanitizeSvg(svg('', ''))).toMatchObject({ width: 0, height: 0 });
   });
 
   it('overlays the hotspots as transparent rectangles and makes every entity focusable', () => {
@@ -71,6 +75,16 @@ describe('sanitizeSvg', () => {
   it('refuses what is not an SVG document', () => {
     expect(sanitizeSvg('<html><body/></html>')).toBeUndefined();
     expect(sanitizeSvg('<svg><unclosed></svg>')).toBeUndefined();
+  });
+});
+
+describe('frameHeight', () => {
+  it('fits the drawing as it first appears: full width, at most 1:1, within bounds', () => {
+    expect(frameHeight({ width: 400, height: 300 }, 800, 0.4)).toBe(300);
+    expect(frameHeight({ width: 1600, height: 600 }, 800, 0.4)).toBe(300);
+    expect(frameHeight({ width: 400, height: 3000 }, 800, 0.4)).toBe(600);
+    expect(frameHeight({ width: 400, height: 20 }, 800, 0.4)).toBe(120);
+    expect(frameHeight({ width: 0, height: 0 }, 800, 0.4)).toBe(320);
   });
 });
 
