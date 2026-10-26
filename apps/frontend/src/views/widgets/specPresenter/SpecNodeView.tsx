@@ -3,6 +3,7 @@ import type { SpecFluidNode } from '@fluid/shared';
 import { tableRows, treeRows } from './model';
 import { SpecRowsTable } from './SpecRowsTable';
 import { SpecSvg } from './SpecSvg';
+import { SpecText } from './SpecText';
 import type { SpecInteraction } from './useSpecInteraction';
 import styles from './SpecPresenter.module.css';
 
@@ -24,11 +25,7 @@ export function SpecNodeView({ node, interaction }: SpecNodeViewProps) {
     case 'svg':
       return <SpecSvg svg={node.svg} hotspots={node.refs} interaction={interaction} />;
     case 'text':
-      return (
-        <pre className={styles.text} data-language={node.language}>
-          {node.text}
-        </pre>
-      );
+      return <SpecText text={node.text} language={node.language} highlights={node.highlights} />;
     case 'composite':
       return (
         <div className={node.direction === 'row' ? styles.row : styles.column}>

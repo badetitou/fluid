@@ -106,6 +106,14 @@ describe('SpecPresenterWidget', () => {
     expect(screen.getByText(/Not a Spec-Fluid document/)).toBeTruthy();
   });
 
+  it('marks the highlighted part of a text, as Pharo selects an entity in its source', () => {
+    const text = 'abstract class Animal {\n    abstract makeSound(): void;\n}';
+    const start = text.indexOf('abstract makeSound');
+    const { container } = renderWidget({ kind: 'text', text, highlights: [{ start, end: start + 26 }] });
+    expect(container.querySelector('mark')?.textContent).toBe('abstract makeSound(): void');
+    expect(container.querySelector('pre')?.textContent).toBe(text);
+  });
+
   it('says when an svg node is not an SVG document', () => {
     renderWidget({ kind: 'svg', svg: '<div>nope</div>' });
     expect(screen.getByText('This visualization is not a valid SVG document.')).toBeTruthy();

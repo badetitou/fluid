@@ -40,6 +40,13 @@ export const specFluidTreeNodeSchema: z.ZodType<SpecFluidTreeNode> = z.lazy(() =
   }),
 );
 
+/** A highlighted part of a text node: 0-based offsets, `end` exclusive (the selection of a Pharo code presenter). */
+export const specFluidTextRangeSchema = z.object({
+  start: z.number().int().min(0),
+  end: z.number().int().min(0),
+});
+export type SpecFluidTextRange = z.infer<typeof specFluidTextRangeSchema>;
+
 /** Where an entity is drawn in an SVG node (viewBox coordinates). */
 export const specFluidHotspotSchema = z.object({
   ref: specFluidRefSchema,
@@ -58,7 +65,7 @@ export type SpecFluidNode =
     }
   | { kind: 'tree'; columns: { title: string }[]; roots: SpecFluidTreeNode[]; truncated?: boolean }
   | { kind: 'svg'; svg: string; refs?: z.infer<typeof specFluidHotspotSchema>[] }
-  | { kind: 'text'; text: string; language?: string }
+  | { kind: 'text'; text: string; language?: string; highlights?: SpecFluidTextRange[] }
   | { kind: 'composite'; direction: 'row' | 'column'; children: SpecFluidNode[] }
   | { kind: 'unsupported'; presenter: string; message?: string };
 
@@ -77,7 +84,12 @@ export const specFluidNodeSchema: z.ZodType<SpecFluidNode> = z.lazy(() =>
       truncated: z.boolean().optional(),
     }),
     z.object({ kind: z.literal('svg'), svg: z.string(), refs: z.array(specFluidHotspotSchema).optional() }),
-    z.object({ kind: z.literal('text'), text: z.string(), language: z.string().optional() }),
+    z.object({
+      kind: z.literal('text'),
+      text: z.string(),
+      language: z.string().optional(),
+      highlights: z.array(specFluidTextRangeSchema).optional(),
+    }),
     z.object({
       kind: z.literal('composite'),
       direction: z.enum(['row', 'column']),
