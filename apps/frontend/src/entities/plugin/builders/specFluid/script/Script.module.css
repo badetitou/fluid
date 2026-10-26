@@ -2,7 +2,8 @@
 .float {
   position: absolute;
   inset-inline-end: 16px;
-  inset-block-end: 16px;
+  /* Above the Miller pager, which floats over the bottom of the columns. */
+  inset-block-end: calc(var(--column-overlay-inset, 0px) + 16px);
 }
 
 .panel {
@@ -11,7 +12,7 @@
   flex-direction: column;
   gap: 8px;
   max-height: 60%;
-  padding: 8px 12px 12px;
+  padding: 8px 12px calc(var(--column-overlay-inset, 0px) + 12px);
   border-top: 1px solid var(--ant-color-border-secondary);
   background: var(--ant-color-bg-elevated);
   box-shadow: 0 -4px 12px rgb(0 0 0 / 6%);

@@ -213,7 +213,8 @@ l'URL dans *Settings → Plugins → Spec-Fluid* (vide = désactivé).
 
 **Overlays de colonne.** Le cœur ne fait que réserver la place (`ColumnStage` de `pages/miller`) :
 le corps de la colonne dans une colonne flex positionnée, suivi du `ColumnOverlay` de chaque view
-builder actif, qui décide seul où il s'applique (`null` sinon). Spec-Fluid y met, dans les colonnes de
+builder actif, qui décide seul où il s'applique (`null` sinon). Il laisse libre le bas de la colonne
+sur `var(--column-overlay-inset, 0px)` : le pager du Miller y flotte. Spec-Fluid y met, dans les colonnes de
 détail, un menu flottant (`FloatButton`) ouvrant un panneau Smalltalk ancré en bas
 (`builders/specFluid/script/`) : le code, qui commence par `self`, est évalué par l'image
 (`POST <endpoint>/entities/<id>/evaluate`, `{ code }`) avec l'entité comme receveur ; un résultat qui
