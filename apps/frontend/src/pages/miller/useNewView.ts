@@ -15,7 +15,7 @@ interface Options {
  */
 export function useNewView(perspectives: ColumnPerspectives, { concept, itemId, byIdField }: Options) {
   const [draft, setDraft] = useState<ViewEntry | null>(null);
-  const { columnKind, entries, pick: pickPerspective } = perspectives;
+  const { columnKind, entries, pick: pickPerspective, show: showPerspective } = perspectives;
 
   const start = useCallback(() => {
     const auto = entries.find((e) => e.source === 'auto');
@@ -28,6 +28,13 @@ export function useNewView(perspectives: ColumnPerspectives, { concept, itemId, 
     },
     [pickPerspective],
   );
+  const show = useCallback(
+    (key: string) => {
+      setDraft(null);
+      showPerspective(key);
+    },
+    [showPerspective],
+  );
 
   const shown: ColumnPerspectives = draft
     ? {
@@ -36,7 +43,8 @@ export function useNewView(perspectives: ColumnPerspectives, { concept, itemId, 
         selected: draft,
         spec: injectItemId(draft.spec, byIdField, itemId),
         pick,
+        show,
       }
-    : { ...perspectives, pick };
+    : { ...perspectives, pick, show };
   return { perspectives: shown, start };
 }

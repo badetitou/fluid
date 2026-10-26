@@ -125,6 +125,23 @@
   font-size: 10px;
 }
 
+/* The closed eye hiding a pill shows on hover, and always on the active pill. */
+.hide {
+  display: none;
+  margin-inline-start: 2px;
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.pill:hover .hide,
+.active .hide {
+  display: inline-flex;
+}
+
+.hide:hover {
+  opacity: 1;
+}
+
 .close {
   margin-inline-start: 2px;
   font-size: 9px;

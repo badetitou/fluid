@@ -7,10 +7,13 @@ import { columnEntries, injectItemId, perspectiveEntries, resolveActiveKey } fro
 import { usePerspectiveMemory } from './perspectiveMemory';
 import { useBuilderPerspectives } from './useBuilderPerspectives';
 import { useViews, type ViewEntry } from './useViews';
+import { splitHidden, useViewVisibility } from './viewVisibility';
 
 export interface ColumnPerspectives {
   /** Perspectives offered in this column, in pill order. */
   entries: ViewEntry[];
+  /** Perspectives the user hid from the pills, to be shown again from the menu. */
+  hidden: ViewEntry[];
   /** The perspective shown, if any. */
   selected: ViewEntry | undefined;
   /** The selected spec with the drilled-in item id injected. */
@@ -19,6 +22,9 @@ export interface ColumnPerspectives {
   loading: boolean;
   bffAvailable: boolean;
   pick: (key: string | undefined) => void;
+  hide: (key: string) => void;
+  /** Shows a hidden perspective again, and selects it. */
+  show: (key: string) => void;
   refetch: () => void;
 }
 
@@ -60,10 +66,13 @@ export function useColumnPerspectives(
   const proposed = useBuilderPerspectives({ concept, columnKind, itemId, conceptByName, queriesByType, writable });
   const built = useMemo(() => perspectiveEntries(proposed, columnKind), [proposed, columnKind]);
 
-  const entries = useMemo(
+  const all = useMemo(
     () => columnEntries([...views.entries, ...built.others], columnKind, byIdField, built.preferred ?? null),
     [views.entries, built, columnKind, byIdField],
   );
+  // Hidden perspectives leave the pills: the active one falls back to a visible one.
+  const visibility = useViewVisibility(concept.name, columnKind);
+  const { visible: entries, hidden } = useMemo(() => splitHidden(all, visibility.hiddenKeys), [all, visibility.hiddenKeys]);
 
   const pickedKey = picked.concept === concept.name ? picked.key : undefined;
   const activeKey = resolveActiveKey(entries, pickedKey, built.preferred?.key ?? views.defaultKey);
@@ -81,15 +90,26 @@ export function useColumnPerspectives(
     },
     [concept.name, slot, remember],
   );
+  const { show: unhide } = visibility;
+  const show = useCallback(
+    (key: string) => {
+      unhide(key);
+      pick(key);
+    },
+    [unhide, pick],
+  );
 
   return {
     entries,
+    hidden,
     selected,
     spec,
     columnKind,
     loading: views.loading,
     bffAvailable: views.bffAvailable,
     pick,
+    hide: visibility.hide,
+    show,
     refetch: views.refetch,
   };
 }
