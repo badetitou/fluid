@@ -209,3 +209,17 @@ export function activeSourceProviders(
     .filter((p) => isEnabled(p, disabled))
     .flatMap((p) => providersOf(p).map((provider) => ({ provider, settings: settingsOf(p, filled) })));
 }
+
+/** A column overlay of an enabled view builder, with that builder's settings. */
+export interface ActiveColumnOverlay {
+  id: string;
+  Overlay: NonNullable<ViewBuilder['ColumnOverlay']>;
+  settings: Record<string, string>;
+}
+
+/** The column overlays the enabled view builders bring, in plugin order. */
+export function activeColumnOverlays(builders: ActiveViewBuilder[]): ActiveColumnOverlay[] {
+  return builders.flatMap(({ builder, settings }) =>
+    builder.ColumnOverlay ? [{ id: builder.id, Overlay: builder.ColumnOverlay, settings }] : [],
+  );
+}

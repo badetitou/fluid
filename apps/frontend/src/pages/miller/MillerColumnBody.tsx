@@ -9,6 +9,7 @@ import { PresentationFrame } from '../../shared/ui';
 import { usePreferences } from '../../store';
 import { ViewRenderer } from '../../views/ViewRenderer';
 import { ColumnActions } from './ColumnActions';
+import { ColumnStage } from './ColumnStage';
 import { ColumnDialogs } from './ColumnDialogs';
 import { ColumnEmpty } from './ColumnEmpty';
 import { ColumnHeader } from './ColumnHeader';
@@ -127,7 +128,9 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
           <WidgetSidePanel spec={shown} editor={layout} />
         </div>
       ) : (
-        body
+        <ColumnStage concept={concept.name} columnKind={columnKind} itemId={itemId} bare={presenting}>
+          {body}
+        </ColumnStage>
       )}
       <ColumnDialogs
         dialogs={c.dialogs}

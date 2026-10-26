@@ -1,14 +1,15 @@
 import type { ViewBuilder } from '../../viewBuilder';
 import { fetchTab, fetchTabs } from './api';
-import { SPEC_FLUID_SOURCE, TAB_QUERY, tabPerspective, tabVariables } from './model';
+import { ENDPOINT_SETTING, SPEC_FLUID_SOURCE, TAB_QUERY, tabPerspective, tabVariables } from './model';
+import { ScriptOverlay } from './script/ScriptOverlay';
 
-/** The setting holding the Spec-Fluid endpoint, e.g. `http://localhost:8081/spec-fluid`. */
-export const ENDPOINT_SETTING = 'endpoint';
+export { ENDPOINT_SETTING } from './model';
 
 /**
  * The inspector tabs Pharo defines for an entity (Spec2 presenters, served
  * as JSON by the Spec-Fluid project of the image) as perspectives of its
- * detail column. Silent until an endpoint is set, and when it is unreachable.
+ * detail column, and a floating menu running Smalltalk scripts on the entity
+ * (`self`). Silent until an endpoint is set, and when it is unreachable.
  */
 export const specFluidViewBuilder: ViewBuilder = {
   id: SPEC_FLUID_SOURCE,
@@ -33,4 +34,5 @@ export const specFluidViewBuilder: ViewBuilder = {
       return fetchTab(endpoint, id, tab, signal);
     },
   }),
+  ColumnOverlay: ScriptOverlay,
 };

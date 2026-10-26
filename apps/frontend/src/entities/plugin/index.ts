@@ -17,6 +17,7 @@ export { usePluginRuntime } from './usePluginRuntime';
 export {
   currentCatalogRequest,
   currentWidgetContracts,
+  useActiveColumnOverlays,
   useActiveDataSources,
   useActiveViewBuilders,
   useBuilderColors,
@@ -36,4 +37,11 @@ export type {
   WidgetPlugin,
 } from './types';
 export type { SourceProvider } from './sourceProvider';
-export type { BuiltPerspective, Perspective, PerspectiveOrigin, ViewBuilder, ViewBuilderContext } from './viewBuilder';
+export type {
+  BuiltPerspective,
+  ColumnOverlayProps,
+  Perspective,
+  PerspectiveOrigin,
+  ViewBuilder,
+  ViewBuilderContext,
+} from './viewBuilder';
