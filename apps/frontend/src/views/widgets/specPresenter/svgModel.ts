@@ -2,7 +2,8 @@ import type { SpecFluidNode, SpecFluidRef } from '@fluid/shared';
 
 // The SVG of a Roassal canvas, made safe to inject and clickable: no script,
 // no event handler, no external resource; entities (`data-fluid-ref`, and the
-// hotspots Pharo listed) focusable, and the drawing scaled to the widget width.
+// hotspots Pharo listed) focusable, and the drawing at its own size, to be
+// zoomed and panned in the widget.
 
 export type SpecHotspot = NonNullable<Extract<SpecFluidNode, { kind: 'svg' }>['refs']>[number];
 
@@ -32,13 +33,39 @@ function clean(element: Element): void {
   if (element.localName === 'style') element.textContent = (element.textContent ?? '').replace(IMPORT, '').replace(EXTERNAL_URL, 'none');
 }
 
-/** The root sized by the widget: a viewBox from its pixel size, no fixed width or height. */
-function fitToWidth(root: Element): void {
-  const width = parseFloat(root.getAttribute('width') ?? '');
-  const height = parseFloat(root.getAttribute('height') ?? '');
+export interface SanitizedSvg {
+  markup: string;
+  /** Size of the drawing in pixels: its width and height, else those of its viewBox. */
+  width: number;
+  height: number;
+}
+
+/** The root at a fixed pixel size (from its viewBox when it has none), so that the zoom scales it as a whole. */
+function fixSize(root: Element): { width: number; height: number } {
+  const viewBox = (root.getAttribute('viewBox') ?? '').split(/[\s,]+/).map(parseFloat);
+  const size = (attribute: 'width' | 'height', fromViewBox: number | undefined) => {
+    const value = parseFloat(root.getAttribute(attribute) ?? '');
+    return value > 0 ? value : fromViewBox !== undefined && fromViewBox > 0 ? fromViewBox : 0;
+  };
+  const width = size('width', viewBox[2]);
+  const height = size('height', viewBox[3]);
   if (!root.hasAttribute('viewBox') && width > 0 && height > 0) root.setAttribute('viewBox', `0 0 ${width} ${height}`);
-  root.removeAttribute('width');
-  root.removeAttribute('height');
+  if (width > 0 && height > 0) {
+    root.setAttribute('width', String(width));
+    root.setAttribute('height', String(height));
+  }
+  return { width, height };
+}
+
+const MIN_FRAME = 120;
+const MAX_FRAME = 600;
+const FALLBACK_FRAME = 320;
+
+/** Height of the frame showing a drawing at the scale it first appears in a frame `viewWidth` wide (at most 1:1, at least `minScale`). */
+export function frameHeight(drawing: { width: number; height: number }, viewWidth: number, minScale: number): number {
+  if (drawing.width <= 0 || drawing.height <= 0 || viewWidth <= 0) return FALLBACK_FRAME;
+  const scale = Math.max(minScale, Math.min(1, viewWidth / drawing.width));
+  return Math.round(Math.min(MAX_FRAME, Math.max(MIN_FRAME, drawing.height * scale)));
 }
 
 function addHotspots(root: Element, hotspots: SpecHotspot[]): void {
@@ -68,19 +95,19 @@ function markEntities(root: Element): void {
 }
 
 /**
- * `svg` without anything executable or external, scaled to its container,
- * `hotspots` added as transparent clickable rectangles on top; undefined when
- * it is not an SVG document.
+ * `svg` without anything executable or external, at a fixed size, `hotspots`
+ * added as transparent clickable rectangles on top; undefined when it is not
+ * an SVG document.
  */
-export function sanitizeSvg(svg: string, hotspots: SpecHotspot[] = []): string | undefined {
+export function sanitizeSvg(svg: string, hotspots: SpecHotspot[] = []): SanitizedSvg | undefined {
   const document = new DOMParser().parseFromString(svg, 'image/svg+xml');
   const root = document.documentElement;
   if (root.localName !== 'svg' || document.getElementsByTagName('parsererror').length > 0) return undefined;
   clean(root);
-  fitToWidth(root);
+  const size = fixSize(root);
   addHotspots(root, hotspots);
   markEntities(root);
-  return new XMLSerializer().serializeToString(root);
+  return { markup: new XMLSerializer().serializeToString(root), ...size };
 }
 
 /** The entity an element of the drawing (or one of its ancestors) stands for. */
