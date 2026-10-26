@@ -66,6 +66,8 @@ export type SpecFluidNode =
   | { kind: 'tree'; columns: { title: string }[]; roots: SpecFluidTreeNode[]; truncated?: boolean }
   | { kind: 'svg'; svg: string; refs?: z.infer<typeof specFluidHotspotSchema>[] }
   | { kind: 'text'; text: string; language?: string; highlights?: SpecFluidTextRange[] }
+  /** A short label (a Pharo label, or a string in a layout), drawn inline. */
+  | { kind: 'label'; text: string }
   | { kind: 'composite'; direction: 'row' | 'column'; children: SpecFluidNode[] }
   /** A Pharo diff (`SpDiffPresenter`): the older and newer texts. */
   | { kind: 'diff'; before: string; after: string; beforeLabel?: string; afterLabel?: string; language?: string }
@@ -94,6 +96,7 @@ export const specFluidNodeSchema: z.ZodType<SpecFluidNode> = z.lazy(() =>
       language: z.string().optional(),
       highlights: z.array(specFluidTextRangeSchema).optional(),
     }),
+    z.object({ kind: z.literal('label'), text: z.string() }),
     z.object({
       kind: z.literal('composite'),
       direction: z.enum(['row', 'column']),

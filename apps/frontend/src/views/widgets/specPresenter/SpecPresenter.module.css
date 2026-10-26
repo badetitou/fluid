@@ -21,6 +21,19 @@
   min-width: 0;
 }
 
+.inline {
+  flex: none;
+}
+
+.label {
+  white-space: pre-wrap;
+}
+
+/* A Pharo header line: its labels joined into one line of text. */
+.line {
+  padding: 4px 8px;
+}
+
 .link {
   cursor: pointer;
 }
