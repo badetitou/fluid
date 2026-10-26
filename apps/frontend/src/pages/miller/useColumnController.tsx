@@ -50,7 +50,7 @@ export function useColumnController(concept: Concept, { path, slot, itemId, pers
     { concept: concept.name, itemId, byIdField: concept.queries.byId?.field },
   );
   const { perspectives } = newView;
-  const { selected, columnKind, pick, refetch } = perspectives;
+  const { selected, columnKind, pick, hide, refetch } = perspectives;
   const mutations = useViewMutations(refetch);
   const dialogs = useColumnDialogs();
   const pinning = usePinnableConcepts(useMemo(() => [concept.name, ...relatedNames], [concept.name, relatedNames]));
@@ -97,6 +97,7 @@ export function useColumnController(concept: Concept, { path, slot, itemId, pers
     },
     [modal, mutations, dashboards, selected?.key, pick],
   );
+  const pillActions = useMemo(() => ({ onDelete: remove, onHide: (entry: ViewEntry) => hide(entry.key) }), [remove, hide]);
 
   const onSaved = useCallback(
     (view: SavedView) => {
@@ -120,6 +121,8 @@ export function useColumnController(concept: Concept, { path, slot, itemId, pers
     openSettings: dialogs.openSettings,
     pin: pinning.pin,
     promote: dashboards.promote,
+    hide: () => selected && hide(selected.key),
+    show: perspectives.show,
   };
 
   // Stable while the saved view does not change: widget cards are memoised on it.
@@ -140,7 +143,7 @@ export function useColumnController(concept: Concept, { path, slot, itemId, pers
   );
 
   return {
-    perspectives, mutations, layout, editorSwitch, rename, remove,
+    perspectives, mutations, layout, editorSwitch, rename, pillActions,
     dialogs, pinning, schema, actions, onSaved, renderWidgetActions,
   };
 }

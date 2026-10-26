@@ -12,6 +12,8 @@ const actions: PerspectiveActions = {
   openSettings: vi.fn(),
   pin: vi.fn(),
   promote: vi.fn(),
+  hide: vi.fn(),
+  show: vi.fn(),
 };
 
 const spec = { version: 1 as const, id: 'v', concept: 'Account', title: 'V', queries: {}, widgets: [] };
@@ -27,12 +29,12 @@ const keys = (items: ReturnType<typeof perspectiveMenuItems>) =>
 
 describe('perspectiveMenuItems', () => {
   it('offers only creation for an unsaved perspective', () => {
-    const items = perspectiveMenuItems({ selected: curated, bffAvailable: true, concept: 'Account', pinnable: [] }, actions);
-    expect(keys(items)).toEqual(['new', 'json', 'divider', 'promote', 'divider', 'settings']);
+    const items = perspectiveMenuItems({ selected: curated, bffAvailable: true, concept: 'Account', pinnable: [], hidden: [] }, actions);
+    expect(keys(items)).toEqual(['new', 'json', 'hide', 'divider', 'promote', 'divider', 'settings']);
   });
 
   it('offers editing for a saved perspective, without "set default" when it already is', () => {
-    const state = { bffAvailable: true, concept: 'Account', pinnable: [] };
+    const state = { bffAvailable: true, concept: 'Account', pinnable: [], hidden: [] };
     expect(keys(perspectiveMenuItems({ ...state, selected: saved(false) }, actions))).toContain('default');
     expect(keys(perspectiveMenuItems({ ...state, selected: saved(true) }, actions))).toEqual([
       'new',
@@ -40,6 +42,7 @@ describe('perspectiveMenuItems', () => {
       'json',
       'json-edit',
       'delete',
+      'hide',
       'divider',
       'promote',
       'divider',
@@ -49,11 +52,22 @@ describe('perspectiveMenuItems', () => {
 
   it('lists pinnable concepts and disables creation offline', () => {
     const items = perspectiveMenuItems(
-      { selected: curated, bffAvailable: false, concept: 'Account', pinnable: ['Account', 'Bank'] },
+      { selected: curated, bffAvailable: false, concept: 'Account', pinnable: ['Account', 'Bank'], hidden: [] },
       actions,
     );
     expect(items[0]).toMatchObject({ key: 'new', disabled: true });
     const pin = items.find((i) => i && 'key' in i && i.key === 'pin') as { children: { label: string }[] };
     expect(pin.children.map((c) => c.label)).toEqual(['Account (this concept)', 'Bank']);
+  });
+
+  it('lists hidden views to show again', () => {
+    const items = perspectiveMenuItems(
+      { selected: curated, bffAvailable: true, concept: 'Account', pinnable: [], hidden: [{ key: 'h', title: 'Hidden one' }] },
+      actions,
+    );
+    const group = items.find((i) => i && 'key' in i && i.key === 'hidden') as { children: { key: string; label: string; onClick: () => void }[] };
+    expect(group.children.map((c) => c.label)).toEqual(['Hidden one']);
+    group.children[0].onClick();
+    expect(actions.show).toHaveBeenCalledWith('h');
   });
 });

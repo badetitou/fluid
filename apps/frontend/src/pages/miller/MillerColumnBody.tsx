@@ -41,7 +41,7 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
   const isFullscreen = mode !== 'column';
   const toggleFullscreen = mode === 'page' ? undefined : () => onToggleFullscreen(slot);
   const c = useColumnController(concept, { path, slot, itemId, perspective, isFullscreen, onToggleFullscreen: toggleFullscreen });
-  const { entries, selected, spec, columnKind, loading, bffAvailable, pick } = c.perspectives;
+  const { entries, hidden, selected, spec, columnKind, loading, bffAvailable, pick } = c.perspectives;
   const { layout, mutations, editorSwitch } = c;
   const { startWith } = editorSwitch;
   const createView = bffAvailable ? c.actions.createView : undefined;
@@ -58,7 +58,7 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
         editable={bffAvailable}
         rename={c.rename}
         onPick={pick}
-        onDelete={c.remove}
+        pillActions={c.pillActions}
         onCreate={c.actions.createView}
       />
     )
@@ -77,7 +77,7 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
       onEditLayout={selected && spec && bffAvailable ? () => layout.start(spec.widgets, selected.title) : undefined}
       menu={
         <PerspectiveMenu
-          state={{ selected, bffAvailable, concept: concept.name, pinnable: c.pinning.pinnable }}
+          state={{ selected, bffAvailable, concept: concept.name, pinnable: c.pinning.pinnable, hidden }}
           actions={c.actions}
           busy={mutations.busy}
         />

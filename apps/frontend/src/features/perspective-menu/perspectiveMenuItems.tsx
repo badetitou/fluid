@@ -3,6 +3,8 @@ import {
   AppstoreAddOutlined,
   DeleteOutlined,
   EditOutlined,
+  EyeInvisibleOutlined,
+  EyeOutlined,
   PlusOutlined,
   PushpinOutlined,
   RobotOutlined,
@@ -24,6 +26,10 @@ export interface PerspectiveActions {
   pin: (concept: string) => void;
   /** Adds this column, on the selected perspective, to the dashboards. */
   promote: () => void;
+  /** Hides the selected perspective from the pills. */
+  hide: () => void;
+  /** Shows a hidden perspective again. */
+  show: (key: string) => void;
 }
 
 export interface PerspectiveMenuState {
@@ -33,13 +39,15 @@ export interface PerspectiveMenuState {
   concept: string;
   /** Concepts that can be pinned to the concept bar. */
   pinnable: string[];
+  /** Perspectives hidden from the pills, offered to be shown again. */
+  hidden: Pick<ViewEntry, 'key' | 'title'>[];
 }
 
 type Items = NonNullable<MenuProps['items']>;
 
 /** Menu items of a column's "…" menu: saved perspectives get the edit actions, every column can be promoted. */
 export function perspectiveMenuItems(
-  { selected, bffAvailable, concept, pinnable }: PerspectiveMenuState,
+  { selected, bffAvailable, concept, pinnable, hidden }: PerspectiveMenuState,
   actions: PerspectiveActions,
 ): Items {
   const saved = selected?.saved;
@@ -63,6 +71,22 @@ export function perspectiveMenuItems(
       items.push({ key: 'default', icon: <StarOutlined />, label: 'Set as default', onClick: actions.setDefault });
     }
     items.push({ key: 'delete', icon: <DeleteOutlined />, danger: true, label: 'Delete', onClick: actions.remove });
+  }
+  if (selected && selected.source !== 'draft') {
+    items.push({ key: 'hide', icon: <EyeInvisibleOutlined />, label: 'Hide this view', onClick: actions.hide });
+  }
+  if (hidden.length > 0) {
+    items.push({ type: 'divider' }, {
+      key: 'hidden',
+      type: 'group',
+      label: 'Hidden views',
+      children: hidden.map((entry) => ({
+        key: `show:${entry.key}`,
+        icon: <EyeOutlined />,
+        label: entry.title,
+        onClick: () => actions.show(entry.key),
+      })),
+    });
   }
   items.push(
     { type: 'divider' },

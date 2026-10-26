@@ -2,7 +2,7 @@ import { Tooltip } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import type { ViewEntry } from '../../entities/view';
 import { usePreferences } from '../../store';
-import { PerspectivePill } from './PerspectivePill';
+import { PerspectivePill, type PillActions } from './PerspectivePill';
 import { PillRenameInput } from './PillRenameInput';
 import { ScrollArrow } from './ScrollArrow';
 import { useScrollArrows } from './useScrollArrows';
@@ -16,15 +16,15 @@ interface PerspectivePillsProps {
   editable: boolean;
   rename: PillRename;
   onPick: (key: string) => void;
-  /** Delete a saved perspective. */
-  onDelete: (entry: ViewEntry) => void;
+  /** Delete a saved perspective, or hide any from the pills. */
+  pillActions: PillActions;
   /** "+" pill: create a perspective. */
   onCreate: () => void;
 }
 
 /** Floating pills switching between the perspectives of a column. */
 export function PerspectivePills(props: PerspectivePillsProps) {
-  const { entries, selectedKey, editable, rename, onPick, onDelete, onCreate } = props;
+  const { entries, selectedKey, editable, rename, onPick, pillActions, onCreate } = props;
   const compact = usePreferences((s) => s.density === 'compact');
   const arrows = useScrollArrows();
   return (
@@ -42,7 +42,7 @@ export function PerspectivePills(props: PerspectivePillsProps) {
               editable={editable}
               onPick={onPick}
               onRename={rename.start}
-              onDelete={onDelete}
+              actions={pillActions}
             />
           ),
         )}
