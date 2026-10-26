@@ -4,6 +4,14 @@
   inset-inline-end: 16px;
   /* Above the Miller pager, which floats over the bottom of the columns. */
   inset-block-end: calc(var(--column-overlay-inset, 0px) + 16px);
+  /* Discreet like the pager, until the pointer or focus reaches it. */
+  opacity: 0.7;
+  transition: opacity var(--ant-motion-duration-mid);
+}
+
+.float:hover,
+.float:focus-within {
+  opacity: 1;
 }
 
 .panel {
