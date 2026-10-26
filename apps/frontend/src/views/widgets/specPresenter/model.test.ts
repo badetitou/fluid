@@ -7,11 +7,12 @@ import {
   refKey,
   rootKeys,
   linkedCells,
+  openPageKey,
   rowRef,
   tableRows,
   treeRows,
 } from './model';
-import { fameTab, methodsTable, packagesTree } from './specPresenterFixture';
+import { fameTab, methodsTable, packagesTree, sourceNotebook } from './specPresenterFixture';
 
 describe('parseSpecNode', () => {
   it('accepts a Spec-Fluid document, composites included', () => {
@@ -88,5 +89,17 @@ describe('linkedCells', () => {
     const cells = [{ text: 'a' }, { text: 'b', ref: { id: 'x' } }];
     expect(linkedCells(cells, ref)).toBe(cells);
     expect(linkedCells([{ text: 'a' }], undefined)).toEqual([{ text: 'a' }]);
+  });
+});
+
+describe('notebooks', () => {
+  it('accepts a notebook document', () => {
+    expect(parseSpecNode(sourceNotebook).node).toEqual(sourceNotebook);
+  });
+
+  it('opens on the selected page, else the first one', () => {
+    expect(openPageKey(2, 1)).toBe('1');
+    expect(openPageKey(2, undefined)).toBe('0');
+    expect(openPageKey(2, 5)).toBe('0');
   });
 });

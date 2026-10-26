@@ -3,7 +3,7 @@ import { dataBindingSchema, widgetBase } from './common';
 
 /**
  * One inspector tab served by a Spec-Fluid backend (Pharo / Moose), drawn as
- * Pharo built it: tables, trees, Roassal canvases (SVG), text, and composites
+ * Pharo built it: tables, trees, Roassal canvases (SVG), text, notebooks (tabs) and composites
  * of those (see `specFluid.ts` for the document). Cells, rows, tree nodes and
  * SVG elements naming an entity open it in a new column and emit it on `selected`.
  */
