@@ -12,11 +12,15 @@ interface PluginState {
   themeId: string;
   /** What the user filled in the plugins' settings, by plugin id then setting key. */
   settings: Record<string, Record<string, string>>;
+  /** The colours the user gave view builders, by builder id. */
+  builderColors: Record<string, string>;
   setEnabled: (id: string, enabled: boolean) => void;
   install: (plugin: InstalledPlugin) => void;
   uninstall: (id: string) => void;
   setTheme: (id: string) => void;
   setSetting: (pluginId: string, key: string, value: string) => void;
+  /** No colour: back to the builder's own. */
+  setBuilderColor: (builderId: string, color?: string) => void;
 }
 
 // Plugins are a per-browser choice, like the other interface preferences. Only
@@ -28,6 +32,7 @@ export const usePluginStore = create<PluginState>()(
       installed: [],
       themeId: DEFAULT_THEME_ID,
       settings: {},
+      builderColors: {},
       setEnabled: (id, enabled) => {
         const rest = get().disabled.filter((d) => d !== id);
         set({ disabled: enabled ? rest : [...rest, id] });
@@ -44,6 +49,10 @@ export const usePluginStore = create<PluginState>()(
       setSetting: (pluginId, key, value) => {
         const { settings } = get();
         set({ settings: { ...settings, [pluginId]: { ...settings[pluginId], [key]: value } } });
+      },
+      setBuilderColor: (builderId, color) => {
+        const { [builderId]: _previous, ...others } = get().builderColors;
+        set({ builderColors: color ? { ...others, [builderId]: color } : others });
       },
     }),
     { name: 'fluid-plugins' },

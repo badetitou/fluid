@@ -20,6 +20,8 @@ export interface ViewEntry {
   saved?: SavedView;
   /** Shown first, and by default, in columns of this kind (a builder said so). */
   defaultFor?: 'list' | 'detail';
+  /** The view builder that proposed it, and its colour (Settings → Plugins). */
+  builder?: { label: string; color: string };
 }
 
 export interface UseViewsResult {

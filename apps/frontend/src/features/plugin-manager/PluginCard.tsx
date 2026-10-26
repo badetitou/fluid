@@ -1,6 +1,7 @@
 import { Button, Popconfirm, Switch, Tag, Typography } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import { pluginKind, themesOf, type FluidPlugin } from '../../entities/plugin';
+import { BuilderColors } from './BuilderColors';
 import { pluginContents } from './model';
 import { PLUGIN_KIND_META } from './pluginKinds';
 import { PluginSettings } from './PluginSettings';
@@ -58,6 +59,7 @@ export function PluginCard({ plugin, enabled, onToggle, onRemove }: PluginCardPr
           </span>
         ))}
       </div>
+      {enabled && <BuilderColors plugin={plugin} />}
       {enabled && <PluginSettings plugin={plugin} />}
     </div>
   );

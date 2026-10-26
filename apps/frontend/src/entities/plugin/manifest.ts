@@ -11,6 +11,8 @@ export const viewBuilderContractSchema = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
   label: z.string().min(1).max(60),
   description: z.string().max(500).optional(),
+  /** The colour of its perspectives' marks (`#rrggbb`); the user may change it. */
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'A colour is written #rrggbb').optional(),
 });
 
 /** A setting the user fills in Settings → Plugins (e.g. a backend URL). */

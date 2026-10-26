@@ -186,4 +186,10 @@ describe('perspectiveEntries', () => {
     expect(others.map((e) => [e.key, e.source])).toEqual([['b', 'remote']]);
     expect(perspectiveEntries([{ key: 'a', title: 'A', origin: 'auto', spec: spec('a'), defaultFor: 'detail' }], 'list').preferred).toBeUndefined();
   });
+
+  it('keeps the builder that proposed each perspective, with its colour', () => {
+    const builder = { label: 'Automatic', color: '#1677ff' };
+    const { others } = perspectiveEntries([{ key: 'a', title: 'A', origin: 'auto', spec: spec('a'), builder }], 'list');
+    expect(others[0].builder).toEqual(builder);
+  });
 });

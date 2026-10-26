@@ -31,6 +31,11 @@ export interface Perspective {
   defaultFor?: ColumnKind;
 }
 
+/** A perspective as fluid lists it: with the builder that proposed it, and that builder's colour. */
+export interface BuiltPerspective extends Perspective {
+  builder?: { label: string; color: string };
+}
+
 /**
  * The code half of a view builder: `perspectives` when it only reads the
  * column (auto views), `fetchPerspectives` when it asks a backend.

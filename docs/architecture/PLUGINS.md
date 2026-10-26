@@ -36,7 +36,7 @@ mélange deux contributions est refusé. Un plugin peut déclarer des **réglage
   "kind": "widget",                     // theme | widget | viewBuilder (déduit si absent)
   "module": "./index.js",               // relatif au manifeste ; requis sauf pour un thème
   "contributes": {
-    "widgets": [ WidgetContract, … ]    // ou "themes": [ThemeDefinition] / "viewBuilders": [{ id, label }]
+    "widgets": [ WidgetContract, … ]    // ou "themes": [ThemeDefinition] / "viewBuilders": [{ id, label, color? }]
   }
 }
 ```
@@ -205,6 +205,11 @@ en document JSON (`packages/shared/src/specFluid.ts` : `table`, `tree`, `svg` po
 `text`, `composite`). Les cellules qui désignent une entité portent `ref: { id, type }` : le widget
 `specPresenter` en fait des liens vers la colonne suivante et les émet sur `selected`. Renseigner
 l'URL dans *Settings → Plugins → Spec-Fluid* (vide = désactivé).
+
+**Couleurs.** Chaque view builder a sa couleur, marquée sur le point des pastilles de ses
+perspectives : `color` (`#rrggbb`) de son contrat dans le manifeste, sinon la suivante d'une palette
+(`builderColors.ts`). L'utilisateur la change dans *Settings → Plugins* (sélecteur sur la carte du
+plugin, ↶ pour revenir à celle du builder) ; le choix est gardé par navigateur.
 
 Un module de plugin `viewBuilder` exporte
 `{ viewBuilders: { "<id>": { perspectives | fetchPerspectives, dataSource? } } }`.

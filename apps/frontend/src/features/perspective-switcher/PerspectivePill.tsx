@@ -26,7 +26,7 @@ export const PerspectivePill = memo(function PerspectivePill({
   const canEdit = editable && entry.source === 'saved';
   return (
     <Tooltip
-      title={`${entry.source} perspective${canEdit ? ' — double-click to rename' : ''}`}
+      title={`${entry.builder?.label ?? entry.source} perspective${canEdit ? ' — double-click to rename' : ''}`}
       mouseEnterDelay={0.6}
     >
       <span
@@ -38,7 +38,10 @@ export const PerspectivePill = memo(function PerspectivePill({
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onPick(entry.key)}
         className={`${styles.pill} ${active ? styles.active : ''}`}
       >
-        <span className={`${styles.dot} ${styles[entry.source]}`} />
+        <span
+          className={`${styles.dot} ${styles[entry.source]}`}
+          style={entry.builder && { background: entry.builder.color }}
+        />
         {entry.title}
         {entry.saved?.isDefault && <StarFilled className={styles.star} />}
         {active && canEdit && (

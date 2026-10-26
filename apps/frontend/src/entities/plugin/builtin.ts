@@ -48,7 +48,7 @@ const themePlugin = (theme: ThemeDefinition, required = false): ThemePlugin => (
 
 type BuilderManifest = Pick<PluginManifest, 'id' | 'name' | 'description' | 'settings'>;
 
-const viewBuilderPlugin = (manifest: BuilderManifest, builder: ViewBuilder): ViewBuilderPlugin => ({
+const viewBuilderPlugin = (manifest: BuilderManifest, builder: ViewBuilder, color: string): ViewBuilderPlugin => ({
   ...BUILTIN,
   kind: 'viewBuilder',
   manifest: {
@@ -56,7 +56,7 @@ const viewBuilderPlugin = (manifest: BuilderManifest, builder: ViewBuilder): Vie
     version: VERSION,
     kind: 'viewBuilder',
     author: 'fluid',
-    contributes: { viewBuilders: [{ id: builder.id, label: builder.label }] },
+    contributes: { viewBuilders: [{ id: builder.id, label: builder.label, color }] },
   },
   builders: [builder],
 });
@@ -66,6 +66,7 @@ const viewBuilderPlugins: ViewBuilderPlugin[] = [
   viewBuilderPlugin(
     { id: 'fluid-curated-views', name: 'Curated views', description: 'Example perspectives shipped with fluid for well-known concepts.' },
     curatedViewBuilder,
+    '#eb2f96',
   ),
   viewBuilderPlugin(
     {
@@ -74,6 +75,7 @@ const viewBuilderPlugins: ViewBuilderPlugin[] = [
       description: 'An overview of every concept, a detail of every item and a tree of hierarchies, built from the GraphQL schema.',
     },
     autoViewBuilder,
+    '#1677ff',
   ),
   viewBuilderPlugin(
     {
@@ -91,6 +93,7 @@ const viewBuilderPlugins: ViewBuilderPlugin[] = [
       ],
     },
     specFluidViewBuilder,
+    '#722ed1',
   ),
 ];
 
