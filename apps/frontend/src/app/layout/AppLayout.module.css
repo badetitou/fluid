@@ -126,11 +126,6 @@
   min-width: 0;
 }
 
-.url {
-  flex: 1;
-  min-width: 0;
-}
-
 .tools {
   display: flex;
   align-items: center;

@@ -5,6 +5,7 @@ import { fetchManifest, resolveManifestUrl } from './loader';
 import {
   activeContracts,
   activeDataSources,
+  activeSourceProviders,
   activeViewBuilders,
   availableThemes,
   catalogRequest,
@@ -76,6 +77,14 @@ export function useBuilderColors() {
 export function useActiveDataSources() {
   const builders = useActiveViewBuilders();
   return useMemo(() => activeDataSources(builders), [builders]);
+}
+
+/** The source providers of the enabled plugins, with their settings, in plugin order. */
+export function useActiveSourceProviders() {
+  const plugins = useContext(PluginsContext);
+  const disabled = usePluginStore((s) => s.disabled);
+  const settings = usePluginStore((s) => s.settings);
+  return useMemo(() => activeSourceProviders(plugins, disabled, settings), [plugins, disabled, settings]);
 }
 
 /** A plugin's settings (filled or default) and the setter. */

@@ -3,6 +3,7 @@ import { describeIssues } from '@fluid/shared';
 import type { DataSource, WidgetProps } from '../../views/plugin-api';
 import { pluginManifestSchema, type PluginManifest } from './manifest';
 import type { ModuleProvided } from './model';
+import { checkedSourceProvider, type SourceProvider } from './sourceProvider';
 import type { ViewBuilder } from './viewBuilder';
 
 /**
@@ -70,11 +71,23 @@ function moduleBuilders(manifest: PluginManifest, builders: ModuleEntries | unde
   });
 }
 
+/** The source providers the module lists; those with sources in the manifest may be left out. */
+function moduleProviders(manifest: PluginManifest, providers: ModuleEntries | undefined): SourceProvider[] {
+  return (manifest.contributes.sourceProviders ?? []).flatMap((contract) => {
+    const listSources = providers?.[contract.id]?.listSources;
+    if (typeof listSources === 'function')
+      return [checkedSourceProvider(contract, listSources as (s: Readonly<Record<string, string>>, signal: AbortSignal) => unknown)];
+    if (contract.sources) return [];
+    throw new Error(`The plugin module does not list the sources of “${contract.id}”.`);
+  });
+}
+
 /**
  * Imports a plugin's module and returns what it provides for its manifest's
  * contributions. The module's default export receives the plugin host and
  * returns `{ widgets: { "<type>": { Render, sizing? } } }` (widget plugin) or
- * `{ viewBuilders: { "<id>": { perspectives | fetchPerspectives, dataSource? } } }` (view builder plugin).
+ * `{ viewBuilders: { "<id>": { perspectives | fetchPerspectives, dataSource? } } }` (view builder plugin)
+ * or `{ sourceProviders: { "<id>": { listSources(settings, signal) } } }` (source provider plugin).
  */
 export async function loadPluginModule(manifestUrl: string, manifest: PluginManifest): Promise<ModuleProvided> {
   if (!manifest.module) return {};
@@ -86,9 +99,10 @@ export async function loadPluginModule(manifestUrl: string, manifest: PluginMani
   if (typeof mod.default !== 'function')
     throw new Error('The plugin module has no default export function.');
   const provided = (await mod.default(createPluginHost())) as
-    { widgets?: ModuleEntries; viewBuilders?: ModuleEntries } | undefined;
+    { widgets?: ModuleEntries; viewBuilders?: ModuleEntries; sourceProviders?: ModuleEntries } | undefined;
   return {
     renderers: moduleRenderers(manifest, provided?.widgets),
     builders: moduleBuilders(manifest, provided?.viewBuilders),
+    providers: moduleProviders(manifest, provided?.sourceProviders),
   };
 }

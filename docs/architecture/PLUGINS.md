@@ -1,6 +1,6 @@
 # Système de plugins de fluid
 
-> Statut : **étape 1 livrée** (2026-10-22) ; **trois types de plugins** et View Builders (2026-10-26). Ce document fixe l'API des plugins, celle des widgets,
+> Statut : **étape 1 livrée** (2026-10-22) ; **quatre types de plugins**, View Builders et sources (2026-10-26). Ce document fixe l'API des plugins, celle des widgets,
 > et ce qu'il reste à faire. Il prolonge `REARCHITECTURE.md` §4 (« un widget = un dossier »).
 
 ## 1. Pourquoi
@@ -20,6 +20,7 @@ Il est d'**un seul type** (`kind`), qui dit ce qu'il contribue :
 | `theme` | `themes` | jetons de couleur, polices, rayon, palette de séries, surcharges par widget | non (JSON pur) |
 | `widget` | `widgets` | des types de widgets : contrat (schéma, doc LLM, ports) + renderer. Un widget **affiche** les données qu'on lui donne, il ne fait jamais de requête | oui (module ESM) |
 | `viewBuilder` | `viewBuilders` | propose des **perspectives** (des `ViewSpec`) pour une colonne, et peut apporter la **source de données** que lisent leurs requêtes (autre chose que GraphQL) | oui (module ESM) |
+| `sourceProvider` | `sourceProviders` | une liste de **sources GraphQL** (nom + URL) proposées dans le sélecteur de la barre du haut (§4 ter) | non si la liste est dans le manifeste, oui si un backend la donne |
 
 `kind` peut être omis : il se déduit de la contribution (anciens manifestes). Un manifeste qui
 mélange deux contributions est refusé. Un plugin peut déclarer des **réglages** (`settings` :
@@ -33,10 +34,11 @@ mélange deux contributions est refusé. Un plugin peut déclarer des **réglage
   "name": "Tag cloud",
   "version": "1.0.0",
   "description": "…",
-  "kind": "widget",                     // theme | widget | viewBuilder (déduit si absent)
+  "kind": "widget",                     // theme | widget | viewBuilder | sourceProvider (déduit si absent)
   "module": "./index.js",               // relatif au manifeste ; requis sauf pour un thème
   "contributes": {
     "widgets": [ WidgetContract, … ]    // ou "themes": [ThemeDefinition] / "viewBuilders": [{ id, label, color? }]
+                                        // ou "sourceProviders": [{ id, label, sources?: [{ name, url, description? }] }]
   }
 }
 ```
@@ -217,6 +219,33 @@ plugin, ↶ pour revenir à celle du builder) ; le choix est gardé par navigate
 Un module de plugin `viewBuilder` exporte
 `{ viewBuilders: { "<id>": { perspectives | fetchPerspectives, dataSource? } } }`.
 
+## 4 ter. Sources
+
+La barre du haut n'affiche plus seulement l'URL GraphQL : c'est un **sélecteur de source**
+(`features/source-switcher`), qui montre `<nom> — <url>` (l'URL seule sans nom) et propose :
+
+1. **Mes sources** : celles où l'utilisateur s'est connecté ou qu'il a ajoutées (formulaire au pied
+   du menu : nom facultatif + URL), gardées par navigateur (`entities/source`, `fluid-sources`).
+   On les renomme ou on les oublie dans *Settings → Connection*.
+2. puis, par plugin `sourceProvider` actif, les sources qu'il offre et qui ne sont pas déjà listées.
+
+Changer de source reconnecte urql et revient à l'accueil (`/`) : les colonnes ouvertes appartenaient
+à l'ancienne source. Le nom d'une source est celui que l'utilisateur lui a donné, sinon celui du
+premier fournisseur qui la propose.
+
+```ts
+interface SourceProvider {
+  id: string; label: string;
+  listSources(settings, signal): Promise<{ name; url; description? }[]>;  // validé par zod
+}
+```
+
+Un fournisseur qui écrit ses `sources` dans le manifeste n'a pas besoin de module (JSON pur, comme un
+thème). Sinon le module exporte `{ sourceProviders: { "<id>": { listSources(settings, signal) } } }`
+(ex. un serveur qui liste ses images Moose) ; la réponse est validée, seules les URL `http(s)` passent.
+Intégré : `fluid-demo-sources` (« Demo APIs » : Rick and Morty, Countries, GraphQLZero, la liste
+de l'écran de connexion). Exemple installable : `/plugins/local-sources/manifest.json`.
+
 ## 5. Le LLM et l'agent de création de widgets
 
 - Les prompts ne décrivent plus les widgets à la main : `renderWidgetDocs(catalogue)` concatène les
@@ -261,6 +290,7 @@ Installer `/plugins/tagcloud/manifest.json` depuis *Settings → Plugins* pour e
 | `DataSource`, `DataSourcesContext` | `apps/frontend/src/views/plugin-api/dataSources.ts` (moteur) |
 | Documents Spec-Fluid (zod) | `packages/shared/src/specFluid.ts` |
 | Écran *Settings → Plugins* | `apps/frontend/src/features/plugin-manager/` |
+| Sources gardées (store, modèle) ; sélecteur de la barre du haut | `apps/frontend/src/entities/source/` ; `apps/frontend/src/features/source-switcher/` |
 | Prompts | `apps/bff/src/llm/` (consomment `renderWidgetDocs`) |
 
 Le moteur (`views/`) ne dépend pas des plugins : il expose des contextes que l'app remplit.
@@ -274,6 +304,7 @@ Le moteur (`views/`) ne dépend pas des plugins : il expose des contextes que l'
 | 3 | Registre distant : une page web qui liste des manifestes, installable en un clic | à faire |
 | 4 | Isolation optionnelle des modules tiers (iframe sandbox) | à étudier |
 | 5 | Trois types de plugins (thème, widget, View Builder), sources de données non GraphQL, Spec-Fluid | ✅ |
+| 5 bis | Plugins de sources (`sourceProvider`) et sélecteur de source dans la barre du haut | ✅ |
 | 6 | Bus entre colonnes (suivre / figer / surligner, comme `MiBus` de MooseIDE) | à faire |
 
 ## 9. Autres types de plugins envisageables

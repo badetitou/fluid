@@ -7,6 +7,10 @@
   --kind-accent: var(--fluid-series-2, var(--ant-purple-6));
 }
 
+.accentSource {
+  --kind-accent: var(--fluid-series-3, var(--ant-green-6));
+}
+
 .accentTheme {
   --kind-accent: var(--fluid-series-1, var(--ant-magenta-6));
 }

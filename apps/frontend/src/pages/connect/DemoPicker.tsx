@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button, Flex, Select, Typography } from 'antd';
 import { PlayCircleOutlined } from '@ant-design/icons';
 import { Badge } from '../../shared/ui';
-import { DEMO_SOURCES } from './demoSources';
+import { DEMO_SOURCES } from '../../entities/plugin';
 import styles from './ConnectPage.module.css';
 
 /** Picks one of the public demo sources and connects to it. */

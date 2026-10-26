@@ -2,21 +2,21 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Divider, Flex, Form, Input, Typography } from 'antd';
 import { ApiOutlined } from '@ant-design/icons';
+import { useSources } from '../../entities/source';
 import { DEFAULT_GRAPHQL_URL } from '../../runtime-config';
 import { FluidLogo, GradientButton } from '../../shared/ui';
-import { useConnection } from '../../store';
 import { DemoPicker } from './DemoPicker';
 import styles from './ConnectPage.module.css';
 
 /** Entry screen: connect to a GraphQL endpoint, or to one of the demo sources. */
 export function ConnectPage() {
   const navigate = useNavigate();
-  const connect = useConnection((s) => s.connect);
+  const { switchTo } = useSources();
   const [url, setUrl] = useState(DEFAULT_GRAPHQL_URL);
 
   const connectTo = (target: string) => {
     if (!target.trim()) return;
-    connect(target);
+    switchTo(target.trim());
     navigate('/', { replace: true });
   };
 

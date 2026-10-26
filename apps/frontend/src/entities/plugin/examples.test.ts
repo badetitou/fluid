@@ -9,7 +9,7 @@ const read = (id: string) =>
   JSON.parse(readFileSync(resolve('public/plugins', id, 'manifest.json'), 'utf8'));
 
 describe('example plugins (public/plugins)', () => {
-  it.each(['tagcloud', 'nord-theme'])('%s has a valid manifest', (id) => {
+  it.each(['tagcloud', 'nord-theme', 'local-sources'])('%s has a valid manifest', (id) => {
     const parsed = pluginManifestSchema.safeParse(read(id));
     expect(parsed.error?.issues ?? []).toEqual([]);
   });

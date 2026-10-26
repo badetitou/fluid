@@ -10,6 +10,7 @@ import type { WidgetCatalog, WidgetRendererDefinition } from '../../views/plugin
 import type { DataSource } from '../../views/plugin-api';
 import { builderColors } from './builderColors';
 import { pluginKind, type PluginSetting } from './manifest';
+import { staticSourceProvider, type SourceProvider } from './sourceProvider';
 import type { FluidPlugin, InstalledPlugin, PluginLoadState } from './types';
 import type { ViewBuilder } from './viewBuilder';
 
@@ -21,6 +22,8 @@ export const renderersOf = (p: FluidPlugin): WidgetRendererDefinition[] => (p.ki
 export const themesOf = (p: FluidPlugin): ThemeDefinition[] => (p.kind === 'theme' ? p.themes : []);
 /** The view builders a plugin provides. */
 export const buildersOf = (p: FluidPlugin): ViewBuilder[] => (p.kind === 'viewBuilder' ? p.builders : []);
+/** The source providers a plugin provides. */
+export const providersOf = (p: FluidPlugin): SourceProvider[] => (p.kind === 'sourceProvider' ? p.providers : []);
 
 /** Whether a plugin is in use: required ones always are. */
 export const isEnabled = (plugin: FluidPlugin, disabled: readonly string[]): boolean =>
@@ -30,6 +33,7 @@ export const isEnabled = (plugin: FluidPlugin, disabled: readonly string[]): boo
 export interface ModuleProvided {
   renderers?: WidgetRendererDefinition[];
   builders?: ViewBuilder[];
+  providers?: SourceProvider[];
 }
 
 /** An installed plugin with what its module provided, or why it did not. */
@@ -51,6 +55,15 @@ export function installedPlugin(
       return { ...base, kind: 'widget', contracts: manifest.contributes.widgets ?? [], renderers: provided.renderers ?? [] };
     case 'viewBuilder':
       return { ...base, kind: 'viewBuilder', builders: provided.builders ?? [] };
+    case 'sourceProvider': {
+      // Providers that list their sources work without the module.
+      const fromModule = new Map((provided.providers ?? []).map((p) => [p.id, p]));
+      const providers = (manifest.contributes.sourceProviders ?? []).flatMap((c) => {
+        const provider = fromModule.get(c.id) ?? (c.sources ? staticSourceProvider(c) : undefined);
+        return provider ? [provider] : [];
+      });
+      return { ...base, kind: 'sourceProvider', providers };
+    }
   }
 }
 
@@ -178,4 +191,21 @@ export function activeDataSources(builders: ActiveViewBuilder[]): Map<string, Da
     if (source) sources.set(source.id, source);
   }
   return sources;
+}
+
+/** A source provider of an enabled plugin, with that plugin's settings. */
+export interface ActiveSourceProvider {
+  provider: SourceProvider;
+  settings: Record<string, string>;
+}
+
+/** The source providers of the enabled plugins, in plugin order, with their settings. */
+export function activeSourceProviders(
+  plugins: FluidPlugin[],
+  disabled: readonly string[],
+  filled: Readonly<Record<string, Record<string, string>>>,
+): ActiveSourceProvider[] {
+  return plugins
+    .filter((p) => isEnabled(p, disabled))
+    .flatMap((p) => providersOf(p).map((provider) => ({ provider, settings: settingsOf(p, filled) })));
 }

@@ -1,4 +1,4 @@
-import { Button, Layout, Tooltip, Typography } from 'antd';
+import { Button, Layout, Tooltip } from 'antd';
 import {
   CompressOutlined,
   ExpandOutlined,
@@ -8,12 +8,13 @@ import {
   SettingOutlined,
   SunOutlined,
 } from '@ant-design/icons';
-import { useConnection, usePreferences } from '../../store';
+import { SourceSwitcher } from '../../features/source-switcher';
+import { usePreferences } from '../../store';
 import { getChrome } from '../../theme';
 import { useSettingsToggle } from './useSettingsToggle';
 import styles from './AppLayout.module.css';
 
-/** Top bar: the connected source and quick toggles (density, theme, settings, sider). */
+/** Top bar: the source switcher and quick toggles (density, theme, settings, sider). */
 export function AppHeader() {
   const navbarSide = usePreferences((s) => s.navbarSide);
   const collapsed = usePreferences((s) => s.navbarCollapsed);
@@ -22,7 +23,6 @@ export function AppHeader() {
   const toggleThemeMode = usePreferences((s) => s.toggleThemeMode);
   const density = usePreferences((s) => s.density);
   const toggleDensity = usePreferences((s) => s.toggleDensity);
-  const graphqlUrl = useConnection((s) => s.graphqlUrl);
   const settings = useSettingsToggle();
   const compact = density === 'compact';
   const chrome = getChrome(density);
@@ -45,9 +45,7 @@ export function AppHeader() {
     >
       <div className={styles.source}>
         {navbarSide === 'left' && toggleSider}
-        <Typography.Text type="secondary" ellipsis className={styles.url}>
-          {graphqlUrl}
-        </Typography.Text>
+        <SourceSwitcher size={size} />
       </div>
       <div className={styles.tools}>
         <Tooltip placement="bottomRight" title={compact ? 'Comfortable density' : 'Compact density'}>

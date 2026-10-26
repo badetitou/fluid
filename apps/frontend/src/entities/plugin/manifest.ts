@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { externalWidgetContractSchema } from '@fluid/shared';
 import { themeDefinitionSchema } from '../../shared/theme';
 
-/** The three kinds of plugins; a plugin is of exactly one. */
-export const PLUGIN_KINDS = ['theme', 'widget', 'viewBuilder'] as const;
+/** The four kinds of plugins; a plugin is of exactly one. */
+export const PLUGIN_KINDS = ['theme', 'widget', 'viewBuilder', 'sourceProvider'] as const;
 export type PluginKind = (typeof PLUGIN_KINDS)[number];
 
 /** The serializable half of a view builder (its code is in the plugin's module). */
@@ -15,6 +15,26 @@ export const viewBuilderContractSchema = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'A colour is written #rrggbb').optional(),
 });
 
+/** A GraphQL source a source provider offers: a name and the endpoint URL. */
+export const sourceEntrySchema = z.object({
+  name: z.string().min(1).max(80),
+  url: z.url({ protocol: /^https?$/ }),
+  description: z.string().max(300).optional(),
+});
+export type SourceEntry = z.infer<typeof sourceEntrySchema>;
+
+/**
+ * The serializable half of a source provider. With `sources` it is plain data;
+ * without, the plugin's module lists them (`listSources`).
+ */
+export const sourceProviderContractSchema = z.object({
+  id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
+  label: z.string().min(1).max(60),
+  description: z.string().max(500).optional(),
+  sources: z.array(sourceEntrySchema).optional(),
+});
+export type SourceProviderContract = z.infer<typeof sourceProviderContractSchema>;
+
 /** A setting the user fills in Settings → Plugins (e.g. a backend URL). */
 export const pluginSettingSchema = z.object({
   key: z.string().regex(/^[a-zA-Z][a-zA-Z0-9]*$/),
@@ -25,11 +45,21 @@ export const pluginSettingSchema = z.object({
 });
 export type PluginSetting = z.infer<typeof pluginSettingSchema>;
 
-const CONTRIBUTION_OF_KIND = { theme: 'themes', widget: 'widgets', viewBuilder: 'viewBuilders' } as const;
+const CONTRIBUTION_OF_KIND = {
+  theme: 'themes',
+  widget: 'widgets',
+  viewBuilder: 'viewBuilders',
+  sourceProvider: 'sourceProviders',
+} as const;
+
+/** Plain data needs no module: themes, and source providers that list their sources. */
+const needsModule = (kind: PluginKind, providers: SourceProviderContract[] = []): boolean =>
+  kind === 'sourceProvider' ? providers.some((p) => !p.sources) : kind !== 'theme';
 
 /**
  * The manifest of an installable plugin (`manifest.json`). Themes are plain
- * data; widgets and view builders need the plugin's `module`, an ES module.
+ * data, and so are source providers that list their sources; widgets, view
+ * builders and providers that fetch their sources need the plugin's `module`.
  * `kind` may be left out when the contributions say it (older manifests).
  */
 export const pluginManifestSchema = z
@@ -48,6 +78,7 @@ export const pluginManifestSchema = z
       themes: z.array(themeDefinitionSchema).optional(),
       widgets: z.array(externalWidgetContractSchema).optional(),
       viewBuilders: z.array(viewBuilderContractSchema).optional(),
+      sourceProviders: z.array(sourceProviderContractSchema).optional(),
     }),
   })
   .superRefine((m, ctx) => {
@@ -60,10 +91,10 @@ export const pluginManifestSchema = z
         path: ['contributes'],
         message: m.kind
           ? `A ${m.kind} plugin contributes ${CONTRIBUTION_OF_KIND[m.kind]}, and nothing else`
-          : 'A plugin contributes themes, widgets or viewBuilders (one kind only)',
+          : 'A plugin contributes themes, widgets, viewBuilders or sourceProviders (one kind only)',
       });
     }
-    if (given[0] !== 'theme' && given.length === 1 && !m.module) {
+    if (given.length === 1 && needsModule(given[0], m.contributes.sourceProviders) && !m.module) {
       ctx.addIssue({ code: 'custom', path: ['module'], message: `A plugin contributing ${CONTRIBUTION_OF_KIND[given[0]]} needs a "module"` });
     }
     (m.contributes.widgets ?? []).forEach((w, i) => {
@@ -82,10 +113,13 @@ export type PluginManifest = z.infer<typeof pluginManifestSchema>;
 export function pluginKind(manifest: PluginManifest): PluginKind {
   if (manifest.kind) return manifest.kind;
   if (manifest.contributes.widgets?.length) return 'widget';
+  if (manifest.contributes.sourceProviders?.length) return 'sourceProvider';
   return manifest.contributes.viewBuilders?.length ? 'viewBuilder' : 'theme';
 }
 
 /** What a plugin contributes, for display. */
 export function contributionLabel(manifest: PluginManifest): string {
-  return { theme: 'themes', widget: 'widgets', viewBuilder: 'view builders' }[pluginKind(manifest)];
+  return { theme: 'themes', widget: 'widgets', viewBuilder: 'view builders', sourceProvider: 'sources' }[
+    pluginKind(manifest)
+  ];
 }

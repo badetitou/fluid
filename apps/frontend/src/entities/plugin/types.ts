@@ -2,6 +2,7 @@ import type { WidgetContract } from '@fluid/shared';
 import type { ThemeDefinition } from '../../shared/theme';
 import type { WidgetRendererDefinition } from '../../views/plugin-api';
 import type { PluginKind, PluginManifest } from './manifest';
+import type { SourceProvider } from './sourceProvider';
 import type { ViewBuilder } from './viewBuilder';
 
 /** Where a plugin comes from: shipped with fluid, or installed from a manifest URL. */
@@ -38,8 +39,14 @@ export interface ViewBuilderPlugin extends PluginBase {
   builders: ViewBuilder[];
 }
 
+/** A source provider plugin: GraphQL sources (name + URL) offered in the source switcher. */
+export interface SourceProviderPlugin extends PluginBase {
+  kind: 'sourceProvider';
+  providers: SourceProvider[];
+}
+
 /** A plugin as the app uses it: its manifest and what it provides once loaded. */
-export type FluidPlugin = ThemePlugin | WidgetPlugin | ViewBuilderPlugin;
+export type FluidPlugin = ThemePlugin | WidgetPlugin | ViewBuilderPlugin | SourceProviderPlugin;
 
 export type { PluginKind };
 

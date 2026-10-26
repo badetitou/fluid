@@ -1,0 +1,81 @@
+/* The switcher takes the room the header leaves, up to a readable width. */
+.switcher {
+  flex: 1;
+  min-width: 0;
+  max-width: 560px;
+}
+
+.icon {
+  color: var(--ink-muted, var(--ant-color-text-tertiary));
+}
+
+.popup {
+  min-width: 420px;
+  max-width: min(640px, 95vw);
+}
+
+.option {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.name {
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.dash,
+.url {
+  color: var(--ant-color-text-secondary);
+}
+
+.url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.divider {
+  margin: 6px 0;
+}
+
+.addForm {
+  padding: 4px 8px;
+}
+
+.addTitle {
+  font-size: 12px;
+}
+
+.addName {
+  flex: 0 0 140px;
+}
+
+.list {
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border, var(--ant-color-border-secondary));
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowName {
+  margin: 0 !important;
+}

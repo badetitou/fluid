@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { pluginKind, usePlugins, type PluginKind } from '../../entities/plugin';
+import { PLUGIN_KINDS, pluginKind, usePlugins, type PluginKind } from '../../entities/plugin';
 import { matchesFilter } from './model';
 
 /** The plugins of one kind, with whether they are enabled, matching a filter text. */
@@ -15,7 +15,10 @@ export function usePluginsOfKind(kind: PluginKind, filter = '') {
 export function usePluginCounts(): Record<PluginKind, { total: number; enabled: number }> {
   const entries = usePlugins();
   return useMemo(() => {
-    const counts = { widget: { total: 0, enabled: 0 }, viewBuilder: { total: 0, enabled: 0 }, theme: { total: 0, enabled: 0 } };
+    const counts = Object.fromEntries(PLUGIN_KINDS.map((k) => [k, { total: 0, enabled: 0 }])) as Record<
+      PluginKind,
+      { total: number; enabled: number }
+    >;
     for (const { plugin, enabled } of entries) {
       const c = counts[pluginKind(plugin.manifest)];
       c.total += 1;

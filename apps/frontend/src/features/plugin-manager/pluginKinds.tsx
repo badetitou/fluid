@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AppstoreOutlined, BgColorsOutlined, LayoutOutlined } from '@ant-design/icons';
+import { ApiOutlined, AppstoreOutlined, BgColorsOutlined, LayoutOutlined } from '@ant-design/icons';
 import type { PluginKind } from '../../entities/plugin';
 import styles from './PluginManager.module.css';
 
@@ -25,6 +25,12 @@ export const PLUGIN_KIND_META: Record<PluginKind, PluginKindMeta> = {
     help: 'Perspectives proposed in each column — curated, automatic, or asked to another backend such as Pharo — and the data sources they read.',
     icon: <LayoutOutlined />,
     accent: styles.accentViewBuilder,
+  },
+  sourceProvider: {
+    title: 'Sources',
+    help: 'GraphQL sources (a name and a URL) offered in the source switcher of the top bar, written in the plugin or listed by a backend.',
+    icon: <ApiOutlined />,
+    accent: styles.accentSource,
   },
   theme: {
     title: 'Themes',

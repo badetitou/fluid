@@ -1,0 +1,19 @@
+{
+  "id": "local-sources",
+  "name": "Local sources",
+  "version": "1.0.0",
+  "kind": "sourceProvider",
+  "description": "Example source plugin (no code): GraphQL servers usually run on this machine.",
+  "author": "fluid examples",
+  "contributes": {
+    "sourceProviders": [
+      {
+        "id": "local",
+        "label": "On this machine",
+        "sources": [
+          { "name": "Moose (local)", "url": "http://localhost:8080/graphql", "description": "A Moose image serving its models over GraphQL." }
+        ]
+      }
+    ]
+  }
+}

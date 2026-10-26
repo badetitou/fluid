@@ -7,7 +7,9 @@ import { ENDPOINT_SETTING, specFluidViewBuilder } from './builders/specFluid';
 import { HIGH_CONTRAST_THEME, SOLARIZED_THEME } from './builtinThemes';
 import { CATPPUCCIN_THEMES } from './catppuccin';
 import type { PluginManifest } from './manifest';
-import type { FluidPlugin, ThemePlugin, ViewBuilderPlugin, WidgetPlugin } from './types';
+import { staticSourceProvider } from './sourceProvider';
+import { DEMO_SOURCES } from './sources/demoSources';
+import type { FluidPlugin, SourceProviderPlugin, ThemePlugin, ViewBuilderPlugin, WidgetPlugin } from './types';
 import type { ViewBuilder } from './viewBuilder';
 
 const VERSION = '1.0.0';
@@ -99,13 +101,36 @@ const viewBuilderPlugins: ViewBuilderPlugin[] = [
   ),
 ];
 
+const demoSourcesContract = {
+  id: 'demo-apis',
+  label: 'Demo APIs',
+  sources: DEMO_SOURCES.map(({ label, url, description }) => ({ name: label, url, description })),
+};
+
+/** The public demo APIs, offered in the source switcher. */
+const demoSourcesPlugin: SourceProviderPlugin = {
+  ...BUILTIN,
+  kind: 'sourceProvider',
+  manifest: {
+    id: 'fluid-demo-sources',
+    name: 'Demo sources',
+    version: VERSION,
+    kind: 'sourceProvider',
+    description: 'Public, CORS-enabled GraphQL APIs to try fluid without running anything.',
+    author: 'fluid',
+    contributes: { sourceProviders: [demoSourcesContract] },
+  },
+  providers: [staticSourceProvider(demoSourcesContract)],
+};
+
 /** The id of the theme used when the chosen one is unavailable. */
 export const DEFAULT_THEME_ID = BADETITOU_THEME.id;
 
-/** Every plugin shipped with fluid: widget collections, view builders, then themes. */
+/** Every plugin shipped with fluid: widget collections, view builders, sources, then themes. */
 export const BUILTIN_PLUGINS: FluidPlugin[] = [
   ...widgetPlugins,
   ...viewBuilderPlugins,
+  demoSourcesPlugin,
   themePlugin(BADETITOU_THEME, true),
   themePlugin(SOLARIZED_THEME),
   themePlugin(HIGH_CONTRAST_THEME),
