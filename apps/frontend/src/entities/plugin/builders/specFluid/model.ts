@@ -2,6 +2,9 @@ import type { SpecFluidTab, ViewSpec } from '@fluid/shared';
 import type { Concept } from '../../../../graphql/introspection';
 import type { Perspective } from '../../viewBuilder';
 
+/** The setting holding the Spec-Fluid endpoint, e.g. `http://localhost:8081/spec-fluid`. */
+export const ENDPOINT_SETTING = 'endpoint';
+
 /** Id of the Spec-Fluid data source, named by the `source` of its views' queries. */
 export const SPEC_FLUID_SOURCE = 'spec-fluid';
 

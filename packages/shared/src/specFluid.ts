@@ -138,3 +138,16 @@ export type SpecFluidTabsResponse = z.infer<typeof specFluidTabsResponseSchema>;
 /** `GET <endpoint>/entities/<id>/tabs/<key>` */
 export const specFluidTabResponseSchema = specFluidTabSchema.extend({ root: specFluidNodeSchema });
 export type SpecFluidTabResponse = z.infer<typeof specFluidTabResponseSchema>;
+
+/**
+ * `POST <endpoint>/entities/<id>/evaluate` with `{ code }`: the code ran with the
+ * entity as `self`. `ref` when the result is an entity of the model, `items`
+ * (the first ones) when it is a collection. Errors answer `{ error }` (422).
+ */
+export const specFluidEvaluationSchema = z.object({
+  display: z.string(),
+  ref: specFluidRefSchema.optional(),
+  items: z.array(specFluidCellSchema).optional(),
+  truncated: z.boolean().optional(),
+});
+export type SpecFluidEvaluation = z.infer<typeof specFluidEvaluationSchema>;
