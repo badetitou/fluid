@@ -112,43 +112,6 @@
 
 /* Overlays */
 
-.toolbar {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px 4px;
-  font-size: 12px;
-  color: var(--ink-secondary);
-  background: var(--surface-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--fluid-radius);
-}
-
-.toolbar button {
-  display: inline-flex;
-  padding: 3px;
-  color: inherit;
-  cursor: pointer;
-  background: none;
-  border: none;
-  border-radius: 4px;
-}
-
-.toolbar button:hover,
-.toolbar button:focus-visible {
-  color: var(--fluid-primary);
-  background: var(--surface);
-}
-
-.count {
-  margin-right: 4px;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-muted);
-}
-
 .tooltip {
   position: absolute;
   z-index: 1;

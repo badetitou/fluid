@@ -71,6 +71,20 @@ describe('MatrixWidget', () => {
     expect(screen.getByRole('button', { name: 'Array → Bag: 2 (cycle)' }).getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('zooms with the buttons, without selecting a cell after a drag', () => {
+    const emit = renderWidget(dsm, dsmData);
+    const plane = () => document.querySelector('svg > g')?.getAttribute('transform');
+    const initial = plane();
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    expect(plane()).not.toBe(initial);
+    const svg = screen.getByRole('group', { name: dsm.title ?? 'Dependency matrix' });
+    fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(svg, { clientX: 60, clientY: 80 });
+    fireEvent.pointerUp(svg);
+    fireEvent.click(screen.getByRole('button', { name: 'Array → Bag: 2 (cycle)' }));
+    expect(emit).not.toHaveBeenCalled();
+  });
+
   it('opens the element of a clicked label and emits its row', () => {
     const emit = renderWidget(dsm, dsmData);
     fireEvent.click(screen.getAllByRole('button', { name: 'Bag' })[0]);

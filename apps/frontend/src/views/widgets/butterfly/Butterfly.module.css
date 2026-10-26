@@ -26,15 +26,6 @@
   color: var(--ink-muted);
 }
 
-.viewport {
-  overflow: auto;
-  min-width: 0;
-}
-
-.svg {
-  display: block;
-}
-
 .edge {
   fill: none;
   stroke: var(--bf-line);

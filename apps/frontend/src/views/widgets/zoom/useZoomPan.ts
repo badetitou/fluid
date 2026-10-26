@@ -51,15 +51,16 @@ export function fitTransform(content: { width: number; height: number }, view: {
 
 /** Zoom (wheel, buttons) and pan (drag) of an SVG drawing of `content` size shown in a `view`-sized frame. */
 export function useZoomPan(content: { width: number; height: number }, view: { width: number; height: number }): ZoomPan {
-  const [state, setState] = useState(() => ({ content, transform: initialTransform(content, view) }));
+  const [state, setState] = useState(() => ({ content, measured: view.width > 0, transform: initialTransform(content, view) }));
   /** The press being dragged: where it started, and where the view was last moved from. */
   const drag = useRef<{ x0: number; y0: number; x: number; y: number } | null>(null);
   const moved = useRef(false);
   const [el, setEl] = useState<Element | null>(null);
 
-  // A new drawing (other data, other width): back to the initial view.
-  if (state.content.width !== content.width || state.content.height !== content.height) {
-    setState({ content, transform: initialTransform(content, view) });
+  // A new drawing (other data, other width), or the frame just measured: back to the initial view.
+  const measured = view.width > 0;
+  if (state.content.width !== content.width || state.content.height !== content.height || state.measured !== measured) {
+    setState({ content, measured, transform: initialTransform(content, view) });
   }
 
   const zoomAt = useCallback((factor: number, px: number, py: number) => {

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { blueprintExample, type BlueprintWidget as BlueprintWidgetSpec } from '@fluid/shared';
@@ -39,7 +39,17 @@ const renderWidget = (
 };
 
 const box = (name: RegExp) => screen.getByRole('button', { name });
+const plane = () => document.querySelector('svg > g')?.getAttribute('transform');
 afterEach(cleanup);
+
+// jsdom has no layout: give the frame a width, as a browser would.
+beforeAll(() => {
+  globalThis.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+});
 
 describe('BlueprintWidget', () => {
   it('draws the layers, a box per method and attribute, the arrows and the legend', () => {
@@ -52,7 +62,7 @@ describe('BlueprintWidget', () => {
       'Attributes',
     ])
       expect(screen.getByText(title)).toBeTruthy();
-    expect(screen.getAllByRole('button')).toHaveLength(12);
+    expect(document.querySelectorAll('g[role="button"]')).toHaveLength(12);
     expect(box(/^growAtLast \(method, 12 lines\)/)).toBeTruthy();
     expect(box(/^isEmpty \(abstract method/)).toBeTruthy();
     expect(box(/^array \(attribute\)/)).toBeTruthy();
@@ -87,6 +97,28 @@ describe('BlueprintWidget', () => {
     fireEvent.keyDown(box(/^array \(attribute\)/), { key: 'Enter' });
     expect(emit).toHaveBeenCalledWith('selected', { id: '3:3', name: 'array' });
     expect(screen.getByTestId('location').textContent).toMatch(/Attribute.*3(:|%3A)3/);
+  });
+
+  it('zooms with the buttons and fits the whole drawing', () => {
+    renderWidget();
+    const initial = plane();
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom out' }));
+    expect(plane()).not.toBe(initial);
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fit to view' }));
+    expect(plane()).toMatch(/scale\(/);
+  });
+
+  it('pans by dragging, without opening the box the drag ends on', () => {
+    const { emit } = renderWidget();
+    const svg = screen.getByRole('group', { name: spec.title ?? 'Class blueprint' });
+    const initial = plane();
+    fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(svg, { clientX: 60, clientY: 80 });
+    fireEvent.pointerUp(svg);
+    fireEvent.click(box(/^growAtLast/));
+    expect(plane()).not.toBe(initial);
+    expect(emit).not.toHaveBeenCalled();
   });
 
   it('explains why there is nothing to draw', () => {

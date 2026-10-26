@@ -3,7 +3,7 @@ import { fitTransform, initialTransform, READABLE_K } from './useZoomPan';
 
 const view = { width: 800, height: 400 };
 
-describe('boxes initial view', () => {
+describe('zoom initial view', () => {
   it('shows the whole width when it fits at a readable scale', () => {
     expect(initialTransform({ width: 400, height: 900 }, view)).toEqual({ x: 0, y: 0, k: 1 });
     expect(initialTransform({ width: 1600, height: 300 }, view)).toEqual({ x: 0, y: 0, k: 0.5 });

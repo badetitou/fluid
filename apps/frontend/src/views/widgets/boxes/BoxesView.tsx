@@ -7,10 +7,10 @@ import { layoutBoxes, type BoxesLayout } from './boxesLayout';
 import { boxFills, boxesPalette, paletteVariables } from './boxesStyle';
 import { BoxesCanvas } from './BoxesCanvas';
 import { BoxesLegend } from './BoxesLegend';
-import { BoxesToolbar } from './BoxesToolbar';
+import { ZoomToolbar } from '../zoom/ZoomToolbar';
 import { BoxesTooltip } from './BoxesTooltip';
 import { useBoxesSelection } from './useBoxesSelection';
-import { useZoomPan } from './useZoomPan';
+import { useZoomPan } from '../zoom/useZoomPan';
 import styles from './Boxes.module.css';
 
 interface BoxesViewProps {
@@ -62,7 +62,7 @@ export function BoxesView({ widget, model, emit, height }: BoxesViewProps) {
             label={widget.title ?? 'Boxes'}
           />
         )}
-        <BoxesToolbar zoom={zoom} count={model.order.length} />
+        <ZoomToolbar zoom={zoom} caption={model.order.length === 1 ? '1 box' : `${model.order.length} boxes`} />
         {hovered && hoveredItem && (
           <BoxesTooltip item={hoveredItem} at={hovered} transform={zoom.transform} widget={widget} viewWidth={view.width} />
         )}
