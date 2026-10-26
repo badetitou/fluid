@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Alert, Card, Col, Empty, Row, Skeleton } from 'antd';
 import type { ViewSpec, Widget } from '@fluid/shared';
 import { useElementWidth } from '../hooks/useElementWidth';
@@ -48,7 +48,8 @@ interface ViewRendererProps {
  * viewport), so a lone Miller column uses the whole screen while side-by-side
  * columns stack their widgets. Widgets pass values to each other through the
  * view's outputs store (`@<widgetId>` bindings), and write through its actions
- * when the source accepts writes.
+ * when the source accepts writes. Any widget can be presented: shown alone on
+ * the whole window, for a big screen.
  */
 export function ViewRenderer({
   spec,
@@ -67,6 +68,9 @@ export function ViewRenderer({
   const fit = Math.max(1, Math.min(maxColumns, Math.floor(width / MIN_WIDGET_WIDTH)));
   const compact = fit === 1;
   const actions = editingLayout ? undefined : renderWidgetActions;
+  // The widget shown alone on the whole window, if any (not while arranging).
+  const [presentedId, setPresentedId] = useState<string>();
+  const present = editingLayout ? undefined : setPresentedId;
   const gridLayout = editingLayout || spec.widgets.some((w) => w.layout);
 
   // Column width (in Ant's 24-unit grid) of each widget: the authored spans, at
@@ -106,14 +110,27 @@ export function ViewRenderer({
                 onSelect={onSelectWidget}
                 stacked={compact}
                 renderWidget={(widget) => (
-                  <WidgetCard widget={widget} view={view} renderActions={actions} fill />
+                  <WidgetCard
+                    widget={widget}
+                    view={view}
+                    renderActions={actions}
+                    fill
+                    presented={!!present && widget.id === presentedId}
+                    onPresent={present}
+                  />
                 )}
               />
             ) : (
               <Row gutter={compact ? [8, 8] : [16, 16]}>
                 {spec.widgets.map((widget, i) => (
                   <Col key={widget.id} span={spans[i]}>
-                    <WidgetCard widget={widget} view={view} renderActions={actions} />
+                    <WidgetCard
+                      widget={widget}
+                      view={view}
+                      renderActions={actions}
+                      presented={!!present && widget.id === presentedId}
+                      onPresent={present}
+                    />
                   </Col>
                 ))}
                 {spec.widgets.length === 0 && (

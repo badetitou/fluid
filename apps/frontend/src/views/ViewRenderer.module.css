@@ -36,3 +36,31 @@
   opacity: 0.55;
   pointer-events: none;
 }
+
+.cell {
+  height: 100%;
+}
+
+/* Presented: the widget alone, no header nor border around it. */
+.presentedCard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: transparent;
+}
+
+.presentedCard :global(.ant-card-head) {
+  display: none;
+}
+
+/* The present button stays discreet until the card is hovered. */
+.present {
+  opacity: 0;
+  transition: opacity var(--ant-motion-duration-mid);
+}
+
+.card:hover .present,
+.fillCard:hover .present,
+.present:focus-visible {
+  opacity: 1;
+}

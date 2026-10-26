@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import type { Concept } from '../../entities/concept';
 import { LayoutEditBar, LayoutEditToolbar } from '../../features/layout-editor';
 import { PerspectiveMenu } from '../../features/perspective-menu';
 import { PerspectivePills } from '../../features/perspective-switcher';
 import { NewViewChoices } from '../../features/view-creation';
 import { WidgetSidePanel } from '../../features/widget-builder';
+import { PresentationFrame } from '../../shared/ui';
 import { usePreferences } from '../../store';
 import { ViewRenderer } from '../../views/ViewRenderer';
 import { ColumnActions } from './ColumnActions';
@@ -43,6 +45,8 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
   const { layout, mutations, editorSwitch } = c;
   const { startWith } = editorSwitch;
   const createView = bffAvailable ? c.actions.createView : undefined;
+  // The perspective shown alone on the whole window: no header, pills nor toolbar.
+  const [presenting, setPresenting] = useState(false);
 
   const bar = layout.editing ? (
     <LayoutEditBar editor={layout} savesAsCopy={!selected?.saved} compact={compact} />
@@ -80,13 +84,14 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
       }
       isFullscreen={isFullscreen}
       onToggleFullscreen={toggleFullscreen}
+      onPresent={spec && selected?.source !== 'draft' ? () => setPresenting(true) : undefined}
       onClose={parentPath !== undefined ? () => onClose(parentPath) : undefined}
     />
   );
 
   const shown = spec && layout.widgets ? { ...spec, widgets: layout.widgets } : spec;
   const body = (
-    <div className={styles.body}>
+    <PresentationFrame active={presenting && !layout.editing} onExit={() => setPresenting(false)} className={styles.body}>
       {selected?.source === 'draft' && !layout.editing ? (
         <NewViewChoices onAssistant={startWith.assistant} onManual={startWith.manual} onJson={startWith.json} />
       ) : shown ? (
@@ -104,7 +109,7 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
       ) : (
         <ColumnEmpty loading={loading} onCreate={createView} />
       )}
-    </div>
+    </PresentationFrame>
   );
 
   return (
