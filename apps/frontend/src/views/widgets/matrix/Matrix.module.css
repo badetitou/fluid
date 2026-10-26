@@ -50,15 +50,8 @@
   background: var(--matrix-cycle);
 }
 
-.scroll {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
+.canvas {
   background: var(--matrix-background);
-}
-
-.svg {
-  display: block;
 }
 
 .cell {

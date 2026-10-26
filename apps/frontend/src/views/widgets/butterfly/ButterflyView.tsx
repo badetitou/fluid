@@ -8,6 +8,7 @@ import { accentColors, butterflyPalette, paletteVariables } from './butterflySty
 import { ButterflyBox } from './ButterflyBox';
 import { ButterflyEdges } from './ButterflyEdges';
 import { ButterflyHeader } from './ButterflyHeader';
+import { ZoomCanvas } from '../zoom/ZoomCanvas';
 import { useButterfly } from './useButterfly';
 import styles from './Butterfly.module.css';
 
@@ -21,7 +22,7 @@ interface ButterflyViewProps {
 
 const HEADER_HEIGHT = 28;
 
-/** The laid out butterfly map, sized to the measured width, with its counters. */
+/** The laid out butterfly map, sized to the measured width, zoomable and pannable, with its counters. */
 export function ButterflyView({ widget, butterfly, emit, height }: ButterflyViewProps) {
   const theme = useWidgetTheme(widget.type);
   const palette = useMemo(() => butterflyPalette(theme), [theme]);
@@ -32,11 +33,15 @@ export function ButterflyView({ widget, butterfly, emit, height }: ButterflyView
   const center = layout.boxes.get(CENTER_ID);
 
   return (
-    <div className={styles.root} style={paletteVariables(palette)}>
+    <div ref={ref} className={styles.root} style={paletteVariables(palette)}>
       <ButterflyHeader butterfly={butterfly} groupField={widget.groupField} />
-      <div ref={ref} className={styles.viewport} style={{ height: Math.max(height - HEADER_HEIGHT, 120) }}>
+      <ZoomCanvas
+        content={layout}
+        height={Math.max(height - HEADER_HEIGHT, 120)}
+        label={widget.title ?? `Dependencies of ${butterfly.center.label}`}
+      >
         {width > 0 && (
-          <svg className={styles.svg} width={layout.width} height={layout.height} role="group" aria-label={widget.title ?? `Dependencies of ${butterfly.center.label}`}>
+          <>
             <ButterflyEdges edges={layout.edges} lit={state.lit} />
             {center && (
               <ButterflyBox
@@ -64,9 +69,9 @@ export function ButterflyView({ widget, butterfly, emit, height }: ButterflyView
                 />
               ) : null;
             })}
-          </svg>
+          </>
         )}
-      </div>
+      </ZoomCanvas>
     </div>
   );
 }

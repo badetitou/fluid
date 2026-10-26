@@ -53,15 +53,7 @@
   background: var(--bp-attribute);
 }
 
-.viewport {
-  overflow: auto;
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--fluid-radius);
-}
-
-.svg {
-  display: block;
+.drawing {
   font-size: 11px;
 }
 

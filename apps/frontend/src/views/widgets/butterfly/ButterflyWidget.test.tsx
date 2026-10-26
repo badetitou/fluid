@@ -50,7 +50,7 @@ describe('ButterflyWidget', () => {
     renderWidget(spec);
     expect(screen.getByText('2 incoming / 3 outgoing')).toBeTruthy();
     expect(screen.getByText('printStringLimitedTo:')).toBeTruthy();
-    expect(screen.getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual([
+    expect([...document.querySelectorAll('g[role="button"]')].map((b) => b.getAttribute('aria-label'))).toEqual([
       'printString (Object) ×2',
       'displayString (Object)',
       'printOn: (Collection)',

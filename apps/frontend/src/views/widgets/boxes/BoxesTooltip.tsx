@@ -2,7 +2,7 @@ import type { BoxesWidget } from '@fluid/shared';
 import type { BoxItem } from './boxesModel';
 import type { PlacedBox } from './boxesLayout';
 import { boxMetrics } from './boxesMetrics';
-import type { Transform } from './useZoomPan';
+import type { Transform } from '../zoom/useZoomPan';
 import styles from './Boxes.module.css';
 
 interface BoxesTooltipProps {

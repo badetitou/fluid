@@ -1,7 +1,7 @@
 import type { BoxesModel } from './boxesModel';
 import type { BoxesLayout } from './boxesLayout';
 import type { BoxesSelection } from './useBoxesSelection';
-import type { ZoomPan } from './useZoomPan';
+import type { ZoomPan } from '../zoom/useZoomPan';
 import { BoxRect, type BoxStatus } from './BoxRect';
 import { BoxesFrames } from './BoxesFrames';
 import styles from './Boxes.module.css';
