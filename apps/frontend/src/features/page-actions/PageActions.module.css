@@ -1,9 +1,9 @@
-/* The floating button of every page, over the bottom right of the content. */
+/* The floating button of a Miller column, over the bottom right of its body. */
 .float {
   position: absolute;
-  inset-inline-end: 32px;
+  inset-inline-end: 16px;
   /* Above the Miller pager, which floats over the bottom of the columns. */
-  inset-block-end: 56px;
+  inset-block-end: calc(var(--column-overlay-inset, 0px) + 16px);
   /* Discreet like the pager, until the pointer or focus reaches it. */
   opacity: 0.7;
   transition: opacity var(--ant-motion-duration-mid);

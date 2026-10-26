@@ -3,13 +3,7 @@ import { externalWidgetContractSchema } from '@fluid/shared';
 import { themeDefinitionSchema } from '../../shared/theme';
 
 /** The five kinds of plugins; a plugin is of exactly one. */
-export const PLUGIN_KINDS = [
-  'theme',
-  'widget',
-  'viewBuilder',
-  'sourceProvider',
-  'pageAction',
-] as const;
+export const PLUGIN_KINDS = ['theme', 'widget', 'viewBuilder', 'sourceProvider', 'pageAction'] as const;
 export type PluginKind = (typeof PLUGIN_KINDS)[number];
 
 /** The serializable half of a view builder (its code is in the plugin's module). */
@@ -18,10 +12,7 @@ export const viewBuilderContractSchema = z.object({
   label: z.string().min(1).max(60),
   description: z.string().max(500).optional(),
   /** The colour of its perspectives' marks (`#rrggbb`); the user may change it. */
-  color: z
-    .string()
-    .regex(/^#[0-9a-fA-F]{6}$/, 'A colour is written #rrggbb')
-    .optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'A colour is written #rrggbb').optional(),
 });
 
 /** A GraphQL source a source provider offers: a name and the endpoint URL. */
@@ -44,7 +35,7 @@ export const sourceProviderContractSchema = z.object({
 });
 export type SourceProviderContract = z.infer<typeof sourceProviderContractSchema>;
 
-/** The serializable half of a page action: what the floating button of every page lists. */
+/** The serializable half of a page action: a command of the floating button of the columns. */
 export const pageActionContractSchema = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
   label: z.string().min(1).max(60),
@@ -116,11 +107,7 @@ export const pluginManifestSchema = z
       });
     }
     if (given.length === 1 && needsModule(given[0], m.contributes.sourceProviders) && !m.module) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['module'],
-        message: `A plugin contributing ${CONTRIBUTION_OF_KIND[given[0]]} needs a "module"`,
-      });
+      ctx.addIssue({ code: 'custom', path: ['module'], message: `A plugin contributing ${CONTRIBUTION_OF_KIND[given[0]]} needs a "module"` });
     }
     (m.contributes.widgets ?? []).forEach((w, i) => {
       if (!w.type.startsWith(`${m.id}/`)) {
@@ -145,12 +132,6 @@ export function pluginKind(manifest: PluginManifest): PluginKind {
 
 /** What a plugin contributes, for display. */
 export function contributionLabel(manifest: PluginManifest): string {
-  const labels = {
-    theme: 'themes',
-    widget: 'widgets',
-    viewBuilder: 'view builders',
-    sourceProvider: 'sources',
-    pageAction: 'page actions',
-  };
+  const labels = { theme: 'themes', widget: 'widgets', viewBuilder: 'view builders', sourceProvider: 'sources', pageAction: 'page actions' };
   return labels[pluginKind(manifest)];
 }

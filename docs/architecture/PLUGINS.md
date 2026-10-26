@@ -21,7 +21,7 @@ Il est d'**un seul type** (`kind`), qui dit ce qu'il contribue :
 | `widget` | `widgets` | des types de widgets : contrat (schéma, doc LLM, ports) + renderer. Un widget **affiche** les données qu'on lui donne, il ne fait jamais de requête | oui (module ESM) |
 | `viewBuilder` | `viewBuilders` | propose des **perspectives** (des `ViewSpec`) pour une colonne, et peut apporter la **source de données** que lisent leurs requêtes (autre chose que GraphQL) | oui (module ESM) |
 | `sourceProvider` | `sourceProviders` | une liste de **sources GraphQL** (nom + URL) proposées dans le sélecteur de la barre du haut (§4 ter) | non si la liste est dans le manifeste, oui si un backend la donne |
-| `pageAction` | `pageActions` | des **commandes du bouton flottant** présent sur toutes les pages (§4 quater) : un effet sur la page ou un panneau | oui (module ESM) |
+| `pageAction` | `pageActions` | des **commandes du bouton flottant** de chaque colonne Miller (§4 quater) : un effet sur la page ou un panneau | oui (module ESM) |
 
 `kind` peut être omis : il se déduit de la contribution (anciens manifestes). Un manifeste qui
 mélange deux contributions est refusé. Un plugin peut déclarer des **réglages** (`settings` :
@@ -258,21 +258,24 @@ de l'écran de connexion). Exemple installable : `/plugins/local-sources/manifes
 
 ## 4 quater. Actions de page
 
-Chaque page (accueil, colonnes Miller, Settings…) a **un** bouton flottant, en bas à droite du contenu
-(`features/page-actions`, posé par `AppLayout`). Ses commandes sont les actions des plugins
-`pageAction` actifs qui s'offrent sur la page ; sans commande, pas de bouton.
+Chaque colonne Miller a **un** bouton flottant, en bas à droite de son corps, au-dessus du pager
+(`features/page-actions`, posé par `ColumnStage` ; rien en mode présentation ou édition de mise en
+page). Ses commandes sont les actions des plugins `pageAction` actifs qui s'offrent sur cette
+colonne ; sans commande, pas de bouton.
 
 ```ts
 interface PageAction {
-  id; label; description?; icon?;                 // icon : un emoji, sinon une icône générique
-  available?(ctx): boolean;                        // proposée ici ? (toujours, si absent)
+  id; label; description?;
+  icon?: string;                                   // un emoji (manifeste)…
+  Icon?: ComponentType;                            // …ou une icône dessinée par le code ; sinon une icône générique
+  available?(ctx): boolean;                        // proposée sur cette colonne ? (toujours, si absent)
   run?(ctx): void;                                 // un effet immédiat…
-  Panel?: ComponentType<{ context; onClose }>;     // …ou un panneau, ancré en bas de la page
+  Panel?: ComponentType<{ context; onClose }>;     // …ou un panneau, ancré sous le corps de la colonne
 }
 interface PageActionContext {
   settings;                                        // ceux du plugin
   palette: string[]; mode: 'light' | 'dark';       // le thème actif
-  focus?: { concept; itemId?; path };              // la colonne la plus à droite du Miller
+  column: { concept; columnKind; itemId?; path };  // la colonne du bouton ; les liens s'ouvrent après elle
 }
 ```
 
@@ -280,10 +283,10 @@ Intégrés :
 
 | Plugin | Action | Ce qu'elle fait |
 | --- | --- | --- |
-| `fluid-pharo-script` | `pharo-script` | sur une colonne de détail, ouvre le panneau Smalltalk (Spec-Fluid) : le code, qui commence par `self`, est évalué par l'image (`POST <endpoint>/entities/<id>/evaluate`, `{ code }`) avec l'entité de la colonne comme receveur ; un résultat qui est une entité s'ouvre dans la colonne suivante, une collection liste ses éléments. Son propre réglage `endpoint` (vide = désactivé). Côté image, l'évaluation est **désactivée par défaut** : `SFServer enableEvaluation` |
-| `fluid-fireworks` | `fireworks` | easter egg : un feu d'artifice sur toute la page, aux couleurs du thème (canvas qui laisse passer les clics et se retire à la fin ; simulation pure dans `actions/fireworks/model.ts`) |
+| `fluid-pharo-script` | `pharo-script` | sur une colonne de détail, ouvre sous la colonne le panneau Smalltalk (Spec-Fluid) : le code, qui commence par `self`, est évalué par l'image (`POST <endpoint>/entities/<id>/evaluate`, `{ code }`) avec l'entité de la colonne comme receveur ; un résultat qui est une entité s'ouvre dans la colonne suivante, une collection liste ses éléments. Son propre réglage `endpoint` (vide = désactivé). Côté image, l'évaluation est **désactivée par défaut** : `SFServer enableEvaluation` |
+| `fluid-fireworks` | `fireworks` | easter egg, depuis n'importe quelle colonne : un feu d'artifice sur toute la page, aux couleurs du thème, icône SVG maison au style des icônes antd (canvas qui laisse passer les clics et se retire à la fin ; simulation pure dans `actions/fireworks/model.ts`) |
 
-Un module de plugin `pageAction` exporte `{ pageActions: { "<id>": { run | Panel, available? } } }`.
+Un module de plugin `pageAction` exporte `{ pageActions: { "<id>": { run | Panel, available?, Icon? } } }`.
 
 ## 5. Le LLM et l'agent de création de widgets
 
@@ -345,12 +348,12 @@ Le moteur (`views/`) ne dépend pas des plugins : il expose des contextes que l'
 | 4 | Isolation optionnelle des modules tiers (iframe sandbox) | à étudier |
 | 5 | Trois types de plugins (thème, widget, View Builder), sources de données non GraphQL, Spec-Fluid | ✅ |
 | 5 bis | Plugins de sources (`sourceProvider`) et sélecteur de source dans la barre du haut | ✅ |
-| 5 ter | Actions de page (`pageAction`) : un bouton flottant sur toutes les pages, le script Pharo et le feu d'artifice en plugins | ✅ |
+| 5 ter | Actions de page (`pageAction`) : un bouton flottant par colonne Miller, le script Pharo et le feu d'artifice en plugins | ✅ |
 | 6 | Bus entre colonnes (suivre / figer / surligner, comme `MiBus` de MooseIDE) | à faire |
 
 ## 9. Autres types de plugins envisageables
 
 À discuter : sections de la barre latérale, actions sur une perspective (export CSV… — une action de
-page peut déjà le faire sur la colonne `focus`), formats de
+page peut déjà le faire sur sa `column`), formats de
 cellule (`format`), fournisseurs LLM. Les sources de données et les gabarits de vues sont couverts
 par les View Builders (§4 bis).

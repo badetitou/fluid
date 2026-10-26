@@ -34,7 +34,7 @@ export const PLUGIN_KIND_META: Record<PluginKind, PluginKindMeta> = {
   },
   pageAction: {
     title: 'Page actions',
-    help: 'Commands of the floating button shown on every page: an effect on the page, or a panel such as the Pharo script.',
+    help: 'Commands of the floating button of each Miller column: an effect on the page, or a panel docked under the column, such as the Pharo script.',
     icon: <ThunderboltOutlined />,
     accent: styles.accentPageAction,
   },

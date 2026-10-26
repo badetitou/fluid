@@ -19,7 +19,7 @@ const CONTEXT: PageActionContext = {
   settings: { endpoint: ENDPOINT },
   palette: ['#000'],
   mode: 'light',
-  focus: { concept: 'Class', itemId: '1:1', path: '/d/Class/Class@1:1' },
+  column: { concept: 'Class', columnKind: 'detail', itemId: '1:1', path: '/d/Class/Class@1:1' },
 };
 
 function renderPanel() {
@@ -69,20 +69,14 @@ describe('Pharo script command', () => {
   it('is offered on a detail column, once the endpoint is set', () => {
     const offered = pharoScriptAction.available!;
     expect(offered(CONTEXT)).toBe(true);
-    expect(offered({ ...CONTEXT, focus: { concept: 'Class', path: '/d/Class' } })).toBe(false);
-    expect(offered({ ...CONTEXT, focus: undefined })).toBe(false);
+    expect(offered({ ...CONTEXT, column: { concept: 'Class', columnKind: 'list', path: '/d/Class' } })).toBe(false);
     expect(offered({ ...CONTEXT, settings: { endpoint: '' } })).toBe(false);
   });
 
   it('opens the entity a script answers in the next column', async () => {
     renderPanel();
     await typeAndRun('self methods anyOne', { display: 'bar', ref: { id: '1:2', type: 'Method' } });
-    expect(evaluateMock).toHaveBeenCalledWith(
-      ENDPOINT,
-      '1:1',
-      'self methods anyOne',
-      expect.any(AbortSignal),
-    );
+    expect(evaluateMock).toHaveBeenCalledWith(ENDPOINT, '1:1', 'self methods anyOne', expect.any(AbortSignal));
     expect(await screen.findByText(/Opened bar in the next column/)).toBeTruthy();
     expect(screen.getByTestId('location').textContent).toContain('Method');
   });
@@ -101,10 +95,7 @@ describe('Pharo script command', () => {
 
   it('shows the error of a script that fails', async () => {
     renderPanel();
-    await typeAndRun(
-      'self zork',
-      new Error('Spec-Fluid: Message not understood: FamixStClass >> #zork'),
-    );
+    await typeAndRun('self zork', new Error('Spec-Fluid: Message not understood: FamixStClass >> #zork'));
     expect(await screen.findByText(/Message not understood/)).toBeTruthy();
   });
 });

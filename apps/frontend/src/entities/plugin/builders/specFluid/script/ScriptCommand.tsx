@@ -1,28 +1,26 @@
-import { MillerColumnPathContext } from '../../../../../navigation/columnPath';
+import { CodeOutlined } from '@ant-design/icons';
 import type { PageAction, PageActionPanelProps } from '../../../pageAction';
 import { ENDPOINT_SETTING } from '../model';
 import { ScriptPanel } from './ScriptPanel';
 
-/** The script panel, on the entity of the rightmost column; what it answers opens after that column. */
+/** The script panel, docked under the column, on the column's entity. */
 function ScriptCommandPanel({ context, onClose }: PageActionPanelProps) {
   const endpoint = context.settings[ENDPOINT_SETTING];
-  const itemId = context.focus?.itemId;
-  if (!endpoint || !itemId || !context.focus) return null;
-  return (
-    <MillerColumnPathContext.Provider value={context.focus.path}>
-      <ScriptPanel key={itemId} endpoint={endpoint} itemId={itemId} onClose={onClose} />
-    </MillerColumnPathContext.Provider>
-  );
+  const { itemId } = context.column;
+  if (!endpoint || !itemId) return null;
+  return <ScriptPanel key={itemId} endpoint={endpoint} itemId={itemId} onClose={onClose} />;
 }
 
 /**
- * A command of the floating button, once the Spec-Fluid endpoint is set and a
- * detail column is open: Smalltalk run by the image on that column's entity (`self`).
+ * A command of the floating button of a detail column, once the Spec-Fluid
+ * endpoint is set: Smalltalk run by the image on the column's entity (`self`).
  */
 export const pharoScriptAction: PageAction = {
   id: 'pharo-script',
   label: 'Pharo script',
-  description: 'Smalltalk script on the entity of the last column (self).',
-  available: ({ settings, focus }) => !!settings[ENDPOINT_SETTING] && !!focus?.itemId,
+  description: 'Smalltalk script on this entity (self)',
+  Icon: CodeOutlined,
+  available: ({ settings, column }) =>
+    !!settings[ENDPOINT_SETTING] && column.columnKind === 'detail' && !!column.itemId,
   Panel: ScriptCommandPanel,
 };

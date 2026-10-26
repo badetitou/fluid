@@ -38,11 +38,7 @@ export function createShow(width: number, height: number, rockets: number): Show
 }
 
 /** A rocket leaving the bottom of the page, bursting in its upper half. */
-export function launchRocket(
-  show: Show,
-  palette: readonly string[],
-  random: () => number,
-): Particle {
+export function launchRocket(show: Show, palette: readonly string[], random: () => number): Particle {
   const life = 0.9 + random() * 0.5;
   // Reaches about 15 – 55 % of the height when it bursts.
   const rise = show.height * (0.45 + random() * 0.4);
@@ -59,11 +55,7 @@ export function launchRocket(
 }
 
 /** The sparks of a rocket bursting where it is, in a ring with some jitter. */
-export function burst(
-  rocket: Particle,
-  palette: readonly string[],
-  random: () => number,
-): Particle[] {
+export function burst(rocket: Particle, palette: readonly string[], random: () => number): Particle[] {
   return Array.from({ length: SPARKS }, (_, i) => {
     const angle = (i / SPARKS) * Math.PI * 2 + random() * 0.2;
     const speed = 120 + random() * 160;
@@ -82,12 +74,7 @@ export function burst(
 }
 
 /** Moves the show on by `dt` seconds: launches, moves, bursts and drops particles. */
-export function step(
-  show: Show,
-  dt: number,
-  palette: readonly string[],
-  random: () => number,
-): Show {
+export function step(show: Show, dt: number, palette: readonly string[], random: () => number): Show {
   let { pending, nextIn } = show;
   const launched: Particle[] = [];
   nextIn -= dt;
@@ -117,5 +104,4 @@ export function step(
 export const isOver = (show: Show): boolean => show.pending === 0 && show.particles.length === 0;
 
 /** How visible a particle still is, from 1 (just born) to 0. */
-export const opacityOf = (p: Particle): number =>
-  p.rocket ? 1 : Math.max(0, Math.min(1, p.life / p.span));
+export const opacityOf = (p: Particle): number => (p.rocket ? 1 : Math.max(0, Math.min(1, p.life / p.span)));

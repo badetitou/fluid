@@ -46,11 +46,7 @@ describe('fireworks', () => {
   });
 
   it('fades sparks as they age, never rockets', () => {
-    const [spark] = burst(
-      launchRocket(createShow(800, 600, 1), PALETTE, seeded()),
-      PALETTE,
-      seeded(),
-    );
+    const [spark] = burst(launchRocket(createShow(800, 600, 1), PALETTE, seeded()), PALETTE, seeded());
     expect(opacityOf(spark)).toBe(1);
     expect(opacityOf({ ...spark, life: spark.span / 2 })).toBeCloseTo(0.5);
     expect(opacityOf({ ...spark, rocket: true, life: 0.01 })).toBe(1);

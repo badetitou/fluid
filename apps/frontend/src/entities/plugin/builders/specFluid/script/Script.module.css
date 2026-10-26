@@ -1,4 +1,4 @@
-/* The Pharo script panel, docked at the bottom of the page. */
+/* The Pharo script panel, docked under the column body. */
 .panel {
   flex-shrink: 0;
   display: flex;
