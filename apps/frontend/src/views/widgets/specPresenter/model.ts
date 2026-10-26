@@ -90,3 +90,8 @@ export function columnCount(columns: { title: string }[], rows: SpecRow[]): numb
     list.reduce((max, row) => Math.max(max, row.cells.length, row.children ? widest(row.children) : 0), 0);
   return Math.max(columns.length, widest(rows));
 }
+
+/** The tab key of the page a notebook opens on: Pharo's selected page, else the first one. */
+export function openPageKey(pageCount: number, selected: number | undefined): string {
+  return String(selected !== undefined && selected < pageCount ? selected : 0);
+}

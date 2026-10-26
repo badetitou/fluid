@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { specPresenterWidgetExample, type SpecFluidNode } from '@fluid/shared';
 import { OpenableConceptsContext } from '../../../navigation/columnPath';
 import { SpecPresenterWidget } from './SpecPresenterWidget';
-import { fameTab, hierarchySvg, methodsTable } from './specPresenterFixture';
+import { fameTab, hierarchySvg, methodsTable, sourceNotebook } from './specPresenterFixture';
 
 function Location() {
   return <output data-testid="location">{useLocation().pathname}</output>;
@@ -112,6 +112,14 @@ describe('SpecPresenterWidget', () => {
     const { container } = renderWidget({ kind: 'text', text, highlights: [{ start, end: start + 26 }] });
     expect(container.querySelector('mark')?.textContent).toBe('abstract makeSound(): void');
     expect(container.querySelector('pre')?.textContent).toBe(text);
+  });
+
+  it('draws a notebook as tabs, open on the page Pharo selected', () => {
+    const { container } = renderWidget(sourceNotebook);
+    expect(screen.getByRole('tab', { name: 'Source', selected: true })).toBeTruthy();
+    expect(container.querySelector('pre')?.textContent).toBe('size\n\t^ tally');
+    fireEvent.click(screen.getByRole('tab', { name: 'Methods' }));
+    expect(screen.getByRole('link', { name: /printOn:/ })).toBeTruthy();
   });
 
   it('says when an svg node is not an SVG document', () => {

@@ -46,3 +46,13 @@ export const fameTab: SpecFluidNode = {
     { kind: 'unsupported', presenter: 'SpRoassalInspectorPresenter', message: 'animated canvas' },
   ],
 };
+
+/** A notebook (SpNotebookPresenter) open on its second page. */
+export const sourceNotebook: SpecFluidNode = {
+  kind: 'notebook',
+  selected: 1,
+  pages: [
+    { title: 'Methods', node: methodsTable },
+    { title: 'Source', node: { kind: 'text', text: 'size\n\t^ tally' } },
+  ],
+};

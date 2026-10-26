@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { SpecFluidNode } from '@fluid/shared';
 import { tableRows, treeRows } from './model';
 import { SpecRowsTable } from './SpecRowsTable';
+import { SpecNotebook } from './SpecNotebook';
 import { SpecSvg } from './SpecSvg';
 import { SpecText } from './SpecText';
 import type { SpecInteraction } from './useSpecInteraction';
@@ -12,7 +13,8 @@ interface SpecNodeViewProps {
   interaction: SpecInteraction;
 }
 
-/** One node of a Spec-Fluid tab, drawn by kind; composites draw their children in a row or column. */
+/** One node of a Spec-Fluid tab, drawn by kind; composites draw their children in a row or column,
+ * notebooks their pages as tabs. */
 export function SpecNodeView({ node, interaction }: SpecNodeViewProps) {
   const rows = useMemo(
     () => (node.kind === 'table' ? tableRows(node.rows) : node.kind === 'tree' ? treeRows(node.roots) : []),
@@ -35,6 +37,14 @@ export function SpecNodeView({ node, interaction }: SpecNodeViewProps) {
             </div>
           ))}
         </div>
+      );
+    case 'notebook':
+      return (
+        <SpecNotebook
+          pages={node.pages}
+          selected={node.selected}
+          renderPage={(page) => <SpecNodeView node={page} interaction={interaction} />}
+        />
       );
     case 'unsupported':
       return (
