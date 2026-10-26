@@ -51,8 +51,8 @@ mélange deux contributions est refusé. Un plugin peut déclarer des **réglage
   Les 13 widgets historiques sont répartis en 4 collections (`essentials`, `charts`, `code`,
   `structure`) et le thème badetitou devient un plugin, à côté de deux autres thèmes (Solarized,
   High contrast). Le plugin `fluid-theme-catppuccin` apporte les palettes [Catppuccin](https://catppuccin.com/)
-  en trois thèmes : Latte en mode clair, Frappé, Macchiato ou Mocha en mode sombre
-  (`entities/plugin/catppuccin.ts`). Une 5ᵉ
+  en quatre thèmes : Latte en mode clair, Frappé, Macchiato ou Mocha en mode sombre, plus Matcha
+  (neutres teintés de vert et accent vert matcha dans les deux modes) (`entities/plugin/catppuccin.ts`). Une 5ᵉ
   collection, `fluid-3d` (`model3d`, `scene3d`, three.js chargé à la demande), affiche des éléments IFC.
   La collection `charts` compte aussi le widget `sankey` (flux pondérés entre quelques groupes, en SVG
   maison, disposition calculée sans dépendance ; clic → `selected` = `{ group, rows }` ou

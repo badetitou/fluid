@@ -54,6 +54,22 @@ export const MOCHA: Flavor = {
   surface0: '#313244', base: '#1e1e2e', mantle: '#181825', crust: '#11111b',
 };
 
+// Matcha is not an official flavor: Latte and Mocha accents over green-tinted
+// neutrals, with a matcha green in place of the mauve accent.
+export const MATCHA_LATTE: Flavor = {
+  ...LATTE,
+  green: '#5b7f2a',
+  text: '#3d4836', subtext1: '#4d5945', subtext0: '#5f6b56', surface1: '#bcc6ad',
+  surface0: '#cdd5bf', base: '#f2f5ea', mantle: '#e8eddd', crust: '#dde4cf',
+};
+
+export const MATCHA: Flavor = {
+  ...MOCHA,
+  green: '#a8c97f',
+  text: '#d6e4cd', subtext1: '#bfcdb6', subtext0: '#a7b49f', surface1: '#434e3d',
+  surface0: '#313a2d', base: '#1e241c', mantle: '#181d16', crust: '#111510',
+};
+
 /** fluid's tokens for a flavor: mauve accent, blue links, the palette's accents as series. */
 export function flavorTokens(f: Flavor, mode: 'light' | 'dark'): ThemeTokens {
   const dark = mode === 'dark';
@@ -76,6 +92,11 @@ export function flavorTokens(f: Flavor, mode: 'light' | 'dark'): ThemeTokens {
   };
 }
 
+/** Matcha tokens: the flavor's tokens with the matcha green as accent. */
+export function matchaTokens(f: Flavor, mode: 'light' | 'dark'): ThemeTokens {
+  return { ...flavorTokens(f, mode), primary: f.green, gradient: [f.teal, f.green, f.yellow] };
+}
+
 const theme = (id: string, label: string, dark: Flavor): ThemeDefinition => ({
   id: `catppuccin-${id}`,
   label: `Catppuccin ${label}`,
@@ -89,4 +110,11 @@ export const CATPPUCCIN_THEMES: ThemeDefinition[] = [
   theme('frappe', 'Frappé', FRAPPE),
   theme('macchiato', 'Macchiato', MACCHIATO),
   theme('mocha', 'Mocha', MOCHA),
+  {
+    id: 'catppuccin-matcha',
+    label: 'Catppuccin Matcha',
+    description: 'Soothing pastels steeped in matcha green, in light and dark mode.',
+    light: matchaTokens(MATCHA_LATTE, 'light'),
+    dark: matchaTokens(MATCHA, 'dark'),
+  },
 ];

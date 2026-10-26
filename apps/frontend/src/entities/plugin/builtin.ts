@@ -220,7 +220,7 @@ export const BUILTIN_PLUGINS: FluidPlugin[] = [
       id: 'fluid-theme-catppuccin',
       name: 'Catppuccin themes',
       description:
-        'The Catppuccin pastel palettes (catppuccin.com): Latte in light mode, Frappé, Macchiato or Mocha in dark mode.',
+        'The Catppuccin pastel palettes (catppuccin.com): Latte in light mode, Frappé, Macchiato or Mocha in dark mode, plus a matcha green variant.',
     },
     CATPPUCCIN_THEMES,
   ),
