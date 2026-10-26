@@ -1,33 +1,29 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useContext, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { isOffered, useActivePageActions, type PageActionContext } from '../../entities/plugin';
+import { isOffered, useActivePageActions, type PageActionColumn } from '../../entities/plugin';
+import { MillerColumnPathContext } from '../../navigation/columnPath';
 import { useWidgetTheme } from '../../views/plugin-api';
-import { pageFocus } from './model';
 
-/** What a page action may read of the page, but its own settings. */
-type PageState = Omit<PageActionContext, 'settings'>;
+/** The column a floating button is drawn on, but its path (read from the column). */
+export type ColumnPlace = Omit<PageActionColumn, 'path'>;
 
 /**
- * The commands of the floating button on this page — the page actions of the
- * enabled plugins that are offered here — and the panel one of them opened.
+ * The commands of a column's floating button — the page actions of the
+ * enabled plugins that this column offers — and the panel one of them opened.
  */
-export function usePageActions() {
+export function usePageActions({ concept, columnKind, itemId }: ColumnPlace) {
   const { pathname } = useLocation();
+  const path = useContext(MillerColumnPathContext) ?? pathname;
   const { series, mode } = useWidgetTheme('page-actions');
   const active = useActivePageActions();
   const [openKey, setOpenKey] = useState<string | null>(null);
 
-  const page = useMemo<PageState>(
-    () => ({ palette: series, mode, focus: pageFocus(pathname) }),
-    [series, mode, pathname],
-  );
-  const commands = useMemo(
-    () =>
-      active
-        .map((a) => ({ ...a, context: { ...page, settings: a.settings } }))
-        .filter(({ action, context }) => isOffered(action, context)),
-    [active, page],
-  );
+  const commands = useMemo(() => {
+    const column = { concept, columnKind, itemId, path };
+    return active
+      .map((a) => ({ ...a, context: { settings: a.settings, palette: series, mode, column } }))
+      .filter(({ action, context }) => isOffered(action, context));
+  }, [active, concept, columnKind, itemId, path, series, mode]);
 
   const trigger = useCallback(
     (key: string) => {
@@ -39,7 +35,7 @@ export function usePageActions() {
     [commands],
   );
   const close = useCallback(() => setOpenKey(null), []);
-  // A panel no longer offered (the column it was about closed) closes.
+  // A panel no longer offered (its plugin disabled, its setting cleared) closes.
   const open = commands.find((c) => c.key === openKey && c.action.Panel);
 
   return { commands, trigger, open, close };

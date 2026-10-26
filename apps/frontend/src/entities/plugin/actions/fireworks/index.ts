@@ -1,4 +1,5 @@
 import type { PageAction } from '../../pageAction';
+import { FireworksIcon } from './FireworksIcon';
 import { createShow, isOver, opacityOf, step } from './model';
 
 const ROCKETS = 9;
@@ -48,11 +49,11 @@ export function playFireworks(palette: readonly string[]): void {
   requestAnimationFrame(frame);
 }
 
-/** The easter egg: fireworks over any page. */
+/** The easter egg: fireworks over the page, from any column. */
 export const fireworksAction: PageAction = {
   id: 'fireworks',
   label: 'Fireworks',
   description: 'Celebrate: fireworks over the page, in the colours of the theme.',
-  icon: '🎆',
+  Icon: FireworksIcon,
   run: ({ palette }) => playFireworks(palette),
 };

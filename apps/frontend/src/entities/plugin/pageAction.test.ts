@@ -2,14 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { BUILTIN_PLUGINS } from './builtin';
 import { pluginKind, pluginManifestSchema } from './manifest';
 import { installedPlugin } from './model';
-import {
-  activePageActions,
-  isOffered,
-  modulePageAction,
-  type PageActionContext,
-} from './pageAction';
+import { activePageActions, isOffered, modulePageAction, type PageActionContext } from './pageAction';
 
-const CONTEXT: PageActionContext = { settings: {}, palette: ['#f00'], mode: 'dark' };
+const LIST = { concept: 'Class', columnKind: 'list', path: '/d/Class' } as const;
+const DETAIL = {
+  concept: 'Class',
+  columnKind: 'detail',
+  itemId: '1:1',
+  path: '/d/Class/Class@1:1',
+} as const;
+const CONTEXT: PageActionContext = { settings: {}, palette: ['#f00'], mode: 'dark', column: LIST };
 const MANIFEST = {
   id: 'confetti',
   name: 'Confetti',
@@ -54,11 +56,7 @@ describe('page action plugins', () => {
     );
     const plugins = [...BUILTIN_PLUGINS, installed];
     const keys = activePageActions(plugins, [], {}).map((a) => a.key);
-    expect(keys).toEqual([
-      'fluid-pharo-script/pharo-script',
-      'fluid-fireworks/fireworks',
-      'confetti/throw',
-    ]);
+    expect(keys).toEqual(['fluid-pharo-script/pharo-script', 'fluid-fireworks/fireworks', 'confetti/throw']);
     expect(activePageActions(plugins, ['fluid-fireworks'], {}).map((a) => a.key)).not.toContain(
       'fluid-fireworks/fireworks',
     );
@@ -68,7 +66,7 @@ describe('page action plugins', () => {
     expect(pharo.settings).toEqual({ endpoint: 'http://localhost:8081/spec-fluid' });
   });
 
-  it('offer the fireworks on any page, the Pharo script only on an entity', () => {
+  it('offer the fireworks on any column, the Pharo script only on an entity', () => {
     const [pharo, fireworks] = activePageActions(BUILTIN_PLUGINS, [], {
       'fluid-pharo-script': { endpoint: 'http://x' },
     });
@@ -79,7 +77,7 @@ describe('page action plugins', () => {
       isOffered(pharo.action, {
         ...CONTEXT,
         settings,
-        focus: { concept: 'Class', itemId: '1:1', path: '/d/Class/Class@1:1' },
+        column: DETAIL,
       }),
     ).toBe(true);
   });

@@ -40,7 +40,7 @@ export type {
   WidgetPlugin,
 } from './types';
 export type { SourceProvider } from './sourceProvider';
-export { isOffered, type ActivePageAction, type PageAction, type PageActionContext, type PageActionPanelProps, type PageFocus } from './pageAction';
+export { isOffered, type ActivePageAction, type PageAction, type PageActionContext, type PageActionColumn, type PageActionPanelProps } from './pageAction';
 export type {
   BuiltPerspective,
   ColumnOverlayProps,

@@ -11,14 +11,7 @@ import type { PluginManifest } from './manifest';
 import type { PageAction } from './pageAction';
 import { staticSourceProvider } from './sourceProvider';
 import { DEMO_SOURCES } from './sources/demoSources';
-import type {
-  FluidPlugin,
-  PageActionPlugin,
-  SourceProviderPlugin,
-  ThemePlugin,
-  ViewBuilderPlugin,
-  WidgetPlugin,
-} from './types';
+import type { FluidPlugin, PageActionPlugin, SourceProviderPlugin, ThemePlugin, ViewBuilderPlugin, WidgetPlugin } from './types';
 import type { ViewBuilder } from './viewBuilder';
 
 const VERSION = '1.0.0';
@@ -44,20 +37,10 @@ const widgetPlugins: WidgetPlugin[] = BUILTIN_WIDGET_COLLECTIONS.map((collection
 
 type ThemeManifest = Pick<PluginManifest, 'id' | 'name' | 'description'>;
 
-const themesPlugin = (
-  manifest: ThemeManifest,
-  themes: ThemeDefinition[],
-  required = false,
-): ThemePlugin => ({
+const themesPlugin = (manifest: ThemeManifest, themes: ThemeDefinition[], required = false): ThemePlugin => ({
   ...BUILTIN,
   kind: 'theme',
-  manifest: {
-    ...manifest,
-    version: VERSION,
-    kind: 'theme',
-    author: 'fluid',
-    contributes: { themes },
-  },
+  manifest: { ...manifest, version: VERSION, kind: 'theme', author: 'fluid', contributes: { themes } },
   required,
   themes,
 });
@@ -71,11 +54,7 @@ const themePlugin = (theme: ThemeDefinition, required = false): ThemePlugin =>
 
 type BuilderManifest = Pick<PluginManifest, 'id' | 'name' | 'description' | 'settings'>;
 
-const viewBuilderPlugin = (
-  manifest: BuilderManifest,
-  builder: ViewBuilder,
-  color: string,
-): ViewBuilderPlugin => ({
+const viewBuilderPlugin = (manifest: BuilderManifest, builder: ViewBuilder, color: string): ViewBuilderPlugin => ({
   ...BUILTIN,
   kind: 'viewBuilder',
   manifest: {
@@ -98,11 +77,7 @@ const specFluidEndpoint = (description: string) => ({
 
 const viewBuilderPlugins: ViewBuilderPlugin[] = [
   viewBuilderPlugin(
-    {
-      id: 'fluid-curated-views',
-      name: 'Curated views',
-      description: 'Example perspectives shipped with fluid for well-known concepts.',
-    },
+    { id: 'fluid-curated-views', name: 'Curated views', description: 'Example perspectives shipped with fluid for well-known concepts.' },
     curatedViewBuilder,
     '#eb2f96',
   ),
@@ -110,8 +85,7 @@ const viewBuilderPlugins: ViewBuilderPlugin[] = [
     {
       id: 'fluid-auto-views',
       name: 'Automatic views',
-      description:
-        'An overview of every concept, a detail of every item and a tree of hierarchies, built from the GraphQL schema.',
+      description: 'An overview of every concept, a detail of every item and a tree of hierarchies, built from the GraphQL schema.',
     },
     autoViewBuilder,
     '#1677ff',
@@ -122,11 +96,7 @@ const viewBuilderPlugins: ViewBuilderPlugin[] = [
       name: 'Spec-Fluid (Pharo inspectors)',
       description:
         'The inspector tabs Pharo defines for a Moose entity (Navigation, Fame, Blueprint, UML…), served by the Spec-Fluid project of the image, as perspectives of its detail column.',
-      settings: [
-        specFluidEndpoint(
-          'Where the image serves Spec-Fluid (SFServer start). Leave empty to turn it off.',
-        ),
-      ],
+      settings: [specFluidEndpoint('Where the image serves Spec-Fluid (SFServer start). Leave empty to turn it off.')],
     },
     specFluidViewBuilder,
     '#722ed1',
@@ -165,40 +135,24 @@ const pageActionPlugin = (manifest: ActionManifest, actions: PageAction[]): Page
     version: VERSION,
     kind: 'pageAction',
     author: 'fluid',
-    contributes: {
-      pageActions: actions.map(({ id, label, description, icon }) => ({
-        id,
-        label,
-        description,
-        icon,
-      })),
-    },
+    contributes: { pageActions: actions.map(({ id, label, description, icon }) => ({ id, label, description, icon })) },
   },
   actions,
 });
 
-/** The built-in commands of the floating button. */
+/** The built-in commands of the floating button of the columns. */
 const pageActionPlugins: PageActionPlugin[] = [
   pageActionPlugin(
     {
       id: 'fluid-pharo-script',
       name: 'Pharo script',
-      description:
-        'Run Smalltalk in the Pharo image on the entity of the last column (self), served by Spec-Fluid.',
-      settings: [
-        specFluidEndpoint(
-          'Where the image serves Spec-Fluid; it evaluates scripts once SFServer enableEvaluation. Leave empty to turn it off.',
-        ),
-      ],
+      description: 'Run Smalltalk in the Pharo image on the entity of a detail column (self), served by Spec-Fluid.',
+      settings: [specFluidEndpoint('Where the image serves Spec-Fluid; it evaluates scripts once SFServer enableEvaluation. Leave empty to turn it off.')],
     },
     [pharoScriptAction],
   ),
   pageActionPlugin(
-    {
-      id: 'fluid-fireworks',
-      name: 'Fireworks',
-      description: 'An easter egg: fireworks over any page.',
-    },
+    { id: 'fluid-fireworks', name: 'Fireworks', description: 'An easter egg: fireworks over the page, from the floating button of any column.' },
     [fireworksAction],
   ),
 ];
@@ -219,8 +173,7 @@ export const BUILTIN_PLUGINS: FluidPlugin[] = [
     {
       id: 'fluid-theme-catppuccin',
       name: 'Catppuccin themes',
-      description:
-        'The Catppuccin pastel palettes (catppuccin.com): Latte in light mode, Frappé, Macchiato or Mocha in dark mode, plus a matcha green variant.',
+      description: 'The Catppuccin pastel palettes (catppuccin.com): Latte in light mode, Frappé, Macchiato or Mocha in dark mode, plus a matcha green variant.',
     },
     CATPPUCCIN_THEMES,
   ),
