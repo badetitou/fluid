@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { ViewSpec, Widget, CoreWidgetType } from '@fluid/shared';
+import type { SpecAdditions } from '../../entities/widget-clipboard';
 import { resolveBinding } from '../../views/data';
 import { useViewData } from '../../views/useViewData';
 import { WIDGET_INFO } from '../../views/widgets/widgetInfo';
@@ -10,7 +11,8 @@ export interface WidgetBuilderTarget {
   widgets: Widget[] | null;
   selected: Widget | undefined;
   select: (id: string | undefined) => void;
-  add: (widget: Widget) => void;
+  /** Adds a widget, with the queries and actions a pasted one brings. */
+  add: (widget: Widget, additions?: SpecAdditions) => void;
   replace: (widget: Widget) => void;
   change: (widgets: Widget[]) => void;
 }

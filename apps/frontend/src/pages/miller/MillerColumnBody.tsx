@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Concept } from '../../entities/concept';
+import { withAdditions } from '../../entities/widget-clipboard';
 import { LayoutEditBar, LayoutEditToolbar } from '../../features/layout-editor';
 import { PerspectiveMenu } from '../../features/perspective-menu';
 import { PerspectivePills } from '../../features/perspective-switcher';
@@ -90,7 +91,7 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
     />
   );
 
-  const shown = spec && layout.widgets ? { ...spec, widgets: layout.widgets } : spec;
+  const shown = spec && layout.widgets ? withAdditions({ ...spec, widgets: layout.widgets }, layout.additions) : spec;
   const body = (
     <PresentationFrame active={presenting && !layout.editing} onExit={() => setPresenting(false)} className={styles.body}>
       {selected?.source === 'draft' && !layout.editing ? (

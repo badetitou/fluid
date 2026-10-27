@@ -12,6 +12,7 @@ import {
   type SavedView,
   type ViewEntry,
 } from '../../entities/view';
+import { withAdditions, type SpecAdditions } from '../../entities/widget-clipboard';
 import { usePinnableConcepts } from '../../features/concept-pinning';
 import { useColumnDashboards } from '../../features/dashboard-promotion';
 import { useLayoutEditor } from '../../features/layout-editor';
@@ -65,12 +66,11 @@ export function useColumnController(concept: Concept, { path, slot, itemId, pers
   }, [preselect, openAssistant]);
 
   // Editing a curated/auto perspective's layout saves the arrangement as a new saved perspective.
-  const saveLayout = async (widgets: Widget[], title: string) => {
+  const saveLayout = async (widgets: Widget[], title: string, additions: SpecAdditions) => {
     if (!selected) return false;
-    if (selected.saved) {
-      return Boolean(await mutations.updateSpec(selected.saved.id, { ...selected.spec, title, widgets }, 'Layout saved'));
-    }
-    const copy = withScope({ ...selected.spec, id: newViewId(concept.name), title, widgets }, columnKind);
+    const spec = withAdditions({ ...selected.spec, title, widgets }, additions);
+    if (selected.saved) return Boolean(await mutations.updateSpec(selected.saved.id, spec, 'Layout saved'));
+    const copy = withScope({ ...spec, id: newViewId(concept.name) }, columnKind);
     const isNew = selected.source === 'draft';
     const created = await mutations.create(copy, isNew ? 'View created' : 'Layout saved as a new perspective');
     if (created) pick(created.id);

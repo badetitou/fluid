@@ -105,3 +105,7 @@
   font-family: var(--ant-font-family-code);
   font-size: 12px;
 }
+
+.pasteEntry {
+  border-style: dashed;
+}
