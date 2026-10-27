@@ -1,4 +1,5 @@
 import type { ViewSpec } from '@fluid/shared';
+import { withAdditions } from '../../entities/widget-clipboard';
 import { editedViewDraft, newViewDraft, newViewId, type ViewEntry } from '../../entities/view';
 import type { LayoutEditor } from '../../features/layout-editor';
 import type { ColumnKind } from '../../views/viewScope';
@@ -19,7 +20,7 @@ interface Options {
 export function useEditorSwitch({ selected, columnKind, layout, dialogs }: Options) {
   const edited = (): ViewSpec | undefined =>
     selected && layout.widgets
-      ? { ...selected.spec, title: layout.title.trim() || selected.title, widgets: layout.widgets }
+      ? withAdditions({ ...selected.spec, title: layout.title.trim() || selected.title, widgets: layout.widgets }, layout.additions)
       : undefined;
 
   const toJson = () => {

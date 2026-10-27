@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Alert, Button, Collapse, Form, Tooltip, Typography } from 'antd';
-import { ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { CoreWidget, Widget } from '@fluid/shared';
 import { WIDGET_INFO } from '../../views/widgets/widgetInfo';
 import { OptionItem } from './OptionItem';
@@ -13,6 +13,7 @@ interface WidgetInspectorProps {
   suggestions: OptionSuggestions;
   /** Receives the widget each time its options form a valid widget. */
   onChange: (widget: Widget) => void;
+  onCopy: () => void;
   onRemove: () => void;
   onClose: () => void;
 }
@@ -22,7 +23,7 @@ interface WidgetInspectorProps {
  * Edits apply to the view as soon as they make a valid widget; until then the
  * offending options show why.
  */
-export function WidgetInspector({ widget, suggestions, onChange, onRemove, onClose }: WidgetInspectorProps) {
+export function WidgetInspector({ widget, suggestions, onChange, onCopy, onRemove, onClose }: WidgetInspectorProps) {
   const fields = widgetOptions(widget.type);
   const [errors, setErrors] = useState<Record<string, string>>({});
   // The form keeps what is typed; it is seeded once per widget (the inspector is keyed by id).
@@ -57,6 +58,9 @@ export function WidgetInspector({ widget, suggestions, onChange, onRemove, onClo
         <Typography.Text strong ellipsis className={styles.grow}>
           {info.label}
         </Typography.Text>
+        <Tooltip title="Copy widget (⌘C), to paste in this or another view">
+          <Button type="text" size="small" aria-label="Copy widget" icon={<CopyOutlined />} onClick={onCopy} />
+        </Tooltip>
         <Tooltip title="Remove widget">
           <Button type="text" size="small" danger aria-label="Remove widget" icon={<DeleteOutlined />} onClick={onRemove} />
         </Tooltip>

@@ -1,5 +1,6 @@
 import { Typography } from 'antd';
 import type { CoreWidgetType } from '@fluid/shared';
+import type { ReactNode } from 'react';
 import { useWidgetCatalog } from '../../views/plugin-api';
 import { WIDGET_GROUPS, WIDGET_INFO } from '../../views/widgets/widgetInfo';
 import styles from './WidgetBuilder.module.css';
@@ -7,7 +8,13 @@ import styles from './WidgetBuilder.module.css';
 const TYPES = Object.keys(WIDGET_INFO) as CoreWidgetType[];
 
 /** Every built-in widget type of the enabled collections, by group; clicking one adds it to the view. */
-export function WidgetCatalog({ onAdd }: { onAdd: (type: CoreWidgetType) => void }) {
+interface WidgetCatalogProps {
+  onAdd: (type: CoreWidgetType) => void;
+  /** Shown above the catalog, e.g. pasting a copied widget. */
+  extra?: ReactNode;
+}
+
+export function WidgetCatalog({ onAdd, extra }: WidgetCatalogProps) {
   const { renderers } = useWidgetCatalog();
   const types = TYPES.filter((type) => renderers.has(type));
   return (
@@ -16,6 +23,7 @@ export function WidgetCatalog({ onAdd }: { onAdd: (type: CoreWidgetType) => void
       <Typography.Text type="secondary" className={styles.note}>
         Click a widget to add it below the others, or click a widget of the view to edit it.
       </Typography.Text>
+      {extra}
       {WIDGET_GROUPS.map((group) => (
         <section key={group} aria-label={group} className={styles.group}>
           <Typography.Text type="secondary" className={styles.groupTitle}>
