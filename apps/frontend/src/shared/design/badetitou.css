@@ -62,5 +62,5 @@ body {
 h1.ant-typography,
 h2.ant-typography,
 h3.ant-typography {
-  letter-spacing: -0.025em;
+  letter-spacing: var(--fluid-letter-spacing, -0.025em);
 }

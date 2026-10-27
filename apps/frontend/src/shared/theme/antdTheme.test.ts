@@ -19,6 +19,18 @@ describe('buildAntdTheme', () => {
     const p = BADETITOU_THEME.dark!;
     expect(buildAntdTheme(p, 'dark').components?.Layout?.siderBg).toBe(p.surface);
   });
+
+  it('lets a theme style navigation independently of content', () => {
+    const navigation = { background: '#006f75', ink: '#ffffff', selected: '#00565b', selectedInk: '#ffffff', radius: 0 };
+    const parsed = themeTokensSchema.parse({ ...BADETITOU_THEME.light!, navigation });
+    const config = buildAntdTheme(parsed, 'light');
+    expect(config.components?.Layout?.siderBg).toBe(navigation.background);
+    expect(config.components?.Menu?.itemColor).toBe(navigation.ink);
+    expect(config.components?.Menu?.itemSelectedBg).toBe(navigation.selected);
+    expect(config.components?.Menu?.itemSelectedColor).toBe(navigation.selectedInk);
+    expect(config.components?.Menu?.itemBorderRadius).toBe(0);
+    expect(config.token?.colorBgContainer).toBe(BADETITOU_THEME.light!.surfaceCard);
+  });
 });
 
 describe('themeCssVariables', () => {
@@ -27,6 +39,15 @@ describe('themeCssVariables', () => {
     expect(vars['--surface']).toBe('#ffffff');
     expect(vars['--brand-blue']).toBe(BRAND.blue);
     expect(vars['--fluid-series-1']).toBe('#222222');
+  });
+
+  it('does not override legacy shape or navigation styles without explicit tokens', () => {
+    const vars = themeCssVariables(BADETITOU_THEME.light!);
+    expect(vars).not.toHaveProperty('--fluid-navigation-ink');
+    expect(vars).not.toHaveProperty('--fluid-pill-radius');
+    expect(vars).not.toHaveProperty('--radius-sm');
+    expect(vars).not.toHaveProperty('--fluid-letter-spacing');
+    expect(buildAntdTheme(BADETITOU_THEME.light!, 'light').components).not.toHaveProperty('Button');
   });
 });
 
@@ -52,5 +73,15 @@ describe('theme definitions', () => {
   it('requires at least one mode', () => {
     expect(themeDefinitionSchema.safeParse({ id: 'x', label: 'X' }).success).toBe(false);
     expect(themeDefinitionSchema.safeParse(BADETITOU_THEME).success).toBe(true);
+  });
+
+  it('validates optional navigation colors and shape dimensions for installed themes', () => {
+    const base = BADETITOU_THEME.light!;
+    const navigation = { background: '#ffffff', ink: '#222222', selected: '#eeeeee', selectedInk: '#111111' };
+    expect(themeTokensSchema.safeParse({ ...base, navigation: { ...navigation, background: 'url(https://x.io/a.png)' } }).success).toBe(false);
+    expect(themeTokensSchema.safeParse({ ...base, navigation: { ...navigation, radius: -1 } }).success).toBe(false);
+    expect(themeTokensSchema.safeParse({ ...base, shape: { buttonRadius: -1, controlRadius: 4, cardRadius: 4, pillRadius: 4 } }).success).toBe(false);
+    expect(themeTokensSchema.safeParse({ ...base, controlHeight: 1000 }).success).toBe(false);
+    expect(themeTokensSchema.safeParse({ ...base, status: { success: '#248836', warning: 'red; color: blue', error: '#ca1d34' } }).success).toBe(false);
   });
 });

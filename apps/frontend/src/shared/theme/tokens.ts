@@ -33,6 +33,26 @@ export const themeTokensSchema = z.object({
     .regex(/^[\w\s,'"-]+$/)
     .optional(),
   radius: z.number().int().min(0).max(24).optional(),
+  controlHeight: z.number().int().min(24).max(56).optional(),
+  letterSpacing: z.number().min(0).max(2).optional(),
+  shape: z.object({
+    buttonRadius: z.number().int().min(0).max(24),
+    controlRadius: z.number().int().min(0).max(24),
+    cardRadius: z.number().int().min(0).max(24),
+    pillRadius: z.number().int().min(0).max(999),
+  }).optional(),
+  status: z.object({ success: color, warning: color, error: color }).optional(),
+  surfaceInset: color.optional(),
+  surfaceButton: color.optional(),
+  accentHover: color.optional(),
+  badgeBorder: color.optional(),
+  navigation: z.object({
+    background: color,
+    ink: color,
+    selected: color,
+    selectedInk: color,
+    radius: z.number().int().min(0).max(24).optional(),
+  }).optional(),
   /** Per widget type, extra variables handed to that widget (`useWidgetTheme(type).vars`). */
   widgets: z.record(z.string(), z.record(z.string().regex(/^[a-zA-Z][\w-]*$/), color)).optional(),
 });

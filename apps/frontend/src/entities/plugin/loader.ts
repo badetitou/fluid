@@ -8,8 +8,8 @@ import { checkedSourceProvider, type SourceProvider } from './sourceProvider';
 import type { ViewBuilder } from './viewBuilder';
 
 /**
- * Where a manifest may be read from: any `https:` URL, or fluid's own origin
- * (relative URLs included, e.g. the examples under `/plugins/`).
+ * Where a manifest may be read from: HTTPS, fluid's own origin, or HTTP
+ * loopback servers when fluid itself runs on loopback.
  */
 export function resolveManifestUrl(input: string, origin: string): URL {
   let url: URL;
@@ -18,7 +18,10 @@ export function resolveManifestUrl(input: string, origin: string): URL {
   } catch {
     throw new Error('This is not a valid URL.');
   }
-  if (url.protocol !== 'https:' && url.origin !== origin) {
+  const loopback = new Set(['localhost', '127.0.0.1', '[::1]']);
+  const localDevelopment = url.protocol === 'http:' && loopback.has(url.hostname)
+    && loopback.has(new URL(origin).hostname);
+  if (url.protocol !== 'https:' && url.origin !== origin && !localDevelopment) {
     throw new Error('Plugins are installed from https:// URLs (or from fluid’s own site).');
   }
   return url;

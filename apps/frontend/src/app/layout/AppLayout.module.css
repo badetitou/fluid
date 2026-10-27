@@ -11,6 +11,7 @@
 
 .sider {
   border-inline-end: 1px solid var(--border);
+  background: var(--fluid-navigation-background, var(--surface));
 }
 
 /* The content scrolls, not the sider, so the resize handle stays on the edge. */
@@ -69,7 +70,7 @@
   align-items: center;
   gap: 10px;
   overflow: hidden;
-  color: var(--ink);
+  color: var(--fluid-navigation-ink, var(--ink));
 }
 
 .brand::after {
@@ -92,10 +93,10 @@
 }
 
 .brandName {
-  color: var(--ink) !important;
+  color: var(--fluid-navigation-ink, var(--ink)) !important;
   font-size: 18px;
   font-weight: 700;
-  letter-spacing: -0.025em;
+  letter-spacing: var(--fluid-letter-spacing, -0.025em);
 }
 
 .compact .logo {
