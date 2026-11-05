@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm -r typecheck)",
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm test)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm --filter @fluid/frontend typecheck)",
+      "Bash(pnpm --filter @fluid/frontend test:*)",
+      "Bash(pnpm --filter @fluid/frontend exec vitest run:*)",
+      "Bash(pnpm --filter @fluid/bff typecheck)",
+      "Bash(pnpm --filter @fluid/shared typecheck)",
+      "Bash(npx vitest run:*)",
+      "Bash(node scripts/arch-metrics.mjs:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git grep:*)",
+      "Bash(glab issue list:*)",
+      "Bash(glab issue view:*)",
+      "Bash(glab mr list:*)",
+      "Bash(glab mr view:*)",
+      "Bash(curl -s localhost:8080/graphql:*)"
+    ]
+  }
+}

@@ -35,3 +35,18 @@ Le code nouveau ou modifié suit ces règles ; la dette existante est suivie dan
 8. Fichiers modules (`.ts`) ≤ 250 lignes. Le code généré (`**/generated/**`) est exclu.
 
 Quand tu changes un seuil ici, change-le aussi dans `scripts/arch-metrics.mjs`.
+
+## Carte
+
+- `apps/frontend/src` : `app/`, `pages/`, `features/`, `entities/` (dont `entities/plugin`), `views/`
+  (moteur de rendu, widgets), `shared/` ; accès BFF dans `entities/*`.
+- `apps/bff/src` : `routes/`, `llm/` (prompts), `db.ts` (Prisma).
+- `packages/shared/src` : `view-spec.ts`, `widgets/`, `plugins/contracts.ts`.
+- Backend Moose/Pharo de démo : GraphQL sur `localhost:8080`, image pilotée par le MCP `pharo` (:4000).
+
+## Workflow
+
+- Équipe, agents et historique des rétros : `.claude/team.md`. Explorer avec l'agent `scout`.
+- Dépôt sur **GitLab** (`badetitou/fluid`) : `glab`, pas `gh`. Une tâche → une issue → une MR minimale.
+- Issues et MR en anglais, sans attribution Claude.
+- Ne pas committer les changements de port dans `.claude/launch.json`.
