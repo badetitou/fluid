@@ -1,6 +1,7 @@
 #!/bin/sh
 # Regenerate the browser-facing runtime config from environment variables.
 # Runs via the nginx image's /docker-entrypoint.d/ mechanism before nginx starts.
+# Keep in sync with apps/bff/src/runtime-config.ts (same /config.js for single-process mode).
 set -eu
 
 # FLUID_IMAGE_HOSTS is a comma-separated host list -> JSON array of strings.

@@ -3,8 +3,14 @@ import cors from '@fastify/cors';
 import { viewRoutes } from './routes/views';
 import { prefRoutes } from './routes/prefs';
 import { llmRoutes } from './routes/llm';
+import { staticRoutes } from './routes/static';
 
-export function buildApp() {
+export interface BuildAppOptions {
+  /** Built frontend directory; defaults to FLUID_STATIC_DIR. Unset = API only. */
+  staticDir?: string;
+}
+
+export function buildApp(options: BuildAppOptions = {}) {
   const app = Fastify({ logger: true });
 
   // @fastify/cors only allows GET,HEAD,POST by default; views are also updated and deleted.
@@ -15,6 +21,9 @@ export function buildApp() {
   app.register(viewRoutes);
   app.register(prefRoutes);
   app.register(llmRoutes);
+
+  const staticDir = options.staticDir ?? process.env.FLUID_STATIC_DIR;
+  if (staticDir) app.register(staticRoutes, { dir: staticDir });
 
   return app;
 }

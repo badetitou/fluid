@@ -112,6 +112,18 @@ nothing set, the BFF uses an offline **mock** provider, so the assistant works o
 | `pnpm test` | Run the tests (vitest) |
 | `node scripts/arch-metrics.mjs` | Architecture health indicators (`--json` for the log) |
 
+### Single-process mode
+
+To run fluid as one process (no nginx, no separate dev server), build the frontend and let the BFF serve it:
+
+```bash
+pnpm --filter @fluid/frontend build
+FLUID_STATIC_DIR=$PWD/apps/frontend/dist pnpm --filter @fluid/bff start
+# open http://localhost:4001
+```
+
+The BFF then serves the app at `/` (unknown non-`/api` paths fall back to `index.html`) and a generated `/config.js` pointing at the same origin. `FLUID_DEFAULT_GRAPHQL_URL` and `FLUID_IMAGE_HOSTS` are honoured as in the Docker image. Without `FLUID_STATIC_DIR` the BFF behaves as before.
+
 ## 🤖 LLM providers
 
 | Provider | Setup |
