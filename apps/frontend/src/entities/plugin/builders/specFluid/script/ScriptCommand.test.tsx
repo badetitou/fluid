@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import type { SpecFluidEvaluation } from '@fluid/shared';
 import { OpenableConceptsContext } from '../../../../../navigation/columnPath';
@@ -78,7 +78,7 @@ describe('Pharo script command', () => {
     await typeAndRun('self methods anyOne', { display: 'bar', ref: { id: '1:2', type: 'Method' } });
     expect(evaluateMock).toHaveBeenCalledWith(ENDPOINT, '1:1', 'self methods anyOne', expect.any(AbortSignal));
     expect(await screen.findByText(/Opened bar in the next column/)).toBeTruthy();
-    expect(screen.getByTestId('location').textContent).toContain('Method');
+    await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('Method'));
   });
 
   it('shows what a script prints and the entities it holds', async () => {
