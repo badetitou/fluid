@@ -58,17 +58,20 @@ export function initialValues(fields: FormField[], object: unknown): Record<stri
 }
 
 /** The submitted `$form`: dot-path keys nested (`user.id` → `{ user: { id } }`), untouched fields left out. */
-export function toFormValue(values: Record<string, unknown>): Record<string, unknown> {
+export function toFormValue(values: Record<string, unknown>, fields: FormField[] = []): Record<string, unknown> {
+  const byKey = new Map(fields.map((field) => [field.key, field]));
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(values)) {
     if (value === undefined) continue;
+    const field = byKey.get(key);
+    const coerced = field?.input === 'number' && typeof value === 'string' ? Number(value) : value;
     const segments = key.split('.');
     let node = out;
     for (const segment of segments.slice(0, -1)) {
       node[segment] ??= {};
       node = node[segment] as Record<string, unknown>;
     }
-    node[segments[segments.length - 1]] = value;
+    node[segments[segments.length - 1]] = coerced;
   }
   return out;
 }

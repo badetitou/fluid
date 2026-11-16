@@ -78,4 +78,12 @@ describe('form values', () => {
       user: { id: '1', role: 'admin' },
     });
   });
+
+  it('coerces numeric form values to numbers for GraphQL Float/Int fields', () => {
+    expect(toFormValue({ price: '42.5', quantity: '3' }, [{ key: 'price', input: 'number' }, { key: 'quantity', input: 'number' }])).toEqual({
+      price: 42.5,
+      quantity: 3,
+    });
+    expect(toFormValue({ price: '42.5' }, [{ key: 'price', input: 'text' }])).toEqual({ price: '42.5' });
+  });
 });
