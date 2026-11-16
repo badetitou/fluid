@@ -10,7 +10,6 @@
     "start": "prisma generate && tsx src/index.ts",
     "test": "prisma generate && vitest run",
     "typecheck": "prisma generate && tsc --noEmit",
-    "test": "vitest run",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
