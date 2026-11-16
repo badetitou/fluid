@@ -1,0 +1,22 @@
+{
+  "name": "@fluid/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Source of the @badetitou/fluid npm package (npx @badetitou/fluid). Built by scripts/build.mjs, never published from here.",
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build:pack": "node scripts/build.mjs",
+    "smoke": "node scripts/smoke-pack.mjs"
+  },
+  "devDependencies": {
+    "@fluid/bff": "workspace:*",
+    "@types/node": "^26.6.5",
+    "esbuild": "0.28.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5",
+    "zod": "^4.6.7"
+  }
+}
