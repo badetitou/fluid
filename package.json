@@ -16,9 +16,11 @@
     "test": "pnpm -r --if-present test",
     "frontend": "pnpm --filter @fluid/frontend",
     "pack:cli": "pnpm --filter @fluid/frontend build && pnpm --filter @fluid/bff prisma:generate && pnpm --filter @fluid/cli build:pack && mkdir -p out && npm pack ./apps/cli/pkg --pack-destination ./out",
-    "test:pack": "pnpm --filter @fluid/cli smoke"
+    "test:pack": "pnpm --filter @fluid/cli smoke",
+    "docs:media": "node scripts/docs/capture.mjs"
   },
   "devDependencies": {
+    "playwright": "1.55.0",
     "prettier": "^3.9.10",
     "typescript": "^7.0.2"
   }

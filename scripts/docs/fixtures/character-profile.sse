@@ -1,0 +1,396 @@
+event: delta
+data: {"kind": "text", "text": "<reasoning>\n- A"}
+
+event: delta
+data: {"kind": "text", "text": " profile card ("}
+
+event: delta
+data: {"kind": "text", "text": "descriptions) w"}
+
+event: delta
+data: {"kind": "text", "text": "ith the image, "}
+
+event: delta
+data: {"kind": "text", "text": "status, species"}
+
+event: delta
+data: {"kind": "text", "text": ", gender and ty"}
+
+event: delta
+data: {"kind": "text", "text": "pe, plus the or"}
+
+event: delta
+data: {"kind": "text", "text": "igin and last l"}
+
+event: delta
+data: {"kind": "text", "text": "ocation as link"}
+
+event: delta
+data: {"kind": "text", "text": "s to Location.\n"}
+
+event: delta
+data: {"kind": "text", "text": "- The \"episode\""}
+
+event: delta
+data: {"kind": "text", "text": " field has an u"}
+
+event: delta
+data: {"kind": "text", "text": "nknown type: I "}
+
+event: delta
+data: {"kind": "text", "text": "assume its item"}
+
+event: delta
+data: {"kind": "text", "text": "s expose id, na"}
+
+event: delta
+data: {"kind": "text", "text": "me, episode and"}
+
+event: delta
+data: {"kind": "text", "text": " air_date, as r"}
+
+event: delta
+data: {"kind": "text", "text": "equested.\n- A t"}
+
+event: delta
+data: {"kind": "text", "text": "able of the epi"}
+
+event: delta
+data: {"kind": "text", "text": "sodes (name, co"}
+
+event: delta
+data: {"kind": "text", "text": "de, air date) s"}
+
+event: delta
+data: {"kind": "text", "text": "orted by episod"}
+
+event: delta
+data: {"kind": "text", "text": "e code, with th"}
+
+event: delta
+data: {"kind": "text", "text": "e name linking "}
+
+event: delta
+data: {"kind": "text", "text": "to the episode."}
+
+event: delta
+data: {"kind": "text", "text": "\n- A statistic "}
+
+event: delta
+data: {"kind": "text", "text": "with the number"}
+
+event: delta
+data: {"kind": "text", "text": " of episodes at"}
+
+event: delta
+data: {"kind": "text", "text": " the top, to pl"}
+
+event: delta
+data: {"kind": "text", "text": "ace the charact"}
+
+event: delta
+data: {"kind": "text", "text": "er at a glance."}
+
+event: delta
+data: {"kind": "text", "text": "\n</reasoning>\n<"}
+
+event: delta
+data: {"kind": "text", "text": "view>\n{\"title\":"}
+
+event: delta
+data: {"kind": "text", "text": "\"Character prof"}
+
+event: delta
+data: {"kind": "text", "text": "ile\",\"descripti"}
+
+event: delta
+data: {"kind": "text", "text": "on\":\"Profile of"}
+
+event: delta
+data: {"kind": "text", "text": " the character "}
+
+event: delta
+data: {"kind": "text", "text": "and the episode"}
+
+event: delta
+data: {"kind": "text", "text": "s they appear i"}
+
+event: delta
+data: {"kind": "text", "text": "n.\",\"queries\":{"}
+
+event: delta
+data: {"kind": "text", "text": "\"character\":{\"q"}
+
+event: delta
+data: {"kind": "text", "text": "uery\":\"query($i"}
+
+event: delta
+data: {"kind": "text", "text": "d: ID!) { chara"}
+
+event: delta
+data: {"kind": "text", "text": "cter(id: $id) {"}
+
+event: delta
+data: {"kind": "text", "text": " id name status"}
+
+event: delta
+data: {"kind": "text", "text": " species type g"}
+
+event: delta
+data: {"kind": "text", "text": "ender image cre"}
+
+event: delta
+data: {"kind": "text", "text": "ated origin { i"}
+
+event: delta
+data: {"kind": "text", "text": "d name } locati"}
+
+event: delta
+data: {"kind": "text", "text": "on { id name } "}
+
+event: delta
+data: {"kind": "text", "text": "episode { id na"}
+
+event: delta
+data: {"kind": "text", "text": "me episode air_"}
+
+event: delta
+data: {"kind": "text", "text": "date } } }\"}},\""}
+
+event: delta
+data: {"kind": "text", "text": "widgets\":[{\"id\""}
+
+event: delta
+data: {"kind": "text", "text": ":\"profile\",\"typ"}
+
+event: delta
+data: {"kind": "text", "text": "e\":\"description"}
+
+event: delta
+data: {"kind": "text", "text": "s\",\"title\":\"Pro"}
+
+event: delta
+data: {"kind": "text", "text": "file\",\"span\":16"}
+
+event: delta
+data: {"kind": "text", "text": ",\"columns\":2,\"d"}
+
+event: delta
+data: {"kind": "text", "text": "ata\":{\"query\":\""}
+
+event: delta
+data: {"kind": "text", "text": "character\",\"pat"}
+
+event: delta
+data: {"kind": "text", "text": "h\":\"character\"}"}
+
+event: delta
+data: {"kind": "text", "text": ",\"items\":[{\"lab"}
+
+event: delta
+data: {"kind": "text", "text": "el\":\"Image\",\"ke"}
+
+event: delta
+data: {"kind": "text", "text": "y\":\"image\",\"for"}
+
+event: delta
+data: {"kind": "text", "text": "mat\":\"image\"},{"}
+
+event: delta
+data: {"kind": "text", "text": "\"label\":\"Name\","}
+
+event: delta
+data: {"kind": "text", "text": "\"key\":\"name\"},{"}
+
+event: delta
+data: {"kind": "text", "text": "\"label\":\"Status"}
+
+event: delta
+data: {"kind": "text", "text": "\",\"key\":\"status"}
+
+event: delta
+data: {"kind": "text", "text": "\",\"format\":\"tag"}
+
+event: delta
+data: {"kind": "text", "text": "\"},{\"label\":\"Sp"}
+
+event: delta
+data: {"kind": "text", "text": "ecies\",\"key\":\"s"}
+
+event: delta
+data: {"kind": "text", "text": "pecies\",\"format"}
+
+event: delta
+data: {"kind": "text", "text": "\":\"tag\"},{\"labe"}
+
+event: delta
+data: {"kind": "text", "text": "l\":\"Type\",\"key\""}
+
+event: delta
+data: {"kind": "text", "text": ":\"type\"},{\"labe"}
+
+event: delta
+data: {"kind": "text", "text": "l\":\"Gender\",\"ke"}
+
+event: delta
+data: {"kind": "text", "text": "y\":\"gender\",\"fo"}
+
+event: delta
+data: {"kind": "text", "text": "rmat\":\"tag\"},{\""}
+
+event: delta
+data: {"kind": "text", "text": "label\":\"Origin\""}
+
+event: delta
+data: {"kind": "text", "text": ",\"key\":\"origin."}
+
+event: delta
+data: {"kind": "text", "text": "name\",\"linkTo\":"}
+
+event: delta
+data: {"kind": "text", "text": "{\"concept\":\"Loc"}
+
+event: delta
+data: {"kind": "text", "text": "ation\",\"idField"}
+
+event: delta
+data: {"kind": "text", "text": "\":\"origin.id\"}}"}
+
+event: delta
+data: {"kind": "text", "text": ",{\"label\":\"Last"}
+
+event: delta
+data: {"kind": "text", "text": " location\",\"key"}
+
+event: delta
+data: {"kind": "text", "text": "\":\"location.nam"}
+
+event: delta
+data: {"kind": "text", "text": "e\",\"linkTo\":{\"c"}
+
+event: delta
+data: {"kind": "text", "text": "oncept\":\"Locati"}
+
+event: delta
+data: {"kind": "text", "text": "on\",\"idField\":\""}
+
+event: delta
+data: {"kind": "text", "text": "location.id\"}},"}
+
+event: delta
+data: {"kind": "text", "text": "{\"label\":\"Creat"}
+
+event: delta
+data: {"kind": "text", "text": "ed\",\"key\":\"crea"}
+
+event: delta
+data: {"kind": "text", "text": "ted\",\"format\":\""}
+
+event: delta
+data: {"kind": "text", "text": "datetime\"}]},{\""}
+
+event: delta
+data: {"kind": "text", "text": "id\":\"episode-co"}
+
+event: delta
+data: {"kind": "text", "text": "unt\",\"type\":\"st"}
+
+event: delta
+data: {"kind": "text", "text": "atistic\",\"title"}
+
+event: delta
+data: {"kind": "text", "text": "\":\"Episodes\",\"s"}
+
+event: delta
+data: {"kind": "text", "text": "pan\":8,\"data\":{"}
+
+event: delta
+data: {"kind": "text", "text": "\"query\":\"charac"}
+
+event: delta
+data: {"kind": "text", "text": "ter\",\"path\":\"ch"}
+
+event: delta
+data: {"kind": "text", "text": "aracter.episode"}
+
+event: delta
+data: {"kind": "text", "text": "\"},\"value\":{\"op"}
+
+event: delta
+data: {"kind": "text", "text": "\":\"count\"}},{\"i"}
+
+event: delta
+data: {"kind": "text", "text": "d\":\"episodes\",\""}
+
+event: delta
+data: {"kind": "text", "text": "type\":\"table\",\""}
+
+event: delta
+data: {"kind": "text", "text": "title\":\"Episode"}
+
+event: delta
+data: {"kind": "text", "text": "s\",\"span\":24,\"p"}
+
+event: delta
+data: {"kind": "text", "text": "ageSize\":10,\"da"}
+
+event: delta
+data: {"kind": "text", "text": "ta\":{\"query\":\"c"}
+
+event: delta
+data: {"kind": "text", "text": "haracter\",\"path"}
+
+event: delta
+data: {"kind": "text", "text": "\":\"character.ep"}
+
+event: delta
+data: {"kind": "text", "text": "isode\",\"transfo"}
+
+event: delta
+data: {"kind": "text", "text": "rm\":{\"sort\":{\"b"}
+
+event: delta
+data: {"kind": "text", "text": "y\":\"episode\",\"d"}
+
+event: delta
+data: {"kind": "text", "text": "ir\":\"asc\"}}},\"c"}
+
+event: delta
+data: {"kind": "text", "text": "olumns\":[{\"key\""}
+
+event: delta
+data: {"kind": "text", "text": ":\"name\",\"title\""}
+
+event: delta
+data: {"kind": "text", "text": ":\"Name\",\"linkTo"}
+
+event: delta
+data: {"kind": "text", "text": "\":{\"concept\":\"E"}
+
+event: delta
+data: {"kind": "text", "text": "pisode\",\"idFiel"}
+
+event: delta
+data: {"kind": "text", "text": "d\":\"id\"}},{\"key"}
+
+event: delta
+data: {"kind": "text", "text": "\":\"episode\",\"ti"}
+
+event: delta
+data: {"kind": "text", "text": "tle\":\"Episode c"}
+
+event: delta
+data: {"kind": "text", "text": "ode\"},{\"key\":\"a"}
+
+event: delta
+data: {"kind": "text", "text": "ir_date\",\"title"}
+
+event: delta
+data: {"kind": "text", "text": "\":\"Air date\"}]}"}
+
+event: delta
+data: {"kind": "text", "text": "]}\n</view>"}
+
+event: result
+data: {"spec":{"version":1,"id":"gen-94d9592f","concept":"Character","title":"Character profile","description":"Profile of the character and the episodes they appear in.","queries":{"character":{"query":"query($id: ID!) { character(id: $id) { id name status species type gender image created origin { id name } location { id name } episode { id name episode air_date } } }"}},"widgets":[{"type":"descriptions","id":"profile","title":"Profile","span":16,"data":{"query":"character","path":"character"},"items":[{"label":"Image","key":"image","format":"image"},{"label":"Name","key":"name"},{"label":"Status","key":"status","format":"tag"},{"label":"Species","key":"species","format":"tag"},{"label":"Type","key":"type"},{"label":"Gender","key":"gender","format":"tag"},{"label":"Origin","key":"origin.name","linkTo":{"concept":"Location","idField":"origin.id"}},{"label":"Last location","key":"location.name","linkTo":{"concept":"Location","idField":"location.id"}},{"label":"Created","key":"created","format":"datetime"}],"columns":2},{"type":"statistic","id":"episode-count","title":"Appearances","span":8,"data":{"query":"character","path":"character.episode"},"value":{"op":"count"}},{"type":"table","id":"episodes","title":"Episodes","span":24,"data":{"query":"character","path":"character.episode","transform":{"sort":{"by":"episode","dir":"asc"}}},"columns":[{"key":"name","title":"Name","linkTo":{"concept":"Episode","idField":"id"}},{"key":"episode","title":"Episode code"},{"key":"air_date","title":"Air date"}],"pageSize":10}],"scope":"detail"},"provider":"claude-code","model":"sonnet","reasoning":["A profile card (descriptions) with the image, status, species, gender and type, plus the origin and last location as links to Location.","The \"episode\" field has an unknown type: I assume its items expose id, name, episode and air_date, as requested.","A table of the episodes (name, code, air date) sorted by episode code, with the name linking to the episode.","A statistic with the number of episodes at the top, to place the character at a glance."]}
+
