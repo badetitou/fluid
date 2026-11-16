@@ -84,15 +84,13 @@ so the prompt only ever describes widgets the frontend can actually render.
 ### Requirements
 
 - Node.js ≥ 22 and [pnpm](https://pnpm.io/) (`npm i -g pnpm`, or Corepack)
-- Docker (e.g. [Colima](https://github.com/abiosoft/colima) on macOS) for the local PostgreSQL
+- Optional: Docker (e.g. [Colima](https://github.com/abiosoft/colima) on macOS) to store data in PostgreSQL
 
 ### Run it
 
 ```bash
-pnpm install                                 # 1. dependencies
-docker compose up -d                         # 2. PostgreSQL for the BFF
-pnpm --filter @fluid/bff prisma:migrate      # 3. BFF tables
-pnpm dev                                     # 4. frontend + BFF in watch mode
+pnpm install    # 1. dependencies
+pnpm dev        # 2. frontend + BFF in watch mode
 ```
 
 fluid has no GraphQL backend of its own. The connection screen is pre-filled with the public
@@ -101,6 +99,21 @@ any CORS-enabled GraphQL endpoint with introspection works.
 
 Copy `apps/bff/.env.example` to `apps/bff/.env` to configure the database and LLM providers. With
 nothing set, the BFF uses an offline **mock** provider, so the assistant works out of the box.
+
+### Storage modes
+
+The BFF stores views and preferences in one of two ways:
+
+- **Embedded (default)**: with no `DATABASE_URL`, the BFF runs on [PGlite](https://pglite.dev)
+  (PostgreSQL in WebAssembly) and keeps its data in `FLUID_DATA_DIR` (default `~/.fluid/data`).
+  Migrations are applied at startup; no Docker needed.
+- **PostgreSQL**: set `DATABASE_URL` (e.g. in `apps/bff/.env`) to use a Postgres server. The schema
+  is managed with the Prisma CLI:
+
+  ```bash
+  docker compose up -d
+  pnpm --filter @fluid/bff prisma:migrate
+  ```
 
 ### Useful commands
 

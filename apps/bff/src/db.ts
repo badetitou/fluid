@@ -1,15 +1,14 @@
 import 'dotenv/config';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient, Prisma } from './generated/prisma/client';
+import { Prisma } from './generated/prisma/client';
+import { createStorage } from './storage/client';
+import { resolveStorageMode } from './storage/mode';
 
-// Prisma 7 talks to Postgres through the `pg` driver adapter, which ignores the
-// `?schema=` URL parameter Prisma used to honour — so we forward it explicitly.
-const url = process.env.DATABASE_URL;
-if (!url) throw new Error('DATABASE_URL is not set');
-const schema = new URL(url).searchParams.get('schema') ?? undefined;
+export const storageMode = resolveStorageMode(process.env);
+const storage = createStorage(storageMode);
 
-export const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: url }, { schema }),
-});
+export const prisma = storage.prisma;
+/** Must be awaited before serving requests (applies migrations on PGlite). */
+export const initDb = storage.init;
+export const closeDb = storage.close;
 
 export { Prisma };
