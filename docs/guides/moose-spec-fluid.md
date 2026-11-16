@@ -5,6 +5,12 @@ packages…) as fluid concepts, open the **Pharo inspector tabs** of each entity
 Blueprint, source…) right in fluid, generate dashboards with the assistant, and run Smalltalk on an
 entity from the browser.
 
+<a href="../media/moose-demo.mp4">
+  <img src="../media/moose-demo.webp" alt="fluid on a Moose model: open a package, its overview pyramid and Pharo Navigation tab, ask the assistant for a view of its classes, open a class blueprint drawn by Pharo, then a method's source" width="960" />
+</a>
+
+<sub>▶ <a href="../media/moose-demo.mp4">Watch the full demo (MP4, 46 s)</a></sub>
+
 Two Pharo projects do the work, both loaded in the same image:
 
 | Project | Serves | Used by fluid for |
