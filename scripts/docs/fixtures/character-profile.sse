@@ -1,0 +1,396 @@
+event: delta
+data: {"kind":"text","text":"<"}
+
+event: delta
+data: {"kind":"text","text":"reasoning>\n-"}
+
+event: delta
+data: {"kind":"text","text":" Fiche prof"}
+
+event: delta
+data: {"kind":"text","text":"il ("}
+
+event: delta
+data: {"kind":"text","text":"descriptions) av"}
+
+event: delta
+data: {"kind":"text","text":"ec l'image, le statut"}
+
+event: delta
+data: {"kind":"text","text":", l"}
+
+event: delta
+data: {"kind":"text","text":"'espèce, le genre"}
+
+event: delta
+data: {"kind":"text","text":" et le"}
+
+event: delta
+data: {"kind":"text","text":" type, "}
+
+event: delta
+data: {"kind":"text","text":"ainsi que l"}
+
+event: delta
+data: {"kind":"text","text":"'origine et la d"}
+
+event: delta
+data: {"kind":"text","text":"ernière localisation en"}
+
+event: delta
+data: {"kind":"text","text":" li"}
+
+event: delta
+data: {"kind":"text","text":"ens vers"}
+
+event: delta
+data: {"kind":"text","text":" Location.\n- Le champ"}
+
+event: delta
+data: {"kind":"text","text":" \"episode\" est de"}
+
+event: delta
+data: {"kind":"text","text":" type in"}
+
+event: delta
+data: {"kind":"text","text":"connu :"}
+
+event: delta
+data: {"kind":"text","text":" je su"}
+
+event: delta
+data: {"kind":"text","text":"ppose que "}
+
+event: delta
+data: {"kind":"text","text":"ses é"}
+
+event: delta
+data: {"kind":"text","text":"léments ex"}
+
+event: delta
+data: {"kind":"text","text":"posent id, name, epis"}
+
+event: delta
+data: {"kind":"text","text":"ode et air_date,"}
+
+event: delta
+data: {"kind":"text","text":" comme demandé.\n-"}
+
+event: delta
+data: {"kind":"text","text":" Tableau des ép"}
+
+event: delta
+data: {"kind":"text","text":"isodes ("}
+
+event: delta
+data: {"kind":"text","text":"n"}
+
+event: delta
+data: {"kind":"text","text":"om, code, date"}
+
+event: delta
+data: {"kind":"text","text":" de"}
+
+event: delta
+data: {"kind":"text","text":" diffusion) tr"}
+
+event: delta
+data: {"kind":"text","text":"ié sur le code"}
+
+event: delta
+data: {"kind":"text","text":" de"}
+
+event: delta
+data: {"kind":"text","text":" l'épisode, avec"}
+
+event: delta
+data: {"kind":"text","text":" l"}
+
+event: delta
+data: {"kind":"text","text":"ien vers l"}
+
+event: delta
+data: {"kind":"text","text":"'épisode s"}
+
+event: delta
+data: {"kind":"text","text":"ur le nom.\n-"}
+
+event: delta
+data: {"kind":"text","text":" Une stat"}
+
+event: delta
+data: {"kind":"text","text":"istique du"}
+
+event: delta
+data: {"kind":"text","text":" nombre d'épisod"}
+
+event: delta
+data: {"kind":"text","text":"es en en"}
+
+event: delta
+data: {"kind":"text","text":"-"}
+
+event: delta
+data: {"kind":"text","text":"tête pour situ"}
+
+event: delta
+data: {"kind":"text","text":"er r"}
+
+event: delta
+data: {"kind":"text","text":"apidement le personnage."}
+
+event: delta
+data: {"kind":"text","text":"\n</reasoning>"}
+
+event: delta
+data: {"kind":"text","text":"\n<view>\n{\"title\":"}
+
+event: delta
+data: {"kind":"text","text":"\"Character profile\",\"description\":"}
+
+event: delta
+data: {"kind":"text","text":"\"Profile of"}
+
+event: delta
+data: {"kind":"text","text":" the"}
+
+event: delta
+data: {"kind":"text","text":" character and the episodes they app"}
+
+event: delta
+data: {"kind":"text","text":"ear in.\",\"queries\":{"}
+
+event: delta
+data: {"kind":"text","text":"\"character\":{\"query\":\""}
+
+event: delta
+data: {"kind":"text","text":"query($id: ID!)"}
+
+event: delta
+data: {"kind":"text","text":" { character(id: $id)"}
+
+event: delta
+data: {"kind":"text","text":" { id name status species type gender"}
+
+event: delta
+data: {"kind":"text","text":" image"}
+
+event: delta
+data: {"kind":"text","text":" created"}
+
+event: delta
+data: {"kind":"text","text":" origin {"}
+
+event: delta
+data: {"kind":"text","text":" id name }"}
+
+event: delta
+data: {"kind":"text","text":" location { id name }"}
+
+event: delta
+data: {"kind":"text","text":" episode { id name epis"}
+
+event: delta
+data: {"kind":"text","text":"ode air_date } } }\""}
+
+event: delta
+data: {"kind":"text","text":"}},\"widgets\":["}
+
+event: delta
+data: {"kind":"text","text":"{\"id\":\"profile\",\""}
+
+event: delta
+data: {"kind":"text","text":"type\":\"descriptions\",\""}
+
+event: delta
+data: {"kind":"text","text":"title\":\"Profile\",\"span"}
+
+event: delta
+data: {"kind":"text","text":"\":16"}
+
+event: delta
+data: {"kind":"text","text":",\"colum"}
+
+event: delta
+data: {"kind":"text","text":"ns\":2,\"data\":{"}
+
+event: delta
+data: {"kind":"text","text":"\"query\":\"character\",\"path\":"}
+
+event: delta
+data: {"kind":"text","text":"\"character\"},\"items\":["}
+
+event: delta
+data: {"kind":"text","text":"{\"label\":\"Image\",\""}
+
+event: delta
+data: {"kind":"text","text":"key\":\"image\",\"format\":\""}
+
+event: delta
+data: {"kind":"text","text":"image\"},{\"label\":\""}
+
+event: delta
+data: {"kind":"text","text":"Name\",\"key\":\"name\""}
+
+event: delta
+data: {"kind":"text","text":"},{\"label\":\"Status"}
+
+event: delta
+data: {"kind":"text","text":"\",\"key\":\"status\",\"format\":"}
+
+event: delta
+data: {"kind":"text","text":"\"tag\"},{\"label"}
+
+event: delta
+data: {"kind":"text","text":"\":\"Species\",\"key\":\""}
+
+event: delta
+data: {"kind":"text","text":"species\",\""}
+
+event: delta
+data: {"kind":"text","text":"format\":\"tag\"},{"}
+
+event: delta
+data: {"kind":"text","text":"\"label\":\"Type\",\"key"}
+
+event: delta
+data: {"kind":"text","text":"\":\"type\"},{\"label"}
+
+event: delta
+data: {"kind":"text","text":"\":\"Gender\",\"key\":"}
+
+event: delta
+data: {"kind":"text","text":"\"gender\",\"format\":\"t"}
+
+event: delta
+data: {"kind":"text","text":"ag\"},{\"label\":\""}
+
+event: delta
+data: {"kind":"text","text":"Origin\",\"key\":\"orig"}
+
+event: delta
+data: {"kind":"text","text":"in.name\",\"linkTo"}
+
+event: delta
+data: {"kind":"text","text":"\":{\"concept\":\""}
+
+event: delta
+data: {"kind":"text","text":"Location\",\"idField\":\"origin"}
+
+event: delta
+data: {"kind":"text","text":".id\"}},{\"label"}
+
+event: delta
+data: {"kind":"text","text":"\":\"Last location\",\"key\":"}
+
+event: delta
+data: {"kind":"text","text":"\"location.name\",\"linkT"}
+
+event: delta
+data: {"kind":"text","text":"o\":{\"concept\":\""}
+
+event: delta
+data: {"kind":"text","text":"Location\",\"idField\":\"location"}
+
+event: delta
+data: {"kind":"text","text":".id\"}},{\"label"}
+
+event: delta
+data: {"kind":"text","text":"\":\"Created\",\"key\":\""}
+
+event: delta
+data: {"kind":"text","text":"created\",\"format\":\"datetime"}
+
+event: delta
+data: {"kind":"text","text":"\"}]},{\"id\":"}
+
+event: delta
+data: {"kind":"text","text":"\"episode"}
+
+event: delta
+data: {"kind":"text","text":"-count\",\"type\":\"statist"}
+
+event: delta
+data: {"kind":"text","text":"ic\",\"title\":\"Episod"}
+
+event: delta
+data: {"kind":"text","text":"es\",\"span\":8,\"data"}
+
+event: delta
+data: {"kind":"text","text":"\":{\"query\":\"character\",\""}
+
+event: delta
+data: {"kind":"text","text":"path\":\"character.episode\""}
+
+event: delta
+data: {"kind":"text","text":"},\"value\":{\"op\":"}
+
+event: delta
+data: {"kind":"text","text":"\"count\"}},{\"id"}
+
+event: delta
+data: {"kind":"text","text":"\":\"episodes\",\"type\":"}
+
+event: delta
+data: {"kind":"text","text":"\"table\",\"title\":\"Epis"}
+
+event: delta
+data: {"kind":"text","text":"odes\",\"span\":24,\""}
+
+event: delta
+data: {"kind":"text","text":"pageSize\":10,\""}
+
+event: delta
+data: {"kind":"text","text":"data\":{\"query\":\"character"}
+
+event: delta
+data: {"kind":"text","text":"\",\"path\":\"character.episode"}
+
+event: delta
+data: {"kind":"text","text":"\",\"transform\":{\"sort"}
+
+event: delta
+data: {"kind":"text","text":"\":{\"by\":\"episode"}
+
+event: delta
+data: {"kind":"text","text":"\",\"dir\":\"asc\""}
+
+event: delta
+data: {"kind":"text","text":"}}},\"columns\":["}
+
+event: delta
+data: {"kind":"text","text":"{\"key\":\"name"}
+
+event: delta
+data: {"kind":"text","text":"\",\"title\":\"Name\",\"lin"}
+
+event: delta
+data: {"kind":"text","text":"kTo\":{\"concept"}
+
+event: delta
+data: {"kind":"text","text":"\":\"Episode\",\"idField"}
+
+event: delta
+data: {"kind":"text","text":"\":\"id\"}},{\""}
+
+event: delta
+data: {"kind":"text","text":"key\":\"episode\",\"title\":"}
+
+event: delta
+data: {"kind":"text","text":"\"Episode code\"},{"}
+
+event: delta
+data: {"kind":"text","text":"\"key\":\"air_date\",\""}
+
+event: delta
+data: {"kind":"text","text":"title\":\"Air date\"}"}
+
+event: delta
+data: {"kind":"text","text":"]}]"}
+
+event: delta
+data: {"kind":"text","text":"}\n</view>"}
+
+event: result
+data: {"spec":{"version":1,"id":"gen-94d9592f","concept":"Character","title":"Character profile","description":"Profile of the character and the episodes they appear in.","queries":{"character":{"query":"query($id: ID!) { character(id: $id) { id name status species type gender image created origin { id name } location { id name } episode { id name episode air_date } } }"}},"widgets":[{"type":"descriptions","id":"profile","title":"Profile","span":16,"data":{"query":"character","path":"character"},"items":[{"label":"Image","key":"image","format":"image"},{"label":"Name","key":"name"},{"label":"Status","key":"status","format":"tag"},{"label":"Species","key":"species","format":"tag"},{"label":"Type","key":"type"},{"label":"Gender","key":"gender","format":"tag"},{"label":"Origin","key":"origin.name","linkTo":{"concept":"Location","idField":"origin.id"}},{"label":"Last location","key":"location.name","linkTo":{"concept":"Location","idField":"location.id"}},{"label":"Created","key":"created","format":"datetime"}],"columns":2},{"type":"statistic","id":"episode-count","title":"Episodes","span":8,"data":{"query":"character","path":"character.episode"},"value":{"op":"count"}},{"type":"table","id":"episodes","title":"Episodes","span":24,"data":{"query":"character","path":"character.episode","transform":{"sort":{"by":"episode","dir":"asc"}}},"columns":[{"key":"name","title":"Name","linkTo":{"concept":"Episode","idField":"id"}},{"key":"episode","title":"Episode code"},{"key":"air_date","title":"Air date"}],"pageSize":10}],"scope":"detail"},"provider":"claude-code","model":"sonnet","reasoning":["Fiche profil (descriptions) avec l'image, le statut, l'espèce, le genre et le type, ainsi que l'origine et la dernière localisation en liens vers Location.","Le champ \"episode\" est de type inconnu : je suppose que ses éléments exposent id, name, episode et air_date, comme demandé.","Tableau des épisodes (nom, code, date de diffusion) trié sur le code de l'épisode, avec lien vers l'épisode sur le nom.","Une statistique du nombre d'épisodes en en-tête pour situer rapidement le personnage."]}
+

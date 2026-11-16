@@ -35,3 +35,6 @@ coverage/
 # CLI package staging and tarballs
 out/
 apps/cli/pkg/
+
+# docs media capture scratch
+scripts/docs/.tmp/
