@@ -1,447 +1,435 @@
 event: delta
-data: {"kind":"text","text":"<reasoning>\n-"}
+data: {"kind": "text", "text": "<reasoning>\n- Th"}
 
 event: delta
-data: {"kind":"text","text":" Tr"}
+data: {"kind": "text", "text": "ree statistics a"}
 
 event: delta
-data: {"kind":"text","text":"ois statistiques en"}
+data: {"kind": "text", "text": "t the top: numbe"}
 
 event: delta
-data: {"kind":"text","text":" t"}
+data: {"kind": "text", "text": "r of episodes, a"}
 
 event: delta
-data: {"kind":"text","text":"ête : nombre d'ép"}
+data: {"kind": "text", "text": "verage character"}
 
 event: delta
-data: {"kind":"text","text":"isodes, moyenne"}
+data: {"kind": "text", "text": "s per episode an"}
 
 event: delta
-data: {"kind":"text","text":" de personnages par épisode"}
+data: {"kind": "text", "text": "d the most chara"}
 
 event: delta
-data: {"kind":"text","text":" et maximum de personnages"}
+data: {"kind": "text", "text": "cters in one epi"}
 
 event: delta
-data: {"kind":"text","text":" d"}
+data: {"kind": "text", "text": "sode, computed w"}
 
 event: delta
-data: {"kind":"text","text":"ans un épisode, cal"}
+data: {"kind": "text", "text": "ith a \"derive\" t"}
 
 event: delta
-data: {"kind":"text","text":"culés via un"}
+data: {"kind": "text", "text": "hat counts the c"}
 
 event: delta
-data: {"kind":"text","text":" \"derive\" qui comp"}
+data: {"kind": "text", "text": "haracters.\n- A b"}
 
 event: delta
-data: {"kind":"text","text":"te les personnages."}
+data: {"kind": "text", "text": "ar chart of the "}
 
 event: delta
-data: {"kind":"text","text":"\n- Un gra"}
+data: {"kind": "text", "text": "number of charac"}
 
 event: delta
-data: {"kind":"text","text":"phique en"}
+data: {"kind": "text", "text": "ters per episode"}
 
 event: delta
-data: {"kind":"text","text":" barres du nombre de person"}
+data: {"kind": "text", "text": " (episode code o"}
 
 event: delta
-data: {"kind":"text","text":"nages par épisode ("}
+data: {"kind": "text", "text": "n the x axis), t"}
 
 event: delta
-data: {"kind":"text","text":"code"}
+data: {"kind": "text", "text": "o compare episod"}
 
 event: delta
-data: {"kind":"text","text":" d'épisode en"}
+data: {"kind": "text", "text": "es at a glance.\n"}
 
 event: delta
-data: {"kind":"text","text":" ab"}
+data: {"kind": "text", "text": "- A table of the"}
 
 event: delta
-data: {"kind":"text","text":"scisse),"}
+data: {"kind": "text", "text": " episodes with n"}
 
 event: delta
-data: {"kind":"text","text":" p"}
+data: {"kind": "text", "text": "ame, code, air d"}
 
 event: delta
-data: {"kind":"text","text":"our com"}
+data: {"kind": "text", "text": "ate and number o"}
 
 event: delta
-data: {"kind":"text","text":"parer les ép"}
+data: {"kind": "text", "text": "f characters, so"}
 
 event: delta
-data: {"kind":"text","text":"isodes d"}
+data: {"kind": "text", "text": "rted by episode "}
 
 event: delta
-data: {"kind":"text","text":"'un coup d'œil"}
+data: {"kind": "text", "text": "code, linking to"}
 
 event: delta
-data: {"kind":"text","text":".\n- Un tableau"}
+data: {"kind": "text", "text": " each episode by"}
 
 event: delta
-data: {"kind":"text","text":" des épisodes avec n"}
+data: {"kind": "text", "text": " id.\n- The field"}
 
 event: delta
-data: {"kind":"text","text":"om, code, date"}
+data: {"kind": "text", "text": "s of the \"charac"}
 
 event: delta
-data: {"kind":"text","text":" de"}
+data: {"kind": "text", "text": "ters\" relation a"}
 
 event: delta
-data: {"kind":"text","text":" diffusion et n"}
+data: {"kind": "text", "text": "re unknown: I se"}
 
 event: delta
-data: {"kind":"text","text":"ombre de personnages, tr"}
+data: {"kind": "text", "text": "lect only \"id\", "}
 
 event: delta
-data: {"kind":"text","text":"ié par code"}
+data: {"kind": "text", "text": "the one safe fie"}
 
 event: delta
-data: {"kind":"text","text":" d"}
+data: {"kind": "text", "text": "ld for counting."}
 
 event: delta
-data: {"kind":"text","text":"'épisode, avec l"}
+data: {"kind": "text", "text": "\n</reasoning>\n<v"}
 
 event: delta
-data: {"kind":"text","text":"ien vers ch"}
+data: {"kind": "text", "text": "iew>\n{\"title\":\"E"}
 
 event: delta
-data: {"kind":"text","text":"aque épisode via"}
+data: {"kind": "text", "text": "pisodes\",\"descri"}
 
 event: delta
-data: {"kind":"text","text":" l"}
+data: {"kind": "text", "text": "ption\":\"Episodes"}
 
 event: delta
-data: {"kind":"text","text":"'id.\n- Les champ"}
+data: {"kind": "text", "text": ", characters per"}
 
 event: delta
-data: {"kind":"text","text":"s de la"}
+data: {"kind": "text", "text": " episode and air"}
 
 event: delta
-data: {"kind":"text","text":" relation \""}
+data: {"kind": "text", "text": " dates.\",\"querie"}
 
 event: delta
-data: {"kind":"text","text":"characters\" s"}
+data: {"kind": "text", "text": "s\":{\"episodes\":{"}
 
 event: delta
-data: {"kind":"text","text":"ont inconnus :"}
+data: {"kind": "text", "text": "\"query\":\"query {"}
 
 event: delta
-data: {"kind":"text","text":" je sélectionne u"}
+data: {"kind": "text", "text": " episodes { resu"}
 
 event: delta
-data: {"kind":"text","text":"niquement \""}
+data: {"kind": "text", "text": "lts { id name ai"}
 
 event: delta
-data: {"kind":"text","text":"id\","}
+data: {"kind": "text", "text": "r_date episode c"}
 
 event: delta
-data: {"kind":"text","text":" se"}
+data: {"kind": "text", "text": "haracters { id }"}
 
 event: delta
-data: {"kind":"text","text":"ul champ s"}
+data: {"kind": "text", "text": " } } }\"}},\"widge"}
 
 event: delta
-data: {"kind":"text","text":"ûr p"}
+data: {"kind": "text", "text": "ts\":[{\"id\":\"coun"}
 
 event: delta
-data: {"kind":"text","text":"our compter."}
+data: {"kind": "text", "text": "t\",\"type\":\"stati"}
 
 event: delta
-data: {"kind":"text","text":"\n</reasoning>"}
+data: {"kind": "text", "text": "stic\",\"title\":\"E"}
 
 event: delta
-data: {"kind":"text","text":"\n<view>"}
+data: {"kind": "text", "text": "pisodes\",\"span\":"}
 
 event: delta
-data: {"kind":"text","text":"\n{\"title\":\"Episod"}
+data: {"kind": "text", "text": "8,\"data\":{\"query"}
 
 event: delta
-data: {"kind":"text","text":"es\",\"description\":\"Epis"}
+data: {"kind": "text", "text": "\":\"episodes\",\"pa"}
 
 event: delta
-data: {"kind":"text","text":"odes, characters per"}
+data: {"kind": "text", "text": "th\":\"episodes.re"}
 
 event: delta
-data: {"kind":"text","text":" episode and air dates.\",\""}
+data: {"kind": "text", "text": "sults\"},\"value\":"}
 
 event: delta
-data: {"kind":"text","text":"queries\":{\"episodes"}
+data: {"kind": "text", "text": "{\"op\":\"count\"}},"}
 
 event: delta
-data: {"kind":"text","text":"\":{\"query\":\"query {"}
+data: {"kind": "text", "text": "{\"id\":\"avg-chars"}
 
 event: delta
-data: {"kind":"text","text":" episodes { results"}
+data: {"kind": "text", "text": "\",\"type\":\"statis"}
 
 event: delta
-data: {"kind":"text","text":" { id name air_date episode"}
+data: {"kind": "text", "text": "tic\",\"title\":\"Av"}
 
 event: delta
-data: {"kind":"text","text":" characters { id }"}
+data: {"kind": "text", "text": "erage characters"}
 
 event: delta
-data: {"kind":"text","text":" } } }\"}"}
+data: {"kind": "text", "text": " per episode\",\"s"}
 
 event: delta
-data: {"kind":"text","text":"},\"widgets\":[{"}
+data: {"kind": "text", "text": "pan\":8,\"data\":{\""}
 
 event: delta
-data: {"kind":"text","text":"\"id\":\"count\",\"type\":"}
+data: {"kind": "text", "text": "query\":\"episodes"}
 
 event: delta
-data: {"kind":"text","text":"\"statistic\",\"title\":\""}
+data: {"kind": "text", "text": "\",\"path\":\"episod"}
 
 event: delta
-data: {"kind":"text","text":"Episodes\",\"span\":8"}
+data: {"kind": "text", "text": "es.results\",\"tra"}
 
 event: delta
-data: {"kind":"text","text":",\"data\":{\"query\":"}
+data: {"kind": "text", "text": "nsform\":{\"derive"}
 
 event: delta
-data: {"kind":"text","text":"\"episodes\",\"path\":\""}
+data: {"kind": "text", "text": "\":[{\"as\":\"charac"}
 
 event: delta
-data: {"kind":"text","text":"episodes.results\"},\""}
+data: {"kind": "text", "text": "terCount\",\"op\":\""}
 
 event: delta
-data: {"kind":"text","text":"value\":{\"op\":\"count"}
+data: {"kind": "text", "text": "count\",\"field\":\""}
 
 event: delta
-data: {"kind":"text","text":"\"}},{\"id\":\""}
+data: {"kind": "text", "text": "characters\"}]}},"}
 
 event: delta
-data: {"kind":"text","text":"avg-chars\",\"type\":"}
+data: {"kind": "text", "text": "\"value\":{\"op\":\"a"}
 
 event: delta
-data: {"kind":"text","text":"\"statistic\",\"title\":\""}
+data: {"kind": "text", "text": "vg\",\"field\":\"cha"}
 
 event: delta
-data: {"kind":"text","text":"Average characters per episode\",\""}
+data: {"kind": "text", "text": "racterCount\"},\"p"}
 
 event: delta
-data: {"kind":"text","text":"span\":8,\"data\":{"}
+data: {"kind": "text", "text": "recision\":1},{\"i"}
 
 event: delta
-data: {"kind":"text","text":"\"query\":\"episodes\",\""}
+data: {"kind": "text", "text": "d\":\"max-chars\",\""}
 
 event: delta
-data: {"kind":"text","text":"path\":\"episodes.results"}
+data: {"kind": "text", "text": "type\":\"statistic"}
 
 event: delta
-data: {"kind":"text","text":"\",\"transform\":{\"derive"}
+data: {"kind": "text", "text": "\",\"title\":\"Max c"}
 
 event: delta
-data: {"kind":"text","text":"\":[{\"as\":\"charac"}
+data: {"kind": "text", "text": "haracters in one"}
 
 event: delta
-data: {"kind":"text","text":"terCount\",\"op\":\"count"}
+data: {"kind": "text", "text": " episode\",\"span\""}
 
 event: delta
-data: {"kind":"text","text":"\",\"field\":\"characters\"}"}
+data: {"kind": "text", "text": ":8,\"data\":{\"quer"}
 
 event: delta
-data: {"kind":"text","text":"]}},\"value\":{\""}
+data: {"kind": "text", "text": "y\":\"episodes\",\"p"}
 
 event: delta
-data: {"kind":"text","text":"op\":\"avg\",\"field\":"}
+data: {"kind": "text", "text": "ath\":\"episodes.r"}
 
 event: delta
-data: {"kind":"text","text":"\"characterCount\"},\""}
+data: {"kind": "text", "text": "esults\",\"transfo"}
 
 event: delta
-data: {"kind":"text","text":"precision\":1"}
+data: {"kind": "text", "text": "rm\":{\"derive\":[{"}
 
 event: delta
-data: {"kind":"text","text":"},{\"id\":\"max-"}
+data: {"kind": "text", "text": "\"as\":\"characterC"}
 
 event: delta
-data: {"kind":"text","text":"chars\",\"type\":\"statist"}
+data: {"kind": "text", "text": "ount\",\"op\":\"coun"}
 
 event: delta
-data: {"kind":"text","text":"ic\",\"title\":\"Max"}
+data: {"kind": "text", "text": "t\",\"field\":\"char"}
 
 event: delta
-data: {"kind":"text","text":" characters in"}
+data: {"kind": "text", "text": "acters\"}]}},\"val"}
 
 event: delta
-data: {"kind":"text","text":" one episode\",\"span\":8,"}
+data: {"kind": "text", "text": "ue\":{\"op\":\"max\","}
 
 event: delta
-data: {"kind":"text","text":"\"data\":{\"query\":\""}
+data: {"kind": "text", "text": "\"field\":\"charact"}
 
 event: delta
-data: {"kind":"text","text":"episodes\",\"path\":\"epis"}
+data: {"kind": "text", "text": "erCount\"}},{\"id\""}
 
 event: delta
-data: {"kind":"text","text":"odes.results\",\"transform\":"}
+data: {"kind": "text", "text": ":\"chars-per-epis"}
 
 event: delta
-data: {"kind":"text","text":"{\"derive\":[{\""}
+data: {"kind": "text", "text": "ode\",\"type\":\"bar"}
 
 event: delta
-data: {"kind":"text","text":"as\":\"characterCount\",\""}
+data: {"kind": "text", "text": "\",\"title\":\"Chara"}
 
 event: delta
-data: {"kind":"text","text":"op\":\"count\",\"field\":\""}
+data: {"kind": "text", "text": "cters per episod"}
 
 event: delta
-data: {"kind":"text","text":"characters\"}]}},\""}
+data: {"kind": "text", "text": "e\",\"span\":24,\"he"}
 
 event: delta
-data: {"kind":"text","text":"value\":{\"op\":\"max"}
+data: {"kind": "text", "text": "ight\":320,\"data\""}
 
 event: delta
-data: {"kind":"text","text":"\",\"field\":\"characterCount"}
+data: {"kind": "text", "text": ":{\"query\":\"episo"}
 
 event: delta
-data: {"kind":"text","text":"\"}"}
+data: {"kind": "text", "text": "des\",\"path\":\"epi"}
 
 event: delta
-data: {"kind":"text","text":"},{\"id\":\"chars"}
+data: {"kind": "text", "text": "sodes.results\",\""}
 
 event: delta
-data: {"kind":"text","text":"-per-episode\",\"type\":"}
+data: {"kind": "text", "text": "transform\":{\"der"}
 
 event: delta
-data: {"kind":"text","text":"\"bar\",\"title\":\""}
+data: {"kind": "text", "text": "ive\":[{\"as\":\"cha"}
 
 event: delta
-data: {"kind":"text","text":"Characters per episode\",\"span\":"}
+data: {"kind": "text", "text": "racterCount\",\"op"}
 
 event: delta
-data: {"kind":"text","text":"24,\"height"}
+data: {"kind": "text", "text": "\":\"count\",\"field"}
 
 event: delta
-data: {"kind":"text","text":"\":320"}
+data: {"kind": "text", "text": "\":\"characters\"}]"}
 
 event: delta
-data: {"kind":"text","text":",\"data\":{\"query\":"}
+data: {"kind": "text", "text": ",\"sort\":{\"by\":\"e"}
 
 event: delta
-data: {"kind":"text","text":"\"episodes\",\"path\":\""}
+data: {"kind": "text", "text": "pisode\",\"dir\":\"a"}
 
 event: delta
-data: {"kind":"text","text":"episodes.results\",\"transform"}
+data: {"kind": "text", "text": "sc\"}}},\"xField\":"}
 
 event: delta
-data: {"kind":"text","text":"\":{\"derive\":[{"}
+data: {"kind": "text", "text": "\"episode\",\"yFiel"}
 
 event: delta
-data: {"kind":"text","text":"\"as\":\"characterCount"}
+data: {"kind": "text", "text": "d\":\"characterCou"}
 
 event: delta
-data: {"kind":"text","text":"\",\"op\":\"count\",\"field\":"}
+data: {"kind": "text", "text": "nt\"},{\"id\":\"list"}
 
 event: delta
-data: {"kind":"text","text":"\"characters\"}],\"s"}
+data: {"kind": "text", "text": "\",\"type\":\"table\""}
 
 event: delta
-data: {"kind":"text","text":"ort\":{\"by\":\"epis"}
+data: {"kind": "text", "text": ",\"title\":\"Episod"}
 
 event: delta
-data: {"kind":"text","text":"ode\",\"dir\":\"asc"}
+data: {"kind": "text", "text": "es\",\"span\":24,\"p"}
 
 event: delta
-data: {"kind":"text","text":"\"}}},\"xField\":"}
+data: {"kind": "text", "text": "ageSize\":15,\"dat"}
 
 event: delta
-data: {"kind":"text","text":"\"episode\",\"yField\":\""}
+data: {"kind": "text", "text": "a\":{\"query\":\"epi"}
 
 event: delta
-data: {"kind":"text","text":"characterCount\"},{\""}
+data: {"kind": "text", "text": "sodes\",\"path\":\"e"}
 
 event: delta
-data: {"kind":"text","text":"id\":\"list\",\"type\":\""}
+data: {"kind": "text", "text": "pisodes.results\""}
 
 event: delta
-data: {"kind":"text","text":"table\",\"title\":\"Episod"}
+data: {"kind": "text", "text": ",\"transform\":{\"d"}
 
 event: delta
-data: {"kind":"text","text":"es\",\"span\":24,\"p"}
+data: {"kind": "text", "text": "erive\":[{\"as\":\"c"}
 
 event: delta
-data: {"kind":"text","text":"ageSize\":15"}
+data: {"kind": "text", "text": "haracterCount\",\""}
 
 event: delta
-data: {"kind":"text","text":",\"data\":{\"query\":"}
+data: {"kind": "text", "text": "op\":\"count\",\"fie"}
 
 event: delta
-data: {"kind":"text","text":"\"episodes\",\"path\":\""}
+data: {"kind": "text", "text": "ld\":\"characters\""}
 
 event: delta
-data: {"kind":"text","text":"episodes.results\",\"transform"}
+data: {"kind": "text", "text": "}],\"sort\":{\"by\":"}
 
 event: delta
-data: {"kind":"text","text":"\":{\"derive\":[{"}
+data: {"kind": "text", "text": "\"episode\",\"dir\":"}
 
 event: delta
-data: {"kind":"text","text":"\"as\":\"characterCount"}
+data: {"kind": "text", "text": "\"asc\"}}},\"column"}
 
 event: delta
-data: {"kind":"text","text":"\",\"op\":\"count\",\"field\":"}
+data: {"kind": "text", "text": "s\":[{\"key\":\"id\","}
 
 event: delta
-data: {"kind":"text","text":"\"characters\"}],\"s"}
+data: {"kind": "text", "text": "\"title\":\"Id\",\"wi"}
 
 event: delta
-data: {"kind":"text","text":"ort\":{\"by\":\"epis"}
+data: {"kind": "text", "text": "dth\":80,\"linkTo\""}
 
 event: delta
-data: {"kind":"text","text":"ode\",\"dir\":\"asc"}
+data: {"kind": "text", "text": ":{\"concept\":\"Epi"}
 
 event: delta
-data: {"kind":"text","text":"\"}}},\"columns\":"}
+data: {"kind": "text", "text": "sode\"}},{\"key\":\""}
 
 event: delta
-data: {"kind":"text","text":"[{\"key\":\"id\",\""}
+data: {"kind": "text", "text": "name\",\"title\":\"N"}
 
 event: delta
-data: {"kind":"text","text":"title\":\""}
+data: {"kind": "text", "text": "ame\"},{\"key\":\"ep"}
 
 event: delta
-data: {"kind":"text","text":"Id\",\"width\":80"}
+data: {"kind": "text", "text": "isode\",\"title\":\""}
 
 event: delta
-data: {"kind":"text","text":",\"linkTo\":{"}
+data: {"kind": "text", "text": "Code\",\"format\":\""}
 
 event: delta
-data: {"kind":"text","text":"\"concept\":\"Episode"}
+data: {"kind": "text", "text": "tag\"},{\"key\":\"ai"}
 
 event: delta
-data: {"kind":"text","text":"\"}},{\"key\":\""}
+data: {"kind": "text", "text": "r_date\",\"title\":"}
 
 event: delta
-data: {"kind":"text","text":"name\",\"title\":\"Name\""}
+data: {"kind": "text", "text": "\"Air date\"},{\"ke"}
 
 event: delta
-data: {"kind":"text","text":"},{\"key\":\"episode"}
+data: {"kind": "text", "text": "y\":\"characterCou"}
 
 event: delta
-data: {"kind":"text","text":"\",\"title\":\"Code\",\"format"}
+data: {"kind": "text", "text": "nt\",\"title\":\"Cha"}
 
 event: delta
-data: {"kind":"text","text":"\":\"tag\"},{\""}
+data: {"kind": "text", "text": "racters\",\"format"}
 
 event: delta
-data: {"kind":"text","text":"key\":\"air_date\",\"title"}
+data: {"kind": "text", "text": "\":\"number\"}]}]}\n"}
 
 event: delta
-data: {"kind":"text","text":"\":\"Air date\"},{"}
-
-event: delta
-data: {"kind":"text","text":"\"key\":\"characterCount"}
-
-event: delta
-data: {"kind":"text","text":"\",\"title\":\"Characters\",\""}
-
-event: delta
-data: {"kind":"text","text":"format\":\"number\"}]}"}
-
-event: delta
-data: {"kind":"text","text":"]}\n</view>"}
+data: {"kind": "text", "text": "</view>"}
 
 event: result
-data: {"spec":{"version":1,"id":"gen-73e56d69","concept":"Episode","title":"Episodes","description":"Episodes, characters per episode and air dates.","queries":{"episodes":{"query":"query { episodes { results { id name air_date episode characters { id } } } }"}},"widgets":[{"type":"statistic","id":"count","title":"Episodes","span":8,"data":{"query":"episodes","path":"episodes.results"},"value":{"op":"count"}},{"type":"statistic","id":"avg-chars","title":"Average characters per episode","span":8,"data":{"query":"episodes","path":"episodes.results","transform":{"derive":[{"as":"characterCount","op":"count","field":"characters"}]}},"value":{"op":"avg","field":"characterCount"},"precision":1},{"type":"statistic","id":"max-chars","title":"Max characters in one episode","span":8,"data":{"query":"episodes","path":"episodes.results","transform":{"derive":[{"as":"characterCount","op":"count","field":"characters"}]}},"value":{"op":"max","field":"characterCount"}},{"type":"bar","id":"chars-per-episode","title":"Characters per episode","span":24,"height":320,"data":{"query":"episodes","path":"episodes.results","transform":{"derive":[{"as":"characterCount","op":"count","field":"characters"}],"sort":{"by":"episode","dir":"asc"}}},"xField":"episode","yField":"characterCount"},{"type":"table","id":"list","title":"Episodes","span":24,"data":{"query":"episodes","path":"episodes.results","transform":{"derive":[{"as":"characterCount","op":"count","field":"characters"}],"sort":{"by":"episode","dir":"asc"}}},"columns":[{"key":"id","title":"Id","width":80,"linkTo":{"concept":"Episode"}},{"key":"name","title":"Name"},{"key":"episode","title":"Code","format":"tag"},{"key":"air_date","title":"Air date"},{"key":"characterCount","title":"Characters","format":"number"}],"pageSize":15}],"scope":"list"},"provider":"claude-code","model":"sonnet","reasoning":["Trois statistiques en tête : nombre d'épisodes, moyenne de personnages par épisode et maximum de personnages dans un épisode, calculés via un \"derive\" qui compte les personnages.","Un graphique en barres du nombre de personnages par épisode (code d'épisode en abscisse), pour comparer les épisodes d'un coup d'œil.","Un tableau des épisodes avec nom, code, date de diffusion et nombre de personnages, trié par code d'épisode, avec lien vers chaque épisode via l'id.","Les champs de la relation \"characters\" sont inconnus : je sélectionne uniquement \"id\", seul champ sûr pour compter."]}
+data: {"spec":{"version":1,"id":"gen-73e56d69","concept":"Episode","title":"Episodes","description":"Episodes, characters per episode and air dates.","queries":{"episodes":{"query":"query { episodes { results { id name air_date episode characters { id } } } }"}},"widgets":[{"type":"statistic","id":"count","title":"Episodes","span":8,"data":{"query":"episodes","path":"episodes.results"},"value":{"op":"count"}},{"type":"statistic","id":"avg-chars","title":"Average characters per episode","span":8,"data":{"query":"episodes","path":"episodes.results","transform":{"derive":[{"as":"characterCount","op":"count","field":"characters"}]}},"value":{"op":"avg","field":"characterCount"},"precision":1},{"type":"statistic","id":"max-chars","title":"Max characters in one episode","span":8,"data":{"query":"episodes","path":"episodes.results","transform":{"derive":[{"as":"characterCount","op":"count","field":"characters"}]}},"value":{"op":"max","field":"characterCount"}},{"type":"bar","id":"chars-per-episode","title":"Characters per episode","span":24,"height":320,"data":{"query":"episodes","path":"episodes.results","transform":{"derive":[{"as":"characterCount","op":"count","field":"characters"}],"sort":{"by":"episode","dir":"asc"}}},"xField":"episode","yField":"characterCount"},{"type":"table","id":"list","title":"Episodes","span":24,"data":{"query":"episodes","path":"episodes.results","transform":{"derive":[{"as":"characterCount","op":"count","field":"characters"}],"sort":{"by":"episode","dir":"asc"}}},"columns":[{"key":"id","title":"Id","width":80,"linkTo":{"concept":"Episode"}},{"key":"name","title":"Name"},{"key":"episode","title":"Code","format":"tag"},{"key":"air_date","title":"Air date"},{"key":"characterCount","title":"Characters","format":"number"}],"pageSize":15}],"scope":"list"},"provider":"claude-code","model":"sonnet","reasoning":["Three statistics at the top: number of episodes, average characters per episode and the most characters in one episode, computed with a \"derive\" that counts the characters.","A bar chart of the number of characters per episode (episode code on the x axis), to compare episodes at a glance.","A table of the episodes with name, code, air date and number of characters, sorted by episode code, linking to each episode by id.","The fields of the \"characters\" relation are unknown: I select only \"id\", the one safe field for counting."]}
 

@@ -17,14 +17,19 @@ FLUID_STATIC_DIR=$PWD/../frontend/dist FLUID_DATA_DIR=$(mktemp -d) PORT=4990 DAT
 cd ../..
 
 node scripts/docs/capture.mjs                  # app URL defaults to http://localhost:4990
-node scripts/docs/capture.mjs http://localhost:4001 --only=screens   # or --only=video
+node scripts/docs/capture.mjs --only=screens   # or --only=video
 ```
 
 Requirements: Playwright's Chromium (`npx playwright install chromium` if missing), `ffmpeg`
 (H.264), and `cwebp` / `img2webp` from libwebp (`brew install webp`). A run takes about two minutes.
 The public Rick and Morty API sometimes answers 413: the script retries those requests.
 
-Options: `FLUID_THEME=light` (default `dark`), `FLUID_URL` instead of the positional URL.
+Point the script only at a throwaway app (fresh `FLUID_DATA_DIR`), not at the server you use day to
+day: it saves views during the run (and deletes those, and only those, at the end).
+
+Options: `FLUID_THEME=dark` (default `light`), `FLUID_URL` instead of the positional URL,
+`FLUID_LLM_PROVIDER` (provider stored in the browser, default `claude-code`), `FLUID_FIXTURES`
+(fixtures directory). The fixtures are plain text and can be edited by hand.
 
 ## What it produces
 
@@ -36,7 +41,7 @@ Options: `FLUID_THEME=light` (default `dark`), `FLUID_URL` instead of the positi
 | `profile.webp` | That view saved and rendered in the detail column |
 | `dashboard.webp` | A generated Episode dashboard: stats, bar chart, table |
 | `plugins.webp` | Settings → Plugins → Widgets (the built-in collections) |
-| `demo.mp4` | ~60 s session: connect, explore, generate, save, reuse, other concepts (1440×900, H.264) |
+| `demo.mp4` | ~60 s session: connect, explore, generate a profile view, save and reuse it, end on a generated Episode dashboard (1440×900, H.264) |
 | `demo.webp` | Animated preview of the video for the README (960 px, 12 fps) |
 
 Screenshots are taken at 1440×900 with a device scale factor of 2, then converted to WebP.

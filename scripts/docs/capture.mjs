@@ -6,9 +6,8 @@ import { chromium } from 'playwright';
 import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  deleteSavedViews, fixtureTitles, llmFixtures, retryFlakyApi, toMp4, toPreview, toWebp,
-} from './lib.mjs';
+import { checkApp, deleteSavedViews, llmFixtures, pageSetup, retryFlakyApi, trackSavedViews } from './lib.mjs';
+import { Cuts, toMp4, toPreview, toWebp } from './media.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const MEDIA = join(ROOT, 'docs/media');
@@ -19,9 +18,15 @@ const args = process.argv.slice(2);
 const BASE = (args.find((a) => !a.startsWith('--')) ?? process.env.FLUID_URL ?? 'http://localhost:4990').replace(/\/$/, '');
 const RECORD = args.includes('--record');
 const ONLY = args.find((a) => a.startsWith('--only='))?.slice(7);
-const THEME = process.env.FLUID_THEME ?? 'dark';
+if (ONLY !== undefined && ONLY !== 'screens' && ONLY !== 'video') {
+  console.error(`Unknown --only=${ONLY} (expected screens or video)`);
+  process.exit(2);
+}
+if (RECORD && ONLY !== 'screens') console.log('--record captures the screenshots only: the video is skipped.');
+const THEME = process.env.FLUID_THEME ?? 'light';
 const PROVIDER = process.env.FLUID_LLM_PROVIDER ?? 'claude-code';
 const VIEWPORT = { width: 1440, height: 900 };
+const EXPLORE_HEIGHT = 724;
 
 const PROMPTS = {
   profile:
@@ -31,8 +36,9 @@ const PROMPTS = {
 };
 
 const fixtures = llmFixtures(FIXTURES, { record: RECORD });
+const savedViews = new Set();
 
-async function newContext(browser, extra) {
+async function newContext(browser, { video, ...extra }) {
   const context = await browser.newContext({ viewport: VIEWPORT, colorScheme: THEME, ...extra });
   // Generate with Claude through the local Claude Code login (the provider the fixtures come from).
   await context.addInitScript((provider) => {
@@ -40,195 +46,303 @@ async function newContext(browser, extra) {
     const state = { provider, model: provider === 'claude-code' ? 'sonnet' : '', apiKey: '', baseUrl: '' };
     localStorage.setItem('fluid-llm-settings', JSON.stringify({ state, version: 0 }));
   }, PROVIDER);
+  await context.addInitScript(pageSetup, { cursor: video, chrome: video });
   await retryFlakyApi(context);
   await fixtures.install(context);
+  trackSavedViews(context, savedViews);
   return context;
 }
 
-// ---- scenario steps -------------------------------------------------------
-
-const lastColumnPlus = (page) => page.getByRole('button', { name: 'New perspective' }).last();
-
-async function connectDemo(page, pause) {
-  await page.goto(`${BASE}/connect`);
-  await page.getByRole('button', { name: /Explore the Rick and Morty demo/ }).waitFor();
-  await pause(1500);
-  await page.getByRole('button', { name: /Explore the Rick and Morty demo/ }).click();
-  await page.waitForURL(`${BASE}/`);
-}
-
-async function openConcept(page, name, pause) {
-  await page.locator(`li[role=menuitem][data-menu-id$="-concept:${name}"]`).click();
-  await page.waitForURL(`${BASE}/d/${name}`);
-  await pause(1200);
-}
-
-async function showList(page, tab, firstRow, pause) {
-  await page.getByText(tab, { exact: true }).click();
-  await page.getByText(firstRow).first().waitFor({ timeout: 30_000 });
-  await pause(1200);
-}
-
-async function openRow(page, name, pause) {
-  await page.getByText(name, { exact: true }).first().click();
-  await page.getByText('Character detail', { exact: true }).last().waitFor();
-  await pause(1500);
-}
-
-/** "+" on the last column → AI → type the prompt → wait for the (replayed) answer. */
-async function generate(page, fixture, prompt, { typeDelay, pause }) {
-  await lastColumnPlus(page).click();
-  await pause(800);
-  await page.getByRole('button', { name: /the assistant builds it/ }).click();
-  const modal = page.locator('.ant-modal').filter({ hasText: 'Create a view with the assistant' });
-  const box = modal.locator('textarea');
-  await box.waitFor();
-  await pause(800);
-  await box.click();
-  await page.keyboard.type(prompt, { delay: typeDelay });
-  await pause(600);
-  fixtures.use(fixture);
-  await page.keyboard.press('Enter');
-  const save = modal.getByRole('button', { name: /Save view/ });
-  await save.and(page.locator(':enabled')).waitFor({ timeout: 600_000 });
-  await settle(page);
-  await loadImages(modal);
-  return { modal, save };
-}
-
 /**
- * fluid never fetches an image without a click: load the first one, trusting its
- * host for the session so the next ones load by themselves.
+ * Page helpers. In the video, the pointer glides to each target before clicking and
+ * pauses are real; for screenshots, pauses are short and the pointer jumps.
  */
-async function loadImages(scope) {
-  const page = scope.page ? scope.page() : scope;
-  const button = scope.getByRole('button', { name: /Load image/ }).first();
-  if (!(await button.isVisible().catch(() => false))) return;
-  await button.click();
-  const trust = page.getByRole('checkbox', { name: /Trust .* for this session/ });
-  await trust.check().catch(() => {});
-  await page.getByRole('button', { name: 'Load', exact: true }).click().catch(() => {});
-  await page.waitForTimeout(800);
+function actor(page, { video }) {
+  let at = { x: VIEWPORT.width / 2, y: VIEWPORT.height / 2 };
+  const pause = (ms) => page.waitForTimeout(video ? ms : Math.min(ms, 600));
+  async function glide(locator) {
+    if (!video) return;
+    await locator.scrollIntoViewIfNeeded();
+    const box = await locator.boundingBox();
+    if (!box) return;
+    const to = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    for (let i = 1, n = 18; i <= n; i += 1) {
+      const k = 1 - (1 - i / n) ** 3;
+      await page.mouse.move(at.x + (to.x - at.x) * k, at.y + (to.y - at.y) * k);
+      await page.waitForTimeout(14);
+    }
+    at = to;
+    await page.waitForTimeout(150);
+  }
+  const click = async (locator) => {
+    await locator.waitFor();
+    await glide(locator);
+    await locator.click();
+  };
+  return { page, video, pause, click };
 }
 
-/** Park the pointer where it shows no hover state. */
-const parkMouse = (page) => page.mouse.move(VIEWPORT.width - 2, VIEWPORT.height - 2);
+const demoButton = (page) => page.getByRole('button', { name: /Explore the Rick and Morty demo/ });
+const modalOf = (page) => page.locator('.ant-modal').filter({ hasText: 'Create a view with the assistant' });
 
-async function settle(page, ms = 2500) {
+async function settle(page, ms = 1500) {
   await page.waitForLoadState('networkidle').catch(() => {});
   await page.waitForTimeout(ms);
 }
 
-async function saveView(page, save, pause) {
-  await save.click();
-  await page.locator('.ant-modal').filter({ hasText: 'Create a view with the assistant' }).waitFor({ state: 'hidden' });
-  await settle(page, 1500);
-  await loadImages(page);
-  await pause(1500);
+/** Wait until no skeleton or spinner is left in the page. */
+async function loaded(page) {
+  await page.waitForFunction(
+    () => !document.querySelector('.ant-skeleton, .ant-spin-spinning'),
+    null,
+    { timeout: 30_000 },
+  ).catch(() => {});
 }
 
-// ---- runs -----------------------------------------------------------------
+async function openConcept(a, name) {
+  // A collapsed sidebar hides the concept entries: expand it first.
+  const expand = a.page.getByRole('button', { name: 'Expand navigation' });
+  if (await expand.isVisible()) {
+    await a.click(expand);
+    await a.pause(500);
+  }
+  await a.click(a.page.locator(`li[role=menuitem][data-menu-id$="-concept:${name}"]`));
+  await a.page.waitForURL(`${BASE}/d/${name}`);
+}
+
+async function showList(a, tab, firstRow) {
+  await a.click(a.page.getByRole('tab', { name: tab }).first());
+  await a.page.getByText(firstRow).first().waitFor({ timeout: 30_000 });
+  await loaded(a.page);
+}
+
+async function openRow(a, name) {
+  await a.click(a.page.getByText(name, { exact: true }).first());
+  await a.page.getByText('Character detail', { exact: true }).last().waitFor();
+  await loaded(a.page);
+  await settle(a.page, 600);
+}
+
+/** "+" on the last column → AI → type the prompt → wait for the (replayed) answer. */
+async function generate(a, fixture, prompt, { typeDelay, delay }) {
+  const { page } = a;
+  await a.click(page.getByRole('button', { name: 'New perspective' }).last());
+  await a.pause(700);
+  await a.click(page.getByRole('button', { name: /the assistant builds it/ }));
+  const modal = modalOf(page);
+  const box = modal.locator('textarea');
+  await box.waitFor();
+  await a.pause(500);
+  await a.click(box);
+  await page.keyboard.type(prompt, { delay: typeDelay });
+  await a.pause(500);
+  fixtures.use(fixture, { delay: RECORD ? 0 : delay });
+  await page.keyboard.press('Enter');
+  const save = modal.getByRole('button', { name: /Save view/ });
+  await save.and(page.locator(':enabled')).waitFor({ timeout: 600_000 });
+  await settle(page, 800);
+  await loaded(page);
+  return { modal, save };
+}
+
+/** Scroll the assistant's live preview so the table under the profile card shows. */
+async function scrollPreview(modal, by) {
+  await modal.locator('[class*="_canvas_"]').first().evaluate((el, dy) => el.scrollBy({ top: dy, behavior: 'smooth' }), by);
+  await modal.page().waitForTimeout(700);
+}
+
+async function saveView(a, save) {
+  await a.click(save);
+  await modalOf(a.page).waitFor({ state: 'hidden' });
+  await settle(a.page, 800);
+  await loaded(a.page);
+}
+
+// ---- screenshots ----------------------------------------------------------
+
+/** The full width, down to the last table row that is entirely in the viewport. */
+async function toLastFullRow(page, height = VIEWPORT.height) {
+  const bottom = await page.locator('.ant-table-row').evaluateAll((rows, h) => {
+    // A row counts when no scrolling ancestor (nor the window) cuts it off.
+    const shownTo = (el) => {
+      let limit = h;
+      for (let n = el.parentElement; n; n = n.parentElement) {
+        if (getComputedStyle(n).overflowY !== 'visible') limit = Math.min(limit, n.getBoundingClientRect().bottom);
+      }
+      return limit;
+    };
+    const ends = rows.map((r) => r.getBoundingClientRect().bottom).filter((b, i) => b <= shownTo(rows[i]));
+    return ends.length ? Math.max(...ends) : h;
+  }, height);
+  return { x: 0, y: 0, width: VIEWPORT.width, height: Math.min(height, Math.ceil(bottom) + 1) };
+}
 
 async function screenshots(browser) {
-  const context = await newContext(browser, { deviceScaleFactor: 2 });
+  const context = await newContext(browser, { video: false, deviceScaleFactor: 2 });
   const page = await context.newPage();
-  const pause = (ms) => page.waitForTimeout(Math.min(ms, 800));
-  const shot = async (name) => {
-    await parkMouse(page);
-    await settle(page, 1200);
+  const a = actor(page, { video: false });
+  const shot = async (name, clipOf) => {
+    await page.mouse.move(VIEWPORT.width - 2, VIEWPORT.height - 2);
+    await settle(page, 1000);
     const png = join(MEDIA, `${name}.png`);
-    await page.screenshot({ path: png });
+    await page.screenshot({ path: png, clip: clipOf ? await clipOf() : undefined });
     toWebp(png);
+  };
+  const around = (locator, pad = 24) => async () => {
+    const b = await locator.boundingBox();
+    const x = Math.max(0, b.x - pad);
+    const y = Math.max(0, b.y - pad);
+    return { x, y, width: Math.min(VIEWPORT.width - x, b.width + 2 * pad), height: Math.min(VIEWPORT.height - y, b.height + 2 * pad) };
   };
 
   await page.goto(`${BASE}/connect`);
-  await page.getByRole('button', { name: /Explore the Rick and Morty demo/ }).waitFor();
-  await shot('connect');
-  await page.getByRole('button', { name: /Explore the Rick and Morty demo/ }).click();
+  await demoButton(page).waitFor();
+  await shot('connect', around(page.locator('.ant-card').filter({ has: demoButton(page) }).last()));
+  await a.click(demoButton(page));
   await page.waitForURL(`${BASE}/`);
 
-  await openConcept(page, 'Character', pause);
-  await showList(page, 'Character list', 'Rick Sanchez', pause);
-  await openRow(page, 'Rick Sanchez', pause);
-  await shot('explore');
+  await openConcept(a, 'Character');
+  await showList(a, 'Character list', 'Rick Sanchez');
+  await openRow(a, 'Rick Sanchez');
+  await page.locator('[role=tab][aria-selected=true]').evaluateAll((tabs) =>
+    tabs.forEach((t) => t.scrollIntoView({ block: 'nearest', inline: 'center' })));
+  await shot('explore', async () => ({ x: 0, y: 0, width: VIEWPORT.width, height: EXPLORE_HEIGHT }));
 
-  const profile = await generate(page, 'character-profile', PROMPTS.profile, { typeDelay: 0, pause });
+  const profile = await generate(a, 'character-profile', PROMPTS.profile, { typeDelay: 0, delay: 0 });
+  await scrollPreview(profile.modal, 50);
   await shot('assistant');
-  await saveView(page, profile.save, pause);
-  await shot('profile');
+  await saveView(a, profile.save);
+  await a.click(page.getByRole('button', { name: 'Full screen' }).last());
+  await loaded(page);
+  await shot('profile', () => toLastFullRow(page));
+  await a.click(page.getByRole('button', { name: 'Exit full screen' }).last());
 
-  await openConcept(page, 'Episode', pause);
-  await showList(page, 'Episode list', 'Pilot', pause);
-  const episodes = await generate(page, 'episode-stats', PROMPTS.episodes, { typeDelay: 0, pause });
-  await saveView(page, episodes.save, pause);
-  await shot('dashboard');
+  await openConcept(a, 'Episode');
+  await showList(a, 'Episode list', 'Pilot');
+  const episodes = await generate(a, 'episode-stats', PROMPTS.episodes, { typeDelay: 0, delay: 0 });
+  await saveView(a, episodes.save);
+  // A taller window for this one, so the stats, the chart and a few table rows all show.
+  await page.setViewportSize({ ...VIEWPORT, height: 1180 });
+  await shot('dashboard', () => toLastFullRow(page, 1180));
+  await page.setViewportSize(VIEWPORT);
 
-  await page.getByRole('button', { name: /settings/i }).last().click();
-  await page.getByText('Widgets', { exact: true }).first().click();
+  await a.click(page.getByRole('button', { name: /settings/i }).last());
+  await a.click(page.getByText('Widgets', { exact: true }).first());
   await shot('plugins');
   await context.close();
 }
 
+// ---- video ----------------------------------------------------------------
+
 async function video(browser) {
   rmSync(join(TMP, 'video'), { recursive: true, force: true });
-  const context = await newContext(browser, { recordVideo: { dir: join(TMP, 'video'), size: VIEWPORT } });
+  const context = await newContext(browser, { video: true, recordVideo: { dir: join(TMP, 'video'), size: VIEWPORT } });
   const started = Date.now();
+  const now = () => (Date.now() - started) / 1000;
+  const cuts = new Cuts();
   const page = await context.newPage();
-  const pause = (ms) => page.waitForTimeout(ms);
+  const a = actor(page, { video: true });
 
+  // Loading the app, then each wait for data, is cut out of the video.
+  cuts.start(0);
   await page.goto(`${BASE}/connect`);
-  await page.getByRole('button', { name: /Explore the Rick and Morty demo/ }).waitFor();
+  await demoButton(page).waitFor();
   await settle(page, 300);
-  const trim = (Date.now() - started) / 1000;
-  await connectDemo(page, pause);
-  await pause(1500);
-  await openConcept(page, 'Character', pause);
-  await showList(page, 'Character list', 'Rick Sanchez', pause);
-  await openRow(page, 'Rick Sanchez', pause);
+  cuts.end(now());
+  await a.pause(1200);
+  await a.click(demoButton(page));
+  cuts.start(now());
+  await page.waitForURL(`${BASE}/`);
+  await page.locator('li[role=menuitem][data-menu-id$="-concept:Character"]').waitFor();
+  await settle(page, 800);
+  await loaded(page);
+  cuts.end(now());
+  await a.pause(1000);
 
-  const { save } = await generate(page, 'character-profile', PROMPTS.profile, { typeDelay: 35, pause });
-  await pause(4000);
-  await saveView(page, save, pause);
-  await pause(2500);
+  await openConcept(a, 'Character');
+  // The default perspective (a graph) loads; the scenario goes to the list straight away.
+  cuts.start(now());
+  await page.getByRole('tab', { name: 'Character list' }).first().waitFor();
+  await settle(page, 800);
+  await loaded(page);
+  cuts.end(now());
+  await a.click(page.getByRole('tab', { name: 'Character list' }).first());
+  cuts.start(now());
+  await page.getByText('Rick Sanchez').first().waitFor({ timeout: 30_000 });
+  await loaded(page);
+  cuts.end(now());
+  await a.pause(1000);
+  // More room for the list and detail columns side by side.
+  await a.click(page.getByRole('button', { name: 'Collapse navigation' }));
+  await a.pause(600);
+  await a.click(page.getByText('Rick Sanchez', { exact: true }).first());
+  cuts.start(now());
+  await page.getByText('Character detail', { exact: true }).last().waitFor();
+  await loaded(page);
+  await settle(page, 300);
+  cuts.end(now());
+  await a.pause(1200);
 
-  // The saved view is reused for another character, without the LLM.
-  await page.getByText('Morty Smith', { exact: true }).first().click();
-  await settle(page, 1500);
-  await loadImages(page);
-  await pause(3500);
-  await page.getByText('Summer Smith', { exact: true }).first().click();
-  await settle(page, 1500);
-  await loadImages(page);
-  await pause(3000);
+  const highlight = now();
+  const profile = await generate(a, 'character-profile', PROMPTS.profile, { typeDelay: 30, delay: 2500 });
+  await a.pause(2200);
+  await scrollPreview(profile.modal, 120);
+  await a.pause(1800);
+  await saveView(a, profile.save);
+  await a.pause(2000);
 
-  await openConcept(page, 'Episode', pause);
-  await settle(page, 1000);
-  await pause(3000);
-  await openConcept(page, 'Location', pause);
-  await settle(page, 1000);
-  await pause(3000);
+  // The saved view is reused for other characters, without the LLM.
+  for (const name of ['Morty Smith', 'Summer Smith']) {
+    await a.click(page.getByText(name, { exact: true }).first());
+    await settle(page, 300);
+    await loaded(page);
+    await a.pause(2200);
+  }
+
+  // End on a dashboard: the Episode list, with stats and a bar chart from the assistant.
+  await openConcept(a, 'Episode');
+  cuts.start(now());
+  await page.getByRole('tab', { name: 'Episode list' }).first().waitFor();
+  await settle(page, 800);
+  await loaded(page);
+  cuts.end(now());
+  await a.click(page.getByRole('tab', { name: 'Episode list' }).first());
+  cuts.start(now());
+  await page.getByText('Pilot').first().waitFor({ timeout: 30_000 });
+  await loaded(page);
+  cuts.end(now());
+  await a.pause(800);
+  const episodes = await generate(a, 'episode-stats', PROMPTS.episodes, { typeDelay: 12, delay: 1500 });
+  await a.pause(1500);
+  await saveView(a, episodes.save);
+  // Park the pointer over the page title: hovering the table would show a sort tooltip.
+  await page.mouse.move(VIEWPORT.width / 2, 110, { steps: 10 });
+  await a.pause(4000);
 
   const webm = await page.video().path();
   await context.close();
-  toMp4(webm, join(MEDIA, 'demo.mp4'), trim);
-  toPreview(join(MEDIA, 'demo.mp4'), join(MEDIA, 'demo.webp'), join(TMP, 'frames'));
+  toMp4(webm, join(MEDIA, 'demo.mp4'), cuts);
+  toPreview(join(MEDIA, 'demo.mp4'), join(MEDIA, 'demo.webp'), join(TMP, 'frames'), {
+    startSec: Math.max(0, cuts.outputTime(highlight) - 0.5),
+  });
 }
 
 mkdirSync(MEDIA, { recursive: true });
 mkdirSync(FIXTURES, { recursive: true });
+await checkApp(BASE);
 const browser = await chromium.launch();
 try {
   console.log(`fluid at ${BASE} (${RECORD ? 'recording' : 'replaying'} LLM fixtures, ${THEME} theme)`);
   if (ONLY !== 'video') {
-    await deleteSavedViews(BASE, fixtureTitles(FIXTURES));
     await screenshots(browser);
+    await deleteSavedViews(BASE, savedViews);
   }
   if (ONLY !== 'screens' && !RECORD) {
-    await deleteSavedViews(BASE, fixtureTitles(FIXTURES));
     await video(browser);
+    await deleteSavedViews(BASE, savedViews);
   }
-  await deleteSavedViews(BASE, fixtureTitles(FIXTURES));
 } finally {
+  await deleteSavedViews(BASE, savedViews).catch(() => {});
   await browser.close();
   rmSync(TMP, { recursive: true, force: true });
 }

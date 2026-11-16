@@ -34,20 +34,16 @@ An LLM writes the view, you keep it, and it runs again without the LLM.
 
 ## ⚡ Quick start
 
+> **Coming soon on npm.** The first release of `@badetitou/fluid` is being prepared. Until then,
+> [run fluid from source](#-getting-started).
+
 ```bash
-npx @badetitou/fluid
+npx @badetitou/fluid                            # fluid on http://localhost:4001, no clone needed
+LLM_PROVIDER=claude-code npx @badetitou/fluid   # generate views with your Claude Code login
 ```
 
-> The npm package is being prepared. Until its first release, run fluid from source:
->
-> ```bash
-> git clone https://gitlab.com/badetitou/fluid.git && cd fluid
-> pnpm install
-> pnpm dev        # then open the URL Vite prints
-> ```
-
 Pick **Explore the Rick and Morty demo** on the connection screen, open a concept, and press **+**
-on a column to describe the view you want. See [Getting started](#-getting-started) for the details.
+on a column to describe the view you want. Options are listed in [Run with npx](#run-with-npx).
 
 ## ✨ What is fluid?
 
@@ -130,7 +126,7 @@ pnpm install    # 1. dependencies
 pnpm dev        # 2. frontend + BFF in watch mode
 ```
 
-<img src="docs/media/connect.webp" alt="The connection screen, pre-filled with the Rick and Morty API and its demo button" width="560" align="right" />
+<img src="docs/media/connect.webp" alt="The connection screen, pre-filled with the Rick and Morty API and its demo button" width="360" align="right" />
 
 fluid has no GraphQL backend of its own. The connection screen is pre-filled with the public
 [Rick and Morty API](https://rickandmortyapi.com/graphql) and offers a few other public demo sources;

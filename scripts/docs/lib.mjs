@@ -1,11 +1,9 @@
 // Helpers for capture.mjs: LLM fixtures (record / replay), flaky-API retries,
-// cleanup of the views a run saved, and ffmpeg / cwebp post-processing.
-import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+// cleanup of the views a run saved, and the capture-only page setup.
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 export const GENERATE_ROUTE = '**/api/llm/generate-view/stream';
-export const CONFIG_ROUTE = '**/api/llm/config';
 const RICK_AND_MORTY = 'https://rickandmortyapi.com/graphql';
 
 /**
@@ -13,21 +11,12 @@ const RICK_AND_MORTY = 'https://rickandmortyapi.com/graphql';
  * real provider (record). `use(name)` names the fixture the next generation
  * reads or writes, so the scenario stays explicit about which answer it gets.
  */
-export function llmFixtures(fixturesDir, { record, delayMs = 3500 }) {
+export function llmFixtures(fixturesDir, { record }) {
   let next = null;
+  let delayMs = 3500;
   const file = (name) => join(fixturesDir, `${name}.sse`);
 
   async function install(context) {
-    await context.route(CONFIG_ROUTE, async (route) => {
-      const path = join(fixturesDir, 'llm-config.json');
-      if (record) {
-        const res = await route.fetch();
-        writeFileSync(path, `${JSON.stringify(await res.json(), null, 2)}\n`);
-        return route.fulfill({ response: res });
-      }
-      if (!existsSync(path)) return route.continue();
-      return route.fulfill({ contentType: 'application/json', body: readFileSync(path, 'utf8') });
-    });
     await context.route(GENERATE_ROUTE, async (route) => {
       if (!next) throw new Error('A generation started without a fixture name (call use() first)');
       const name = next;
@@ -51,11 +40,12 @@ export function llmFixtures(fixturesDir, { record, delayMs = 3500 }) {
 
   return {
     install,
-    use: (name) => {
+    use: (name, { delay = 3500 } = {}) => {
       if (!record && !existsSync(file(name))) {
         throw new Error(`Missing fixture ${file(name)}: run with --record first`);
       }
       next = name;
+      delayMs = delay;
     },
   };
 }
@@ -72,65 +62,76 @@ export async function retryFlakyApi(context) {
   });
 }
 
-/** Spec titles of the recorded generations, i.e. the views a run saves. */
-export function fixtureTitles(fixturesDir) {
-  if (!existsSync(fixturesDir)) return [];
-  return readdirSync(fixturesDir)
-    .filter((f) => f.endsWith('.sse'))
-    .map((f) => {
-      const text = readFileSync(join(fixturesDir, f), 'utf8');
-      const result = text.split('\n\n').find((b) => b.startsWith('event: result'));
-      return result ? JSON.parse(result.slice(result.indexOf('data: ') + 6)).spec.title : null;
-    })
-    .filter(Boolean);
+/**
+ * Remember the views this run saves (POST /api/views), so `deleteSavedViews` removes
+ * those and nothing else: the user's own views survive even against a real data dir.
+ */
+export function trackSavedViews(context, ids) {
+  context.on('response', async (res) => {
+    if (res.request().method() !== 'POST' || !/\/api\/views$/.test(new URL(res.url()).pathname)) return;
+    if (!res.ok()) return;
+    const view = await res.json().catch(() => null);
+    if (view?.id) ids.add(view.id);
+  });
 }
 
-/** Delete the views earlier runs saved from the fixtures, so every run starts the same. */
-export async function deleteSavedViews(baseUrl, titles) {
-  const res = await fetch(`${baseUrl}/api/views`);
-  if (!res.ok) throw new Error(`GET /api/views → ${res.status}: is the app running at ${baseUrl}?`);
-  const views = await res.json();
-  for (const view of views) {
-    if (titles.includes(view.spec?.title) || titles.includes(view.title)) {
-      await fetch(`${baseUrl}/api/views/${encodeURIComponent(view.id)}`, { method: 'DELETE' });
-    }
+export async function deleteSavedViews(baseUrl, ids) {
+  for (const id of ids) {
+    await fetch(`${baseUrl}/api/views/${encodeURIComponent(id)}`, { method: 'DELETE' });
   }
+  ids.clear();
 }
 
-const run = (cmd, args) => execFileSync(cmd, args, { stdio: ['ignore', 'ignore', 'inherit'] });
-const kb = (path) => `${Math.round(statSync(path).size / 1024)} KB`;
-
-/** PNG screenshot → WebP (quality 85), removing the PNG. */
-export function toWebp(png) {
-  const webp = png.replace(/\.png$/, '.webp');
-  run('cwebp', ['-quiet', '-q', '85', '-m', '6', png, '-o', webp]);
-  rmSync(png);
-  console.log(`  ${webp} (${kb(webp)})`);
-  return webp;
+/** Fail early when nothing answers at `baseUrl`. */
+export async function checkApp(baseUrl) {
+  const res = await fetch(`${baseUrl}/health`).catch(() => null);
+  if (!res?.ok) throw new Error(`No fluid app at ${baseUrl} (GET /health failed)`);
 }
 
-/** Playwright's WebM → H.264 MP4 (faststart), skipping the first `trimSec` seconds. */
-export function toMp4(webm, mp4, trimSec) {
-  run('ffmpeg', [
-    '-y', '-loglevel', 'error', '-ss', trimSec.toFixed(2), '-i', webm,
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', '28', '-pix_fmt', 'yuv420p',
-    '-r', '25', '-movflags', '+faststart', '-an', mp4,
-  ]);
-  console.log(`  ${mp4} (${kb(mp4)})`);
-}
-
-/** MP4 → animated WebP preview (12 fps, 960 px wide), sped up by `speed`. */
-export function toPreview(mp4, webp, tmpDir, { fps = 12, width = 960, speed = 1, quality = 50 } = {}) {
-  rmSync(tmpDir, { recursive: true, force: true });
-  mkdirSync(tmpDir, { recursive: true });
-  run('ffmpeg', [
-    '-loglevel', 'error', '-i', mp4,
-    '-vf', `setpts=PTS/${speed},fps=${fps},scale=${width}:-2:flags=lanczos`,
-    join(tmpDir, 'f%05d.png'),
-  ]);
-  const frames = readdirSync(tmpDir).filter((f) => f.endsWith('.png')).sort().map((f) => join(tmpDir, f));
-  const frameMs = String(Math.round(1000 / fps));
-  run('img2webp', ['-loop', '0', '-lossy', '-q', String(quality), '-m', '4', '-d', frameMs, ...frames, '-o', webp]);
-  rmSync(tmpDir, { recursive: true, force: true });
-  console.log(`  ${webp} (${kb(webp)})`);
+/**
+ * In-page setup for every capture page: trust the Rick and Morty image host (fluid asks
+ * before loading any image), hide the floating column actions that cover content and,
+ * when `chrome` is false, the column pager. With `cursor`, draw the pointer, which
+ * Playwright videos leave out, with a ripple on each click.
+ */
+export function pageSetup({ cursor, chrome }) {
+  try {
+    sessionStorage.setItem('fluid-trusted-image-hosts', JSON.stringify(['rickandmortyapi.com']));
+  } catch {
+    // no storage: the capture clicks "Load image" instead
+  }
+  const css = [
+    '.ant-float-btn-group, .ant-float-btn { display: none !important; }',
+    chrome ? '' : 'div:has(> button[aria-label="Previous column"]), .ant-message { display: none !important; }',
+    '#capture-cursor { position: fixed; z-index: 2147483647; pointer-events: none; width: 22px; height: 22px;',
+    '  margin: -11px 0 0 -11px; border-radius: 50%; left: -50px; top: -50px;',
+    '  background: rgba(22, 119, 255, 0.28); border: 2px solid rgba(22, 119, 255, 0.9); }',
+    '.capture-ripple { position: fixed; z-index: 2147483646; pointer-events: none; width: 22px; height: 22px;',
+    '  margin: -11px 0 0 -11px; border-radius: 50%; border: 3px solid rgba(22, 119, 255, 0.8);',
+    '  animation: capture-ripple 450ms ease-out forwards; }',
+    '@keyframes capture-ripple { to { transform: scale(2.6); opacity: 0; } }',
+  ].join('\n');
+  const install = () => {
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.appendChild(style);
+    if (!cursor) return;
+    const dot = document.createElement('div');
+    dot.id = 'capture-cursor';
+    document.documentElement.appendChild(dot);
+    addEventListener('mousemove', (e) => {
+      dot.style.left = `${e.clientX}px`;
+      dot.style.top = `${e.clientY}px`;
+    }, true);
+    addEventListener('mousedown', (e) => {
+      const ripple = document.createElement('div');
+      ripple.className = 'capture-ripple';
+      ripple.style.left = `${e.clientX}px`;
+      ripple.style.top = `${e.clientY}px`;
+      document.documentElement.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 500);
+    }, true);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);
+  else install();
 }
