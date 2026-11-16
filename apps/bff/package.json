@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "prisma generate && tsx watch src/index.ts",
     "start": "prisma generate && tsx src/index.ts",
+    "test": "prisma generate && vitest run",
     "typecheck": "prisma generate && tsc --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
@@ -16,6 +17,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.3.1",
+    "@fastify/static": "^10.1.11",
     "@fluid/shared": "workspace:*",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
@@ -27,6 +29,7 @@
     "@types/node": "^26.6.5",
     "prisma": "^7.10.1",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
   }
 }
