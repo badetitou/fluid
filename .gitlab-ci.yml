@@ -116,7 +116,8 @@ npm:publish:
   before_script:
     - npm install --global npm@11
   script:
-    - npm publish out/badetitou-fluid-*.tgz --access public
+    # The ./ matters: npm reads `out/x.tgz` as a GitHub `owner/repo` shorthand.
+    - npm publish ./out/badetitou-fluid-*.tgz --access public
   rules:
     - *release-tag
 
