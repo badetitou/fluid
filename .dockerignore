@@ -19,6 +19,9 @@
 # vcs / editor / OS noise
 .git
 .github
+.claude
+out
+**/pkg
 **/.DS_Store
 **/*.log
 
@@ -26,3 +29,4 @@
 charts
 *.md
 !README.md
+!apps/cli/README.md

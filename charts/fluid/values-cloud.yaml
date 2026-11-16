@@ -1,21 +1,20 @@
-# Cloud values: images pulled from GHCR, ingress + TLS via cert-manager.
+# Cloud values: images pulled from the GitLab registry, ingress + TLS via cert-manager.
 #
 #   helm install fluid charts/fluid -f charts/fluid/values-cloud.yaml \
-#     --set image.registry=ghcr.io/<your-org> \
 #     --set ingress.host=fluid.example.com
 #
-# Replace OWNER below with your GitHub organisation / username. Images are
-# published by CI as ghcr.io/<owner>/fluid-<component>:<tag>.
+# GitLab CI publishes registry.gitlab.com/badetitou/fluid/fluid-<component> tagged with the
+# release version (e.g. 0.1.1), `latest` (main) and the short commit sha.
 
 image:
-  registry: ghcr.io/OWNER
+  registry: registry.gitlab.com/badetitou/fluid
   # Empty => chart appVersion. Pin a released version or an immutable sha tag.
   tag: ""
   pullPolicy: IfNotPresent
 
-# Uncomment if the GHCR packages are private:
+# The project is public, so no pull secret is needed. For a private fork:
 # imagePullSecrets:
-#   - name: ghcr-pull-secret
+#   - name: gitlab-registry-pull-secret
 
 postgres:
   # For production prefer a managed database: set enabled=false and fill in
