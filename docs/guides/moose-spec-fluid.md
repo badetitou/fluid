@@ -38,18 +38,15 @@ and open, as a GraphQL entity, what you click in a Pharo tab.
 You need a Moose image (tested on Pharo 13 with Moose). In a Playground:
 
 ```st
-"Moose-GraphQL: the GraphQL server"
-Metacello new
-  baseline: 'MooseRestAPI';
-  repository: 'github://evref-bl/Moose-REST-API:master/src';
-  load: #('Moose-GraphQL').
-
-"Spec-Fluid: the inspector tabs"
 Metacello new
   baseline: 'SpecFluid';
   repository: 'gitlab://badetitou/spec-fluid:main/src';
   load.
 ```
+
+The Spec-Fluid baseline also loads Moose-GraphQL (Moose-REST-API `1.0.0`), so this one load gives
+you both servers. Each [Spec-Fluid release](https://gitlab.com/badetitou/spec-fluid/-/releases) also
+offers a ready-to-use Moose image with both loaded.
 
 Load a model, from the Moose UI or by code:
 
