@@ -30,7 +30,8 @@ owner. A `.env` file in the current directory is never read: use `--env-file`.
 
 `FLUID_DATA_DIR`, `DATABASE_URL`, `LLM_PROVIDER` (`openai`, `ollama`, `claude-code`, `mock`),
 `OPENAI_API_KEY`, `OLLAMA_*`, `CLAUDE_CODE_BIN`, `CLAUDE_CODE_MODEL`, `CLAUDE_CODE_TIMEOUT_MS`,
-`FLUID_DEFAULT_GRAPHQL_URL`, `FLUID_IMAGE_HOSTS`. `PORT` is not read: use `--port`.
+`FLUID_DEFAULT_GRAPHQL_URL`, `FLUID_IMAGE_HOSTS`. `BROWSER=none` or `CI` never open the browser.
+`PORT` is not read: use `--port`.
 
 - **claude-code provider**: needs the `claude` CLI on your `PATH` (logged in), or `CLAUDE_CODE_BIN`.
 - **Postgres**: with `DATABASE_URL` set, fluid uses that database instead of PGlite. It must already

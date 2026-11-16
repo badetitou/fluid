@@ -39,4 +39,9 @@ describe('parseCliArgs', () => {
     expect(parseCliArgs(['-v']).kind).toBe('version');
     expect(parseCliArgs(['--version']).kind).toBe('version');
   });
+  it('trims the port, defaults an empty host, and lets --help win over a bad port', () => {
+    expect(run(['--port', ' 80 ']).port).toBe(80);
+    expect(run(['--host', '']).host).toBe('127.0.0.1');
+    expect(parseCliArgs(['--help', '--port', 'abc']).kind).toBe('help');
+  });
 });
