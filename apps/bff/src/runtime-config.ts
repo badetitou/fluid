@@ -1,3 +1,4 @@
+// Keep in sync with apps/frontend/docker/entrypoint.sh (same /config.js for the nginx image).
 export interface RuntimeConfigEnv {
   FLUID_DEFAULT_GRAPHQL_URL?: string;
   FLUID_IMAGE_HOSTS?: string;
