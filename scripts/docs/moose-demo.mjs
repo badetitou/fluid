@@ -9,7 +9,8 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkApp, deleteSavedViews, llmFixtures, pageSetup, trackSavedViews } from './lib.mjs';
-import { Cuts, toMp4, toPreview } from './media.mjs';
+import { Cuts, toPreview } from './media.mjs';
+import { framesToMp4, startScreencast } from './screencast.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const OUT = resolve(process.env.FLUID_OUT ?? join(ROOT, 'docs/media'));
@@ -23,6 +24,8 @@ const GRAPHQL = process.env.FLUID_GRAPHQL ?? 'http://localhost:8080/graphql';
 const SPEC_FLUID = process.env.FLUID_SPEC_FLUID ?? 'http://localhost:8081/spec-fluid';
 const THEME = process.env.FLUID_THEME ?? 'dark';
 const VIEWPORT = { width: 1440, height: 900 };
+// Device scale factor of the capture: 2 records a 2880×1800 video.
+const SCALE = Number(process.env.FLUID_SCALE ?? 2);
 
 const PACKAGE = 'AI-Algorithms-Graph';
 const CLASS = 'AIDijkstra';
@@ -37,7 +40,7 @@ async function newContext(browser) {
   const context = await browser.newContext({
     viewport: VIEWPORT,
     colorScheme: THEME,
-    recordVideo: { dir: join(TMP, 'video'), size: VIEWPORT },
+    deviceScaleFactor: SCALE,
   });
   await context.addInitScript(({ graphql, specFluid }) => {
     const put = (k, state) => localStorage.getItem(k) || localStorage.setItem(k, JSON.stringify({ state, version: 0 }));
@@ -95,12 +98,13 @@ async function loaded(page, ms = 600) {
 const lastTab = (page, name) => page.getByRole('tab', { name, exact: true }).last();
 
 async function run(browser) {
-  rmSync(join(TMP, 'video'), { recursive: true, force: true });
   const context = await newContext(browser);
+  const page = await context.newPage();
+  const size = { width: VIEWPORT.width * SCALE, height: VIEWPORT.height * SCALE };
+  const cast = await startScreencast(page, join(TMP, 'frames-hq'), size);
   const started = Date.now();
   const now = () => (Date.now() - started) / 1000;
   const cuts = new Cuts();
-  const page = await context.newPage();
   const a = actor(page);
   const waitCut = async (fn) => { cuts.start(now()); await fn(); cuts.end(now()); };
 
@@ -184,9 +188,10 @@ async function run(browser) {
   await page.mouse.move(VIEWPORT.width / 2, 40, { steps: 10 });
   await a.pause(1500);
 
-  const webm = await page.video().path();
+  const endSec = now();
+  const frames = await cast.stop();
   await context.close();
-  toMp4(webm, join(OUT, 'moose-demo.mp4'), cuts);
+  framesToMp4(frames, join(OUT, 'moose-demo.mp4'), { cuts, startedSec: started / 1000, endSec, ...size });
   toPreview(join(OUT, 'moose-demo.mp4'), join(OUT, 'moose-demo.webp'), join(TMP, 'frames'), { speed: 1.5 });
 }
 

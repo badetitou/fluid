@@ -9,7 +9,7 @@ entity from the browser.
   <img src="../media/moose-demo.webp" alt="fluid on a Moose model: open a package, its overview pyramid and Pharo Navigation tab, ask the assistant for a view of its classes, open a class blueprint drawn by Pharo, then a method's source" width="960" />
 </a>
 
-<sub>▶ <a href="../media/moose-demo.mp4">Watch the full demo (MP4, 46 s)</a></sub>
+<sub>▶ <a href="../media/moose-demo.mp4">Watch the full demo (MP4, 2880×1800, 43 s)</a></sub>
 
 Two Pharo projects do the work, both loaded in the same image:
 
