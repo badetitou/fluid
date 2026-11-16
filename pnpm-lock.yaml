@@ -17,6 +17,9 @@ importers:
 
   apps/bff:
     dependencies:
+      '@electric-sql/pglite':
+        specifier: ~0.5.16
+        version: 0.5.16
       '@fastify/cors':
         specifier: ^11.3.1
         version: 11.3.1
@@ -38,6 +41,9 @@ importers:
       fastify:
         specifier: ^5.12.7
         version: 5.12.7
+      pglite-prisma-adapter:
+        specifier: 0.7.2
+        version: 0.7.2(@electric-sql/pglite@0.5.16)(@prisma/client@7.10.1(prisma@7.10.1(@types/node@26.6.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@7.0.2))(typescript@7.0.2))
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -359,6 +365,9 @@ packages:
   '@electric-sql/pglite@0.4.3':
     resolution: {integrity: sha512-ichuWTgtd4mOM1G4SpyGJa5trT03lWbMypDV0fUXUCXg5hiHqVAz/bZyV68NqmkLB7WcYmj1RMJVSp8HV/v/ZQ==}
 
+  '@electric-sql/pglite@0.5.16':
+    resolution: {integrity: sha512-Nj8KcIsJL748W408U2N8q4+9IlONdpRIU8MJypIAAINMJ5nqKyqpX7Mgg/5XKkXiAib3AoZGR6hnJFlrlLBrcg==}
+
   '@emotion/hash@0.8.0':
     resolution: {integrity: sha512-kBJtf7PH6aWwZ6fka3zQ0p6SBYzx4fl1LoZXE2RrnYST9Xljm7WfKJrU4g/Xr3Beg72MLrp1AWNUmuYJTL7Cow==}
 
@@ -618,6 +627,9 @@ packages:
 
   '@prisma/driver-adapter-utils@7.10.1':
     resolution: {integrity: sha512-DJ4c6xvVnm3s9ZUyql9nCUicADSqyvH+CjXRCM9L6m5zJxCNmebCElG6X4irICq3rosBwlX+S19Dxq/4IrZk3A==}
+
+  '@prisma/driver-adapter-utils@7.2.0':
+    resolution: {integrity: sha512-gzrUcbI9VmHS24Uf+0+7DNzdIw7keglJsD5m/MHxQOU68OhGVzlphQRobLiDMn8CHNA2XN8uugwKjudVtnfMVQ==}
 
   '@prisma/engines-version@8.1.0-1.d1b3f377ca835d73fd50954a5e22128b9ebdd6b8':
     resolution: {integrity: sha512-XjXmwjN2NE340RpXoXv8ZF8aNAvr0FE+7gNfkKeW6vyjXs7F8uxvEbWQoVrhioXDQoIsnNmv7r+wxvzfdEZaWA==}
@@ -2408,6 +2420,12 @@ packages:
       pg-native:
         optional: true
 
+  pglite-prisma-adapter@0.7.2:
+    resolution: {integrity: sha512-NqLXIUguFbgEHpIoyCvAbpEurbK+AUukiv96gIogVnNYWBdhAU0idfTXcJrsS7OdWenYa8QxEQM2ND1cTQrU4g==}
+    peerDependencies:
+      '@electric-sql/pglite': '>=0.2.0'
+      '@prisma/client': '>= 7.1.0'
+
   pgpass@1.0.5:
     resolution: {integrity: sha512-FdW9r/jQZhSeohs1Z3sI1yxFQNFvMcnmfuj4WBMUTxOrAyLMaTcE1aAMBiTlbMNaXvBCQuVi0R7hd8udDSP7ug==}
 
@@ -3253,6 +3271,8 @@ snapshots:
 
   '@electric-sql/pglite@0.4.3': {}
 
+  '@electric-sql/pglite@0.5.16': {}
+
   '@emotion/hash@0.8.0': {}
 
   '@emotion/unitless@0.7.5': {}
@@ -3458,6 +3478,10 @@ snapshots:
   '@prisma/driver-adapter-utils@7.10.1':
     dependencies:
       '@prisma/debug': 7.10.1
+
+  '@prisma/driver-adapter-utils@7.2.0':
+    dependencies:
+      '@prisma/debug': 7.2.0
 
   '@prisma/engines-version@8.1.0-1.d1b3f377ca835d73fd50954a5e22128b9ebdd6b8': {}
 
@@ -5451,6 +5475,13 @@ snapshots:
       pgpass: 1.0.5
     optionalDependencies:
       pg-cloudflare: 1.4.1
+
+  pglite-prisma-adapter@0.7.2(@electric-sql/pglite@0.5.16)(@prisma/client@7.10.1(prisma@7.10.1(@types/node@26.6.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@7.0.2))(typescript@7.0.2)):
+    dependencies:
+      '@electric-sql/pglite': 0.5.16
+      '@prisma/client': 7.10.1(prisma@7.10.1(@types/node@26.6.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@7.0.2))(typescript@7.0.2)
+      '@prisma/driver-adapter-utils': 7.2.0
+      postgres-array: 3.0.4
 
   pgpass@1.0.5:
     dependencies:
