@@ -1,9 +1,9 @@
-import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaPGlite } from 'pglite-prisma-adapter';
 import { PrismaClient } from '../generated/prisma/client';
+import { acquireDirLock } from './lock';
 import { applyMigrations } from './migrate';
 import type { StorageMode } from './mode';
 
@@ -23,19 +23,46 @@ export function createStorage(mode: StorageMode): Storage {
     });
     return { prisma, init: async () => {}, close: () => prisma.$disconnect() };
   }
-  // `memory://` keeps everything in RAM (tests); otherwise the directory is created if missing.
-  if (!mode.dataDir.startsWith('memory://')) mkdirSync(mode.dataDir, { recursive: true });
-  const pg = new PGlite(mode.dataDir);
-  const prisma = new PrismaClient({ adapter: new PrismaPGlite(pg) });
+  // PrismaClient needs its adapter factory at construction, but the PGlite instance (which creates
+  // the data dir and opens the database) is only built on first use, so importing this module stays
+  // free of side effects. `init()` is the normal first use and also takes the single-process lock.
+  let opened: Promise<PGlite> | undefined;
+  let release: (() => void) | undefined;
+  const open = () => {
+    opened ??= (async () => {
+      if (!mode.dataDir.startsWith('memory://')) release = acquireDirLock(mode.dataDir);
+      try {
+        const pg = new PGlite(mode.dataDir);
+        await pg.waitReady;
+        return pg;
+      } catch (err) {
+        release?.();
+        release = undefined;
+        throw err;
+      }
+    })();
+    return opened;
+  };
+  const adapter = {
+    provider: 'postgres' as const,
+    adapterName: 'fluid-lazy-pglite',
+    connect: async () => new PrismaPGlite(await open()).connect(),
+  };
+  const prisma = new PrismaClient({ adapter });
   return {
     prisma,
     init: async () => {
-      await pg.waitReady;
-      await applyMigrations(pg, MIGRATIONS_DIR);
+      await applyMigrations(await open(), MIGRATIONS_DIR);
     },
     close: async () => {
       await prisma.$disconnect();
-      await pg.close();
+      if (opened) {
+        const pg = await opened.catch(() => undefined);
+        await pg?.close();
+      }
+      release?.();
+      release = undefined;
+      opened = undefined;
     },
   };
 }

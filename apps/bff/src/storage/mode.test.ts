@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { resolveStorageMode } from './mode';
+import { resolve } from 'node:path';
+import { normalizeDataDir, resolveStorageMode } from './mode';
 
 describe('resolveStorageMode', () => {
   it('picks postgres when DATABASE_URL is set, with the schema', () => {
@@ -18,5 +19,22 @@ describe('resolveStorageMode', () => {
   });
   it('treats an empty DATABASE_URL as unset', () => {
     expect(resolveStorageMode({ DATABASE_URL: '' }).kind).toBe('pglite');
+  });
+});
+
+describe('normalizeDataDir', () => {
+  it('expands ~ to the home dir', () => {
+    expect(normalizeDataDir('~', '/home/u')).toBe('/home/u');
+    expect(normalizeDataDir('~/.fluid/x', '/home/u')).toBe('/home/u/.fluid/x');
+  });
+  it('resolves relative paths', () => {
+    expect(normalizeDataDir('data')).toBe(resolve('data'));
+  });
+  it('keeps memory://', () => {
+    expect(normalizeDataDir('memory://')).toBe('memory://');
+  });
+  it('is applied by resolveStorageMode', () => {
+    const mode = resolveStorageMode({ FLUID_DATA_DIR: '~/fl' });
+    expect(mode.kind === 'pglite' && mode.dataDir.endsWith('/fl') && !mode.dataDir.includes('~')).toBe(true);
   });
 });
