@@ -7,8 +7,16 @@ import {
   type LlmDelta,
 } from '../../bff/client';
 import { toConfigOverrides } from '../../llm/conceptSchema';
-import { useLlmSettings } from '../../store';
+import { effectiveProvider } from '../../llm/effectiveProvider';
+import { useLlmSettings, type LlmProvider } from '../../store';
 import { currentCatalogRequest } from '../plugin';
+
+/** Request config with the provider resolved against the BFF default when the user has not picked one. */
+async function currentConfig() {
+  const settings = useLlmSettings.getState();
+  const caps = settings.providerChosen ? null : await bffClient.getLlmConfig().catch(() => null);
+  return toConfigOverrides({ ...settings, provider: effectiveProvider(settings, caps?.defaultProvider) });
+}
 
 type WithoutConfig<T> = Omit<T, 'config' | 'widgets'>;
 
@@ -19,20 +27,20 @@ type WithoutConfig<T> = Omit<T, 'config' | 'widgets'>;
  */
 export function useLlmGenerate() {
   const generateView = useCallback(
-    (payload: WithoutConfig<GenerateViewPayload>, onDelta: (d: LlmDelta) => void, signal?: AbortSignal) =>
+    async (payload: WithoutConfig<GenerateViewPayload>, onDelta: (d: LlmDelta) => void, signal?: AbortSignal) =>
       bffClient.generateViewStream(
-        { ...payload, widgets: currentCatalogRequest(), config: toConfigOverrides(useLlmSettings.getState()) },
+        { ...payload, widgets: currentCatalogRequest(), config: await currentConfig() },
         onDelta,
         signal,
       ),
     [],
   );
   const generateWidget = useCallback(
-    (payload: WithoutConfig<GenerateWidgetPayload>) =>
+    async (payload: WithoutConfig<GenerateWidgetPayload>) =>
       bffClient.generateWidget({
         ...payload,
         widgets: currentCatalogRequest(),
-        config: toConfigOverrides(useLlmSettings.getState()),
+        config: await currentConfig(),
       }),
     [],
   );
@@ -54,4 +62,12 @@ export function useLlmCapabilities(active: boolean): LlmCapabilities | null {
     };
   }, [active]);
   return caps;
+}
+
+/** The provider in effect (user's choice, else the BFF default), for display. */
+export function useEffectiveProvider(): LlmProvider {
+  const caps = useLlmCapabilities(true);
+  const provider = useLlmSettings((s) => s.provider);
+  const providerChosen = useLlmSettings((s) => s.providerChosen);
+  return effectiveProvider({ provider, providerChosen }, caps?.defaultProvider);
 }
