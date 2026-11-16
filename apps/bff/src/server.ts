@@ -57,7 +57,10 @@ export function onShutdownSignals(close: () => Promise<void>): void {
     }
     closing = true;
     console.error(`${signal} received, shutting down`);
-    setTimeout(() => process.exit(1), 10_000).unref();
+    setTimeout(() => {
+      releaseLockSync();
+      process.exit(1);
+    }, 10_000).unref();
     close().then(
       () => process.exit(0),
       (err) => {

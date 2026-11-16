@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -79,5 +79,7 @@ describe('startServer', () => {
       pid: process.ppid,
       dir: dataDir,
     });
+    // The failed start must leave the other process's lock untouched.
+    expect(readFileSync(join(dataDir, 'fluid.lock'), 'utf8')).toBe(String(process.ppid));
   });
 });
