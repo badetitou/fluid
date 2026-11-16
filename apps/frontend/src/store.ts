@@ -147,11 +147,13 @@ export type LlmProvider = 'openai' | 'ollama' | 'claude-code' | 'mock';
 
 interface LlmSettingsState {
   provider: LlmProvider;
+  /** True once the user explicitly saved a provider; until then the BFF default applies. */
+  providerChosen: boolean;
   model: string;
   apiKey: string;
   baseUrl: string;
   update: (
-    patch: Partial<Pick<LlmSettingsState, 'provider' | 'model' | 'apiKey' | 'baseUrl'>>,
+    patch: Partial<Pick<LlmSettingsState, 'provider' | 'providerChosen' | 'model' | 'apiKey' | 'baseUrl'>>,
   ) => void;
 }
 
@@ -161,12 +163,18 @@ export const useLlmSettings = create<LlmSettingsState>()(
   persist(
     (set) => ({
       provider: 'mock',
+      providerChosen: false,
       model: '',
       apiKey: '',
       baseUrl: '',
       update: (patch) => set(patch),
     }),
-    { name: 'fluid-llm-settings' },
+    {
+      name: 'fluid-llm-settings',
+      version: 1,
+      // A provider saved before the flag existed counts as chosen.
+      migrate: (persisted) => ({ ...(persisted as object), providerChosen: true }),
+    },
   ),
 );
 

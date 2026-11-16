@@ -21,7 +21,7 @@ interface LlmSettingsFormProps {
 /** Shared editable LLM settings, used inline in Settings and in the Miller list modal. */
 export function LlmSettingsForm({ onSaved, onCancel }: LlmSettingsFormProps) {
   const caps = useLlmCapabilities(true);
-  const { draft, update, setProvider, save } = useLlmSettingsDraft();
+  const { draft, update, setProvider, save } = useLlmSettingsDraft(caps?.defaultProvider ?? null);
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {

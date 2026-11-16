@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Button, Flex, Popconfirm, Space, Tag, Typography } from 'antd';
 import { ClearOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { useLlmSettings } from '../../store';
+import { useEffectiveProvider } from '../../entities/llm';
 import { ChatBubble } from '../../shared/ui';
 import { ChatComposer } from './ChatComposer';
 import { PendingTurn } from './PendingTurn';
@@ -18,7 +19,9 @@ interface AssistantChatProps {
 
 /** Left pane of the assistant: provider, conversation and prompt box. */
 export function AssistantChat({ session, intro, onSend }: AssistantChatProps) {
-  const provider = useLlmSettings((s) => (s.model ? `${s.provider} · ${s.model}` : s.provider));
+  const effective = useEffectiveProvider();
+  const model = useLlmSettings((s) => s.model);
+  const provider = model ? `${effective} · ${model}` : effective;
   const { turns, versions, activeVersion, latestVersion, pending, live } = session;
   const generating = pending !== null;
   const endRef = useRef<HTMLDivElement | null>(null);
