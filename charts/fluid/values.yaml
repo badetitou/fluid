@@ -2,9 +2,9 @@
 # This is a YAML-formatted file. Override with -f values-local.yaml / values-cloud.yaml.
 
 # -- Registry/tag shared by all images unless a component overrides them.
-# In CI these are published as ghcr.io/<owner>/fluid-<component>.
+# In CI these are published as registry.gitlab.com/badetitou/fluid/fluid-<component>.
 image:
-  # e.g. "ghcr.io/OWNER" — leave empty to use locally-built images (kind/minikube).
+  # e.g. "registry.gitlab.com/badetitou/fluid" — leave empty to use locally-built images (kind/minikube).
   registry: ""
   # Global tag; defaults to the chart appVersion when empty.
   tag: ""

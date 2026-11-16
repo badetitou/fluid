@@ -34,9 +34,6 @@ An LLM writes the view, you keep it, and it runs again without the LLM.
 
 ## ⚡ Quick start
 
-> **Coming soon on npm.** The first release of `@badetitou/fluid` is being prepared. Until then,
-> [run fluid from source](#-getting-started).
-
 ```bash
 npx @badetitou/fluid                            # fluid on http://localhost:4001, no clone needed
 LLM_PROVIDER=claude-code npx @badetitou/fluid   # generate views with your Claude Code login
@@ -265,22 +262,43 @@ components. See [`REARCHITECTURE.md`](docs/architecture/REARCHITECTURE.md) and t
 
 ## 📦 Deployment
 
-Everything is containerized and deployed by a single parameterizable **Helm chart**
-([`charts/fluid`](charts/fluid)) that runs the frontend, the BFF and PostgreSQL.
+The quickest way to host fluid is the all-in-one image, the same app as `npx @badetitou/fluid`:
+
+```bash
+docker run -p 127.0.0.1:4001:4001 -v fluid-data:/data registry.gitlab.com/badetitou/fluid:latest
+# or: docker compose -f deploy/docker-compose.yml up -d
+```
+
+It stores data with embedded PGlite in the `/data` volume. The API has no authentication, so only
+expose it on networks you trust.
+
+For a PostgreSQL-backed deployment, use the **Helm chart** ([`charts/fluid`](charts/fluid)), which
+runs the frontend, the BFF and PostgreSQL and migrates the database.
 
 ### Images
 
-Two multi-stage images are built from the repo root. nginx serves the frontend and reverse-proxies
-`/api` to the BFF, so the whole app lives on one origin:
+GitLab CI builds and pushes three images to the GitLab registry, tagged with the short commit sha,
+`latest` (on `main`) and the release version (on `vX.Y.Z` tags):
+
+| Image | Dockerfile | Use |
+| --- | --- | --- |
+| `registry.gitlab.com/badetitou/fluid` | [`Dockerfile`](Dockerfile) | All in one (frontend + API + PGlite) |
+| `registry.gitlab.com/badetitou/fluid/fluid-bff` | [`apps/bff/Dockerfile`](apps/bff/Dockerfile) | Helm chart: BFF |
+| `registry.gitlab.com/badetitou/fluid/fluid-frontend` | [`apps/frontend/Dockerfile`](apps/frontend/Dockerfile) | Helm chart: nginx frontend, proxies `/api` to the BFF |
+
+Build them locally from the repository root:
 
 ```bash
+docker build -t fluid:dev .
 docker build -f apps/bff/Dockerfile      -t fluid-bff:dev .
 docker build -f apps/frontend/Dockerfile -t fluid-frontend:dev .
 ```
 
-GitHub Actions publishes them to GHCR as `ghcr.io/<owner>/fluid-{frontend,bff}` on pushes to `main`
-and on version tags (`v*`); the CI workflow runs typecheck, frontend build, `helm lint` and manifest
-validation.
+### Releasing
+
+Push a tag `vX.Y.Z` on `main`. CI runs the checks, builds and smoke-tests the npm tarball with that
+version, pushes the images, and publishes `@badetitou/fluid` to npm through
+[Trusted Publishing](https://docs.npmjs.com/trusted-publishers) (no npm token in GitLab).
 
 ### Local cluster (kind / minikube)
 
@@ -297,12 +315,12 @@ An init container runs `prisma migrate deploy` before the BFF starts.
 
 ### Cloud
 
-`charts/fluid/values-cloud.yaml` pulls images from GHCR and enables an ingress with TLS via
-cert-manager:
+`charts/fluid/values-cloud.yaml` pulls images from the GitLab registry and enables an ingress with
+TLS via cert-manager:
 
 ```bash
 helm install fluid charts/fluid -f charts/fluid/values-cloud.yaml \
-  --set image.registry=ghcr.io/<owner> --set ingress.host=fluid.example.com
+  --set image.tag=0.1.1 --set ingress.host=fluid.example.com
 ```
 
 Browser-facing URLs are set at container start (`FLUID_BFF_URL`, `FLUID_DEFAULT_GRAPHQL_URL` →

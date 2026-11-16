@@ -1,0 +1,23 @@
+# fluid in one container, with its data in a named volume (embedded PGlite storage).
+#
+#   docker compose -f deploy/docker-compose.yml up -d     # → http://localhost:4001
+#
+# Same app as `npx @badetitou/fluid`. Pin a released version instead of `latest` in production.
+services:
+  fluid:
+    image: ${FLUID_IMAGE:-registry.gitlab.com/badetitou/fluid:latest}
+    restart: unless-stopped
+    ports:
+      # Only this machine can reach it: the API has no authentication.
+      - "127.0.0.1:4001:4001"
+    volumes:
+      - fluid-data:/data
+    environment:
+      # LLM provider for the assistant: mock (offline, default), openai or ollama.
+      # (claude-code needs the `claude` CLI, which the image does not include.)
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      FLUID_DEFAULT_GRAPHQL_URL: ${FLUID_DEFAULT_GRAPHQL_URL:-https://rickandmortyapi.com/graphql}
+
+volumes:
+  fluid-data:
