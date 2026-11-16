@@ -18,7 +18,7 @@ importers:
   apps/bff:
     dependencies:
       '@electric-sql/pglite':
-        specifier: ~0.5.16
+        specifier: 0.5.16
         version: 0.5.16
       '@fastify/cors':
         specifier: ^11.3.1

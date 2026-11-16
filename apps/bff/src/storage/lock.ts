@@ -39,7 +39,11 @@ export function acquireDirLock(dir: string): () => void {
       if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
       const pid = readPid(file);
       if (Number.isInteger(pid) && isAlive(pid)) {
-        throw new Error(`data dir ${dir} is in use by process ${pid}`);
+        throw Object.assign(new Error(`data dir ${dir} is in use by process ${pid}`), {
+          code: 'FLUID_DATA_DIR_LOCKED',
+          pid,
+          dir,
+        });
       }
       // Stale lock (dead owner or garbage content): take over.
       try {
