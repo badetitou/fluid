@@ -108,6 +108,22 @@ describe('injectItemId', () => {
     expect(injectItemId(byId, 'account', '42').queries.account.variables).toEqual({ other: 1, id: '42' });
   });
 
+  it('converts an id to a number when the query declares an Int or Float variable', () => {
+    const numeric = spec('d', {
+      queries: {
+        int: { query: 'query Item($id: Int!) { item(id: $id) { id } }' },
+        float: { query: 'query Item($id: Float!) { item(id: $id) { id } }' },
+        string: { query: 'query Item($id: ID!) { item(id: $id) { id } }' },
+      },
+    });
+
+    expect(injectItemId(numeric, 'item', '144').queries).toMatchObject({
+      int: { variables: { id: 144 } },
+      float: { variables: { id: 144 } },
+      string: { variables: { id: '144' } },
+    });
+  });
+
   it('leaves views that do not read the by-id query untouched', () => {
     expect(injectItemId(byId, 'customer', '42')).toBe(byId);
     expect(injectItemId(byId, 'account', undefined)).toBe(byId);

@@ -43,7 +43,7 @@ export function useFormWidget(widget: FormWidget, data: unknown, invoke: InvokeA
   const submit = async (values: Record<string, unknown>) => {
     if (!invoke) return;
     setSubmitting(true);
-    const result = await invoke(widget.action, { target, form: toFormValue(values) });
+    const result = await invoke(widget.action, { target, form: toFormValue(values, fields) });
     setSubmitting(false);
     if (result.ok && (widget.reset ?? !widget.data)) form.resetFields();
   };

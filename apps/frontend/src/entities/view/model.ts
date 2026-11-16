@@ -109,6 +109,14 @@ export function resolveActiveKey(
 /** Whether a GraphQL document declares an `$id` variable. */
 const DECLARES_ID = /\$id\s*:/;
 
+/** Numeric GraphQL variables must receive JSON numbers, unlike ID variables. */
+function itemIdForQuery(query: string, itemId: string): string | number {
+  const type = /\$id\s*:\s*(Float|Int)\b/.exec(query)?.[1];
+  if (!type) return itemId;
+  const value = Number(itemId);
+  return Number.isFinite(value) && (type !== 'Int' || Number.isInteger(value)) ? value : itemId;
+}
+
 /**
  * Inject a drilled-in item id into the queries that read it: the by-id query,
  * and any other query declaring an `$id` variable it was not given. Views that
@@ -123,7 +131,12 @@ export function injectItemId(spec: ViewSpec, byIdField: string | undefined, item
   const keys = Object.keys(spec.queries).filter(reads);
   if (keys.length === 0) return spec;
   const queries = { ...spec.queries };
-  for (const key of keys) queries[key] = { ...queries[key], variables: { ...queries[key].variables, id: itemId } };
+  for (const key of keys) {
+    queries[key] = {
+      ...queries[key],
+      variables: { ...queries[key].variables, id: itemIdForQuery(queries[key].query, itemId) },
+    };
+  }
   return { ...spec, queries };
 }
 
