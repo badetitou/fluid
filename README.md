@@ -10,6 +10,7 @@ Point fluid at any GraphQL API, browse its concepts, and describe the dashboard 
 An LLM writes the view, you keep it, and it runs again without the LLM.
 
 [**Live demo**](https://fluid.badetitou.fr) ·
+[Quick start](#-quick-start) ·
 [Getting started](#-getting-started) ·
 [Plugins](#-plugins) ·
 [Deployment](#-deployment) ·
@@ -21,9 +22,32 @@ An LLM writes the view, you keep it, and it runs again without the LLM.
 ![Helm](https://img.shields.io/badge/Helm-chart-0f1689?logo=helm&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
+<a href="docs/media/demo.mp4">
+  <img src="docs/media/demo.webp" alt="fluid in action: connect to the Rick and Morty API, open a character, ask the assistant for a profile view, save it and reuse it on other characters" width="960" />
+</a>
+
+<sub>▶ <a href="docs/media/demo.mp4">Watch the full demo (MP4, 1 min)</a></sub>
+
 </div>
 
 ---
+
+## ⚡ Quick start
+
+```bash
+npx @badetitou/fluid
+```
+
+> The npm package is being prepared. Until its first release, run fluid from source:
+>
+> ```bash
+> git clone https://gitlab.com/badetitou/fluid.git && cd fluid
+> pnpm install
+> pnpm dev        # then open the URL Vite prints
+> ```
+
+Pick **Explore the Rick and Morty demo** on the connection screen, open a concept, and press **+**
+on a column to describe the view you want. See [Getting started](#-getting-started) for the details.
 
 ## ✨ What is fluid?
 
@@ -43,6 +67,8 @@ Clicking a concept or an instance opens a **view**:
 - 🧩 **Extend everything.** Widgets, themes, view builders, data sources and page actions are
   **plugins** you enable, disable or install from a URL.
 
+![Miller columns: the Character list on the left, Rick Sanchez's detail on the right](docs/media/explore.webp)
+
 ## 🔄 How it works
 
 ```mermaid
@@ -56,6 +82,13 @@ flowchart LR
     F -->|reuse, no LLM| D
 ```
 
+![The assistant building a view: the prompt and the model's answer on the left, the live preview of the profile card and episodes table on the right](docs/media/assistant.webp)
+
+Once saved, the view is one more perspective of the concept, reused for every instance without
+calling the LLM again:
+
+![The saved profile view rendered for Rick Sanchez in the detail column](docs/media/profile.webp)
+
 A **ViewSpec** is a hybrid model: a declarative JSON layout of parameterizable widgets, each bound to
 a GraphQL query. It is rendered by an extensible widget catalog built on
 [Ant Design](https://ant.design/) and [@ant-design/plots](https://charts.ant.design/).
@@ -63,6 +96,8 @@ a GraphQL query. It is rendered by an extensible widget catalog built on
 ## 🧱 Widget catalog
 
 Widgets ship in built-in collections that you can turn on or off in *Settings → Plugins*:
+
+![A generated Episode dashboard: three statistics, a bar chart of characters per episode and a table](docs/media/dashboard.webp)
 
 | Collection | Widgets |
 | --- | --- |
@@ -79,6 +114,8 @@ Widgets ship in built-in collections that you can turn on or off in *Settings �
 Each widget type is a **contract** (zod schema, LLM documentation, input/output ports) plus a renderer,
 so the prompt only ever describes widgets the frontend can actually render.
 
+![Settings, Plugins, Widgets: the built-in widget collections with their toggles](docs/media/plugins.webp)
+
 ## 🚀 Getting started
 
 ### Requirements
@@ -93,12 +130,16 @@ pnpm install    # 1. dependencies
 pnpm dev        # 2. frontend + BFF in watch mode
 ```
 
+<img src="docs/media/connect.webp" alt="The connection screen, pre-filled with the Rick and Morty API and its demo button" width="560" align="right" />
+
 fluid has no GraphQL backend of its own. The connection screen is pre-filled with the public
 [Rick and Morty API](https://rickandmortyapi.com/graphql) and offers a few other public demo sources;
 any CORS-enabled GraphQL endpoint with introspection works.
 
 Copy `apps/bff/.env.example` to `apps/bff/.env` to configure the database and LLM providers. With
 nothing set, the BFF uses an offline **mock** provider, so the assistant works out of the box.
+
+<br clear="right" />
 
 ### Storage modes
 
@@ -218,7 +259,7 @@ fluid/
 │   └── shared/     ViewSpec, widget contracts, zod schemas
 ├── charts/fluid/   Helm chart (frontend + BFF + PostgreSQL)
 ├── docs/           Architecture notes, plugin API, health log
-└── scripts/        Architecture metrics
+└── scripts/        Architecture metrics, README media capture (scripts/docs)
 ```
 
 The frontend follows a layered architecture
