@@ -31,3 +31,7 @@ coverage/
 .DS_Store
 .turbo/
 .vite/
+
+# CLI package staging and tarballs
+out/
+apps/cli/pkg/

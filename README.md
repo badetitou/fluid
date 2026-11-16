@@ -137,6 +137,27 @@ FLUID_STATIC_DIR=$PWD/apps/frontend/dist pnpm --filter @fluid/bff start
 
 The BFF then serves the app at `/` (unknown non-`/api` paths fall back to `index.html`) and a generated `/config.js` pointing at the same origin. `FLUID_DEFAULT_GRAPHQL_URL` and `FLUID_IMAGE_HOSTS` are honoured as in the Docker image. Without `FLUID_STATIC_DIR` the BFF behaves as before.
 
+### Run with npx
+
+No clone needed, only Node.js 22 or later:
+
+```bash
+npx @badetitou/fluid            # use @badetitou/fluid@latest to pick up updates
+```
+
+It starts fluid on http://localhost:4001 (embedded PGlite storage, offline mock LLM unless configured) and opens your browser.
+
+| Option | Meaning |
+| --- | --- |
+| `--port N` | Port (default 4001, `0` = any free port) |
+| `--host H` | Bind address (default `127.0.0.1`; the API has no auth, so expose it knowingly) |
+| `--data-dir DIR` | PGlite data directory (default `~/.fluid/data`, or `FLUID_DATA_DIR`) |
+| `--env-file F` | Load variables from a file (a `.env` in the current directory is never read) |
+| `--no-open` | Do not open the browser |
+| `--verbose` | Request logs and stack traces |
+
+Build and check the package locally with `pnpm pack:cli && pnpm test:pack` (tarball in `out/`). See `apps/cli/README.md`.
+
 ## 🤖 LLM providers
 
 | Provider | Setup |

@@ -1,0 +1,17 @@
+{
+  "name": "@badetitou/fluid",
+  "version": "0.1.0",
+  "description": "Explore and shape any GraphQL API through reusable, LLM-generated dashboard views. Run with npx @badetitou/fluid.",
+  "type": "module",
+  "license": "MIT",
+  "bin": { "fluid": "dist/fluid.mjs" },
+  "files": ["dist", "THIRD_PARTY_LICENSES.txt"],
+  "engines": { "node": ">=22" },
+  "dependencies": { "@electric-sql/pglite": "0.5.16" },
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/badetitou/fluid.git",
+    "directory": "apps/cli"
+  }
+}

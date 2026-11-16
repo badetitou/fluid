@@ -41,6 +41,7 @@ Quand tu changes un seuil ici, change-le aussi dans `scripts/arch-metrics.mjs`.
 - `apps/frontend/src` : `app/`, `pages/`, `features/`, `entities/` (dont `entities/plugin`), `views/`
   (moteur de rendu, widgets), `shared/` ; accès BFF dans `entities/*`.
 - `apps/bff/src` : `routes/`, `llm/` (prompts), `db.ts` (Prisma).
+- `apps/cli/src` : CLI `@badetitou/fluid` (`npx`), couche tout en haut ; `scripts/` = build (esbuild) + smoke du tarball.
 - `packages/shared/src` : `view-spec.ts`, `widgets/`, `plugins/contracts.ts`.
 - Backend Moose/Pharo de démo : GraphQL sur `localhost:8080`, image pilotée par le MCP `pharo` (:4000).
 

@@ -11,7 +11,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname;
-const SOURCE_DIRS = ['apps/frontend/src', 'apps/bff/src', 'packages/shared/src'];
+const SOURCE_DIRS = ['apps/frontend/src', 'apps/bff/src', 'apps/cli/src', 'packages/shared/src'];
 
 const LIMITS = {
   componentLines: 150, // a .tsx file
