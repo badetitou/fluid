@@ -12,8 +12,10 @@ export const MIGRATIONS_DIR = fileURLToPath(new URL('../../prisma/migrations', i
 export type Storage = {
   prisma: PrismaClient;
   /** Brings the schema up to date (PGlite only; Postgres is migrated with the prisma CLI). */
-  init: () => Promise<void>;
+  init: (migrationsDir?: string) => Promise<void>;
   close: () => Promise<void>;
+  /** Removes the data-dir lock synchronously (for forced exits). No-op when unlocked. */
+  releaseLockSync: () => void;
 };
 
 export function createStorage(mode: StorageMode): Storage {
@@ -21,7 +23,7 @@ export function createStorage(mode: StorageMode): Storage {
     const prisma = new PrismaClient({
       adapter: new PrismaPg({ connectionString: mode.url }, { schema: mode.schema }),
     });
-    return { prisma, init: async () => {}, close: () => prisma.$disconnect() };
+    return { prisma, init: async () => {}, close: () => prisma.$disconnect(), releaseLockSync: () => {} };
   }
   // PrismaClient needs its adapter factory at construction, but the PGlite instance (which creates
   // the data dir and opens the database) is only built on first use, so importing this module stays
@@ -51,8 +53,12 @@ export function createStorage(mode: StorageMode): Storage {
   const prisma = new PrismaClient({ adapter });
   return {
     prisma,
-    init: async () => {
-      await applyMigrations(await open(), MIGRATIONS_DIR);
+    init: async (migrationsDir = MIGRATIONS_DIR) => {
+      await applyMigrations(await open(), migrationsDir);
+    },
+    releaseLockSync: () => {
+      release?.();
+      release = undefined;
     },
     close: async () => {
       await prisma.$disconnect();

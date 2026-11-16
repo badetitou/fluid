@@ -8,10 +8,12 @@ import { staticRoutes } from './routes/static';
 export interface BuildAppOptions {
   /** Built frontend directory; defaults to FLUID_STATIC_DIR. Unset = API only. */
   staticDir?: string;
+  /** Fastify log level (default info). */
+  logLevel?: string;
 }
 
 export function buildApp(options: BuildAppOptions = {}) {
-  const app = Fastify({ logger: true });
+  const app = Fastify({ logger: { level: options.logLevel ?? 'info' } });
 
   // @fastify/cors only allows GET,HEAD,POST by default; views are also updated and deleted.
   app.register(cors, { origin: true, methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'] });
