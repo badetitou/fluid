@@ -38,7 +38,7 @@ export function graphScopeInstructions(schema: ConceptSchemaInfo): string {
     'This view is a WHOLE-GRAPH DASHBOARD: it is NOT bound to one concept.',
     '- Its queries may start from ANY root query field below, and combine several concepts in one dashboard.',
     '- Declare one named query per entry point you use (several root fields may also share one query document).',
-    '- Only pass a row-limit argument when the entry point has one, always through a variable named exactly $take (e.g. "<field>(take: $take)" with "variables": { "take": 200 }), never as a literal: fluid sets $take from the source settings.',
+    '- Only pass a row-limit argument when the entry point has one, always through a variable named exactly $take whatever the argument is called (e.g. "<field>(take: $take)" or "<field>(first: $take)", with "variables": { "take": 200 }), never as a literal: fluid sets $take from the source settings.',
     '- Add "linkTo" with the row\'s concept on id / name columns so each row opens in a Miller column.',
     '- Use the fields of the "Reachable relations" section for nested selections below an entry point.',
     'Entry points (concept: root queries; scalar fields):',
