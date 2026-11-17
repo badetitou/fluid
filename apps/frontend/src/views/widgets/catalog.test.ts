@@ -30,7 +30,7 @@ describe('widget catalog', () => {
     for (const view of ALL_EXAMPLE_VIEWS) expect(safeParseViewSpec(view).success).toBe(true);
   });
 
-  it.each(['tree', 'richtext', 'scatter', 'sankey', 'code', 'accordion', 'model3d', 'scene3d', 'network', 'classDiagram', 'boxes', 'matrix', 'blueprint', 'butterfly', 'pyramid'])('shows the %s widget in a curated example', (type) => {
+  it.each(['tree', 'richtext', 'scatter', 'sankey', 'code', 'accordion', 'model3d', 'scene3d', 'network', 'classDiagram', 'boxes', 'matrix', 'blueprint', 'butterfly', 'pyramid', 'insight'])('shows the %s widget in a curated example', (type) => {
     expect(ALL_EXAMPLE_VIEWS.some((v) => v.widgets.some((w) => w.type === type))).toBe(true);
   });
 

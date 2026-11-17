@@ -3,6 +3,7 @@ import {
   ApartmentOutlined,
   BarsOutlined,
   BlockOutlined,
+  BulbOutlined,
   AreaChartOutlined,
   BarChartOutlined,
   ClusterOutlined,
@@ -27,7 +28,7 @@ import {
 import { HeatMapOutlined } from '@ant-design/icons';
 import type { CoreWidgetType } from '@fluid/shared';
 
-export type WidgetGroup = 'Data' | 'Charts' | 'Content' | '3D';
+export type WidgetGroup = 'Data' | 'Charts' | 'Content' | '3D' | 'AI';
 
 /** How a widget type is presented in the catalog of the layout editor. */
 export interface WidgetInfo {
@@ -63,7 +64,8 @@ export const WIDGET_INFO: { [T in CoreWidgetType]: WidgetInfo } = {
   model3d: { label: '3D element', description: 'A building element (IFC) on its own, in 3D.', icon: <BlockOutlined />, group: '3D' },
   scene3d: { label: '3D scene', description: 'A whole building (IFC), some elements highlighted.', icon: <HomeOutlined />, group: '3D' },
   pyramid: { label: 'Overview pyramid', description: 'A system or package in one figure: size, coupling, inheritance.', icon: <GoldOutlined />, group: 'Charts' },
+  insight: { label: 'AI analysis', description: 'An AI analyst reading the other widgets: what stands out, and what to ask next.', icon: <BulbOutlined />, group: 'AI' },
   specPresenter: { label: 'Inspector tab', description: 'A Pharo inspector tab served by Spec-Fluid.', icon: <FileSearchOutlined />, group: 'Content' },
 };
 
-export const WIDGET_GROUPS: WidgetGroup[] = ['Data', 'Charts', 'Content', '3D'];
+export const WIDGET_GROUPS: WidgetGroup[] = ['Data', 'Charts', 'Content', '3D', 'AI'];

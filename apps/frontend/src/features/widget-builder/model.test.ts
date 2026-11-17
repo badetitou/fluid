@@ -53,10 +53,16 @@ describe('defaultBinding', () => {
 });
 
 describe('newWidget', () => {
-  it.each(WIDGET_TYPES)('creates a valid %s widget', (type) => {
+  it.each(WIDGET_TYPES.filter((t) => t !== 'insight'))('creates a valid %s widget', (type) => {
     const widget = newWidget(type, { widgets: [table], queries, results, title: 'New' });
     expect(widgetSchema.safeParse(widget).success).toBe(true);
     expect(widget).toMatchObject({ type, title: 'New', data: { query: 'main', path: 'characters.results' } });
+  });
+
+  it('creates an insight widget reading the other widgets, without a binding of its own', () => {
+    const widget = newWidget('insight', { widgets: [table], queries, results, title: 'New' });
+    expect(widgetSchema.safeParse(widget).success).toBe(true);
+    expect(widget).toEqual({ type: 'insight', id: expect.any(String), title: 'New' });
   });
 
   it('sets chart axes from the data', () => {

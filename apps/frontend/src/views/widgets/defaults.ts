@@ -145,6 +145,8 @@ export const WIDGET_DEFAULTS: { [T in CoreWidgetType]: Factory<T> } = {
   scene3d: (s) => ({ type: 'scene3d', ...base(s) }),
   // A Spec-Fluid tab draws the node Pharo sent: nothing to pick among the fields.
   specPresenter: (s) => ({ type: 'specPresenter', ...base(s) }),
+  // The analyst reads the other widgets of the view: no binding of its own.
+  insight: ({ id, title }) => ({ type: 'insight', id, title }),
   // An overview pyramid needs one metric at least: a class count field, or the bound rows counted as classes.
   pyramid: (s) => ({ type: 'pyramid', ...base(s), noc: s.fields.numeric.find((p) => /classes/i.test(p)) ?? { op: 'count' } }),
 };
