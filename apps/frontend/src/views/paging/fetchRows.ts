@@ -74,6 +74,10 @@ export async function fetchRows(run: Runner, q: QuerySpec, paging: RowPaging, re
   }
 
   const res = await run({ ...q, variables: { ...q.variables, take: target } });
+  // A failed "more" or "all" keeps the rows already there.
+  if (request.kind !== 'first' && (res.error || res.data === undefined)) {
+    return { data: request.data, error: res.error, rows: request.rows };
+  }
   const loaded = countRows(res.data, paths);
   return { ...res, rows: { loaded, truncated: mayBeTruncated(loaded, target, paging.maxPerRequest), step } };
 }

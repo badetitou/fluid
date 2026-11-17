@@ -24,6 +24,20 @@ describe('paged queries', () => {
     expect(q).toContain('models {');
     expect(withOffset('{', 'skip')).toBeNull();
   });
+
+  it('pages the outer list only: a $take list per row is neither paged nor skipped', () => {
+    const nested = 'query N($take: Int) { classes(take: $take) { name methods(take: $take) { name } } }';
+    expect(pagedPaths(nested)).toEqual([['classes']]);
+    const q = withOffset(nested, 'skip')!;
+    expect(q).toContain('classes(take: $take, skip: $fluidSkip)');
+    expect(q).toContain('methods(take: $take) {');
+  });
+
+  it('does not page with an offset two lists of one query', () => {
+    const two = 'query T($take: Int) { classes(take: $take) { name } methods(take: $take) { name } }';
+    expect(pagedPaths(two)).toEqual([['classes'], ['methods']]);
+    expect(withOffset(two, 'skip')).toBeNull();
+  });
 });
 
 describe('rows', () => {

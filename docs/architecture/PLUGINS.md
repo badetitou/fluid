@@ -39,7 +39,7 @@ mélange deux contributions est refusé. Un plugin peut déclarer des **réglage
   "module": "./index.js",               // relatif au manifeste ; requis sauf pour un thème
   "contributes": {
     "widgets": [ WidgetContract, … ]    // ou "themes": [ThemeDefinition] / "viewBuilders": [{ id, label, color? }]
-                                        // ou "sourceProviders": [{ id, label, sources?: [{ name, url, description? }] }]
+                                        // ou "sourceProviders": [{ id, label, sources?: [{ name, url, description?, limits? }] }]
                                         // ou "pageActions": [{ id, label, description?, icon? }]
   }
 }
@@ -246,9 +246,15 @@ premier fournisseur qui la propose.
 ```ts
 interface SourceProvider {
   id: string; label: string;
-  listSources(settings, signal): Promise<{ name; url; description? }[]>;  // validé par zod
+  listSources(settings, signal): Promise<{ name; url; description?; limits? }[]>;  // validé par zod
 }
 ```
+
+Une source peut donner `limits: { rowLimit?, maxPerRequest? }` (entiers positifs) : les valeurs par
+défaut de ses réglages de lignes (Settings → Connection → *Large lists*), que l'utilisateur peut changer.
+`rowLimit` = lignes chargées d'abord (la variable `$take` des requêtes) ; `maxPerRequest` = le plus de
+lignes que le serveur rend par requête (Moose : 1000), pour distinguer une liste coupée d'une liste courte
+et paginer avec l'argument d'offset (`skip`/`offset`) trouvé par introspection.
 
 Un fournisseur qui écrit ses `sources` dans le manifeste n'a pas besoin de module (JSON pur, comme un
 thème). Sinon le module exporte `{ sourceProviders: { "<id>": { listSources(settings, signal) } } }`

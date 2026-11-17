@@ -92,7 +92,7 @@ export function useViewData(spec: ViewSpec): ViewData & ViewDataControls {
       const res = await fetchRows(queryRunner(client, sources), q, paging, request);
       setState((s) => ({
         ...s,
-        results: { ...s.results, [key]: res.data },
+        results: res.data === undefined ? s.results : { ...s.results, [key]: res.data },
         rows: res.rows ? { ...s.rows, [key]: res.rows } : s.rows,
         error: res.error ?? s.error,
       }));

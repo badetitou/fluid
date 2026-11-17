@@ -40,8 +40,14 @@ describe('fetchRows', () => {
   it('pages up to the row limit when it is above what the source answers per request', async () => {
     const run = source(5000, 1000);
     const res = await fetchRows(run, q, { rowLimit: 2500, maxPerRequest: 1000, offsetArg: 'skip' });
-    expect(run).toHaveBeenCalledTimes(3);
+    expect(run.mock.calls.map((c) => c[0].variables)).toEqual([
+      { take: 1000, fluidSkip: 0 },
+      { take: 1000, fluidSkip: 1000 },
+      { take: 500, fluidSkip: 2000 },
+    ]);
     expect(res.rows).toMatchObject({ loaded: 2500, truncated: true });
+    const names = (res.data as { methods: { name: string }[] }).methods.map((m) => m.name);
+    expect(new Set(names).size).toBe(2500);
   });
 
   it('loads more after the rows already there, with the offset argument', async () => {
@@ -79,5 +85,25 @@ describe('fetchRows', () => {
     expect(run.mock.calls.at(-1)![0].variables).toEqual({ take: 200 });
     expect(more.error).toBeUndefined();
     expect(more.rows).toMatchObject({ loaded: 200, truncated: true });
+  });
+
+  it('keeps the rows already there when a load more fails', async () => {
+    const ok = source(5000, 1000, false);
+    const first = await fetchRows(ok, q, {});
+    const failing = vi.fn<Runner>(async () => ({ error: new Error('network') }));
+    const more = await fetchRows(failing, q, {}, { kind: 'more', data: first.data, rows: first.rows! });
+    expect(more.error?.message).toBe('network');
+    expect(more.data).toBe(first.data);
+    expect(more.rows).toEqual(first.rows);
+  });
+
+  it('keeps the pages read when a later page fails', async () => {
+    const ok = source(5000, 1000);
+    const run = vi.fn<Runner>(async (spec) =>
+      (spec.variables as { fluidSkip?: number }).fluidSkip === 2000 ? { error: new Error('timeout') } : ok(spec),
+    );
+    const all = await fetchRows(run, q, { maxPerRequest: 1000, offsetArg: 'skip' }, { kind: 'all', data: undefined, rows: { loaded: 0, truncated: true, step: 100 } });
+    expect(all.error?.message).toBe('timeout');
+    expect(all.rows).toMatchObject({ loaded: 2000, truncated: false });
   });
 });

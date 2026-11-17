@@ -15,7 +15,6 @@ export const viewBuilderContractSchema = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'A colour is written #rrggbb').optional(),
 });
 
-/** A GraphQL source a source provider offers: a name and the endpoint URL. */
 /** How a source answers its lists: the defaults of its row settings (the user may change them). */
 export const sourceLimitsSchema = z.object({
   /** Rows loaded at first. */
@@ -25,6 +24,7 @@ export const sourceLimitsSchema = z.object({
 });
 export type SourceLimits = z.infer<typeof sourceLimitsSchema>;
 
+/** A GraphQL source a source provider offers: a name and the endpoint URL. */
 export const sourceEntrySchema = z.object({
   name: z.string().min(1).max(80),
   url: z.url({ protocol: /^https?$/ }),

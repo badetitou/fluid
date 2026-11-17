@@ -56,31 +56,44 @@ export function isPaged(query: string): boolean {
   return vars.some((v) => v.variable.name.value === TAKE);
 }
 
-/** Response paths (aliases or names) of the fields limited by `$take`. */
-export function pagedPaths(query: string): string[][] {
-  const doc = tryParse(query);
-  if (!doc) return [];
-  const paths: string[][] = [];
-  const walk = (fields: readonly FieldNode[], at: string[]) => {
+const fieldsOf = (selections: readonly { kind: Kind }[] | undefined): FieldNode[] =>
+  (selections ?? []).filter((s): s is FieldNode => s.kind === Kind.FIELD);
+
+/**
+ * The fields limited by `$take` that page the answer, with their response
+ * paths (aliases or names). A `$take` field inside another one is a list per
+ * row (e.g. each entity's methods): it is not paged, nor looked into.
+ */
+function pagedFields(doc: DocumentNode): { field: FieldNode; path: string[] }[] {
+  const found: { field: FieldNode; path: string[] }[] = [];
+  const walk = (fields: FieldNode[], at: string[]) => {
     for (const field of fields) {
       const path = [...at, field.alias?.value ?? field.name.value];
-      if (takesVariable(field)) paths.push(path);
-      const children = (field.selectionSet?.selections ?? []).filter((s): s is FieldNode => s.kind === Kind.FIELD);
-      walk(children, path);
+      if (takesVariable(field)) found.push({ field, path });
+      else walk(fieldsOf(field.selectionSet?.selections), path);
     }
   };
-  const root = operation(doc)?.selectionSet.selections ?? [];
-  walk(root.filter((s): s is FieldNode => s.kind === Kind.FIELD), []);
-  return paths;
+  walk(fieldsOf(operation(doc)?.selectionSet.selections), []);
+  return found;
+}
+
+/** Response paths of the fields that page the answer (see `pagedFields`). */
+export function pagedPaths(query: string): string[][] {
+  const doc = tryParse(query);
+  return doc ? pagedFields(doc).map((f) => f.path) : [];
 }
 
 /**
- * The query with `<offsetArg>: $fluidSkip` on every field limited by `$take`,
- * and `$fluidSkip: Int` declared; `null` if it cannot be read.
+ * The query with `<offsetArg>: $fluidSkip` on the field that pages the answer,
+ * and `$fluidSkip: Int` declared; `null` if it cannot be read or does not page
+ * exactly one field (one offset cannot page several lists of different lengths).
  */
 export function withOffset(query: string, offsetArg: string): string | null {
   const doc = tryParse(query);
   if (!doc) return null;
+  const paged = pagedFields(doc);
+  if (paged.length !== 1) return null;
+  const target = paged[0].field;
   const skipValue = { kind: Kind.VARIABLE, name: { kind: Kind.NAME, value: SKIP_VARIABLE } } as const;
   const out = visit(doc, {
     OperationDefinition(node) {
@@ -94,7 +107,7 @@ export function withOffset(query: string, offsetArg: string): string | null {
       return { ...node, variableDefinitions: [...(node.variableDefinitions ?? []), definition] };
     },
     Field(node) {
-      if (!takesVariable(node) || node.arguments?.some((a) => a.name.value === offsetArg)) return undefined;
+      if (node !== target || node.arguments?.some((a) => a.name.value === offsetArg)) return undefined;
       const arg = { kind: Kind.ARGUMENT, name: { kind: Kind.NAME, value: offsetArg }, value: skipValue } as const;
       return { ...node, arguments: [...(node.arguments ?? []), arg] };
     },
