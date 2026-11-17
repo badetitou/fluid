@@ -4,7 +4,7 @@ import { characterInsightExample, type InsightAnalysis, type InsightWidget as In
 import { resolveBinding } from '../../data';
 import { InsightAnalyzerContext, RenderedViewContext, type InsightAnalyzer } from '../../plugin-api/insightContext';
 import { InsightWidget } from './InsightWidget';
-import { clearInsightCache } from './useInsight';
+import { clearInsightCache, INSIGHT_DEBOUNCE_MS } from './useInsight';
 
 const view = characterInsightExample;
 const widget = view.widgets.find((w) => w.type === 'insight') as InsightWidgetSpec;
@@ -95,6 +95,29 @@ describe('InsightWidget', () => {
     expect(await screen.findByText('No model')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByText('Every alien is dead')).toBeTruthy();
+  });
+
+  it('asks the model once for a burst of changes (a selection clicked through)', async () => {
+    vi.useFakeTimers();
+    try {
+      const analyze = vi.fn<InsightAnalyzer>().mockResolvedValue(findings);
+      const { rerender } = show(analyze);
+      for (const focus of ['a', 'b', 'c']) {
+        rerender(
+          <InsightAnalyzerContext.Provider value={analyze}>
+            <RenderedViewContext.Provider value={view}>
+              <InsightWidget widget={{ ...widget, focus }} resolve={resolve} />
+            </RenderedViewContext.Provider>
+          </InsightAnalyzerContext.Provider>,
+        );
+        await vi.advanceTimersByTimeAsync(INSIGHT_DEBOUNCE_MS / 2);
+      }
+      await vi.advanceTimersByTimeAsync(INSIGHT_DEBOUNCE_MS);
+      expect(analyze).toHaveBeenCalledTimes(1);
+      expect(analyze.mock.calls[0][0].focus).toBe('c');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('explains that it needs the LLM without an analyser', () => {
