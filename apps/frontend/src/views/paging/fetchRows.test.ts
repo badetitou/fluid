@@ -50,6 +50,44 @@ describe('fetchRows', () => {
     expect(new Set(names).size).toBe(2500);
   });
 
+  describe('when the source cuts its answers without saying so (cap unknown)', () => {
+    const paging = { rowLimit: 5000, offsetArg: 'skip' };
+    const asked = (run: ReturnType<typeof source>) => run.mock.calls.map((c) => c[0].variables);
+
+    it('reads on with the offset argument up to the row limit', async () => {
+      const run = source(3500, 1000);
+      const res = await fetchRows(run, q, paging);
+      expect(asked(run)).toEqual([
+        { take: 5000 },
+        { take: 1000, fluidSkip: 1000 },
+        { take: 1000, fluidSkip: 2000 },
+        { take: 1000, fluidSkip: 3000 },
+      ]);
+      expect(res.rows).toEqual({ loaded: 3500, truncated: false, step: 5000, paged: true, more: false });
+      const names = (res.data as { methods: { name: string }[] }).methods.map((m) => m.name);
+      expect(new Set(names).size).toBe(3500);
+    });
+
+    it('stops at the row limit and offers more', async () => {
+      const res = await fetchRows(source(9000, 1000), q, paging);
+      expect(res.rows).toMatchObject({ loaded: 5000, truncated: true, paged: true, more: true });
+    });
+
+    it('loads all past the cap', async () => {
+      const run = source(2300, 1000);
+      const first = await fetchRows(run, q, { offsetArg: 'skip' });
+      const all = await fetchRows(run, q, { offsetArg: 'skip' }, { kind: 'all', data: first.data, rows: first.rows! });
+      expect(all.rows).toMatchObject({ loaded: 2300, truncated: false, more: false });
+    });
+
+    it('costs one empty request for a short list', async () => {
+      const run = source(42, 1000);
+      const res = await fetchRows(run, q, paging);
+      expect(asked(run)).toEqual([{ take: 5000 }, { take: 42, fluidSkip: 42 }]);
+      expect(res.rows).toMatchObject({ loaded: 42, truncated: false, more: false });
+    });
+  });
+
   it('loads more after the rows already there, with the offset argument', async () => {
     const run = source(150, 1000);
     const first = await fetchRows(run, q, { offsetArg: 'skip' });
