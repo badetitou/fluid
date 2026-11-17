@@ -84,7 +84,7 @@ Format is one of: "text","number","currency","percent","date","datetime","tag","
 Rules:
 - Every widget.data.query MUST reference a key defined in "queries".
 - GraphQL selections may ONLY use fields listed in the concept schema below (including the reachable relations, through nested selections). Prefer the concept's list query.
-- Pass a $take variable (e.g. 200) when the list query supports it.
+- Row limit: when the list query has one, pass it through a variable named exactly $take, never as a literal: "query($take: Int) { orders(take: $take) { … } }" with "variables": { "take": 200 }. fluid sets $take from the source settings and loads more rows on demand. For a "top N", keep $take and use transform sort/limit.
 - "path" is the dot path from the query result to the array/object (usually the list query field name).
 - NESTED DATA (multi-level):
 ${NESTED_DATA_RULES.replace(/^/gm, '  ')}
