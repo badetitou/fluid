@@ -1,5 +1,15 @@
 import { z } from 'zod';
-import { chatItemSchema, chatScopeSchema, chatViewContextSchema, mutationInfoSchema, viewSpecSchema, viewWidgetInfoSchema, widgetCatalogRequestSchema } from '@fluid/shared';
+import {
+  analyzeViewRequestSchema,
+  chatItemSchema,
+  chatScopeSchema,
+  chatViewContextSchema,
+  INSIGHT_MAX_REQUEST_CHARS,
+  mutationInfoSchema,
+  viewSpecSchema,
+  viewWidgetInfoSchema,
+  widgetCatalogRequestSchema,
+} from '@fluid/shared';
 
 // Request body schemas for the views API. The view spec itself is validated
 // with the shared zod schema so the BFF stores canonical, valid specs.
@@ -25,12 +35,8 @@ export type UpdateViewBody = z.infer<typeof updateViewBody>;
 // LLM view generation request
 // -----------------------------------------------------------------------------
 
-const chatMessage = z.object({
-  role: z.enum(['system', 'user', 'assistant']),
-  content: z.string(),
-});
-
-const llmConfigSchema = z
+/** Per-request LLM settings (provider, model, …) the frontend sends with each generation. */
+const llmConfigBody = z
   .object({
     provider: z.enum(['openai', 'ollama', 'claude-code', 'mock']).optional(),
     model: z.string().optional(),
@@ -38,6 +44,11 @@ const llmConfigSchema = z
     apiKey: z.string().optional(),
   })
   .optional();
+
+const chatMessage = z.object({
+  role: z.enum(['system', 'user', 'assistant']),
+  content: z.string(),
+});
 
 const conceptSchemaInfo = z.object({
   name: z.string().min(1),
@@ -105,7 +116,7 @@ export const generateViewBody = z.object({
   scope: z.enum(['list', 'detail']).optional(),
   widgets: widgetCatalogRequestSchema.optional(),
   history: z.array(chatMessage).optional(),
-  config: llmConfigSchema,
+  config: llmConfigBody,
 });
 export type GenerateViewBody = z.infer<typeof generateViewBody>;
 
@@ -120,7 +131,7 @@ export const generateWidgetBody = z.object({
   viewWidgets: z.array(viewWidgetInfoSchema).optional(),
   widgets: widgetCatalogRequestSchema.optional(),
   history: z.array(chatMessage).optional(),
-  config: llmConfigSchema,
+  config: llmConfigBody,
 });
 export type GenerateWidgetBody = z.infer<typeof generateWidgetBody>;
 
@@ -132,3 +143,11 @@ export const chatBody = generateViewBody.omit({ scope: true }).extend({
   item: chatItemSchema.optional(),
 });
 export type ChatBody = z.infer<typeof chatBody>;
+
+// Insight widget: the data the view's widgets show, analysed by the LLM.
+export const analyzeViewBody = analyzeViewRequestSchema
+  .extend({ config: llmConfigBody })
+  .refine((body) => JSON.stringify(body.sources).length <= INSIGHT_MAX_REQUEST_CHARS, {
+    message: `The analysed data is larger than ${INSIGHT_MAX_REQUEST_CHARS} characters`,
+    path: ['sources'],
+  });

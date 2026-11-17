@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import type { AnalyzeViewRequest } from '@fluid/shared';
 import {
   bffClient,
   type GenerateViewPayload,
@@ -9,6 +11,7 @@ import {
 import { effectiveProvider } from '../../llm/effectiveProvider';
 import { useLlmSettings, type LlmProvider } from '../../store';
 import { currentCatalogRequest } from '../plugin';
+import { analyzeView } from './analyzeView';
 import { currentConfig } from './currentConfig';
 
 type WithoutConfig<T> = Omit<T, 'config' | 'widgets'>;
@@ -38,6 +41,22 @@ export function useLlmGenerate() {
     [],
   );
   return { generateView, generateWidget };
+}
+
+/**
+ * Analyses a view for the insight widget, with the user's provider settings.
+ * A new function when the settings change, so analyses made with other
+ * settings are not reused.
+ */
+export function useLlmInsightAnalyzer() {
+  const settings = useLlmSettings(
+    useShallow((s) => [s.provider, s.providerChosen, s.model, s.baseUrl, s.apiKey] as const),
+  );
+  return useCallback(
+    async (request: AnalyzeViewRequest, signal?: AbortSignal) => analyzeView(request, await currentConfig(), signal),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the settings are read in currentConfig.
+    settings,
+  );
 }
 
 /** What the BFF can generate with, fetched each time `active` turns true; null when unknown. */

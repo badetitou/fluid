@@ -16,6 +16,7 @@ import { butterflyWidgetDraftSchema, butterflyWidgetSchema } from './widgets/but
 import { codeWidgetSchema } from './widgets/code';
 import { formWidgetSchema, rowActionSchema } from './widgets/form';
 import { historyWidgetDraftSchema, historyWidgetSchema } from './widgets/history';
+import { insightWidgetDraftSchema, insightWidgetSchema } from './widgets/insight';
 import { networkWidgetDraftSchema, networkWidgetSchema } from './widgets/network';
 import { model3dWidgetSchema, scene3dWidgetSchema } from './widgets/model3d';
 import { pluginWidgetDraftSchema, pluginWidgetSchema, type PluginWidget } from './widgets/plugin';
@@ -38,6 +39,8 @@ export * from './widgets/common';
 export * from './widgets/coreDocs';
 export * from './widgets/form';
 export * from './widgets/history';
+export * from './widgets/insight';
+export * from './widgets/insightAnalysis';
 export * from './widgets/network';
 export * from './widgets/model3d';
 export * from './widgets/model3dExample';
@@ -224,6 +227,7 @@ const leafWidgetSchemas = [
   scene3dWidgetSchema,
   specPresenterWidgetSchema,
   pyramidWidgetSchema,
+  insightWidgetSchema,
 ] as const;
 
 /** A widget fluid ships; plugin widgets are typed `PluginWidget`. */
@@ -265,6 +269,7 @@ export const WIDGET_TYPES = [
   'scene3d',
   'specPresenter',
   'pyramid',
+  'insight',
 ] as const;
 
 /** Whether a view targets a concept's list (many rows) or the detail of a single item. */
@@ -390,6 +395,7 @@ const coreWidgetDraftSchema = z.discriminatedUnion('type', [
   scene3dWidgetDraftSchema,
   specPresenterWidgetDraftSchema,
   pyramidWidgetDraftSchema,
+  insightWidgetDraftSchema,
 ]);
 export const widgetDraftSchema = z.union([coreWidgetDraftSchema, pluginWidgetDraftSchema]);
 export type WidgetDraft = z.infer<typeof widgetDraftSchema>;

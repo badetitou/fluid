@@ -1,4 +1,4 @@
-export { useEffectiveProvider, useLlmCapabilities, useLlmGenerate } from './useLlm';
+export { useEffectiveProvider, useLlmCapabilities, useLlmGenerate, useLlmInsightAnalyzer } from './useLlm';
 export { useLlmChat } from './useLlmChat';
 export { useChatEntry } from './chatStore';
 export {

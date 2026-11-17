@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { chatBody, generateViewBody, generateWidgetBody } from '../validation';
+import { analyzeViewBody, chatBody, generateViewBody, generateWidgetBody } from '../validation';
 import { describeLlmConfig } from '../llm/config';
 import { generateView, generateWidget } from '../llm/generate';
+import { analyzeView } from '../llm/insight';
 import { chat } from '../llm/chat';
 import { LlmError, LlmValidationError } from '../llm/errors';
 import type { GenerateViewInput, GenerateWidgetInput } from '../llm/types';
@@ -138,6 +139,24 @@ export async function llmRoutes(app: FastifyInstance) {
       }
       req.log.error(err);
       return reply.code(500).send({ error: 'Widget generation failed' });
+    }
+  });
+
+  // The insight widget: what the view's widgets show, analysed by the LLM.
+  app.post('/api/llm/analyze-view', async (req, reply) => {
+    const parsed = analyzeViewBody.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'Invalid body', details: z.flattenError(parsed.error) });
+    }
+    try {
+      return await analyzeView(parsed.data);
+    } catch (err) {
+      if (err instanceof LlmValidationError) {
+        return reply.code(422).send({ error: 'The model did not answer with a valid analysis', details: err.errorText });
+      }
+      if (err instanceof LlmError) return reply.code(502).send({ error: err.message });
+      req.log.error(err);
+      return reply.code(500).send({ error: 'Analysis failed' });
     }
   });
 }
