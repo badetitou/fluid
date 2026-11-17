@@ -4,3 +4,4 @@ export * from './examples';
 export * from './graph';
 export * from './plugins';
 export * from './specFluid';
+export * from './chat';

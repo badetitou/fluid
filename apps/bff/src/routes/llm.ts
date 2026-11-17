@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { generateViewBody, generateWidgetBody } from '../validation';
+import { chatBody, generateViewBody, generateWidgetBody } from '../validation';
 import { describeLlmConfig } from '../llm/config';
 import { generateView, generateWidget } from '../llm/generate';
+import { chat } from '../llm/chat';
+import type { ChatInput } from '../llm/chatTypes';
 import { LlmError, LlmValidationError } from '../llm/errors';
 import type { GenerateViewInput, GenerateWidgetInput } from '../llm/types';
 
@@ -87,6 +89,28 @@ export async function llmRoutes(app: FastifyInstance) {
       }
       req.log.error(err);
       return reply.code(500).send({ error: 'View generation failed' });
+    }
+  });
+
+  // Chat about the graph or the current view: markdown text, plus an inline
+  // ViewSpec when the answer can be shown as data.
+  app.post('/api/llm/chat', async (req, reply) => {
+    const parsed = chatBody.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'Invalid body', details: z.flattenError(parsed.error) });
+    }
+
+    try {
+      return await chat(parsed.data as ChatInput);
+    } catch (err) {
+      if (err instanceof LlmValidationError) {
+        return reply.code(422).send({ error: err.message, details: err.errorText, raw: err.raw });
+      }
+      if (err instanceof LlmError) {
+        return reply.code(502).send({ error: err.message });
+      }
+      req.log.error(err);
+      return reply.code(500).send({ error: 'Chat failed' });
     }
   });
 

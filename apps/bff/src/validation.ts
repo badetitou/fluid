@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { mutationInfoSchema, viewSpecSchema, viewWidgetInfoSchema, widgetCatalogRequestSchema } from '@fluid/shared';
+import { chatItemSchema, chatScopeSchema, chatViewContextSchema, mutationInfoSchema, viewSpecSchema, viewWidgetInfoSchema, widgetCatalogRequestSchema } from '@fluid/shared';
 
 // Request body schemas for the views API. The view spec itself is validated
 // with the shared zod schema so the BFF stores canonical, valid specs.
@@ -29,6 +29,15 @@ const chatMessage = z.object({
   role: z.enum(['system', 'user', 'assistant']),
   content: z.string(),
 });
+
+const llmConfigSchema = z
+  .object({
+    provider: z.enum(['openai', 'ollama', 'claude-code', 'mock']).optional(),
+    model: z.string().optional(),
+    baseUrl: z.string().optional(),
+    apiKey: z.string().optional(),
+  })
+  .optional();
 
 const conceptSchemaInfo = z.object({
   name: z.string().min(1),
@@ -96,14 +105,7 @@ export const generateViewBody = z.object({
   scope: z.enum(['list', 'detail']).optional(),
   widgets: widgetCatalogRequestSchema.optional(),
   history: z.array(chatMessage).optional(),
-  config: z
-    .object({
-      provider: z.enum(['openai', 'ollama', 'claude-code', 'mock']).optional(),
-      model: z.string().optional(),
-      baseUrl: z.string().optional(),
-      apiKey: z.string().optional(),
-    })
-    .optional(),
+  config: llmConfigSchema,
 });
 export type GenerateViewBody = z.infer<typeof generateViewBody>;
 
@@ -118,13 +120,15 @@ export const generateWidgetBody = z.object({
   viewWidgets: z.array(viewWidgetInfoSchema).optional(),
   widgets: widgetCatalogRequestSchema.optional(),
   history: z.array(chatMessage).optional(),
-  config: z
-    .object({
-      provider: z.enum(['openai', 'ollama', 'claude-code', 'mock']).optional(),
-      model: z.string().optional(),
-      baseUrl: z.string().optional(),
-      apiKey: z.string().optional(),
-    })
-    .optional(),
+  config: llmConfigSchema,
 });
 export type GenerateWidgetBody = z.infer<typeof generateWidgetBody>;
+
+// Chat request: everything a view generation has, with the chat scope
+// ("graph" | "view") instead of the list/detail one.
+export const chatBody = generateViewBody.omit({ scope: true }).extend({
+  scope: chatScopeSchema,
+  view: chatViewContextSchema.optional(),
+  item: chatItemSchema.optional(),
+});
+export type ChatBody = z.infer<typeof chatBody>;
