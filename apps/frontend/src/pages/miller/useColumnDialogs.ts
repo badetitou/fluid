@@ -1,12 +1,14 @@
 import { useMemo, useReducer } from 'react';
 import type { ViewSpec } from '@fluid/shared';
+import type { ViewSeed } from '../../entities/llm';
 import type { SavedView, ViewDraft } from '../../entities/view';
 
 /** The editor open in a column, if any: at most one at a time. */
 export type ColumnDialog =
   /** `from`: the spec the conversation starts from (edits made in another editor). */
-  | { kind: 'assistant'; editing?: SavedView; from?: ViewSpec }
-  | { kind: 'json'; draft: ViewDraft }
+  | { kind: 'assistant'; editing?: SavedView; from?: ViewSpec; seed?: ViewSeed }
+  /** `asDashboard`: carried from a seeded assistant, so saving here still adds the dashboard. */
+  | { kind: 'json'; draft: ViewDraft; asDashboard?: boolean }
   | null;
 
 export interface ColumnDialogsState {
@@ -38,7 +40,10 @@ export function useColumnDialogs() {
     () => ({
       openAssistant: (editing?: SavedView, from?: ViewSpec) =>
         dispatch({ type: 'open', dialog: { kind: 'assistant', editing, from } }),
-      openJson: (draft: ViewDraft) => dispatch({ type: 'open', dialog: { kind: 'json', draft } }),
+      /** The assistant, starting from the chat's conversation: it generates a new view at once. */
+      openViewAssistant: (seed: ViewSeed) => dispatch({ type: 'open', dialog: { kind: 'assistant', seed } }),
+      openJson: (draft: ViewDraft, asDashboard?: boolean) =>
+        dispatch({ type: 'open', dialog: { kind: 'json', draft, asDashboard } }),
       close: () => dispatch({ type: 'close' }),
       openSettings: () => dispatch({ type: 'settings', open: true }),
       closeSettings: () => dispatch({ type: 'settings', open: false }),

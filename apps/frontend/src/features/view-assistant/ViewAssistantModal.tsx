@@ -2,18 +2,26 @@ import { useState } from 'react';
 import { App as AntdApp, Button, Modal, Space, Splitter } from 'antd';
 import { RobotOutlined, SettingOutlined } from '@ant-design/icons';
 import { conceptLabel, type ViewSpec } from '@fluid/shared';
+import type { ViewSeed } from '../../entities/llm';
 import { preserveLayouts, useSaveView, type SavedView } from '../../entities/view';
 import { AssistantChat } from './AssistantChat';
 import { AssistantPreview } from './AssistantPreview';
 import { useAssistantSession, type AssistantTarget } from './useAssistantSession';
 import styles from './ViewAssistant.module.css';
 
-interface ViewAssistantModalProps {
-  target: AssistantTarget;
-  /** The saved view being refined; a new view is created when absent. */
+export interface AssistantSource {
+  /** The saved view being refined. */
   editing?: SavedView;
   /** Spec the conversation starts from (version 0) instead of the saved one, e.g. edits from the layout editor. */
   from?: ViewSpec;
+  /** The chat's conversation: the first prompt is sent as the modal opens. */
+  seed?: ViewSeed;
+}
+
+interface ViewAssistantModalProps {
+  target: AssistantTarget;
+  /** What the conversation starts from; a new view is created when empty. */
+  source?: AssistantSource;
   onClose: () => void;
   onSaved: (view: SavedView) => void;
   onOpenJson: (spec: ViewSpec) => void;
@@ -25,10 +33,11 @@ interface ViewAssistantModalProps {
  * that can be previewed, refined again, then saved. Mounted only while open.
  */
 export function ViewAssistantModal(props: ViewAssistantModalProps) {
-  const { target, editing, from, onClose, onSaved, onOpenJson, onOpenSettings } = props;
+  const { target, source = {}, onClose, onSaved, onOpenJson, onOpenSettings } = props;
+  const { editing, from, seed } = source;
   const { message } = AntdApp.useApp();
   const base = from ?? editing?.spec;
-  const session = useAssistantSession(target, editing?.id, base);
+  const session = useAssistantSession(target, editing?.id, base, seed);
   const { saving, error, setError, save } = useSaveView();
   const [isDefault, setIsDefault] = useState(editing?.isDefault ?? false);
   const { spec, activeVersion, clear } = session;
@@ -53,7 +62,9 @@ export function ViewAssistantModal(props: ViewAssistantModalProps) {
   };
 
   const label = conceptLabel(target.concept);
-  const intro = base
+  const intro = seed
+    ? `I'm building a view of ${label} from your chat. Each answer becomes a version you can preview and refine.`
+    : base
     ? `I'm working from the ${editing ? 'saved ' : ''}view of ${label}. Tell me what to change — each answer becomes a new version you can compare.`
     : `Describe the dashboard you want for ${label} (tables, stats, charts, clickable links). Each answer becomes a version you can preview and refine.`;
 

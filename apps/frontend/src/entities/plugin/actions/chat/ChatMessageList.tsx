@@ -9,10 +9,12 @@ interface ChatMessageListProps {
   pending: boolean;
   error: string | null;
   onRetry: () => void;
+  /** Builds a view from the conversation, when it can be. */
+  onBuildView?: () => void;
 }
 
 /** The scrollable conversation, kept scrolled to the latest entry; a failed turn shows its error and a retry. */
-export function ChatMessageList({ turns, pending, error, onRetry }: ChatMessageListProps) {
+export function ChatMessageList({ turns, pending, error, onRetry, onBuildView }: ChatMessageListProps) {
   const list = useRef<HTMLDivElement>(null);
   const end = useRef<HTMLDivElement>(null);
   // A new answer is read from its start (its widgets load after it is added, so its end moves);
@@ -31,7 +33,7 @@ export function ChatMessageList({ turns, pending, error, onRetry }: ChatMessageL
         <div className={styles.empty}>Ask about the data, its structure, or what this view shows.</div>
       )}
       {turns.map((turn) => (
-        <ChatTurnItem key={turn.id} turn={turn} />
+        <ChatTurnItem key={turn.id} turn={turn} onBuildView={onBuildView} />
       ))}
       {pending && <Spin size="small" aria-label="Thinking" />}
       {error && !pending && (

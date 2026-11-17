@@ -16,3 +16,4 @@ export {
   type ChatTurn,
   type Conversation,
 } from './chatModel';
+export { buildViewSeed, canBuildView, type ViewSeed } from './viewSeed';

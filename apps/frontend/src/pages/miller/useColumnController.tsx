@@ -100,8 +100,8 @@ export function useColumnController(concept: Concept, { path, slot, itemId, pers
   const pillActions = useMemo(() => ({ onDelete: remove, onHide: (entry: ViewEntry) => hide(entry.key) }), [remove, hide]);
 
   const onSaved = useCallback(
-    (view: SavedView) => {
-      dashboards.viewSaved(view);
+    (view: SavedView, asDashboard = false) => {
+      (asDashboard ? dashboards.saveAsDashboard : dashboards.viewSaved)(view);
       refetch();
       pick(view.id);
     },
@@ -144,6 +144,6 @@ export function useColumnController(concept: Concept, { path, slot, itemId, pers
 
   return {
     perspectives, mutations, layout, editorSwitch, rename, pillActions,
-    dialogs, pinning, schema, actions, onSaved, renderWidgetActions,
+    dialogs, pinning, schema, actions, onSaved, renderWidgetActions, openViewAssistant: dialogs.openViewAssistant,
   };
 }
