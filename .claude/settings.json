@@ -22,7 +22,9 @@
       "Bash(glab issue view:*)",
       "Bash(glab mr list:*)",
       "Bash(glab mr view:*)",
-      "Bash(curl -s localhost:8080/graphql:*)"
+      "Bash(curl -s localhost:8080/graphql:*)",
+      "Bash(git worktree list:*)",
+      "Bash(glab mr merge:*)"
     ]
   }
 }
