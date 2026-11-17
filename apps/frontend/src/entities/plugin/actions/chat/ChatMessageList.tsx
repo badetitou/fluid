@@ -13,12 +13,20 @@ interface ChatMessageListProps {
 
 /** The scrollable conversation, kept scrolled to the latest entry; a failed turn shows its error and a retry. */
 export function ChatMessageList({ turns, pending, error, onRetry }: ChatMessageListProps) {
+  const list = useRef<HTMLDivElement>(null);
   const end = useRef<HTMLDivElement>(null);
+  // A new answer is read from its start (its widgets load after it is added, so its end moves);
+  // the spinner and an error show at the bottom.
   useEffect(() => {
-    end.current?.scrollIntoView?.({ block: 'end' });
-  }, [turns, pending, error]);
+    const newest = list.current?.children[turns.length - 1];
+    const isAnswer = turns[turns.length - 1]?.role === 'assistant';
+    newest?.scrollIntoView?.({ block: isAnswer ? 'start' : 'end' });
+  }, [turns]);
+  useEffect(() => {
+    if (pending || error) end.current?.scrollIntoView?.({ block: 'end' });
+  }, [pending, error]);
   return (
-    <div className={styles.list} role="log" aria-live="polite">
+    <div ref={list} className={styles.list} role="log" aria-live="polite">
       {turns.length === 0 && (
         <div className={styles.empty}>Ask about the data, its structure, or what this view shows.</div>
       )}

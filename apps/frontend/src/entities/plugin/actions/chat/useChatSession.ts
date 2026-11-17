@@ -1,20 +1,23 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { ChatScope, ViewSpec } from '@fluid/shared';
 import { useConceptSchema, useRootConcepts, type Concept } from '../../../concept';
 import { buildEntryPoints } from '../../../../llm/conceptSchema';
+// Deep imports, not the `llm` index: that one pulls `useLlm`, which imports this plugin module back.
 import {
-  addAssistantTurn,
-  addUserTurn,
+  beginTurn,
   buildHistory,
   effectiveScope,
+  idleEntry,
   lastUserPrompt,
   resetConversation,
+  settleTurn,
   switchScope,
-  useChatConversation,
-  useLlmChat,
   viewContext,
   type ChatTurn,
-} from '../../../llm';
+} from '../../../llm/chatModel';
+import { useChatEntry } from '../../../llm/chatStore';
+import { useLlmChat } from '../../../llm/useLlmChat';
+import { currentCatalogRequest } from '../../usePlugins';
 
 export interface ChatTarget {
   concept: Concept;
@@ -24,19 +27,20 @@ export interface ChatTarget {
 }
 
 /**
- * The conversation of a column's concept (kept for the browser session) and
- * the turn in flight. A failed turn stays in the conversation, with its error,
- * until it is retried.
+ * The chat of a column's concept, kept for the browser session with the turn
+ * in flight and its error (so closing the drawer loses nothing). A failed turn
+ * stays in the conversation until it is retried; an answer that comes after a
+ * reset or a scope switch is dropped.
  */
 export function useChatSession({ concept, view, itemId }: ChatTarget) {
-  const { conversation, update } = useChatConversation(concept.name);
+  const { entry, change } = useChatEntry(concept.name);
+  const { conversation, pending, error } = entry;
   const { schema, conceptByName } = useConceptSchema(concept);
   const { queriesByType } = useRootConcepts();
   const chat = useLlmChat();
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const scope = effectiveScope(conversation.scope, view !== undefined);
-  const { turns } = conversation;
+  const hasView = view !== undefined;
+  const scope = effectiveScope(conversation.scope, hasView);
+  const { turns, epoch } = conversation;
 
   // Talking about the graph, the model needs every entry point, whatever the column.
   const graphSchema = useMemo(
@@ -46,8 +50,6 @@ export function useChatSession({ concept, view, itemId }: ChatTarget) {
 
   const ask = useCallback(
     async (prompt: string, earlier: ChatTurn[]) => {
-      setPending(true);
-      setError(null);
       try {
         const answer = await chat({
           concept: concept.name,
@@ -56,44 +58,43 @@ export function useChatSession({ concept, view, itemId }: ChatTarget) {
           scope,
           view: scope === 'view' && view ? viewContext(view) : undefined,
           item: scope === 'view' && itemId ? { id: itemId } : undefined,
+          widgets: currentCatalogRequest(),
           history: buildHistory(earlier),
         });
-        update((c) => addAssistantTurn(c, answer));
+        change((e) => settleTurn(e, epoch, { answer }));
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'The chat failed');
-      } finally {
-        setPending(false);
+        change((e) => settleTurn(e, epoch, { error: err instanceof Error ? err.message : 'The chat failed' }));
       }
     },
-    [chat, concept.name, graphSchema, scope, view, itemId, update],
+    [chat, concept.name, graphSchema, scope, view, itemId, epoch, change],
   );
 
   const send = useCallback(
     (text: string) => {
       const prompt = text.trim();
       if (!prompt || pending) return;
-      update((c) => addUserTurn(c, prompt));
+      change((e) => beginTurn(e, prompt));
       void ask(prompt, turns);
     },
-    [ask, pending, turns, update],
+    [ask, pending, turns, change],
   );
 
   const retry = useCallback(() => {
     const prompt = lastUserPrompt(turns);
-    if (prompt && !pending) void ask(prompt, turns.slice(0, -1));
-  }, [ask, pending, turns]);
+    if (!prompt || pending) return;
+    change((e) => beginTurn(e));
+    void ask(prompt, turns.slice(0, -1));
+  }, [ask, pending, turns, change]);
 
   const reset = useCallback(() => {
-    setError(null);
-    update(resetConversation);
-  }, [update]);
+    if (!pending) change((e) => idleEntry(resetConversation(e.conversation)));
+  }, [pending, change]);
 
   const setScope = useCallback(
     (next: ChatScope) => {
-      setError(null);
-      update((c) => switchScope(c, next));
+      if (!pending) change((e) => idleEntry(switchScope(e.conversation, next, hasView)));
     },
-    [update],
+    [pending, hasView, change],
   );
 
   return { turns, scope, pending, error, send, retry, reset, setScope };

@@ -1,17 +1,16 @@
 import { useCallback } from 'react';
 import type { ChatResponse } from '@fluid/shared';
 import { postChat, type ChatPayload } from '../../bff/chatApi';
-import { currentCatalogRequest } from '../plugin';
-import { currentConfig } from './useLlm';
+import { currentConfig } from './currentConfig';
 
 /**
- * One turn of the LLM chat, with the user's provider settings and the widgets
- * of the enabled plugins applied (read when the request starts).
+ * One turn of the LLM chat, with the user's provider settings applied (read
+ * when the request starts). The caller passes the widget catalog.
  */
 export function useLlmChat() {
   return useCallback(
-    async (payload: Omit<ChatPayload, 'config' | 'widgets'>): Promise<ChatResponse> =>
-      postChat({ ...payload, widgets: currentCatalogRequest(), config: await currentConfig() }),
+    async (payload: Omit<ChatPayload, 'config'>): Promise<ChatResponse> =>
+      postChat({ ...payload, config: await currentConfig() }),
     [],
   );
 }

@@ -28,6 +28,7 @@ export function ChatDrawer({ concept, column, onClose }: ChatDrawerProps) {
           scope={session.scope}
           hasView={view !== undefined}
           canReset={session.turns.length > 0}
+          busy={session.pending}
           onScope={session.setScope}
           onReset={session.reset}
         />

@@ -10,42 +10,79 @@ export type ChatTurn =
 export interface Conversation {
   scope: ChatScope;
   turns: ChatTurn[];
+  /** Id of the next turn. */
+  nextId: number;
+  /** Bumped by a reset or a scope switch: an answer asked under another epoch is dropped. */
+  epoch: number;
 }
 
-export const emptyConversation = (scope: ChatScope = 'graph'): Conversation => ({ scope, turns: [] });
-
-const nextId = (turns: ChatTurn[]) => (turns.length === 0 ? 1 : Math.max(...turns.map((t) => t.id)) + 1);
-
-export function addUserTurn(c: Conversation, text: string): Conversation {
-  return { ...c, turns: [...c.turns, { id: nextId(c.turns), role: 'user', text }] };
+/** A column concept's chat: its conversation and the turn in flight. */
+export interface ChatEntry {
+  conversation: Conversation;
+  pending: boolean;
+  error: string | null;
 }
+
+export const emptyConversation = (scope: ChatScope = 'graph'): Conversation => ({ scope, turns: [], nextId: 1, epoch: 0 });
+export const emptyEntry = (): ChatEntry => ({ conversation: emptyConversation(), pending: false, error: null });
+
+type NewTurn = ChatTurn extends infer T ? (T extends ChatTurn ? Omit<T, 'id'> : never) : never;
+
+const append = (c: Conversation, turn: NewTurn): Conversation => ({
+  ...c,
+  turns: [...c.turns, { ...turn, id: c.nextId } as ChatTurn],
+  nextId: c.nextId + 1,
+});
+
+export const addUserTurn = (c: Conversation, text: string): Conversation => append(c, { role: 'user', text });
 
 export function addAssistantTurn(
   c: Conversation,
   answer: { message: string; view?: ViewSpec; suggestView?: boolean },
 ): Conversation {
   const { message, view, suggestView } = answer;
-  return { ...c, turns: [...c.turns, { id: nextId(c.turns), role: 'assistant', text: message, view, suggestView }] };
-}
-
-/** Starts over, keeping the scope. */
-export const resetConversation = (c: Conversation): Conversation => emptyConversation(c.scope);
-
-/** Moves the talk to another scope; the conversation stays, with a notice where it changed. */
-export function switchScope(c: Conversation, scope: ChatScope): Conversation {
-  if (c.scope === scope) return c;
-  const text = scope === 'view' ? 'Now talking about this view.' : 'Now talking about the whole graph.';
-  return { scope, turns: [...c.turns, { id: nextId(c.turns), role: 'notice', text }] };
+  return append(c, { role: 'assistant', text: message, view, suggestView });
 }
 
 /** The scope to use: "view" needs a view in the column. */
 export const effectiveScope = (scope: ChatScope, hasView: boolean): ChatScope => (scope === 'view' && !hasView ? 'graph' : scope);
 
-/** What the model gets of the earlier turns: an answer is its text plus a mention of the widgets it showed. */
+/** Starts over, keeping the scope. */
+export const resetConversation = (c: Conversation): Conversation => ({ ...emptyConversation(c.scope), epoch: c.epoch + 1 });
+
+/** Moves the talk to another scope, with a notice where it changed; nothing when it is the scope already in effect. */
+export function switchScope(c: Conversation, scope: ChatScope, hasView = true): Conversation {
+  if (effectiveScope(c.scope, hasView) === scope) return c;
+  const text = scope === 'view' ? 'Now talking about this view.' : 'Now talking about the whole graph.';
+  return { ...append(c, { role: 'notice', text }), scope, epoch: c.epoch + 1 };
+}
+
+/** A prompt is sent: it joins the conversation (unless it is the retry of the last one) and a turn is in flight. */
+export function beginTurn(e: ChatEntry, prompt?: string): ChatEntry {
+  return { conversation: prompt === undefined ? e.conversation : addUserTurn(e.conversation, prompt), pending: true, error: null };
+}
+
+export type TurnOutcome = { answer: { message: string; view?: ViewSpec; suggestView?: boolean } } | { error: string };
+
+/** The turn asked under `epoch` is over; if the conversation was reset or switched meanwhile, it is dropped. */
+export function settleTurn(e: ChatEntry, epoch: number, outcome: TurnOutcome): ChatEntry {
+  if (e.conversation.epoch !== epoch) return e;
+  if ('error' in outcome) return { ...e, pending: false, error: outcome.error };
+  return { conversation: addAssistantTurn(e.conversation, outcome.answer), pending: false, error: null };
+}
+
+/** The entry after a reset or a scope switch (both bump the epoch, which orphans a turn in flight). */
+export const idleEntry = (conversation: Conversation): ChatEntry => ({ conversation, pending: false, error: null });
+
+/**
+ * What the model gets of the earlier turns: an answer is its text plus a mention
+ * of the widgets it showed. A prompt that got no answer (a failed turn) is left out.
+ */
 export function buildHistory(turns: ChatTurn[]): ChatMessage[] {
-  return turns.flatMap((t): ChatMessage[] => {
-    if (t.role === 'notice') return [];
-    if (t.role === 'user') return [{ role: 'user', content: t.text }];
+  const talk = turns.filter((t) => t.role !== 'notice');
+  return talk.flatMap((t, i): ChatMessage[] => {
+    if (t.role === 'user') return talk[i + 1]?.role === 'assistant' ? [{ role: 'user', content: t.text }] : [];
+    if (t.role !== 'assistant') return [];
     const widgets = t.view?.widgets ?? [];
     if (widgets.length === 0) return [{ role: 'assistant', content: t.text }];
     const shown = widgets.map((w) => (w.title ? `${w.type} "${w.title}"` : w.type)).join(', ');

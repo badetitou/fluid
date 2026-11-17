@@ -6,17 +6,10 @@ import {
   type LlmCapabilities,
   type LlmDelta,
 } from '../../bff/client';
-import { toConfigOverrides } from '../../llm/conceptSchema';
 import { effectiveProvider } from '../../llm/effectiveProvider';
 import { useLlmSettings, type LlmProvider } from '../../store';
 import { currentCatalogRequest } from '../plugin';
-
-/** Request config with the provider resolved against the BFF default when the user has not picked one. */
-export async function currentConfig() {
-  const settings = useLlmSettings.getState();
-  const caps = settings.providerChosen ? null : await bffClient.getLlmConfig().catch(() => null);
-  return toConfigOverrides({ ...settings, provider: effectiveProvider(settings, caps?.defaultProvider) });
-}
+import { currentConfig } from './currentConfig';
 
 type WithoutConfig<T> = Omit<T, 'config' | 'widgets'>;
 

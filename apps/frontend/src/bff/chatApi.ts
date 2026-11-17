@@ -1,6 +1,7 @@
 import { chatResponseSchema } from '@fluid/shared';
 import type { ChatItem, ChatResponse, ChatScope, ChatViewContext, WidgetCatalogRequest } from '@fluid/shared';
-import { request, type ChatMessage, type ConceptSchemaPayload, type LlmConfigOverrides } from './client';
+import type { ChatMessage, ConceptSchemaPayload, LlmConfigOverrides } from './client';
+import { request } from './http';
 
 export interface ChatPayload {
   concept: string;
