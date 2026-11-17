@@ -18,6 +18,7 @@ import {
   tableWidgetDoc,
 } from '../widgets/coreDocs';
 import { historyWidgetDoc } from '../widgets/history';
+import { insightWidgetDoc } from '../widgets/insight';
 import { networkWidgetDoc } from '../widgets/network';
 import { model3dWidgetDoc, scene3dWidgetDoc } from '../widgets/model3d';
 import { richTextWidgetDoc } from '../widgets/richtext';
@@ -179,6 +180,18 @@ export const BUILTIN_WIDGET_CONTRACTS: { [T in CoreWidgetType]: WidgetContract }
     'Overview pyramid',
     'A system or package in one figure: size, complexity, coupling and inheritance metrics, ratios colored against thresholds.',
     pyramidWidgetDoc,
+  ),
+  insight: contract(
+    'insight',
+    'AI analysis',
+    'An AI analyst reading what the other widgets show: anomalies, correlations, questions to dig into.',
+    insightWidgetDoc,
+    {
+      inputs: [
+        { name: 'sources', shape: 'any', description: 'The data the other widgets of the view show (all of them by default).' },
+        { ...DATA_INPUT, description: 'Optional extra data to analyse, that no widget shows.' },
+      ],
+    },
   ),
   specPresenter: contract(
     'specPresenter',

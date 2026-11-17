@@ -1,1 +1,1 @@
-export { useEffectiveProvider, useLlmCapabilities, useLlmGenerate } from './useLlm';
+export { useEffectiveProvider, useLlmCapabilities, useLlmGenerate, useLlmInsightAnalyzer } from './useLlm';

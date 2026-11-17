@@ -1,6 +1,7 @@
 export * from './actionsContext';
 export * from './catalogContext';
 export * from './dataSources';
+export * from './insightContext';
 export * from './MissingWidget';
 export * from './outputs';
 export * from './outputsContext';

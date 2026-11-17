@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { mutationInfoSchema, viewSpecSchema, viewWidgetInfoSchema, widgetCatalogRequestSchema } from '@fluid/shared';
+import {
+  analyzeViewRequestSchema,
+  mutationInfoSchema,
+  viewSpecSchema,
+  viewWidgetInfoSchema,
+  widgetCatalogRequestSchema,
+} from '@fluid/shared';
 
 // Request body schemas for the views API. The view spec itself is validated
 // with the shared zod schema so the BFF stores canonical, valid specs.
@@ -128,3 +134,15 @@ export const generateWidgetBody = z.object({
     .optional(),
 });
 export type GenerateWidgetBody = z.infer<typeof generateWidgetBody>;
+
+// Insight widget: the data the view's widgets show, analysed by the LLM.
+export const analyzeViewBody = analyzeViewRequestSchema.extend({
+  config: z
+    .object({
+      provider: z.enum(['openai', 'ollama', 'claude-code', 'mock']).optional(),
+      model: z.string().optional(),
+      baseUrl: z.string().optional(),
+      apiKey: z.string().optional(),
+    })
+    .optional(),
+});

@@ -12,6 +12,7 @@ import { wall3dExample } from './widgets/model3dExample';
 import { overviewPyramidExample } from './widgets/pyramid';
 import { postBodyExample } from './widgets/richtext';
 import { characterFlowSankeyExample } from './widgets/sankey';
+import { characterInsightExample } from './widgets/insight';
 import { countryScatterExample } from './widgets/scatter';
 import { continentTreeExample } from './widgets/tree';
 
@@ -267,7 +268,7 @@ export const EXAMPLE_VIEWS: Record<string, ViewSpec[]> = {
   Country: [countryScatterExample],
   Method: [methodSourceExample, butterflyExample],
   Class: [classMethodsExample, classDiagramExample, boxesExample, blueprintExample, classDependencyMatrixExample],
-  Character: [characterEpisodesNetworkExample, characterFlowSankeyExample, characterEpisodesMatrixExample],
+  Character: [characterEpisodesNetworkExample, characterFlowSankeyExample, characterEpisodesMatrixExample, characterInsightExample],
   IfcWallStandardCase: [wall3dExample],
   Package: [overviewPyramidExample],
 };

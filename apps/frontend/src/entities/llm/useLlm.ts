@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { AnalyzeViewRequest } from '@fluid/shared';
 import {
   bffClient,
   type GenerateViewPayload,
@@ -10,6 +11,7 @@ import { toConfigOverrides } from '../../llm/conceptSchema';
 import { effectiveProvider } from '../../llm/effectiveProvider';
 import { useLlmSettings, type LlmProvider } from '../../store';
 import { currentCatalogRequest } from '../plugin';
+import { analyzeView } from './analyzeView';
 
 /** Request config with the provider resolved against the BFF default when the user has not picked one. */
 async function currentConfig() {
@@ -45,6 +47,14 @@ export function useLlmGenerate() {
     [],
   );
   return { generateView, generateWidget };
+}
+
+/** Analyses a view for the insight widget, with the user's provider settings (read per request). */
+export function useLlmInsightAnalyzer() {
+  return useCallback(
+    async (request: AnalyzeViewRequest, signal?: AbortSignal) => analyzeView(request, await currentConfig(), signal),
+    [],
+  );
 }
 
 /** What the BFF can generate with, fetched each time `active` turns true; null when unknown. */
