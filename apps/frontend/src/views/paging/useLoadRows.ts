@@ -5,7 +5,7 @@ type LoadRows = (kind: 'more' | 'all') => Promise<void>;
 
 /** Loading more or all rows of one query, with the "load all" confirmation when the source asks for it. */
 export function useLoadRows(load: LoadRows | undefined) {
-  const { confirmLoadAll, stopConfirmingLoadAll, offsetArg } = useRowPaging();
+  const { confirmLoadAll, stopConfirmingLoadAll } = useRowPaging();
   const [loading, setLoading] = useState<'more' | 'all' | null>(null);
   const [confirming, setConfirming] = useState(false);
 
@@ -34,7 +34,6 @@ export function useLoadRows(load: LoadRows | undefined) {
 
   return {
     loading,
-    paged: Boolean(offsetArg),
     loadMore: () => void run('more'),
     loadAll,
     dialog: { open: confirming, onConfirm: confirm, onCancel: () => setConfirming(false) },

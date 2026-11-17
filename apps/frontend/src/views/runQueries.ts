@@ -30,12 +30,18 @@ export function queryRunner(client: Client, sources: ReadonlyMap<string, DataSou
   };
 }
 
-/** Runs the given named queries, their first rows for the paged ones, and gathers the results (the last error wins). */
-export async function runQueries(run: Runner, entries: [string, QuerySpec][], paging: RowPaging): Promise<Settled> {
+/** Runs the given named queries, the first rows (or `atLeast`) of the paged ones, and gathers the results (the last error wins). */
+export async function runQueries(
+  run: Runner,
+  entries: [string, QuerySpec][],
+  paging: RowPaging,
+  /** Query key -> rows loaded before (a refetch loads as many again). */
+  atLeast: Record<string, number> = {},
+): Promise<Settled> {
   const settled = await Promise.all(
     entries.map(([key, q]) => {
       // A data source of a plugin is not a GraphQL list to page.
-      const answer: Promise<PagedAnswer> = q.source ? run(q) : fetchRows(run, q, paging);
+      const answer: Promise<PagedAnswer> = q.source ? run(q) : fetchRows(run, q, paging, { kind: 'first', atLeast: atLeast[key] });
       return answer.then((res) => ({ key, res }));
     }),
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { effectiveSettings, providerLimits, updateSettings } from './settings';
+import { effectiveSettings, parseSavedSettings, providerLimits, updateSettings } from './settings';
 
 const MOOSE = 'http://localhost:8080/graphql';
 const groups = [
@@ -30,5 +30,17 @@ describe('source settings', () => {
     expect(updateSettings({ rowLimit: 300 }, { rowLimit: undefined })).toEqual({});
     expect(updateSettings({ rowLimit: 300 }, { maxPerRequest: 0 })).toEqual({ rowLimit: 300 });
     expect(updateSettings(undefined, { rowLimit: 2.5, confirmLoadAll: false })).toEqual({ confirmLoadAll: false });
+  });
+
+  it('drops saved settings that are not valid', () => {
+    expect(
+      parseSavedSettings({
+        [MOOSE]: { rowLimit: 300, confirmLoadAll: false },
+        'http://bad/graphql': { rowLimit: '300' },
+        'http://zero/graphql': { maxPerRequest: 0 },
+      }),
+    ).toEqual({ [MOOSE]: { rowLimit: 300, confirmLoadAll: false } });
+    expect(parseSavedSettings(undefined)).toEqual({});
+    expect(parseSavedSettings([1])).toEqual({});
   });
 });

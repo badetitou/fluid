@@ -4,6 +4,7 @@ export {
   PLUGIN_KINDS,
   pluginKind,
   pluginManifestSchema,
+  sourceLimitsSchema,
   type PluginKind,
   type PluginManifest,
   type PageActionContract,

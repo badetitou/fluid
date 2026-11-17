@@ -25,6 +25,10 @@ export interface RowsState {
   truncated: boolean;
   /** Rows to ask for a "load more". */
   step: number;
+  /** More rows are read page by page with the offset argument (else with one bigger take). */
+  paged: boolean;
+  /** fluid can ask more rows: cut, and the source can still answer more (offset, or under its cap). */
+  more: boolean;
 }
 
 /** Largest GraphQL `Int`: "every row" for a source that cannot page. */
@@ -159,3 +163,10 @@ function appendAt(value: unknown, next: unknown, path: string[]): unknown {
 /** Two pages of one answer put together: the paged lists are concatenated, the rest kept from the first page. */
 export const mergePages = (first: unknown, next: unknown, paths: string[][]): unknown =>
   paths.reduce((acc, path) => appendAt(acc, next, path), first);
+
+/** Query key -> the first widget reading it: the one showing that query's rows banner. */
+export function bannerOwners(widgets: readonly { id: string; data?: { query: string } }[]): Record<string, string> {
+  const owners: Record<string, string> = {};
+  for (const w of widgets) if (w.data && !(w.data.query in owners)) owners[w.data.query] = w.id;
+  return owners;
+}

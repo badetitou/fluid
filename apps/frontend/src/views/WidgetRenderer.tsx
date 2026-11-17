@@ -35,7 +35,9 @@ export const WidgetBody = memo(function WidgetBody({ widget, view, fitHeight }: 
     [view.results, outputs],
   );
   const key = widget.data?.query;
-  const rows = key ? view.rows?.[key] : undefined;
+  const owner = key ? view.rowsOwner?.[key] : undefined;
+  // One banner per query: on the first widget reading it.
+  const rows = key && (!owner || owner === widget.id) ? view.rows?.[key] : undefined;
   const loadRows = view.loadRows;
   const load = useMemo(() => (key && loadRows ? (kind: 'more' | 'all') => loadRows(key, kind) : undefined), [key, loadRows]);
   if (!definition) return <MissingWidget type={widget.type} />;

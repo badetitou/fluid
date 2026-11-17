@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { forgetSource, rememberSource, renameSource, type SavedSource } from './model';
-import { updateSettings, type SourceSettings } from './settings';
+import { parseSavedSettings, updateSettings, type SourceSettings } from './settings';
 
 interface SavedSourcesState {
   /** The sources the user connected to or added, in order, with their names. */
@@ -38,6 +38,13 @@ export const useSourceSettingsStore = create<SourceSettingsState>()(
       byUrl: {},
       update: (url, change) => set({ byUrl: { ...get().byUrl, [url]: updateSettings(get().byUrl[url], change) } }),
     }),
-    { name: 'fluid-source-settings' },
+    {
+      name: 'fluid-source-settings',
+      // Read back from the browser: checked like any incoming data.
+      merge: (saved, current) => ({
+        ...current,
+        byUrl: parseSavedSettings((saved as { byUrl?: unknown } | undefined)?.byUrl),
+      }),
+    },
   ),
 );

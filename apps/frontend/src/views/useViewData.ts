@@ -4,7 +4,7 @@ import type { ViewSpec } from '@fluid/shared';
 import { useDataSources } from './plugin-api/dataSources';
 import { useRowPaging } from './plugin-api/rowPaging';
 import { fetchRows } from './paging/fetchRows';
-import type { RowPaging, RowsState } from './paging/model';
+import { bannerOwners, type RowPaging, type RowsState } from './paging/model';
 import { queryRunner, runQueries } from './runQueries';
 
 export interface ViewData {
@@ -19,6 +19,8 @@ export interface ViewData {
   error?: Error;
   /** Query key -> what is loaded of its rows, for the queries paged with `$take`. */
   rows?: Record<string, RowsState>;
+  /** Query key -> the widget showing its rows banner (the first one reading it). */
+  rowsOwner?: Record<string, string>;
   /** Loads more rows, or all of them, of a paged query (see `rows`). */
   loadRows?: (key: string, kind: 'more' | 'all') => Promise<void>;
 }
@@ -44,11 +46,14 @@ export function useViewData(spec: ViewSpec): ViewData & ViewDataControls {
   const [state, setState] = useState<ViewData>({ results: {}, fetching: true });
   const latest = useRef(state);
   latest.current = state;
+  // Bumped on every load of the view: a "load more" started before is then dropped.
+  const generation = useRef(0);
 
   const queriesKey = useMemo(() => JSON.stringify(spec.queries), [spec.queries]);
 
   useEffect(() => {
     let cancelled = false;
+    generation.current += 1;
     // Once loaded, keep the results on screen while the new ones arrive.
     setState((s) => (s.fetching ? s : { ...s, refreshing: true }));
 
@@ -76,7 +81,8 @@ export function useViewData(spec: ViewSpec): ViewData & ViewDataControls {
     async (keys) => {
       const entries = Object.entries(spec.queries).filter(([key]) => keys.includes(key));
       if (entries.length === 0) return;
-      const { results, rows, error } = await runQueries(queryRunner(client, sources, 'network-only'), entries, paging);
+      const loaded = Object.fromEntries(Object.entries(latest.current.rows ?? {}).map(([key, r]) => [key, r.loaded]));
+      const { results, rows, error } = await runQueries(queryRunner(client, sources, 'network-only'), entries, paging, loaded);
       setState((s) => ({ ...s, results: { ...s.results, ...results }, rows: { ...s.rows, ...rows }, error: error ?? s.error }));
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -89,7 +95,9 @@ export function useViewData(spec: ViewSpec): ViewData & ViewDataControls {
       const rows = latest.current.rows?.[key];
       if (!q || !rows) return;
       const request = { kind, data: latest.current.results[key], rows };
+      const started = generation.current;
       const res = await fetchRows(queryRunner(client, sources), q, paging, request);
+      if (generation.current !== started) return;
       setState((s) => ({
         ...s,
         results: res.data === undefined ? s.results : { ...s.results, [key]: res.data },
@@ -101,6 +109,8 @@ export function useViewData(spec: ViewSpec): ViewData & ViewDataControls {
     [client, sources, queriesKey, paging],
   );
 
+  const rowsOwner = useMemo(() => bannerOwners(spec.widgets), [spec.widgets]);
+
   // Stable between renders while nothing changed: widget cards are memoised on it.
-  return useMemo(() => ({ ...state, loadRows, patch, refetch }), [state, loadRows, patch, refetch]);
+  return useMemo(() => ({ ...state, rowsOwner, loadRows, patch, refetch }), [state, rowsOwner, loadRows, patch, refetch]);
 }

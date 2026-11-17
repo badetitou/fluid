@@ -1,4 +1,5 @@
-import type { SourceGroup, SourceLimits } from '../plugin';
+import { z } from 'zod';
+import { sourceLimitsSchema, type SourceGroup, type SourceLimits } from '../plugin';
 
 /** What the user set for one source; unset values fall back to the provider's, then to the views'. */
 export interface SourceSettings extends SourceLimits {
@@ -38,4 +39,17 @@ export function updateSettings(own: SourceSettings | undefined, change: Partial<
   }
   if (next.confirmLoadAll === undefined) delete next.confirmLoadAll;
   return next;
+}
+
+const savedSettingsSchema = sourceLimitsSchema.extend({ confirmLoadAll: z.boolean().optional() });
+
+/** The saved settings read back from the browser, each source checked: an invalid one is dropped. */
+export function parseSavedSettings(value: unknown): Record<string, SourceSettings> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {};
+  const byUrl: Record<string, SourceSettings> = {};
+  for (const [url, settings] of Object.entries(value)) {
+    const parsed = savedSettingsSchema.safeParse(settings);
+    if (parsed.success) byUrl[url] = parsed.data;
+  }
+  return byUrl;
 }
