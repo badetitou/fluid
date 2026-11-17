@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import {
   analyzeViewRequestSchema,
+  chatItemSchema,
+  chatScopeSchema,
+  chatViewContextSchema,
   INSIGHT_MAX_REQUEST_CHARS,
   mutationInfoSchema,
   viewSpecSchema,
@@ -131,6 +134,15 @@ export const generateWidgetBody = z.object({
   config: llmConfigBody,
 });
 export type GenerateWidgetBody = z.infer<typeof generateWidgetBody>;
+
+// Chat request: everything a view generation has, with the chat scope
+// ("graph" | "view") instead of the list/detail one.
+export const chatBody = generateViewBody.omit({ scope: true }).extend({
+  scope: chatScopeSchema,
+  view: chatViewContextSchema.optional(),
+  item: chatItemSchema.optional(),
+});
+export type ChatBody = z.infer<typeof chatBody>;
 
 // Insight widget: the data the view's widgets show, analysed by the LLM.
 export const analyzeViewBody = analyzeViewRequestSchema

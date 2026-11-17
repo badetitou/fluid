@@ -10,8 +10,8 @@ export class LlmError extends Error {
 export class LlmValidationError extends Error {
   errorText: string;
   raw: string;
-  constructor(errorText: string, raw: string) {
-    super('LLM produced an invalid view draft');
+  constructor(errorText: string, raw: string, message = 'LLM produced an invalid view draft') {
+    super(message);
     this.name = 'LlmValidationError';
     this.errorText = errorText;
     this.raw = raw;
