@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import type { ViewSpec } from '@fluid/shared';
 import type { ColumnKind } from '../../views/viewScope';
 import type { PageActionContract } from './manifest';
 import { isEnabled, pageActionsOf, settingsOf } from './model';
@@ -12,6 +13,8 @@ export interface PageActionColumn {
   itemId?: string;
   /** The column's path (`/d/…`): links append to it, opening the next column. */
   path: string;
+  /** The view the column shows now (the shown perspective), when it has one. */
+  view?: ViewSpec;
 }
 
 /** What a page action knows when it is offered and run. */

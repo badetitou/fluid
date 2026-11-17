@@ -12,7 +12,7 @@ import { useLlmSettings, type LlmProvider } from '../../store';
 import { currentCatalogRequest } from '../plugin';
 
 /** Request config with the provider resolved against the BFF default when the user has not picked one. */
-async function currentConfig() {
+export async function currentConfig() {
   const settings = useLlmSettings.getState();
   const caps = settings.providerChosen ? null : await bffClient.getLlmConfig().catch(() => null);
   return toConfigOverrides({ ...settings, provider: effectiveProvider(settings, caps?.defaultProvider) });

@@ -193,7 +193,7 @@ async function generateViewStream(
   throw new Error('The generation stream ended without a result');
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = init?.body ? { 'content-type': 'application/json' } : undefined;
   const res = await fetch(`${BASE}${path}`, {
     ...init,

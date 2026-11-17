@@ -3,6 +3,7 @@ import { BADETITOU_THEME, type ThemeDefinition } from '../../shared/theme';
 import { builtinRenderer } from '../../views/widgets/catalog';
 import { autoViewBuilder } from './builders/autoViews';
 import { curatedViewBuilder } from './builders/curatedViews';
+import { chatAction } from './actions/chat';
 import { fireworksAction } from './actions/fireworks';
 import { ENDPOINT_SETTING, pharoScriptAction, specFluidViewBuilder } from './builders/specFluid';
 import { HIGH_CONTRAST_THEME, SOLARIZED_THEME } from './builtinThemes';
@@ -154,6 +155,10 @@ const pageActionPlugins: PageActionPlugin[] = [
   pageActionPlugin(
     { id: 'fluid-fireworks', name: 'Fireworks', description: 'An easter egg: fireworks over the page, from the floating button of any column.' },
     [fireworksAction],
+  ),
+  pageActionPlugin(
+    { id: 'fluid-chat', name: 'Chat', description: 'A chat with the LLM about the connected graph or the view of any column; it can answer with widgets.' },
+    [chatAction],
   ),
 ];
 
