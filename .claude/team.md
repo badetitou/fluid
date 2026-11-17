@@ -30,7 +30,7 @@ Project agent prompts are in French. General UI work and browser verification st
 
 ## Skills
 
-- badetitou-team: `task-prep`, `gitlab-flow`, `review-team`, `team-retro`
+- badetitou-team: `task-prep`, `github-flow`, `review-team`, `team-retro`
 - other: `run` / built-in browser preview (`.claude/launch.json`: `dev`, `frontend`, `bff`)
 
 ## MCP servers
@@ -39,13 +39,11 @@ Project agent prompts are in French. General UI work and browser verification st
 | --- | --- | --- |
 | pharo | `.mcp.json`, http://127.0.0.1:4000 | the Moose/Pharo image behind the demo GraphQL API (`localhost:8080`) |
 
-## GitLab
+## GitHub
 
-- Repo: gitlab.com/badetitou/fluid — CLI `glab` (`-R badetitou/fluid`).
-- Board: Development (id `11711833`) — no lists or labels yet: status = issue open/closed + MR state.
-- Milestones: none.
-- Flow: one task → one GitLab issue (English) → one minimal MR. CI: `.gitlab-ci.yml` (frontend typecheck + tests, Pages deploy).
-- Subagents may merge (`glab mr merge` is allowlisted); push/MR/merge runs on haiku, not the session model.
+- Repo: github.com/badetitou/fluid — CLI `gh` (`-R badetitou/fluid`). Issues restart from scratch (the GitLab ones are not migrated).
+- Flow: one task → one GitHub issue (English) → one minimal PR.
+- CI: `.github/workflows/ci.yml` (typecheck + tests, CLI tarball smoke, ghcr.io images, npm publish on `vX.Y.Z`), `pages.yml` (frontend on GitHub Pages).
 
 ## Notes from retros
 

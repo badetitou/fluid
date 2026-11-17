@@ -46,4 +46,4 @@ on `127.0.0.1` by default. Use `--host 0.0.0.0` only on networks you trust.
 
 macOS and Linux are tested. Windows is untested.
 
-Source: https://gitlab.com/badetitou/fluid (MIT).
+Source: https://github.com/badetitou/fluid (MIT).

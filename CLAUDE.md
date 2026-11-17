@@ -48,7 +48,8 @@ Quand tu changes un seuil ici, change-le aussi dans `scripts/arch-metrics.mjs`.
 ## Workflow
 
 - Équipe, agents et historique des rétros : `.claude/team.md`. Explorer avec l'agent `scout`.
-- Dépôt sur **GitLab** (`badetitou/fluid`) : `glab`, pas `gh`. Une tâche → une issue → une MR minimale.
-- Issues et MR en anglais, sans attribution Claude.
+- Dépôt sur **GitHub** (`badetitou/fluid`) : `gh`. Une tâche → une issue → une PR minimale.
+- Issues et PR en anglais, sans attribution Claude.
+- CI : `.github/workflows/ci.yml` (checks, tarball CLI, images ghcr.io, publication npm sur tag `vX.Y.Z`) et `pages.yml`.
 - Avant de merger des branches de tâche : skill `review-team` (checks : `pnpm -r typecheck`, `pnpm test`).
 - Ne pas committer les changements de port dans `.claude/launch.json`.

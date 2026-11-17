@@ -268,7 +268,7 @@ components. See [`REARCHITECTURE.md`](docs/architecture/REARCHITECTURE.md) and t
 The quickest way to host fluid is the all-in-one image, the same app as `npx @badetitou/fluid`:
 
 ```bash
-docker run -p 127.0.0.1:4001:4001 -v fluid-data:/data registry.gitlab.com/badetitou/fluid:latest
+docker run -p 127.0.0.1:4001:4001 -v fluid-data:/data ghcr.io/badetitou/fluid:latest
 # or: docker compose -f deploy/docker-compose.yml up -d
 ```
 
@@ -280,14 +280,14 @@ runs the frontend, the BFF and PostgreSQL and migrates the database.
 
 ### Images
 
-GitLab CI builds and pushes three images to the GitLab registry, tagged with the short commit sha,
+GitHub Actions builds and pushes three images to GitHub Container Registry, tagged with the short commit sha,
 `latest` (on `main`) and the release version (on `vX.Y.Z` tags):
 
 | Image | Dockerfile | Use |
 | --- | --- | --- |
-| `registry.gitlab.com/badetitou/fluid` | [`Dockerfile`](Dockerfile) | All in one (frontend + API + PGlite) |
-| `registry.gitlab.com/badetitou/fluid/fluid-bff` | [`apps/bff/Dockerfile`](apps/bff/Dockerfile) | Helm chart: BFF |
-| `registry.gitlab.com/badetitou/fluid/fluid-frontend` | [`apps/frontend/Dockerfile`](apps/frontend/Dockerfile) | Helm chart: nginx frontend, proxies `/api` to the BFF |
+| `ghcr.io/badetitou/fluid` | [`Dockerfile`](Dockerfile) | All in one (frontend + API + PGlite) |
+| `ghcr.io/badetitou/fluid/fluid-bff` | [`apps/bff/Dockerfile`](apps/bff/Dockerfile) | Helm chart: BFF |
+| `ghcr.io/badetitou/fluid/fluid-frontend` | [`apps/frontend/Dockerfile`](apps/frontend/Dockerfile) | Helm chart: nginx frontend, proxies `/api` to the BFF |
 
 Build them locally from the repository root:
 
@@ -301,7 +301,7 @@ docker build -f apps/frontend/Dockerfile -t fluid-frontend:dev .
 
 Push a tag `vX.Y.Z` on `main`. CI runs the checks, builds and smoke-tests the npm tarball with that
 version, pushes the images, and publishes `@badetitou/fluid` to npm through
-[Trusted Publishing](https://docs.npmjs.com/trusted-publishers) (no npm token in GitLab).
+[Trusted Publishing](https://docs.npmjs.com/trusted-publishers) (no npm token in GitHub).
 
 ### Local cluster (kind / minikube)
 
@@ -318,7 +318,7 @@ An init container runs `prisma migrate deploy` before the BFF starts.
 
 ### Cloud
 
-`charts/fluid/values-cloud.yaml` pulls images from the GitLab registry and enables an ingress with
+`charts/fluid/values-cloud.yaml` pulls images from GitHub Container Registry and enables an ingress with
 TLS via cert-manager:
 
 ```bash
@@ -330,23 +330,23 @@ Browser-facing URLs are set at container start (`FLUID_BFF_URL`, `FLUID_DEFAULT_
 `/config.js`), so one frontend image works for any deployment.
 
 <details>
-<summary><b>GitLab Pages (frontend only)</b></summary>
+<summary><b>GitHub Pages (frontend only)</b></summary>
 
-`.gitlab-ci.yml` builds the frontend as a static site and publishes it on GitLab Pages on every push
-to the default branch, at **<https://fluid.badetitou.fr>**. The site is built for the domain root
-(`PAGES_BASE_PATH: '/'` in the `pages` job); remove that variable to derive the base path from
-`CI_PAGES_URL` instead (e.g. `/<project>/` on `https://<namespace>.gitlab.io/<project>/`).
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml) builds the frontend as a static site
+and publishes it on GitHub Pages on every push to `main`, at **<https://fluid.badetitou.fr>**. The
+site is built for the domain root; set the repository variable `PAGES_BASE_PATH` to `/fluid/` to
+serve it from `https://badetitou.github.io/fluid/` instead.
 
-Custom domain setup: *Deploy → Pages → New domain* → `fluid.badetitou.fr`, enable automatic
-Let's Encrypt certificates, then add at the DNS provider:
+Setup: *Settings → Pages* → Source **GitHub Actions**, custom domain `fluid.badetitou.fr`, enforce
+HTTPS, then add at the DNS provider:
 
-- `fluid.badetitou.fr. CNAME <namespace>.gitlab.io.`
-- `_gitlab-pages-verification-code.fluid.badetitou.fr. TXT "gitlab-pages-verification-code=…"`
-  (value shown by GitLab)
+- `fluid.badetitou.fr. CNAME badetitou.github.io.`
+- optionally, verify the domain in the account's *Settings → Pages* (TXT record shown by GitHub)
 
 Without a BFF the app still runs: views fall back to curated and automatic views, and preferences to
 `localStorage`. Saving views and LLM generation need a BFF reachable from the browser. Configure it
-with CI/CD variables (written to `config.js` at build time):
+with repository variables (*Settings → Secrets and variables → Actions → Variables*, written to
+`config.js` at build time):
 
 - `FLUID_BFF_URL`: BFF base URL (leave empty for no BFF; the BFF must allow CORS from the Pages origin).
 - `FLUID_DEFAULT_GRAPHQL_URL`: GraphQL URL pre-filled on the connect screen (HTTPS, CORS allowed from
@@ -356,7 +356,7 @@ with CI/CD variables (written to `config.js` at build time):
 
 ## 🤝 Contributing
 
-Issues and merge requests are welcome on [GitLab](https://gitlab.com/badetitou/fluid). Keep merge
+Issues and pull requests are welcome on [GitHub](https://github.com/badetitou/fluid). Keep pull
 requests small, run `pnpm -r typecheck` and `pnpm test` before pushing, and follow the architecture
 rules summarized in [`CLAUDE.md`](CLAUDE.md).
 

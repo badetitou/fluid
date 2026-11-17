@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   // Public base path. '/' by default; set VITE_BASE (e.g. '/fluid/') when the
-  // bundle is served from a sub-path such as GitLab Pages project sites.
+  // bundle is served from a sub-path such as GitHub Pages project sites.
   base: process.env.VITE_BASE || '/',
   plugins: [react()],
   server: {

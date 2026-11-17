@@ -5,7 +5,7 @@
 # Same app as `npx @badetitou/fluid`. Pin a released version instead of `latest` in production.
 services:
   fluid:
-    image: ${FLUID_IMAGE:-registry.gitlab.com/badetitou/fluid:latest}
+    image: ${FLUID_IMAGE:-ghcr.io/badetitou/fluid:latest}
     restart: unless-stopped
     ports:
       # Only this machine can reach it: the API has no authentication.

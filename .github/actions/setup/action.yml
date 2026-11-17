@@ -1,0 +1,29 @@
+name: Setup pnpm workspace
+description: Node 22 + pnpm (version from package.json) + cached install of every workspace.
+
+inputs:
+  filter:
+    description: pnpm --filter for a partial install (empty = whole workspace).
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: pnpm
+    - name: Install dependencies
+      shell: bash
+      env:
+        FILTER: ${{ inputs.filter }}
+      run: |
+        if [ -n "$FILTER" ]; then
+          # Only the given workspaces and their workspace deps.
+          pnpm install --frozen-lockfile --filter "$FILTER"
+        else
+          # Prisma and esbuild run install scripts.
+          pnpm install --frozen-lockfile --config.dangerously-allow-all-builds=true
+        fi
