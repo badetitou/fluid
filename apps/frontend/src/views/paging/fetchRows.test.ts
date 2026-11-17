@@ -1,0 +1,135 @@
+import { describe, expect, it, vi } from 'vitest';
+import type { QuerySpec } from '@fluid/shared';
+import { fetchRows, type Runner } from './fetchRows';
+import { ALL_ROWS } from './model';
+
+const QUERY = 'query L($take: Int) { methods(take: $take) { name } }';
+const q: QuerySpec = { query: QUERY, variables: { take: 100 } };
+
+/** A source of `total` rows, answering at most `max` per request, with `skip` when `offset`. */
+function source(total: number, max: number, offset = true) {
+  const run = vi.fn<Runner>(async (spec) => {
+    const vars = (spec.variables ?? { take: total }) as { take: number; fluidSkip?: number };
+    const skip = offset ? (vars.fluidSkip ?? 0) : 0;
+    const n = Math.max(0, Math.min(vars.take, max, total - skip));
+    return { data: { methods: Array.from({ length: n }, (_, i) => ({ name: `m${skip + i}` })) } };
+  });
+  return run;
+}
+
+describe('fetchRows', () => {
+  it('runs queries without $take as they are', async () => {
+    const run = source(10, 10);
+    const plain = { query: '{ methods { name } }' };
+    await fetchRows(run, plain, {});
+    expect(run).toHaveBeenCalledWith(plain);
+  });
+
+  it('asks the row limit and tells when the answer may be cut', async () => {
+    const run = source(5000, 1000);
+    const res = await fetchRows(run, q, { rowLimit: 500 });
+    expect(run.mock.calls[0][0].variables).toEqual({ take: 500 });
+    expect(res.rows).toEqual({ loaded: 500, truncated: true, step: 500, paged: false, more: true });
+  });
+
+  it('is not cut when the source has fewer rows', async () => {
+    const res = await fetchRows(source(42, 1000), q, {});
+    expect(res.rows).toEqual({ loaded: 42, truncated: false, step: 100, paged: false, more: false });
+  });
+
+  it('pages up to the row limit when it is above what the source answers per request', async () => {
+    const run = source(5000, 1000);
+    const res = await fetchRows(run, q, { rowLimit: 2500, maxPerRequest: 1000, offsetArg: 'skip' });
+    expect(run.mock.calls.map((c) => c[0].variables)).toEqual([
+      { take: 1000, fluidSkip: 0 },
+      { take: 1000, fluidSkip: 1000 },
+      { take: 500, fluidSkip: 2000 },
+    ]);
+    expect(res.rows).toMatchObject({ loaded: 2500, truncated: true });
+    const names = (res.data as { methods: { name: string }[] }).methods.map((m) => m.name);
+    expect(new Set(names).size).toBe(2500);
+  });
+
+  it('loads more after the rows already there, with the offset argument', async () => {
+    const run = source(150, 1000);
+    const first = await fetchRows(run, q, { offsetArg: 'skip' });
+    const more = await fetchRows(run, q, { offsetArg: 'skip' }, { kind: 'more', data: first.data, rows: first.rows! });
+    expect(run.mock.calls[1][0].variables).toEqual({ take: 100, fluidSkip: 100 });
+    expect(run.mock.calls[1][0].query).toContain('skip: $fluidSkip');
+    expect(more.rows).toEqual({ loaded: 150, truncated: false, step: 100, paged: true, more: false });
+    expect((more.data as { methods: { name: string }[] }).methods[149].name).toBe('m149');
+  });
+
+  it('loads all page by page until a short page', async () => {
+    const run = source(2300, 1000);
+    const first = await fetchRows(run, q, { maxPerRequest: 1000, offsetArg: 'skip' });
+    const all = await fetchRows(run, q, { maxPerRequest: 1000, offsetArg: 'skip' }, { kind: 'all', data: first.data, rows: first.rows! });
+    expect(all.rows).toMatchObject({ loaded: 2300, truncated: false });
+  });
+
+  it('without an offset argument, asks at most the source cap, then has nothing more to load', async () => {
+    const run = source(5000, 1000, false);
+    const first = await fetchRows(run, q, { maxPerRequest: 1000 });
+    const all = await fetchRows(run, q, { maxPerRequest: 1000 }, { kind: 'all', data: first.data, rows: first.rows! });
+    expect(run.mock.calls[1][0].variables).toEqual({ take: 1000 });
+    expect(all.rows).toEqual({ loaded: 1000, truncated: true, step: 100, paged: false, more: false });
+  });
+
+  it('without an offset argument nor a known cap, asks every row at once', async () => {
+    const run = source(5000, 1000, false);
+    const first = await fetchRows(run, q, {});
+    const all = await fetchRows(run, q, {}, { kind: 'all', data: first.data, rows: first.rows! });
+    expect(run.mock.calls[1][0].variables).toEqual({ take: ALL_ROWS });
+    // Fewer rows than asked: fluid cannot tell a cap from the end of the list.
+    expect(all.rows).toMatchObject({ loaded: 1000, truncated: false, more: false });
+  });
+
+  it('stops offering more when a bigger take brought nothing new', async () => {
+    const run = vi.fn<Runner>(async () => ({ data: { methods: Array.from({ length: 100 }, (_, i) => ({ name: `m${i}` })) } }));
+    const first = await fetchRows(run, q, {});
+    const more = await fetchRows(run, q, {}, { kind: 'more', data: first.data, rows: { ...first.rows!, truncated: true } });
+    expect(more.rows).toMatchObject({ loaded: 100, more: false });
+  });
+
+  it('on a refetch, loads again as many rows as were there', async () => {
+    const run = source(5000, 1000);
+    const res = await fetchRows(run, q, { maxPerRequest: 1000, offsetArg: 'skip' }, { kind: 'first', atLeast: 1500 });
+    expect(run.mock.calls.map((c) => c[0].variables)).toEqual([
+      { take: 1000, fluidSkip: 0 },
+      { take: 500, fluidSkip: 1000 },
+    ]);
+    expect(res.rows).toMatchObject({ loaded: 1500, paged: true, more: true });
+  });
+
+  it('asks a bigger take when the paged field refuses the offset argument', async () => {
+    const plain = source(5000, 1000, false);
+    const run = vi.fn<Runner>(async (spec) =>
+      spec.query.includes('fluidSkip') ? { error: new Error('Unknown argument "skip"') } : plain(spec),
+    );
+    const first = await fetchRows(run, q, { offsetArg: 'skip' });
+    const more = await fetchRows(run, q, { offsetArg: 'skip' }, { kind: 'more', data: first.data, rows: first.rows! });
+    expect(run.mock.calls.at(-1)![0].variables).toEqual({ take: 200 });
+    expect(more.error).toBeUndefined();
+    expect(more.rows).toMatchObject({ loaded: 200, truncated: true, paged: false });
+  });
+
+  it('keeps the rows already there when a load more fails', async () => {
+    const ok = source(5000, 1000, false);
+    const first = await fetchRows(ok, q, {});
+    const failing = vi.fn<Runner>(async () => ({ error: new Error('network') }));
+    const more = await fetchRows(failing, q, {}, { kind: 'more', data: first.data, rows: first.rows! });
+    expect(more.error?.message).toBe('network');
+    expect(more.data).toBe(first.data);
+    expect(more.rows).toEqual(first.rows);
+  });
+
+  it('keeps the pages read when a later page fails', async () => {
+    const ok = source(5000, 1000);
+    const run = vi.fn<Runner>(async (spec) =>
+      (spec.variables as { fluidSkip?: number }).fluidSkip === 2000 ? { error: new Error('timeout') } : ok(spec),
+    );
+    const all = await fetchRows(run, q, { maxPerRequest: 1000, offsetArg: 'skip' }, { kind: 'all', data: undefined, rows: { loaded: 0, truncated: true, step: 100 } });
+    expect(all.error?.message).toBe('timeout');
+    expect(all.rows).toMatchObject({ loaded: 2000, truncated: false });
+  });
+});

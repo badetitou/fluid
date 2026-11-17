@@ -4,6 +4,7 @@ import {
   buildRootQueries,
   buildWrapperTypesQuery,
   findWrapperCandidates,
+  sourceOffsetArg,
   type IntrospectionType,
 } from './introspection';
 
@@ -46,6 +47,21 @@ describe('buildWrapperTypesQuery', () => {
     expect(q).toContain('t0: __type(name: "Characters")');
     expect(q).toContain('t1: __type(name: "Episodes")');
     expect(buildWrapperTypesQuery([])).toBeNull();
+  });
+});
+
+describe('sourceOffsetArg', () => {
+  it('finds the offset argument of the lists that have a row limit', () => {
+    const paged: IntrospectionType = {
+      ...queryType,
+      fields: [
+        { name: 'methods', description: null, args: [{ name: 'take', type: INT }, { name: 'skip', type: INT }], type: { kind: 'LIST', name: null, ofType: { kind: 'OBJECT', name: 'Method' } } },
+      ],
+    };
+    const { queriesByType } = buildRootQueries(paged);
+    expect(queriesByType.get('Method')).toEqual({ list: { field: 'methods', limitArg: 'take', offsetArg: 'skip' } });
+    expect(sourceOffsetArg(queriesByType)).toBe('skip');
+    expect(sourceOffsetArg(buildRootQueries(queryType).queriesByType)).toBeUndefined();
   });
 });
 

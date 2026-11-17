@@ -1,6 +1,8 @@
+import { Flex } from 'antd';
 import { InstallPluginForm, PluginKindSection } from '../../features/plugin-manager';
 import { ConnectionCard } from './ConnectionCard';
 import { InterfaceCard } from './InterfaceCard';
+import { ListRowsCard } from './ListRowsCard';
 import { LlmCard } from './LlmCard';
 import type { SettingsSection } from './sections';
 
@@ -9,7 +11,12 @@ export function SettingsSectionView({ section }: { section: SettingsSection }) {
   if ('kind' in section) return <PluginKindSection kind={section.kind} />;
   switch (section.id) {
     case 'connection':
-      return <ConnectionCard />;
+      return (
+        <Flex vertical gap={16}>
+          <ConnectionCard />
+          <ListRowsCard />
+        </Flex>
+      );
     case 'interface':
       return <InterfaceCard />;
     case 'add-plugin':

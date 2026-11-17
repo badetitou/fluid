@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Provider as UrqlProvider } from 'urql';
 import { Skeleton } from 'antd';
 import { AppLayout } from './app/layout/AppLayout';
+import { RowPagingProvider } from './app/RowPagingProvider';
 import { useLlmInsightAnalyzer } from './entities/llm';
 import { useSourceWrites } from './entities/preferences/useSourceWrites';
 import { createGraphQLClient } from './graphql/client';
@@ -32,7 +33,9 @@ export function App() {
             <UrqlProvider value={client}>
               <WriteAccessContext.Provider value={writable}>
                 <InsightAnalyzerContext.Provider value={analyzeView}>
-                  <AppLayout />
+                  <RowPagingProvider>
+                    <AppLayout />
+                  </RowPagingProvider>
                 </InsightAnalyzerContext.Provider>
               </WriteAccessContext.Provider>
             </UrqlProvider>

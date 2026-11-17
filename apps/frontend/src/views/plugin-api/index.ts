@@ -8,3 +8,4 @@ export * from './outputsContext';
 export * from './types';
 export * from './viewContext';
 export * from './widgetTheme';
+export * from './rowPaging';
