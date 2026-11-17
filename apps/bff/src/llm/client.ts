@@ -39,10 +39,16 @@ export function extractReasoning(text: string): { reasoning: string[]; content: 
 /**
  * Minimal client for the OpenAI-compatible Chat Completions API. Works for both
  * OpenAI (api.openai.com) and Ollama (localhost:11434/v1) since both expose the
- * same `/chat/completions` shape with a JSON response mode.
+ * same `/chat/completions` shape with a JSON response mode. `timeoutMs` bounds
+ * the whole call (no bound by default).
  */
-export async function chatCompletion(config: LlmConfig, messages: ChatMessage[]): Promise<string> {
+export async function chatCompletion(
+  config: LlmConfig,
+  messages: ChatMessage[],
+  { timeoutMs }: { timeoutMs?: number } = {},
+): Promise<string> {
   const url = `${config.baseUrl.replace(/\/$/, '')}/chat/completions`;
+  const signal = timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined;
 
   let res: Response;
   try {
@@ -58,8 +64,10 @@ export async function chatCompletion(config: LlmConfig, messages: ChatMessage[])
         temperature: 0.2,
         response_format: { type: 'json_object' },
       }),
+      signal,
     });
   } catch (err) {
+    if (signal?.aborted) throw new LlmError(`The LLM at ${url} did not answer within ${timeoutMs! / 1000}s`);
     throw new LlmError(`Could not reach the LLM at ${url}: ${(err as Error).message}`);
   }
 

@@ -1,4 +1,4 @@
-import type { MutationInfo, ViewSpec, ViewSpecDraft, ViewWidgetInfo, Widget, WidgetCatalogRequest, WidgetDraft } from '@fluid/shared';
+import type { AnalyzeViewRequest, InsightAnalysis, MutationInfo, ViewSpec, ViewSpecDraft, ViewWidgetInfo, Widget, WidgetCatalogRequest, WidgetDraft } from '@fluid/shared';
 
 export type LlmProvider = 'openai' | 'ollama' | 'claude-code' | 'mock';
 
@@ -153,4 +153,14 @@ export interface GenerateWidgetResult {
   provider: LlmProvider;
   model: string;
   reasoning?: string[];
+}
+
+export interface AnalyzeViewInput extends AnalyzeViewRequest {
+  config?: LlmConfigOverrides;
+}
+
+export interface AnalyzeViewResult {
+  analysis: InsightAnalysis;
+  provider: LlmProvider;
+  model: string;
 }

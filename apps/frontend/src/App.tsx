@@ -4,10 +4,11 @@ import { Provider as UrqlProvider } from 'urql';
 import { Skeleton } from 'antd';
 import { AppLayout } from './app/layout/AppLayout';
 import { RowPagingProvider } from './app/RowPagingProvider';
+import { useLlmInsightAnalyzer } from './entities/llm';
 import { useSourceWrites } from './entities/preferences/useSourceWrites';
 import { createGraphQLClient } from './graphql/client';
 import { useConnection } from './store';
-import { WriteAccessContext } from './views/plugin-api';
+import { InsightAnalyzerContext, WriteAccessContext } from './views/plugin-api';
 
 // Each page is its own chunk: the first paint only loads the screen it shows.
 const ConnectPage = lazy(() => import('./pages/connect/ConnectPage').then((m) => ({ default: m.ConnectPage })));
@@ -20,6 +21,7 @@ export function App() {
   const graphqlUrl = useConnection((s) => s.graphqlUrl);
   const client = useMemo(() => (graphqlUrl ? createGraphQLClient(graphqlUrl) : null), [graphqlUrl]);
   const { writable } = useSourceWrites();
+  const analyzeView = useLlmInsightAnalyzer();
 
   return (
     <Routes>
@@ -30,9 +32,11 @@ export function App() {
           element={
             <UrqlProvider value={client}>
               <WriteAccessContext.Provider value={writable}>
-                <RowPagingProvider>
-                  <AppLayout />
-                </RowPagingProvider>
+                <InsightAnalyzerContext.Provider value={analyzeView}>
+                  <RowPagingProvider>
+                    <AppLayout />
+                  </RowPagingProvider>
+                </InsightAnalyzerContext.Provider>
               </WriteAccessContext.Provider>
             </UrqlProvider>
           }

@@ -66,4 +66,10 @@ export const BUILTIN_WIDGET_COLLECTIONS: BuiltinWidgetCollection[] = [
     description: 'Inspector tabs served by a backend such as Spec-Fluid (Pharo / Moose): tables, trees, Roassal views and text, as Pharo builds them.',
     types: ['specPresenter'],
   },
+  {
+    id: 'fluid-ai',
+    name: 'AI',
+    description: 'Widgets backed by the LLM: an analyst that reads what the other widgets show and tells what stands out.',
+    types: ['insight'],
+  },
 ];
