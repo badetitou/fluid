@@ -16,10 +16,20 @@ export const viewBuilderContractSchema = z.object({
 });
 
 /** A GraphQL source a source provider offers: a name and the endpoint URL. */
+/** How a source answers its lists: the defaults of its row settings (the user may change them). */
+export const sourceLimitsSchema = z.object({
+  /** Rows loaded at first. */
+  rowLimit: z.number().int().positive().optional(),
+  /** Most rows the source answers per request. */
+  maxPerRequest: z.number().int().positive().optional(),
+});
+export type SourceLimits = z.infer<typeof sourceLimitsSchema>;
+
 export const sourceEntrySchema = z.object({
   name: z.string().min(1).max(80),
   url: z.url({ protocol: /^https?$/ }),
   description: z.string().max(300).optional(),
+  limits: sourceLimitsSchema.optional(),
 });
 export type SourceEntry = z.infer<typeof sourceEntrySchema>;
 

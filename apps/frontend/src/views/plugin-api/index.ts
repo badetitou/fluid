@@ -6,3 +6,4 @@ export * from './outputs';
 export * from './outputsContext';
 export * from './types';
 export * from './widgetTheme';
+export * from './rowPaging';

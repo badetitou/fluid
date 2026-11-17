@@ -4,7 +4,7 @@
 // Concepts are the object types a user can explore, each with its scalar
 // fields, relations, and the root Query fields that return it (list / by-id).
 
-import type { Concept, ConceptField, ConceptMutations, ConceptQueries, IntrospectionField, IntrospectionType } from './introspectionTypes';
+import type { Concept, ConceptField, ConceptMutations, ConceptQueries, IntrospectionField, IntrospectionType, ListQuery } from './introspectionTypes';
 import { COMPOSITE_KINDS, typeRefToString, unwrapType } from './introspectionTypes';
 
 export * from './introspectionQueries';
@@ -15,6 +15,7 @@ const LEAF_KINDS = new Set(['SCALAR', 'ENUM']);
 const ROOT_TYPE_NAMES = new Set(['Query', 'Mutation', 'Subscription']);
 
 const LIMIT_ARGS = ['take', 'first', 'limit', 'pageSize', 'size'];
+const OFFSET_ARGS = ['skip', 'offset'];
 // Preferred names for the rows field of a pagination wrapper, in order.
 const ITEMS_FIELDS = ['results', 'items', 'nodes', 'data', 'records', 'list'];
 
@@ -42,6 +43,19 @@ function hasRequiredArgs(field: IntrospectionField, except: string[] = []): bool
 
 function limitArgOf(field: IntrospectionField): string | undefined {
   return field.args.find((a) => LIMIT_ARGS.includes(a.name))?.name;
+}
+
+/** The row-limit and offset arguments of a list field, those it has. */
+function pagingArgsOf(field: IntrospectionField): Pick<ListQuery, 'limitArg' | 'offsetArg'> {
+  const limitArg = limitArgOf(field);
+  const offsetArg = limitArg ? field.args.find((a) => OFFSET_ARGS.includes(a.name))?.name : undefined;
+  return offsetArg ? { limitArg, offsetArg } : { limitArg };
+}
+
+/** The offset argument the source's list queries share (e.g. `skip`), if any: fluid pages with it. */
+export function sourceOffsetArg(queriesByType: Map<string, ConceptQueries>): string | undefined {
+  for (const queries of queriesByType.values()) if (queries.list?.offsetArg) return queries.list.offsetArg;
+  return undefined;
 }
 
 /**
@@ -108,7 +122,7 @@ export function buildRootQueries(
       // back a work list on its own.
       if (hasRequiredArgs(field)) continue;
       const e = entry(u.name);
-      if (!e.list || e.list.itemsPath) e.list = { field: field.name, limitArg: limitArgOf(field) };
+      if (!e.list || e.list.itemsPath) e.list = { field: field.name, ...pagingArgsOf(field) };
       continue;
     }
 
@@ -117,7 +131,7 @@ export function buildRootQueries(
     if (items) {
       wrapperTypes.add(u.name);
       const e = entry(items.typeName);
-      e.list ??= { field: field.name, itemsPath: items.field, limitArg: limitArgOf(field) };
+      e.list ??= { field: field.name, itemsPath: items.field, ...pagingArgsOf(field) };
       continue;
     }
 

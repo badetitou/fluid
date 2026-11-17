@@ -9,6 +9,7 @@ export {
   type PageActionContract,
   type PluginSetting,
   type SourceEntry,
+  type SourceLimits,
 } from './manifest';
 export { DEMO_SOURCES, type DemoSource } from './sources/demoSources';
 export { usePluginSources, type SourceGroup } from './usePluginSources';

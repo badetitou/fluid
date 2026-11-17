@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { forgetSource, rememberSource, renameSource, type SavedSource } from './model';
+import { updateSettings, type SourceSettings } from './settings';
 
 interface SavedSourcesState {
   /** The sources the user connected to or added, in order, with their names. */
@@ -20,5 +21,23 @@ export const useSavedSources = create<SavedSourcesState>()(
       forget: (url) => set({ saved: forgetSource(get().saved, url) }),
     }),
     { name: 'fluid-sources' },
+  ),
+);
+
+interface SourceSettingsState {
+  /** GraphQL source URL -> the user's row settings for it. */
+  byUrl: Record<string, SourceSettings>;
+  update: (url: string, change: Partial<SourceSettings>) => void;
+}
+
+// Per source, like the write access: each server pages its lists its own way.
+// Only read and written through `useSourceSettings`.
+export const useSourceSettingsStore = create<SourceSettingsState>()(
+  persist(
+    (set, get) => ({
+      byUrl: {},
+      update: (url, change) => set({ byUrl: { ...get().byUrl, [url]: updateSettings(get().byUrl[url], change) } }),
+    }),
+    { name: 'fluid-source-settings' },
   ),
 );

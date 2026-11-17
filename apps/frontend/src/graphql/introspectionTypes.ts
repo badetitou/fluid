@@ -113,6 +113,8 @@ export interface ListQuery {
   itemsPath?: string;
   /** Argument limiting the number of rows (`take`, `first`, `limit`…), when supported. */
   limitArg?: string;
+  /** Argument skipping the first rows (`skip`, `offset`), when the list also has a row limit. */
+  offsetArg?: string;
 }
 
 export interface ConceptQueries {

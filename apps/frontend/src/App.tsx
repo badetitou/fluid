@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Provider as UrqlProvider } from 'urql';
 import { Skeleton } from 'antd';
 import { AppLayout } from './app/layout/AppLayout';
+import { RowPagingProvider } from './app/RowPagingProvider';
 import { useSourceWrites } from './entities/preferences/useSourceWrites';
 import { createGraphQLClient } from './graphql/client';
 import { useConnection } from './store';
@@ -29,7 +30,9 @@ export function App() {
           element={
             <UrqlProvider value={client}>
               <WriteAccessContext.Provider value={writable}>
-                <AppLayout />
+                <RowPagingProvider>
+                  <AppLayout />
+                </RowPagingProvider>
               </WriteAccessContext.Provider>
             </UrqlProvider>
           }

@@ -7,3 +7,5 @@ export {
   type SourceOptionGroup,
 } from './model';
 export { useSources } from './useSources';
+export { type EffectiveSourceSettings, type SourceSettings } from './settings';
+export { useSourceSettings, type SourceSettingsResult } from './useSourceSettings';
