@@ -1,11 +1,10 @@
 import type { MutationInfo, ViewScope, ViewSpec, ViewWidgetInfo, Widget, WidgetCatalogRequest } from '@fluid/shared';
-import { BFF_URL } from '../runtime-config';
+import { BASE, request } from './http';
 
 // Thin fetch wrapper around the Fluid BFF REST API (view persistence + prefs).
 // Every call is resilient at the call site: the UI treats a rejected promise as
 // "BFF unavailable" and falls back to curated/auto views + localStorage prefs.
 
-const BASE = BFF_URL;
 
 export interface SavedView {
   id: string;
@@ -191,25 +190,6 @@ async function generateViewStream(
     }
   }
   throw new Error('The generation stream ended without a result');
-}
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = init?.body ? { 'content-type': 'application/json' } : undefined;
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    ...(headers ? { headers } : {}),
-  });
-  if (!res.ok) {
-    let detail = '';
-    try {
-      detail = JSON.stringify(await res.json());
-    } catch {
-      /* body was not JSON */
-    }
-    throw new Error(`BFF ${init?.method ?? 'GET'} ${path} → ${res.status} ${detail}`.trim());
-  }
-  if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
 }
 
 export const bffClient = {

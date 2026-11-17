@@ -287,7 +287,8 @@ interface PageAction {
 interface PageActionContext {
   settings;                                        // ceux du plugin
   palette: string[]; mode: 'light' | 'dark';       // le thème actif
-  column: { concept; columnKind; itemId?; path };  // la colonne du bouton ; les liens s'ouvrent après elle
+  column: { concept; columnKind; itemId?; path;   // la colonne du bouton ; les liens s'ouvrent après elle
+            view?: ViewSpec };                     // la vue affichée dans la colonne, s'il y en a une
 }
 ```
 
@@ -297,6 +298,7 @@ Intégrés :
 | --- | --- | --- |
 | `fluid-pharo-script` | `pharo-script` | sur une colonne de détail, ouvre sous la colonne le panneau Smalltalk (Spec-Fluid) : le code, qui commence par `self`, est évalué par l'image (`POST <endpoint>/entities/<id>/evaluate`, `{ code }`) avec l'entité de la colonne comme receveur ; un résultat qui est une entité s'ouvre dans la colonne suivante, une collection liste ses éléments. Son propre réglage `endpoint` (vide = désactivé). Côté image, l'évaluation est **désactivée par défaut** : `SFServer enableEvaluation` |
 | `fluid-fireworks` | `fireworks` | easter egg, depuis n'importe quelle colonne : un feu d'artifice sur toute la page, aux couleurs du thème, icône SVG maison au style des icônes antd (canvas qui laisse passer les clics et se retire à la fin ; simulation pure dans `actions/fireworks/model.ts`) |
+| `fluid-chat` | `chat` | sur toute colonne, ouvre un tiroir (Drawer à droite, ~520 px) : chat classique avec le LLM (`POST /api/llm/chat`, réponse validée par `chatResponseSchema`). Deux portées : « Graph » (l'API GraphQL connectée) ou « This view » (la vue de la colonne, `column.view`, désactivée sans vue). La réponse est du markdown, plus éventuellement une vue rendue en ligne par `ViewRenderer` (« Open larger » l'ouvre en modale) ; `suggestView` affiche seulement un indice. Conversation gardée en mémoire par concept pour la session du navigateur (`entities/llm/chatStore.ts`) ; logique pure dans `entities/llm/chatModel.ts` |
 
 Un module de plugin `pageAction` exporte `{ pageActions: { "<id>": { run | Panel, available?, Icon? } } }`.
 

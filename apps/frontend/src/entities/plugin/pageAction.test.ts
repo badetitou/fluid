@@ -56,7 +56,7 @@ describe('page action plugins', () => {
     );
     const plugins = [...BUILTIN_PLUGINS, installed];
     const keys = activePageActions(plugins, [], {}).map((a) => a.key);
-    expect(keys).toEqual(['fluid-pharo-script/pharo-script', 'fluid-fireworks/fireworks', 'confetti/throw']);
+    expect(keys).toEqual(['fluid-pharo-script/pharo-script', 'fluid-fireworks/fireworks', 'fluid-chat/chat', 'confetti/throw']);
     expect(activePageActions(plugins, ['fluid-fireworks'], {}).map((a) => a.key)).not.toContain(
       'fluid-fireworks/fireworks',
     );
