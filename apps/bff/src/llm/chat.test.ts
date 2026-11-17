@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../app';
 import { chat } from './chat';
 import { chatCompletion } from './client';
-import { LlmValidationError } from './errors';
+import { LlmError, LlmValidationError } from './errors';
 import type { ChatInput } from './chatTypes';
 
 vi.mock('./client', async (importOriginal) => ({
@@ -40,6 +40,21 @@ describe('POST /api/llm/chat (mock)', () => {
     expect(json.view.concept).toBe('Character');
     expect(json.view.widgets.map((w: { type: string }) => w.type)).toEqual(['table']);
     expect(json.suggestView).toBe(true);
+    await app.close();
+  });
+
+  it('maps provider failures to 422 and 502', async () => {
+    const app = buildApp({ logLevel: 'silent' });
+    const url = '/api/llm/chat';
+    const payload = { ...body, config: { provider: 'openai', apiKey: 'k' } };
+    completion.mockReset();
+    completion.mockResolvedValue('garbage');
+    const bad = await app.inject({ method: 'POST', url, payload });
+    expect(bad.statusCode).toBe(422);
+    expect(bad.json().error).toBe('LLM produced an invalid chat answer');
+    completion.mockReset();
+    completion.mockRejectedValue(new LlmError('down'));
+    expect((await app.inject({ method: 'POST', url, payload })).statusCode).toBe(502);
     await app.close();
   });
 
@@ -84,5 +99,25 @@ describe('chat (real provider path)', () => {
     const r = await chat(openai);
     expect(r.message).toBe('Fixed');
     expect(r.view).toBeDefined();
+  });
+
+  it('sends the first raw answer and the errors in the repair turn', async () => {
+    completion.mockResolvedValueOnce('first-garbage').mockResolvedValueOnce(JSON.stringify({ message: 'ok' }));
+    const r = await chat(openai);
+    expect(r.message).toBe('ok');
+    const repairTurn = completion.mock.calls[1][1];
+    expect(repairTurn.at(-2)).toEqual({ role: 'assistant', content: 'first-garbage' });
+    expect(repairTurn.at(-1)?.content).toContain('did not validate');
+  });
+
+  it('drops a view with actions and notes it when the repair has no view', async () => {
+    const withActions = { ...goodView, actions: { del: { mutation: 'mutation { x }' } } };
+    completion
+      .mockResolvedValueOnce(JSON.stringify({ message: 'Text', view: withActions }))
+      .mockResolvedValueOnce(JSON.stringify({ message: 'Text only' }));
+    const r = await chat(openai);
+    expect(r.view).toBeUndefined();
+    expect(r.message).toContain('could not build a valid view');
+    expect(String(completion.mock.calls[1][1].at(-1)?.content)).toContain('actions are not allowed');
   });
 });

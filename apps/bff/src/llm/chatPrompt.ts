@@ -40,7 +40,10 @@ export function renderViewContext(input: Pick<ChatInput, 'view' | 'item'>): stri
   const { view, item } = input;
   if (!view) return 'Current view: (not provided)';
   return [
-    `Current view${view.title ? ` "${view.title}"` : ''}${item ? ` (showing item ${item.id})` : ''}:`,
+    `Current view${view.title ? ` "${view.title}"` : ''}:`,
+    ...(item
+      ? [`The view shows the item with id "${item.id}": when a query needs that id, put it in the query "variables" (e.g. "id": "${item.id}").`]
+      : []),
     'Queries:',
     view.queries.length ? view.queries.map((q) => `  ${q.replace(/\s+/g, ' ').trim()}`).join('\n') : '  (none)',
     'Widgets:',

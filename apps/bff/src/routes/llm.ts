@@ -4,7 +4,6 @@ import { chatBody, generateViewBody, generateWidgetBody } from '../validation';
 import { describeLlmConfig } from '../llm/config';
 import { generateView, generateWidget } from '../llm/generate';
 import { chat } from '../llm/chat';
-import type { ChatInput } from '../llm/chatTypes';
 import { LlmError, LlmValidationError } from '../llm/errors';
 import type { GenerateViewInput, GenerateWidgetInput } from '../llm/types';
 
@@ -101,7 +100,7 @@ export async function llmRoutes(app: FastifyInstance) {
     }
 
     try {
-      return await chat(parsed.data as ChatInput);
+      return await chat(parsed.data);
     } catch (err) {
       if (err instanceof LlmValidationError) {
         return reply.code(422).send({ error: err.message, details: err.errorText, raw: err.raw });

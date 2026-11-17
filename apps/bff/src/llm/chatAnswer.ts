@@ -30,6 +30,9 @@ export function validateChatAnswer(
 
   const result = validateDraft(JSON.stringify(view), catalog, mutationFields);
   if (!result.ok) return { ok: false, errorText: `"view": ${result.errorText}`, message, suggestView };
+  if (result.draft.actions && Object.keys(result.draft.actions).length > 0) {
+    return { ok: false, errorText: '"view": actions are not allowed in chat answers', message, suggestView };
+  }
   return { ok: true, message, suggestView, draft: result.draft };
 }
 

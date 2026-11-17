@@ -62,7 +62,12 @@ export async function chat(input: ChatInput): Promise<ChatResult> {
   const repair = buildChatRepairMessage(firstCheck.errorText, format);
   const second = await turn(config, format, [...messages, { role: 'assistant', content: first.raw }, repair]);
   const retry = check(second.content);
-  if (retry.ok) return toResult(input, retry, meta);
+  if (retry.ok) {
+    const answer = toResult(input, retry, meta);
+    // The first view was broken and the repair came back without one: say so.
+    if (!answer.view && firstCheck.message) answer.message = `${answer.message}\n\n${DROPPED_VIEW_NOTE}`;
+    return answer;
+  }
 
   // Text fine but view broken twice: keep the text, drop the view.
   const kept = retry.message ?? firstCheck.message;
@@ -73,5 +78,5 @@ export async function chat(input: ChatInput): Promise<ChatResult> {
       ...meta,
     };
   }
-  throw new LlmValidationError(retry.errorText, second.content);
+  throw new LlmValidationError(retry.errorText, second.content, 'LLM produced an invalid chat answer');
 }
