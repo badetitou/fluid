@@ -14,7 +14,9 @@ interface ChatMessageListProps {
 /** The scrollable conversation, kept scrolled to the latest entry; a failed turn shows its error and a retry. */
 export function ChatMessageList({ turns, pending, error, onRetry }: ChatMessageListProps) {
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => end.current?.scrollIntoView?.({ block: 'end' }), [turns, pending, error]);
+  useEffect(() => {
+    end.current?.scrollIntoView?.({ block: 'end' });
+  }, [turns, pending, error]);
   return (
     <div className={styles.list} role="log" aria-live="polite">
       {turns.length === 0 && (
