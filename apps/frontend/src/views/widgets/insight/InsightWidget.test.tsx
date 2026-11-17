@@ -2,7 +2,8 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { characterInsightExample, type InsightAnalysis, type InsightWidget as InsightWidgetSpec } from '@fluid/shared';
 import { resolveBinding } from '../../data';
-import { InsightAnalyzerContext, RenderedViewContext, type InsightAnalyzer } from '../../plugin-api/insightContext';
+import { InsightAnalyzerContext, type InsightAnalyzer } from '../../plugin-api/insightContext';
+import { RenderedViewContext } from '../../plugin-api/viewContext';
 import { InsightWidget } from './InsightWidget';
 import { clearInsightCache, INSIGHT_DEBOUNCE_MS } from './useInsight';
 
@@ -120,15 +121,51 @@ describe('InsightWidget', () => {
     }
   });
 
+  it('never shows the answer to an older request', async () => {
+    let answerOld: (a: InsightAnalysis) => void = () => {};
+    const analyze = vi
+      .fn<InsightAnalyzer>()
+      .mockImplementationOnce(() => new Promise((resolve) => (answerOld = resolve)))
+      .mockResolvedValue({ ...findings, headline: 'New answer' });
+    const { rerender } = show(analyze);
+    await vi.waitFor(() => expect(analyze).toHaveBeenCalledTimes(1));
+    rerender(
+      <InsightAnalyzerContext.Provider value={analyze}>
+        <RenderedViewContext.Provider value={view}>
+          <InsightWidget widget={{ ...widget, focus: 'Something else?' }} resolve={resolve} />
+        </RenderedViewContext.Provider>
+      </InsightAnalyzerContext.Provider>,
+    );
+    answerOld({ ...findings, headline: 'Old answer' });
+    expect(await screen.findByText('New answer')).toBeTruthy();
+    expect(screen.queryByText('Old answer')).toBeNull();
+  });
+
+  it('asks again when the LLM settings change (a new analyser)', async () => {
+    const first = vi.fn<InsightAnalyzer>().mockResolvedValue(findings);
+    const second = vi.fn<InsightAnalyzer>().mockResolvedValue({ ...findings, headline: 'From the other model' });
+    const { rerender } = show(first);
+    await screen.findByText('Every alien is dead');
+    rerender(
+      <InsightAnalyzerContext.Provider value={second}>
+        <RenderedViewContext.Provider value={view}>
+          <InsightWidget widget={widget} resolve={resolve} />
+        </RenderedViewContext.Provider>
+      </InsightAnalyzerContext.Provider>,
+    );
+    expect(await screen.findByText('From the other model')).toBeTruthy();
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
   it('explains that it needs the LLM without an analyser', () => {
     show(null);
     expect(screen.getByText('The AI analysis needs the LLM settings of the app.')).toBeTruthy();
   });
 
-  it('says hello without anything to analyse', () => {
+  it('tells there is nothing to analyse without data', () => {
     const analyze = vi.fn<InsightAnalyzer>();
     show(analyze, { ...widget, sources: ['missing'] });
-    expect(screen.getByText('Hello :)')).toBeTruthy();
+    expect(screen.getByText('Nothing to analyse yet: the other widgets have no data.')).toBeTruthy();
     expect(analyze).not.toHaveBeenCalled();
   });
 });

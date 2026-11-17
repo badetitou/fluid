@@ -1,4 +1,4 @@
-import { NOTHING_TO_ADD, type AnalyzeViewRequest, type InsightAnalysis, type InsightFinding } from '@fluid/shared';
+import { isRecord, NOTHING_TO_ADD, type AnalyzeViewRequest, type InsightAnalysis, type InsightFinding } from '@fluid/shared';
 
 // Offline analysis for the `mock` provider: a couple of deterministic heuristics
 // (one value dominating a field, a field mostly missing), so the widget can be
@@ -8,7 +8,6 @@ const MIN_ROWS = 5;
 const DOMINANT_SHARE = 0.5;
 const MISSING_SHARE = 0.2;
 
-const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isMissing = (v: unknown) => v === null || v === undefined || v === '' || (typeof v === 'string' && /^unknown$/i.test(v));
 const percent = (n: number, total: number) => `${Math.round((100 * n) / total)}%`;
 

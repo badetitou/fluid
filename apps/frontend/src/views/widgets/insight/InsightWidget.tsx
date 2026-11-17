@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Alert, Button, Spin } from 'antd';
 import type { InsightWidget as InsightWidgetSpec } from '@fluid/shared';
-import { useRenderedView } from '../../plugin-api/insightContext';
+import { useRenderedView } from '../../plugin-api/viewContext';
 import type { WidgetProps } from '../../plugin-api/types';
 import { buildInsightRequest } from './insightModel';
 import { InsightReport } from './InsightReport';
@@ -18,7 +18,7 @@ function InsightBody({ state, onRefresh }: { state: InsightState; onRefresh: () 
         </div>
       );
     case 'empty':
-      return <div className={styles.hello}>Hello :)</div>;
+      return <div className={styles.status}>Nothing to analyse yet: the other widgets have no data.</div>;
     case 'unavailable':
       return <Alert type="info" showIcon title="The AI analysis needs the LLM settings of the app." />;
     case 'error':
@@ -48,8 +48,9 @@ export function InsightWidget({ widget, resolve }: Pick<WidgetProps<InsightWidge
   const view = useRenderedView();
   const request = useMemo(() => (view ? buildInsightRequest(view, widget, resolve) : null), [view, widget, resolve]);
   const { state, refresh } = useInsight(request);
+  const colors = useInsightColors();
   return (
-    <div className={styles.root} style={useInsightColors()}>
+    <div className={styles.root} style={colors}>
       <InsightBody state={state} onRefresh={refresh} />
     </div>
   );

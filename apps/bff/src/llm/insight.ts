@@ -1,22 +1,15 @@
 import { z } from 'zod';
-import { insightAnalysisSchema, type AnalyzeViewRequest, type InsightAnalysis } from '@fluid/shared';
+import { insightAnalysisSchema, type InsightAnalysis } from '@fluid/shared';
 import { chatCompletion, extractJson } from './client';
 import { claudeCodeCompletion } from './claudeCode';
 import { resolveLlmConfig } from './config';
 import { LlmValidationError } from './errors';
 import { buildInsightMessages, buildInsightRepairMessage } from './insightPrompt';
 import { mockInsight } from './insightMock';
-import type { ChatMessage, LlmConfig, LlmConfigOverrides, LlmProvider } from './types';
+import type { AnalyzeViewInput, AnalyzeViewResult, ChatMessage, LlmConfig } from './types';
 
-export interface AnalyzeViewInput extends AnalyzeViewRequest {
-  config?: LlmConfigOverrides;
-}
-
-export interface AnalyzeViewResult {
-  analysis: InsightAnalysis;
-  provider: LlmProvider;
-  model: string;
-}
+/** How long an OpenAI-compatible server may take per answer (Claude Code has its own limit). */
+export const INSIGHT_TIMEOUT_MS = 120_000;
 
 type Parsed = { ok: true; analysis: InsightAnalysis } | { ok: false; errorText: string };
 
@@ -30,13 +23,15 @@ export function parseInsight(answer: string): Parsed {
   }
   const parsed = insightAnalysisSchema.safeParse(json);
   if (!parsed.success) return { ok: false, errorText: z.prettifyError(parsed.error) };
+  // The findings decide: shown whenever there are some, whatever verdict the model wrote.
   const analysis = parsed.data;
-  // "insights" without a finding has nothing to show: it is a "nothing".
-  return { ok: true, analysis: analysis.findings.length === 0 ? { ...analysis, verdict: 'nothing' } : analysis };
+  return { ok: true, analysis: { ...analysis, verdict: analysis.findings.length > 0 ? 'insights' : 'nothing' } };
 }
 
 const complete = (config: LlmConfig, messages: ChatMessage[]) =>
-  config.provider === 'claude-code' ? claudeCodeCompletion(config, messages) : chatCompletion(config, messages);
+  config.provider === 'claude-code'
+    ? claudeCodeCompletion(config, messages)
+    : chatCompletion(config, messages, { timeoutMs: INSIGHT_TIMEOUT_MS });
 
 /**
  * Analyses what a view's widgets show. The mock provider answers from simple

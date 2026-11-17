@@ -3,6 +3,11 @@ import { z } from 'zod';
 // What the insight widget sends to the BFF (the data its sources show) and what
 // the LLM answers (validated before it reaches the widget).
 
+/** Most widgets one analysis reads. */
+export const INSIGHT_MAX_SOURCES = 20;
+/** Upper bound on the JSON of the analysed data, checked by the BFF (the frontend aims well below). */
+export const INSIGHT_MAX_REQUEST_CHARS = 200_000;
+
 /** One widget whose data is analysed, its data already compacted by the frontend. */
 export const insightSourceSchema = z.object({
   id: z.string().min(1),
@@ -21,7 +26,7 @@ export const analyzeViewRequestSchema = z.object({
     description: z.string().optional(),
   }),
   focus: z.string().max(500).optional(),
-  sources: z.array(insightSourceSchema).max(20),
+  sources: z.array(insightSourceSchema).max(INSIGHT_MAX_SOURCES),
 });
 export type AnalyzeViewRequest = z.infer<typeof analyzeViewRequestSchema>;
 

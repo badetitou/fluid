@@ -1,8 +1,17 @@
-import type { AnalyzeViewRequest, DataBinding, InsightSource, InsightWidget, ViewSpec, Widget } from '@fluid/shared';
+import {
+  INSIGHT_MAX_SOURCES,
+  isRecord,
+  type AnalyzeViewRequest,
+  type DataBinding,
+  type InsightSource,
+  type InsightWidget,
+  type ViewSpec,
+  type Widget,
+} from '@fluid/shared';
 
 // What the insight widget sends to the analyst: the data each source widget
 // shows, compacted so that the request stays small (rows sampled, long texts
-// cut, deep nesting summarised), and a key identifying the request.
+// cut, wide or deep objects summarised), and a key identifying the request.
 
 /** Upper bound on the JSON sent for all sources together. */
 export const INSIGHT_BUDGET = 40_000;
@@ -10,10 +19,9 @@ const ROW_STEPS = [60, 30, 15, 8, 4];
 const NESTED_ROWS = 8;
 const MAX_TEXT = 240;
 const MAX_DEPTH = 4;
+const MAX_KEYS = 40;
 
-const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
-
-/** A JSON-friendly copy of `value`: lists cut to `rows` items (nested ones shorter), texts and depth bounded. */
+/** A JSON-friendly copy of `value`: lists cut to `rows` items (nested ones shorter), texts, keys and depth bounded. */
 export function compactValue(value: unknown, rows: number, depth = 0): unknown {
   if (typeof value === 'string') return value.length > MAX_TEXT ? `${value.slice(0, MAX_TEXT)}…` : value;
   if (typeof value === 'number' || typeof value === 'boolean' || value === null) return value;
@@ -26,7 +34,9 @@ export function compactValue(value: unknown, rows: number, depth = 0): unknown {
   if (isRecord(value)) {
     if (depth >= MAX_DEPTH) return '{…}';
     const entries = Object.entries(value).filter(([k, v]) => k !== '__typename' && v !== undefined);
-    return Object.fromEntries(entries.map(([k, v]) => [k, compactValue(v, rows, depth + 1)]));
+    const kept = entries.slice(0, MAX_KEYS).map(([k, v]) => [k, compactValue(v, rows, depth + 1)]);
+    if (entries.length > MAX_KEYS) kept.push(['…', `${entries.length - MAX_KEYS} more fields`]);
+    return Object.fromEntries(kept);
   }
   return undefined;
 }
@@ -36,12 +46,12 @@ const bindingOf = (widget: Widget): DataBinding | undefined => {
   return isRecord(data) && typeof data.query === 'string' ? (data as DataBinding) : undefined;
 };
 
-/** The widgets the insight widget reads: its `sources`, or every other non-insight widget of the view. */
+/** The widgets the insight widget reads: its `sources`, or every other non-insight widget of the view (at most 20). */
 export function sourceWidgets(view: ViewSpec, self: InsightWidget): Widget[] {
   const wanted = self.sources ? new Set(self.sources) : null;
-  return view.widgets.filter(
-    (w) => w.id !== self.id && w.type !== 'insight' && (wanted ? wanted.has(w.id) : true) && bindingOf(w),
-  );
+  return view.widgets
+    .filter((w) => w.id !== self.id && w.type !== 'insight' && (wanted ? wanted.has(w.id) : true) && bindingOf(w))
+    .slice(0, INSIGHT_MAX_SOURCES);
 }
 
 const AGGREGATES = ['sum', 'avg', 'min', 'max'];
@@ -59,14 +69,14 @@ function shownData(binding: DataBinding, resolve: (b: DataBinding) => unknown): 
   );
 }
 
-interface RawSource {
+export interface RawSource {
   id: string;
   type: string;
   title?: string;
   value: unknown;
 }
 
-/** The data each source shows, resolved; sources without data yet (e.g. an empty selection) are left out. */
+/** The data each source shows, resolved; sources without data (e.g. an empty selection) are left out. */
 function rawSources(view: ViewSpec, self: InsightWidget, resolve: (b: DataBinding) => unknown): RawSource[] {
   const sources: RawSource[] = sourceWidgets(view, self).map((w) => ({
     id: w.id,
@@ -75,10 +85,15 @@ function rawSources(view: ViewSpec, self: InsightWidget, resolve: (b: DataBindin
     value: shownData(bindingOf(w)!, resolve),
   }));
   if (self.data) sources.push({ id: self.id, type: 'data', title: 'Extra data', value: shownData(self.data, resolve) });
-  return sources.filter((s) => s.value !== undefined && s.value !== null);
+  return sources.filter((s) => s.value !== undefined && s.value !== null).slice(0, INSIGHT_MAX_SOURCES);
 }
 
-/** Compacts every source, sampling fewer rows until the whole fits in `budget`. */
+const size = (sources: InsightSource[]) => JSON.stringify(sources).length;
+
+/**
+ * Compacts every source, sampling fewer rows until the whole fits in `budget`;
+ * if it still does not fit, the last sources lose their data (a note says so).
+ */
 export function compactSources(raw: RawSource[], budget = INSIGHT_BUDGET): InsightSource[] {
   let compacted: InsightSource[] = [];
   for (const rows of ROW_STEPS) {
@@ -87,7 +102,10 @@ export function compactSources(raw: RawSource[], budget = INSIGHT_BUDGET): Insig
       ...(Array.isArray(value) ? { rowCount: value.length } : {}),
       data: compactValue(value, rows),
     }));
-    if (JSON.stringify(compacted).length <= budget) break;
+    if (size(compacted) <= budget) return compacted;
+  }
+  for (let i = compacted.length - 1; i >= 0 && size(compacted) > budget; i--) {
+    compacted[i] = { ...compacted[i], data: '(left out: the request is too large)' };
   }
   return compacted;
 }
@@ -107,13 +125,5 @@ export function buildInsightRequest(
   };
 }
 
-/** A short, stable key of a request (FNV-1a over its JSON), to cache its analysis. */
-export function insightKey(request: AnalyzeViewRequest): string {
-  const text = JSON.stringify(request);
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < text.length; i++) {
-    hash ^= text.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return `${(hash >>> 0).toString(36)}-${text.length}`;
-}
+/** The key of a request (its JSON, bounded by the budget), to cache its analysis. */
+export const insightKey = (request: AnalyzeViewRequest): string => JSON.stringify(request);

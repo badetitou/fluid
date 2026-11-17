@@ -25,6 +25,13 @@ describe('compactValue', () => {
     expect(compact[0]).toEqual({ text: `${'a'.repeat(240)}…` });
   });
 
+  it('cuts objects with too many fields', () => {
+    const wide = Object.fromEntries(Array.from({ length: 45 }, (_, i) => [`f${i}`, i]));
+    const compact = compactValue(wide, 10) as Record<string, unknown>;
+    expect(Object.keys(compact)).toHaveLength(41);
+    expect(compact['…']).toBe('5 more fields');
+  });
+
   it('summarises what is nested too deep', () => {
     expect(compactValue({ a: { b: { c: { d: [1, 2] } } } }, 10)).toEqual({ a: { b: { c: { d: '[2 items]' } } } });
   });
@@ -34,6 +41,12 @@ describe('sourceWidgets', () => {
   it('reads every other widget by default, never another insight', () => {
     const withTwin = { ...view, widgets: [...view.widgets, { ...self, id: 'twin' }] };
     expect(sourceWidgets(withTwin, self).map((w) => w.id)).toEqual(['species', 'roster']);
+  });
+
+  it('reads 20 widgets at most', () => {
+    const table = view.widgets.find((w) => w.id === 'roster')!;
+    const crowded = { ...view, widgets: [...Array.from({ length: 25 }, (_, i) => ({ ...table, id: `t${i}` })), self] };
+    expect(sourceWidgets(crowded, self)).toHaveLength(20);
   });
 
   it('keeps only the listed sources', () => {
@@ -68,14 +81,28 @@ describe('buildInsightRequest', () => {
 describe('compactSources', () => {
   it('samples fewer rows until the request fits the budget', () => {
     const rows = Array.from({ length: 100 }, (_, i) => ({ id: i, text: 'x'.repeat(100) }));
-    const [source] = compactSources([{ id: 't', type: 'table', value: rows }], 3_000);
-    expect(source.rowCount).toBe(100);
-    expect((source.data as unknown[]).length).toBeLessThanOrEqual(16);
+    const sources = compactSources([{ id: 't', type: 'table', value: rows }], 3_000);
+    expect(sources[0].rowCount).toBe(100);
+    expect((sources[0].data as unknown[]).length).toBe(16);
+    expect(JSON.stringify(sources).length).toBeLessThanOrEqual(3_000);
+  });
+
+  it('leaves out the data of the last sources when sampling is not enough', () => {
+    const huge = (id: string) => ({ id, type: 'descriptions', value: { text: 'x'.repeat(200), more: 'y'.repeat(200) } });
+    const sources = compactSources([huge('a'), huge('b'), huge('c')], 1_200);
+    expect(JSON.stringify(sources).length).toBeLessThanOrEqual(1_200);
+    expect(sources.map((s) => s.id)).toEqual(['a', 'b', 'c']);
+    expect(sources[2].data).toBe('(left out: the request is too large)');
+    expect(sources[0].data).not.toBe('(left out: the request is too large)');
+  });
+
+  it('keeps an empty list, with its count', () => {
+    expect(compactSources([{ id: 't', type: 'table', value: [] }])).toEqual([{ id: 't', type: 'table', rowCount: 0, data: [] }]);
   });
 });
 
 describe('insightKey', () => {
-  it('is stable for the same request and changes with the data', () => {
+  it('is stable for the same request and changes with the data or the focus', () => {
     const a = buildInsightRequest(view, self, resolve)!;
     expect(insightKey(a)).toBe(insightKey(structuredClone(a)));
     expect(insightKey({ ...a, focus: 'other' })).not.toBe(insightKey(a));

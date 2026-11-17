@@ -6,4 +6,5 @@ export * from './MissingWidget';
 export * from './outputs';
 export * from './outputsContext';
 export * from './types';
+export * from './viewContext';
 export * from './widgetTheme';
