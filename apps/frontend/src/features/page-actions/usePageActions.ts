@@ -11,7 +11,7 @@ export type ColumnPlace = Omit<PageActionColumn, 'path'>;
  * The commands of a column's floating button — the page actions of the
  * enabled plugins that this column offers — and the panel one of them opened.
  */
-export function usePageActions({ concept, columnKind, itemId, view }: ColumnPlace) {
+export function usePageActions({ concept, columnKind, itemId, view, openViewAssistant }: ColumnPlace) {
   const { pathname } = useLocation();
   const path = useContext(MillerColumnPathContext) ?? pathname;
   const { series, mode } = useWidgetTheme('page-actions');
@@ -19,11 +19,11 @@ export function usePageActions({ concept, columnKind, itemId, view }: ColumnPlac
   const [openKey, setOpenKey] = useState<string | null>(null);
 
   const commands = useMemo(() => {
-    const column = { concept, columnKind, itemId, path, view };
+    const column = { concept, columnKind, itemId, path, view, openViewAssistant };
     return active
       .map((a) => ({ ...a, context: { settings: a.settings, palette: series, mode, column } }))
       .filter(({ action, context }) => isOffered(action, context));
-  }, [active, concept, columnKind, itemId, path, view, series, mode]);
+  }, [active, concept, columnKind, itemId, path, view, openViewAssistant, series, mode]);
 
   const trigger = useCallback(
     (key: string) => {

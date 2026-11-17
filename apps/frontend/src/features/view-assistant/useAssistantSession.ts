@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ViewScope, ViewSpec } from '@fluid/shared';
-import type { ConceptSchemaPayload } from '../../bff/client';
-import { useLlmGenerate } from '../../entities/llm';
+import type { ChatMessage, ConceptSchemaPayload } from '../../bff/client';
+import { useLlmGenerate, type ViewSeed } from '../../entities/llm';
 import { useAssistantChats, type AssistantTurn } from '../../store';
 import { appendDelta, buildHistory, sessionKeyOf, specsByVersion, versionTurns, type LiveOutput } from './model';
 
@@ -30,7 +30,12 @@ export interface PendingPrompt {
  * in-flight generation with its live output. The generation is aborted when
  * the owner unmounts.
  */
-export function useAssistantSession({ concept, schema, scope }: AssistantTarget, editingViewId?: string, initialSpec?: ViewSpec) {
+export function useAssistantSession(
+  { concept, schema, scope }: AssistantTarget,
+  editingViewId?: string,
+  initialSpec?: ViewSpec,
+  seed?: ViewSeed,
+) {
   const effectiveScope = initialSpec?.scope ?? scope;
   const sessionKey = sessionKeyOf(concept, effectiveScope, editingViewId);
   const turns = useAssistantChats((s) => s.sessions[sessionKey]?.turns ?? EMPTY_TURNS);
@@ -52,10 +57,9 @@ export function useAssistantSession({ concept, schema, scope }: AssistantTarget,
   const activeVersion = selected !== null && specs.has(selected) ? selected : latestVersion;
   const spec = activeVersion !== null ? (specs.get(activeVersion) ?? null) : null;
 
-  const generate = async (prompt: string) => {
-    const trimmed = prompt.trim();
-    if (!trimmed || pending) return;
-    const basedOn = activeVersion;
+  // Opened from the chat: the conversation so far precedes every prompt, and the first one is sent at once.
+  const seedHistory = seed?.history;
+  const run = async (trimmed: string, basedOn: number | null, history: ChatMessage[]) => {
     setPending({ prompt: trimmed, basedOn });
     setLive(null);
     const controller = new AbortController();
@@ -68,21 +72,41 @@ export function useAssistantSession({ concept, schema, scope }: AssistantTarget,
           schema,
           prompt: trimmed,
           scope: effectiveScope,
-          history: buildHistory(turns, versions, basedOn ?? 0, initialSpec),
+          history,
         },
         (delta) => setLive((cur) => appendDelta(cur, delta)),
         controller.signal,
       );
+      if (abortRef.current !== controller) return;
       addTurn(sessionKey, { ...turn, spec: res.spec, model: res.model, reasoning: res.reasoning });
       setSelected(null);
     } catch (err) {
+      // Superseded by a newer run (a remount of the seeded modal): nothing to report.
+      if (abortRef.current !== controller) return;
       addTurn(sessionKey, { ...turn, error: controller.signal.aborted ? 'Stopped.' : (err as Error).message });
     } finally {
-      if (abortRef.current === controller) abortRef.current = null;
-      setPending(null);
-      setLive(null);
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+        setPending(null);
+        setLive(null);
+      }
     }
   };
+
+  const generate = (prompt: string) => {
+    const trimmed = prompt.trim();
+    if (!trimmed || pending) return;
+    const history = [...(seedHistory ?? []), ...buildHistory(turns, versions, activeVersion ?? 0, initialSpec)];
+    return run(trimmed, activeVersion, history);
+  };
+
+  // A fresh conversation per seed: the earlier assistant exchanges would muddy the chat's.
+  useEffect(() => {
+    if (!seed) return;
+    clearSession(sessionKey);
+    void run(seed.prompt, null, seed.history);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per opening
+  }, []);
 
   const stop = useCallback(() => abortRef.current?.abort(), []);
   const clear = useCallback(() => {

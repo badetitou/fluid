@@ -41,8 +41,18 @@ export function useColumnDashboards({ path, concept, itemId, selected, entries }
     [add, navigate, concept, entries, path],
   );
 
+  /** A view saved on purpose as a dashboard (from the chat): listed whatever the concept. */
+  const saveAsDashboard = useCallback(
+    (view: SavedView) => {
+      const dashboard = add(dashboardFromColumn({ concept, itemId, perspective: { key: view.id, title: view.title } }));
+      message.success(`"${dashboard.title}" is in your dashboards`);
+      if (path === GRAPH_PATH) navigate(dashboardHref(dashboard));
+    },
+    [add, message, navigate, concept, itemId, path],
+  );
+
   return useMemo(
-    () => ({ promote, viewSaved, viewDeleted: forgetPerspective }),
-    [promote, viewSaved, forgetPerspective],
+    () => ({ promote, viewSaved, saveAsDashboard, viewDeleted: forgetPerspective }),
+    [promote, viewSaved, saveAsDashboard, forgetPerspective],
   );
 }

@@ -20,7 +20,7 @@ interface ColumnDialogsProps {
   dialogs: Dialogs;
   target: AssistantTarget;
   /** A view was created or updated from one of the editors. */
-  onSaved: (view: SavedView) => void;
+  onSaved: (view: SavedView, asDashboard?: boolean) => void;
 }
 
 /** The editors of a Miller column (assistant, JSON, LLM settings), mounted only while open. */
@@ -28,7 +28,7 @@ export function ColumnDialogs({ dialogs, target, onSaved }: ColumnDialogsProps) 
   const { dialog, settingsOpen } = dialogs.state;
   const saved = (view: SavedView) => {
     dialogs.close();
-    onSaved(view);
+    onSaved(view, dialog?.kind === 'assistant' && dialog.seed?.asDashboard);
   };
   // "Open in JSON editor" from the assistant: continue from its spec as a new view.
   const openJson = (spec: ViewSpec) =>
@@ -43,6 +43,7 @@ export function ColumnDialogs({ dialogs, target, onSaved }: ColumnDialogsProps) 
             target={target}
             editing={dialog.editing}
             from={dialog.from}
+            seed={dialog.seed}
             onClose={dialogs.close}
             onSaved={saved}
             onOpenJson={openJson}

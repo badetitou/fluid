@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ViewSpec } from '@fluid/shared';
+import type { ViewSeed } from '../../entities/llm';
 import { useActiveColumnOverlays } from '../../entities/plugin';
 import { PageActions } from '../../features/page-actions';
 import type { ColumnKind } from '../../views/viewScope';
@@ -13,6 +14,8 @@ interface ColumnStageProps {
   view?: ViewSpec | null;
   /** Plugins draw nothing over the body (layout editing, presentation): no overlay, no floating button. */
   bare?: boolean;
+  /** Opens the column's view assistant pre-filled (the chat's "Build a view"). */
+  onBuildView?: (seed: ViewSeed) => void;
   children: ReactNode;
 }
 
@@ -20,7 +23,7 @@ interface ColumnStageProps {
  * The body of a column, with what the enabled plugins draw over it: the
  * column overlays of the view builders, and the floating button of the page actions.
  */
-export function ColumnStage({ concept, columnKind, itemId, view, bare, children }: ColumnStageProps) {
+export function ColumnStage({ concept, columnKind, itemId, view, bare, onBuildView, children }: ColumnStageProps) {
   const overlays = useActiveColumnOverlays();
   return (
     <div className={styles.stage}>
@@ -29,7 +32,15 @@ export function ColumnStage({ concept, columnKind, itemId, view, bare, children 
         overlays.map(({ id, Overlay, settings }) => (
           <Overlay key={id} concept={concept} columnKind={columnKind} itemId={itemId} settings={settings} />
         ))}
-      {!bare && <PageActions concept={concept} columnKind={columnKind} itemId={itemId} view={view ?? undefined} />}
+      {!bare && (
+        <PageActions
+          concept={concept}
+          columnKind={columnKind}
+          itemId={itemId}
+          view={view ?? undefined}
+          openViewAssistant={onBuildView}
+        />
+      )}
     </div>
   );
 }

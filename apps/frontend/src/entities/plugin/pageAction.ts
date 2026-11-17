@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import type { ViewSpec } from '@fluid/shared';
 import type { ColumnKind } from '../../views/viewScope';
+import type { ViewSeed } from '../llm/viewSeed';
 import type { PageActionContract } from './manifest';
 import { isEnabled, pageActionsOf, settingsOf } from './model';
 import type { FluidPlugin } from './types';
@@ -15,6 +16,12 @@ export interface PageActionColumn {
   path: string;
   /** The view the column shows now (the shown perspective), when it has one. */
   view?: ViewSpec;
+  /**
+   * Opens the page's view assistant pre-filled with a first prompt and history; the
+   * generated view is previewed, then saved as a perspective of the column. Provided
+   * by the page, so entities never import the feature that draws the assistant.
+   */
+  openViewAssistant?: (seed: ViewSeed) => void;
 }
 
 /** What a page action knows when it is offered and run. */

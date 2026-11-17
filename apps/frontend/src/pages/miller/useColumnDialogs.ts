@@ -1,11 +1,12 @@
 import { useMemo, useReducer } from 'react';
 import type { ViewSpec } from '@fluid/shared';
+import type { ViewSeed } from '../../entities/llm';
 import type { SavedView, ViewDraft } from '../../entities/view';
 
 /** The editor open in a column, if any: at most one at a time. */
 export type ColumnDialog =
   /** `from`: the spec the conversation starts from (edits made in another editor). */
-  | { kind: 'assistant'; editing?: SavedView; from?: ViewSpec }
+  | { kind: 'assistant'; editing?: SavedView; from?: ViewSpec; seed?: ViewSeed }
   | { kind: 'json'; draft: ViewDraft }
   | null;
 
@@ -38,6 +39,8 @@ export function useColumnDialogs() {
     () => ({
       openAssistant: (editing?: SavedView, from?: ViewSpec) =>
         dispatch({ type: 'open', dialog: { kind: 'assistant', editing, from } }),
+      /** The assistant, starting from the chat's conversation: it generates a new view at once. */
+      openSeeded: (seed: ViewSeed) => dispatch({ type: 'open', dialog: { kind: 'assistant', seed } }),
       openJson: (draft: ViewDraft) => dispatch({ type: 'open', dialog: { kind: 'json', draft } }),
       close: () => dispatch({ type: 'close' }),
       openSettings: () => dispatch({ type: 'settings', open: true }),
