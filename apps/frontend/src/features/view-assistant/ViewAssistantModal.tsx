@@ -9,14 +9,19 @@ import { AssistantPreview } from './AssistantPreview';
 import { useAssistantSession, type AssistantTarget } from './useAssistantSession';
 import styles from './ViewAssistant.module.css';
 
-interface ViewAssistantModalProps {
-  target: AssistantTarget;
-  /** The saved view being refined; a new view is created when absent. */
+export interface AssistantSource {
+  /** The saved view being refined. */
   editing?: SavedView;
   /** Spec the conversation starts from (version 0) instead of the saved one, e.g. edits from the layout editor. */
   from?: ViewSpec;
   /** The chat's conversation: the first prompt is sent as the modal opens. */
   seed?: ViewSeed;
+}
+
+interface ViewAssistantModalProps {
+  target: AssistantTarget;
+  /** What the conversation starts from; a new view is created when empty. */
+  source?: AssistantSource;
   onClose: () => void;
   onSaved: (view: SavedView) => void;
   onOpenJson: (spec: ViewSpec) => void;
@@ -28,7 +33,8 @@ interface ViewAssistantModalProps {
  * that can be previewed, refined again, then saved. Mounted only while open.
  */
 export function ViewAssistantModal(props: ViewAssistantModalProps) {
-  const { target, editing, from, seed, onClose, onSaved, onOpenJson, onOpenSettings } = props;
+  const { target, source = {}, onClose, onSaved, onOpenJson, onOpenSettings } = props;
+  const { editing, from, seed } = source;
   const { message } = AntdApp.useApp();
   const base = from ?? editing?.spec;
   const session = useAssistantSession(target, editing?.id, base, seed);

@@ -2,9 +2,14 @@ import type { ViewScope, ViewSpec } from '@fluid/shared';
 import type { ChatMessage } from '../../bff/client';
 import type { AssistantTurn } from '../../store';
 
-/** Key of a persisted assistant conversation: one per concept, scope and edited view. */
-export function sessionKeyOf(concept: string, scope: ViewScope | undefined, editingViewId: string | undefined): string {
-  return `${concept}|${scope ?? ''}|${editingViewId ?? 'new'}`;
+/** Key of a persisted assistant conversation: one per concept, scope and edited view (a view built from the chat has its own). */
+export function sessionKeyOf(
+  concept: string,
+  scope: ViewScope | undefined,
+  editingViewId: string | undefined,
+  seeded = false,
+): string {
+  return `${concept}|${scope ?? ''}|${editingViewId ?? 'new'}${seeded ? ':chat' : ''}`;
 }
 
 /** Successful turns numbered as spec versions (v1, v2, …); v0 is the saved view. */

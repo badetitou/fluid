@@ -40,6 +40,7 @@ describe('sessionKeyOf', () => {
   it('keys new and edited views apart', () => {
     expect(sessionKeyOf('Account', 'list', undefined)).toBe('Account|list|new');
     expect(sessionKeyOf('Account', undefined, 'v1')).toBe('Account||v1');
+    expect(sessionKeyOf('Account', 'list', undefined, true)).toBe('Account|list|new:chat');
   });
 });
 

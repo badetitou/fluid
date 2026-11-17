@@ -37,7 +37,7 @@ export function useAssistantSession(
   seed?: ViewSeed,
 ) {
   const effectiveScope = initialSpec?.scope ?? scope;
-  const sessionKey = sessionKeyOf(concept, effectiveScope, editingViewId);
+  const sessionKey = sessionKeyOf(concept, effectiveScope, editingViewId, seed !== undefined);
   const turns = useAssistantChats((s) => s.sessions[sessionKey]?.turns ?? EMPTY_TURNS);
   const addTurn = useAssistantChats((s) => s.addTurn);
   const clearSession = useAssistantChats((s) => s.clear);
@@ -100,7 +100,7 @@ export function useAssistantSession(
     return run(trimmed, activeVersion, history);
   };
 
-  // A fresh conversation per seed: the earlier assistant exchanges would muddy the chat's.
+  // A fresh conversation per opening from the chat (it has its own session, apart from plain new views).
   useEffect(() => {
     if (!seed) return;
     clearSession(sessionKey);

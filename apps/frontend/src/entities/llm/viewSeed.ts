@@ -12,6 +12,9 @@ export interface ViewSeed {
 
 /** Characters kept of the conversation sent to the generator (about 3k tokens). */
 export const HISTORY_BUDGET = 12_000;
+/** Characters kept of one message (a shown view's JSON included). */
+export const MESSAGE_MAX = 3000;
+const VIEW_MAX = 2000;
 
 const INSTRUCTION =
   'Build a view (or dashboard) that gathers what this conversation explored: ' +
@@ -19,7 +22,7 @@ const INSTRUCTION =
 
 /** A view as the generator needs it: its queries (they already worked) and widgets, compact. */
 export const describeView = (spec: ViewSpec): string =>
-  JSON.stringify({ title: spec.title, queries: spec.queries, widgets: spec.widgets });
+  shorten(JSON.stringify({ title: spec.title, queries: spec.queries, widgets: spec.widgets }), VIEW_MAX);
 
 /** The turns of the talk as messages; an answer that showed a view carries its queries and widgets. */
 export function conversationMessages(turns: ChatTurn[]): ChatMessage[] {
@@ -31,27 +34,32 @@ export function conversationMessages(turns: ChatTurn[]): ChatMessage[] {
   });
 }
 
+const NOTE_ROOM = 60;
+const shorten = (text: string, max: number) => (text.length <= max ? text : `${text.slice(0, max - 1)}…`);
 const size = (m: ChatMessage) => m.content.length;
 
 /**
- * Keeps the first message and the most recent ones within `budget` characters;
- * the middle is replaced by a note saying how many were left out.
+ * Fits a conversation in `budget` characters: every message is shortened to
+ * `MESSAGE_MAX`, then the first message and the latest ones are kept (always
+ * the last exchange); the middle becomes a note saying how many were left out.
  */
 export function capHistory(messages: ChatMessage[], budget = HISTORY_BUDGET): ChatMessage[] {
-  if (messages.reduce((n, m) => n + size(m), 0) <= budget) return messages;
-  const head = messages.slice(0, 1);
-  let left = budget - size(head[0]!);
-  let start = messages.length;
-  while (start > head.length && left - size(messages[start - 1]!) >= 0) {
-    left -= size(messages[start - 1]!);
+  const max = Math.min(MESSAGE_MAX, Math.floor(budget / 4));
+  const msgs = messages.map((m) => (size(m) > max ? { ...m, content: shorten(m.content, max) } : m));
+  if (msgs.reduce((n, m) => n + size(m), 0) <= budget || msgs.length <= 3) return msgs;
+  const n = msgs.length;
+  let start = n - 2;
+  let left = budget - NOTE_ROOM - size(msgs[0]!) - size(msgs[n - 2]!) - size(msgs[n - 1]!);
+  while (start > 1 && left - size(msgs[start - 1]!) >= 0) {
+    left -= size(msgs[start - 1]!);
     start--;
   }
   // The tail starts on a user message, as the generator expects.
-  while (start < messages.length && messages[start]!.role !== 'user') start++;
-  const omitted = start - head.length;
-  if (omitted <= 0) return [...head, ...messages.slice(start)];
+  while (start < n - 2 && msgs[start]!.role !== 'user') start++;
+  const omitted = start - 1;
+  if (omitted <= 0) return msgs;
   const note: ChatMessage = { role: 'assistant', content: `(${omitted} earlier message${omitted > 1 ? 's' : ''} omitted)` };
-  return [...head, note, ...messages.slice(start)];
+  return [msgs[0]!, note, ...msgs.slice(start)];
 }
 
 /** The generation input for "Build a view from this conversation": instruction (plus the user's own) and capped history. */

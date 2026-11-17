@@ -144,6 +144,6 @@ export function useColumnController(concept: Concept, { path, slot, itemId, pers
 
   return {
     perspectives, mutations, layout, editorSwitch, rename, pillActions,
-    dialogs, pinning, schema, actions, onSaved, renderWidgetActions, buildFromChat: dialogs.openSeeded,
+    dialogs, pinning, schema, actions, onSaved, renderWidgetActions, openViewAssistant: dialogs.openViewAssistant,
   };
 }

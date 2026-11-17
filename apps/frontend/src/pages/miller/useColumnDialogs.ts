@@ -7,7 +7,8 @@ import type { SavedView, ViewDraft } from '../../entities/view';
 export type ColumnDialog =
   /** `from`: the spec the conversation starts from (edits made in another editor). */
   | { kind: 'assistant'; editing?: SavedView; from?: ViewSpec; seed?: ViewSeed }
-  | { kind: 'json'; draft: ViewDraft }
+  /** `asDashboard`: carried from a seeded assistant, so saving here still adds the dashboard. */
+  | { kind: 'json'; draft: ViewDraft; asDashboard?: boolean }
   | null;
 
 export interface ColumnDialogsState {
@@ -40,8 +41,9 @@ export function useColumnDialogs() {
       openAssistant: (editing?: SavedView, from?: ViewSpec) =>
         dispatch({ type: 'open', dialog: { kind: 'assistant', editing, from } }),
       /** The assistant, starting from the chat's conversation: it generates a new view at once. */
-      openSeeded: (seed: ViewSeed) => dispatch({ type: 'open', dialog: { kind: 'assistant', seed } }),
-      openJson: (draft: ViewDraft) => dispatch({ type: 'open', dialog: { kind: 'json', draft } }),
+      openViewAssistant: (seed: ViewSeed) => dispatch({ type: 'open', dialog: { kind: 'assistant', seed } }),
+      openJson: (draft: ViewDraft, asDashboard?: boolean) =>
+        dispatch({ type: 'open', dialog: { kind: 'json', draft, asDashboard } }),
       close: () => dispatch({ type: 'close' }),
       openSettings: () => dispatch({ type: 'settings', open: true }),
       closeSettings: () => dispatch({ type: 'settings', open: false }),

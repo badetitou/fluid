@@ -129,7 +129,7 @@ export function MillerColumnBody({ concept, column, mode, onToggleFullscreen, on
           <WidgetSidePanel spec={shown} editor={layout} />
         </div>
       ) : (
-        <ColumnStage concept={concept.name} columnKind={columnKind} itemId={itemId} view={shown} bare={presenting} onBuildView={c.buildFromChat}>
+        <ColumnStage concept={concept.name} columnKind={columnKind} itemId={itemId} view={shown} bare={presenting} openViewAssistant={c.openViewAssistant}>
           {body}
         </ColumnStage>
       )}

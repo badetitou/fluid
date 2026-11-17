@@ -15,7 +15,7 @@ interface ColumnStageProps {
   /** Plugins draw nothing over the body (layout editing, presentation): no overlay, no floating button. */
   bare?: boolean;
   /** Opens the column's view assistant pre-filled (the chat's "Build a view"). */
-  onBuildView?: (seed: ViewSeed) => void;
+  openViewAssistant?: (seed: ViewSeed) => void;
   children: ReactNode;
 }
 
@@ -23,7 +23,7 @@ interface ColumnStageProps {
  * The body of a column, with what the enabled plugins draw over it: the
  * column overlays of the view builders, and the floating button of the page actions.
  */
-export function ColumnStage({ concept, columnKind, itemId, view, bare, onBuildView, children }: ColumnStageProps) {
+export function ColumnStage({ concept, columnKind, itemId, view, bare, openViewAssistant, children }: ColumnStageProps) {
   const overlays = useActiveColumnOverlays();
   return (
     <div className={styles.stage}>
@@ -38,7 +38,7 @@ export function ColumnStage({ concept, columnKind, itemId, view, bare, onBuildVi
           columnKind={columnKind}
           itemId={itemId}
           view={view ?? undefined}
-          openViewAssistant={onBuildView}
+          openViewAssistant={openViewAssistant}
         />
       )}
     </div>
