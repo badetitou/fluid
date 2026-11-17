@@ -4,19 +4,12 @@ import type { ViewSpec, Widget } from '@fluid/shared';
 import { useElementWidth } from '../hooks/useElementWidth';
 import { WidgetGrid } from './grid/WidgetGrid';
 import { useViewActions } from './actions/useViewActions';
-import {
-  useOutputsStore,
-  useWriteAccess,
-  ViewActionsContext,
-  ViewActionSpecsContext,
-  ViewOutputsContext,
-} from './plugin-api';
+import { useOutputsStore, useWriteAccess } from './plugin-api';
 import { rowSpans } from './spanLayout';
 import { useViewData } from './useViewData';
+import { ViewContexts } from './ViewContexts';
 import { WidgetCard } from './WidgetCard';
 import styles from './ViewRenderer.module.css';
-
-const NO_ACTIONS = {};
 
 /** Narrowest a widget may get before the grid drops to fewer columns per row. */
 const MIN_WIDGET_WIDTH = 360;
@@ -88,61 +81,57 @@ export function ViewRenderer({
   }
 
   return (
-    <ViewOutputsContext.Provider value={outputs}>
-      <ViewActionSpecsContext.Provider value={spec.actions ?? NO_ACTIONS}>
-        <ViewActionsContext.Provider value={writable ? runAction : null}>
-          <div ref={containerRef} className={view.refreshing ? styles.refreshing : styles.settled} aria-busy={view.refreshing}>
-            {view.error && (
-              <Alert
-                type="warning"
-                showIcon
-                title="Some data could not be loaded"
-                description={view.error.message}
-                className={styles.warning}
+    <ViewContexts spec={spec} outputs={outputs} runAction={writable ? runAction : null}>
+      <div ref={containerRef} className={view.refreshing ? styles.refreshing : styles.settled} aria-busy={view.refreshing}>
+        {view.error && (
+          <Alert
+            type="warning"
+            showIcon
+            title="Some data could not be loaded"
+            description={view.error.message}
+            className={styles.warning}
+          />
+        )}
+        {gridLayout && (spec.widgets.length > 0 || editingLayout) ? (
+          <WidgetGrid
+            widgets={spec.widgets}
+            editing={editingLayout}
+            onChange={onWidgetsChange}
+            selectedId={selectedWidgetId}
+            onSelect={onSelectWidget}
+            stacked={compact}
+            renderWidget={(widget) => (
+              <WidgetCard
+                widget={widget}
+                view={view}
+                renderActions={actions}
+                fill
+                presented={!!present && widget.id === presentedId}
+                onPresent={present}
               />
             )}
-            {gridLayout && (spec.widgets.length > 0 || editingLayout) ? (
-              <WidgetGrid
-                widgets={spec.widgets}
-                editing={editingLayout}
-                onChange={onWidgetsChange}
-                selectedId={selectedWidgetId}
-                onSelect={onSelectWidget}
-                stacked={compact}
-                renderWidget={(widget) => (
-                  <WidgetCard
-                    widget={widget}
-                    view={view}
-                    renderActions={actions}
-                    fill
-                    presented={!!present && widget.id === presentedId}
-                    onPresent={present}
-                  />
-                )}
-              />
-            ) : (
-              <Row gutter={compact ? [8, 8] : [16, 16]}>
-                {spec.widgets.map((widget, i) => (
-                  <Col key={widget.id} span={spans[i]}>
-                    <WidgetCard
-                      widget={widget}
-                      view={view}
-                      renderActions={actions}
-                      presented={!!present && widget.id === presentedId}
-                      onPresent={present}
-                    />
-                  </Col>
-                ))}
-                {spec.widgets.length === 0 && (
-                  <Col span={24}>
-                    <Empty description="This view has no widgets yet." />
-                  </Col>
-                )}
-              </Row>
+          />
+        ) : (
+          <Row gutter={compact ? [8, 8] : [16, 16]}>
+            {spec.widgets.map((widget, i) => (
+              <Col key={widget.id} span={spans[i]}>
+                <WidgetCard
+                  widget={widget}
+                  view={view}
+                  renderActions={actions}
+                  presented={!!present && widget.id === presentedId}
+                  onPresent={present}
+                />
+              </Col>
+            ))}
+            {spec.widgets.length === 0 && (
+              <Col span={24}>
+                <Empty description="This view has no widgets yet." />
+              </Col>
             )}
-          </div>
-        </ViewActionsContext.Provider>
-      </ViewActionSpecsContext.Provider>
-    </ViewOutputsContext.Provider>
+          </Row>
+        )}
+      </div>
+    </ViewContexts>
   );
 }

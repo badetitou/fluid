@@ -22,6 +22,7 @@ import { ButterflyWidget } from './butterfly/ButterflyWidget';
 import { FormWidget } from './form/FormWidget';
 import { SpecPresenterWidget } from './specPresenter/SpecPresenterWidget';
 import { PyramidWidget } from './pyramid/PyramidWidget';
+import { InsightWidget } from './insight/InsightWidget';
 import { LazyModel3dWidget, LazyScene3dWidget } from './model3d/lazy';
 
 type Renderer<T extends CoreWidgetType> = ComponentType<WidgetProps<Extract<CoreWidget, { type: T }>>>;
@@ -76,6 +77,7 @@ export const WIDGET_RENDERERS: { [T in CoreWidgetType]: Renderer<T> } = {
     <SpecPresenterWidget widget={widget} data={data} emit={emit} fitHeight={fitHeight} />
   ),
   pyramid: ({ widget, data, fitHeight }) => <PyramidWidget widget={widget} data={data} fitHeight={fitHeight} />,
+  insight: ({ widget, resolve }) => <InsightWidget widget={widget} resolve={resolve} />,
 };
 
 /** Widget types drawn as charts (or canvases): they size themselves to their cell instead of scrolling. */

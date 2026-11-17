@@ -1,4 +1,4 @@
-import type { DataBinding, QuerySpec, Widget, CoreWidgetType } from '@fluid/shared';
+import { isRecord, type DataBinding, type QuerySpec, type Widget, type CoreWidgetType } from '@fluid/shared';
 import { asRows, resolveBinding } from '../../views/data';
 import { defaultWidget, type SampleFields } from '../../views/widgets/defaults';
 
@@ -13,7 +13,6 @@ export function uniqueWidgetId(type: CoreWidgetType, widgets: Widget[]): string 
   return id;
 }
 
-const isRecord = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 /** Dot paths, in a query result, that lead to lists (what a widget is usually bound to). */
 export function arrayPaths(value: unknown, prefix = '', depth = 4): string[] {

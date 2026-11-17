@@ -82,6 +82,12 @@ mélange deux contributions est refusé. Un plugin peut déclarer des **réglage
   Une collection `fluid-inspectors` (« Inspectors ») apporte le widget `specPresenter`, qui dessine
   un onglet d'inspecteur Pharo servi par Spec-Fluid (tables, arbres, SVG Roassal, texte), ses
   entités ouvrant une colonne et sortant sur `selected`.
+  Une collection `fluid-ai` (« AI ») apporte le widget `insight` : une fois les autres widgets
+  chargés, il envoie ce qu'ils affichent (compacté : lignes échantillonnées, textes coupés) au LLM via
+  `POST /api/llm/analyze-view`, et affiche une analyse structurée (constats chiffrés avec gravité,
+  questions à creuser) validée par zod, ou « Hello :) » s'il n'y a rien de plus à dire. Le moteur ne
+  connaît que `InsightAnalyzerContext` (rempli par l'app avec les réglages LLM) et `RenderedViewContext`
+  (la vue rendue) ; `sources` restreint les widgets lus, `focus` donne l'angle.
   Les types intégrés n'ont **pas** de préfixe (`scatter`, `network`) : le `/` est réservé aux
   widgets de plugins (`<pluginId>/<nom>`), c'est lui qui distingue un type intégré d'un type externe.
   Un renderer intégré dont les dépendances sont lourdes est chargé à la demande (`lazy.tsx` :
