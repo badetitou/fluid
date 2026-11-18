@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { chmodSync, existsSync, linkSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import type { StorageMode } from '../storage/mode';
 
 // AES-256-GCM envelope for source secrets: "v1:<iv>:<tag>:<ciphertext>" (base64url parts).
@@ -62,12 +62,32 @@ export function createKeyProvider(env: Record<string, string | undefined>, mode:
       throw new SecretKeyError('FLUID_SECRET_KEY is required to store source secrets when DATABASE_URL is set');
     }
     if (mode.dataDir.startsWith('memory://')) return (cached = randomBytes(KEY_BYTES));
-    const file = join(mode.dataDir, KEY_FILE);
-    if (!existsSync(file)) {
-      mkdirSync(mode.dataDir, { recursive: true });
-      writeFileSync(file, randomBytes(KEY_BYTES).toString('base64'), { mode: 0o600, flag: 'wx' });
-    }
-    chmodSync(file, 0o600);
-    return (cached = parseSecretKey(readFileSync(file, 'utf8')));
+    return (cached = loadOrCreateKeyFile(join(mode.dataDir, KEY_FILE)));
   };
+}
+
+/**
+ * Reads the key file, creating it first if missing. The key is written to a private temp file and
+ * hard-linked into place, which fails (EEXIST) instead of overwriting when another process or call
+ * won the race; a crash can then never leave a partial key at the final path.
+ */
+function loadOrCreateKeyFile(file: string): Buffer {
+  if (!existsSync(file)) {
+    mkdirSync(dirname(file), { recursive: true });
+    const tmp = `${file}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`;
+    writeFileSync(tmp, randomBytes(KEY_BYTES).toString('base64'), { mode: 0o600, flag: 'wx' });
+    try {
+      linkSync(tmp, file);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
+    } finally {
+      unlinkSync(tmp);
+    }
+  }
+  chmodSync(file, 0o600);
+  try {
+    return parseSecretKey(readFileSync(file, 'utf8'));
+  } catch {
+    throw new SecretKeyError(`Secret key file ${file} is invalid: it must hold 32 bytes as base64 or hex`);
+  }
 }

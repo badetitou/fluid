@@ -152,6 +152,11 @@ The BFF stores views and preferences in one of two ways:
   pnpm --filter @fluid/bff prisma:migrate
   ```
 
+Secrets of configured sources (API keys, tokens) are stored encrypted (AES-256-GCM) with
+`FLUID_SECRET_KEY`: 32 bytes, as 64 hex characters or base64 (`openssl rand -base64 32`). It is
+required to store secrets when `DATABASE_URL` is set. In embedded mode it is generated once into
+`<data dir>/secret.key` (mode 0600). Losing the key makes the stored secrets unreadable.
+
 ### Useful commands
 
 | Command | What it does |

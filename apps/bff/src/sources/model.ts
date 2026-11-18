@@ -15,13 +15,32 @@ const httpUrl = z
     }
   }, 'url must be an absolute http(s) URL');
 
+// Protocol and hop-by-hop headers the proxy controls itself (or that fetch forbids).
+const RESERVED_HEADERS = new Set([
+  'content-type',
+  'content-length',
+  'host',
+  'accept',
+  'transfer-encoding',
+  'connection',
+  'keep-alive',
+  'upgrade',
+  'te',
+  'trailer',
+  'expect',
+  'cookie',
+]);
+export const isReservedHeader = (name: string) =>
+  RESERVED_HEADERS.has(name.toLowerCase()) || name.toLowerCase().startsWith('proxy-');
+
 // RFC 9110 token characters only, so a header name can never carry CR/LF or separators.
 const headerName = z
   .string()
   .trim()
   .min(1)
   .max(100)
-  .regex(/^[A-Za-z0-9-]+$/, 'invalid header name');
+  .regex(/^[A-Za-z0-9-]+$/, 'invalid header name')
+  .refine((v) => !isReservedHeader(v), 'this header name is reserved');
 const secret = z
   .string()
   .min(1)

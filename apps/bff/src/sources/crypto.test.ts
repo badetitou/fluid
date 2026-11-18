@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, statSync } from 'node:fs';
+import { mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -44,6 +44,16 @@ describe('createKeyProvider', () => {
     const first = createKeyProvider({}, mode)();
     expect(statSync(join(dir, 'secret.key')).mode & 0o777).toBe(0o600);
     expect(createKeyProvider({}, mode)().equals(first)).toBe(true);
+  });
+  it('reuses an existing key file, leaves no temp file, and names the file when it is invalid', () => {
+    const mode = { kind: 'pglite', dataDir: dir } as const;
+    const file = join(dir, 'secret.key');
+    writeFileSync(file, 'ef'.repeat(32), { mode: 0o644 });
+    expect(createKeyProvider({}, mode)().toString('hex')).toBe('ef'.repeat(32));
+    expect(statSync(file).mode & 0o777).toBe(0o600);
+    expect(readdirSync(dir)).toEqual(['secret.key']);
+    writeFileSync(file, 'garbage');
+    expect(() => createKeyProvider({}, mode)()).toThrow(file);
   });
   it('fails clearly with DATABASE_URL and no key, and on an invalid key', () => {
     expect(() => createKeyProvider({}, { kind: 'postgres', url: 'postgresql://h/d' })()).toThrow(

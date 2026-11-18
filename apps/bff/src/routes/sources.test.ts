@@ -178,6 +178,27 @@ describe('source routes', () => {
     expect(otherHits[1].authorization).toBe('Bearer new-secret');
   });
 
+  it('rejects a non-http url on update and leaves the source unchanged', async () => {
+    const { id } = await create();
+    const res = await app.inject({ method: 'PUT', url: `/api/sources/${id}`, payload: { url: 'file:///etc/passwd' } });
+    expect(res.statusCode).toBe(400);
+    expect((await app.inject({ url: `/api/sources/${id}` })).json()).toMatchObject({ url: stubUrl });
+  });
+
+  it('sends exactly { query } when no variables or operationName are given', async () => {
+    const { id } = await create();
+    await run(id, { query: '{ ok }' });
+    expect(seen[0].body).toStrictEqual({ query: '{ ok }' });
+  });
+
+  it('stores a header name only for kind header', async () => {
+    const { id } = await create({ headerName: 'X-Api-Key' });
+    const none = await app.inject({ method: 'PUT', url: `/api/sources/${id}`, payload: { authKind: 'none' } });
+    expect(none.json()).toMatchObject({ authKind: 'none', headerName: null, hasSecret: false });
+    const created = await create({ authKind: 'none', headerName: 'X-Api-Key', secret: undefined });
+    expect((await app.inject({ url: `/api/sources/${created.id}` })).json().headerName).toBeNull();
+  });
+
   it('answers 413 above the request body limit', async () => {
     const { id } = await create();
     const res = await run(id, { query: 'x'.repeat(1024 * 1024 + 1) });

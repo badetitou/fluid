@@ -32,4 +32,10 @@ describe('source model', () => {
     expect(createSourceBody.safeParse({ name: 'a', url: 'https://x', secret: 'a\nb' }).success).toBe(false);
     expect(updateSourceBody.safeParse({}).success).toBe(false);
   });
+  it('rejects reserved header names, case-insensitively', () => {
+    for (const h of ['Content-Type', 'ACCEPT', 'host', 'Content-Length', 'Transfer-Encoding', 'Connection', 'Keep-Alive', 'Upgrade', 'TE', 'Trailer', 'Proxy-Authorization']) {
+      expect(createSourceBody.safeParse({ name: 'a', url: 'https://x', headerName: h }).success, h).toBe(false);
+    }
+    expect(createSourceBody.safeParse({ name: 'a', url: 'https://x', headerName: 'X-Api-Key' }).success).toBe(true);
+  });
 });

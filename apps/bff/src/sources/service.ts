@@ -47,7 +47,7 @@ export function createSourceService(
         name: input.name,
         url: input.url,
         authKind: input.authKind,
-        headerName: input.headerName ?? null,
+        headerName: input.authKind === 'header' ? (input.headerName ?? null) : null,
         secret: input.authKind === 'header' ? secret : null,
       });
       return toPublicSource(record);
@@ -66,7 +66,7 @@ export function createSourceService(
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.url !== undefined ? { url: input.url } : {}),
         authKind,
-        ...(input.headerName !== undefined ? { headerName: input.headerName } : {}),
+        headerName: authKind === 'header' ? (input.headerName ?? current.headerName) : null,
         secret,
       });
       return record ? toPublicSource(record) : null;

@@ -13,6 +13,18 @@ const gatewayError = (status: number, message: string): ProxyResult => ({
   body: { errors: [{ message }] },
 });
 
+const isTimeout = (err: unknown) => err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
+const failure = (err: unknown): ProxyResult =>
+  isTimeout(err) ? gatewayError(504, 'Source timed out') : gatewayError(502, 'Source is unreachable');
+
+/** Configured headers, then the protocol ones set over them (names compare case-insensitively). */
+function protocolHeaders(configured: Record<string, string>): Headers {
+  const h = new Headers(configured);
+  h.set('content-type', 'application/json');
+  h.set('accept', 'application/json');
+  return h;
+}
+
 /** Reads at most `max` bytes of the body; null when it is larger. */
 async function readCapped(res: Response, max: number): Promise<string | null> {
   if (!res.body) return '';
@@ -51,7 +63,8 @@ export async function forwardGraphql(
       method: 'POST',
       redirect: 'error',
       signal: AbortSignal.timeout(timeoutMs),
-      headers: { 'content-type': 'application/json', accept: 'application/json', ...headers },
+      // Protocol headers last: a configured header can never override them.
+      headers: protocolHeaders(headers),
       body: JSON.stringify({
         query: body.query,
         ...(body.variables ? { variables: body.variables } : {}),
@@ -59,13 +72,16 @@ export async function forwardGraphql(
       }),
     });
   } catch (err) {
-    const timedOut = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
-    return timedOut ? gatewayError(504, 'Source timed out') : gatewayError(502, 'Source is unreachable');
+    return failure(err);
   }
 
-  const text = await readCapped(res, maxBytes).catch(() => undefined);
+  let text: string | null;
+  try {
+    text = await readCapped(res, maxBytes);
+  } catch (err) {
+    return failure(err);
+  }
   if (text === null) return gatewayError(502, 'Source response is too large');
-  if (text === undefined) return gatewayError(502, 'Source response could not be read');
 
   let json: unknown;
   try {
