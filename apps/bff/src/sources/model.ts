@@ -1,19 +1,10 @@
 import { z } from 'zod';
+import { httpUrl } from './url';
+import { oauthFields, toPublicOAuth, type CredentialRecord, type OAuthRecordFields } from './oauth/model';
 
 // Pure logic for source configs: request/response schemas and the outgoing auth header.
 
 export const DEFAULT_HEADER = 'Authorization';
-
-const httpUrl = z
-  .string()
-  .trim()
-  .refine((v) => {
-    try {
-      return ['http:', 'https:'].includes(new URL(v).protocol);
-    } catch {
-      return false;
-    }
-  }, 'url must be an absolute http(s) URL');
 
 // Protocol and hop-by-hop headers the proxy controls itself (or that fetch forbids).
 const RESERVED_HEADERS = new Set([
@@ -48,13 +39,29 @@ const secret = z
   .regex(/^[^\r\n\0]+$/, 'secret must be a single line');
 const name = z.string().trim().min(1).max(200);
 
-export const createSourceBody = z.object({
-  name,
-  url: httpUrl,
-  authKind: z.enum(['none', 'header']).default('none'),
-  headerName: headerName.optional(),
-  secret: secret.optional(),
-});
+const AUTH_KINDS = ['none', 'header', 'oauth'] as const;
+
+export const createSourceBody = z
+  .object({
+    name,
+    url: httpUrl,
+    authKind: z.enum(AUTH_KINDS).default('none'),
+    headerName: headerName.optional(),
+    secret: secret.optional(),
+    oauth: z
+      .object({
+        issuer: oauthFields.issuer,
+        clientId: oauthFields.clientId,
+        clientSecret: oauthFields.clientSecret.optional(),
+        scopes: oauthFields.scopes.default([]),
+        resource: oauthFields.resource.optional(),
+      })
+      .optional(),
+  })
+  .refine((v) => v.authKind !== 'oauth' || v.oauth !== undefined, {
+    path: ['oauth'],
+    message: 'oauth settings (issuer, clientId) are required for authKind "oauth"',
+  });
 export type CreateSourceBody = z.infer<typeof createSourceBody>;
 
 /** PUT semantics for the secret: omitted = keep, `null` = remove, string = replace. */
@@ -62,9 +69,19 @@ export const updateSourceBody = z
   .object({
     name,
     url: httpUrl,
-    authKind: z.enum(['none', 'header']),
+    authKind: z.enum(AUTH_KINDS),
     headerName: headerName.nullish(),
     secret: secret.nullish(),
+    /** Fields left out keep their value; `clientSecret` / `resource` accept null to clear. */
+    oauth: z
+      .object({
+        issuer: oauthFields.issuer,
+        clientId: oauthFields.clientId,
+        clientSecret: oauthFields.clientSecret.nullable(),
+        scopes: oauthFields.scopes,
+        resource: oauthFields.resource.nullable(),
+      })
+      .partial(),
   })
   .partial()
   .refine((v) => Object.keys(v).length > 0, 'Provide at least one field');
@@ -84,19 +101,20 @@ export const upstreamEnvelope = z.looseObject({
 });
 export type UpstreamEnvelope = z.infer<typeof upstreamEnvelope>;
 
-export interface SourceRecord {
+export interface SourceRecord extends OAuthRecordFields {
   id: string;
   name: string;
   url: string;
   authKind: string;
   headerName: string | null;
   secret: string | null;
+  authGeneration: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
 /** What the API returns: never the secret, only whether one is stored. */
-export function toPublicSource(r: SourceRecord) {
+export function toPublicSource(r: SourceRecord, credential: CredentialRecord | null = null) {
   return {
     id: r.id,
     name: r.name,
@@ -104,6 +122,7 @@ export function toPublicSource(r: SourceRecord) {
     authKind: r.authKind,
     headerName: r.headerName ?? (r.authKind === 'header' ? DEFAULT_HEADER : null),
     hasSecret: r.secret !== null,
+    oauth: r.authKind === 'oauth' ? toPublicOAuth(r, credential) : null,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
   };

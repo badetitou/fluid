@@ -1,3 +1,4 @@
+import { envHostCheck, type HostCheck } from './host-policy';
 import { upstreamEnvelope, type GraphqlBody, type UpstreamEnvelope } from './model';
 
 export const UPSTREAM_TIMEOUT_MS = 30_000;
@@ -6,12 +7,19 @@ export const MAX_UPSTREAM_BYTES = 10 * 1024 * 1024;
 export interface ProxyResult {
   status: number;
   body: UpstreamEnvelope;
+  /** The upstream `WWW-Authenticate` header, when it sent one (OAuth sources read it). */
+  wwwAuthenticate?: string;
 }
 
 const gatewayError = (status: number, message: string): ProxyResult => ({
   status,
   body: { errors: [{ message }] },
 });
+
+const withChallenge = (result: ProxyResult, res: Response): ProxyResult => {
+  const challenge = res.headers.get('www-authenticate');
+  return challenge ? { ...result, wwwAuthenticate: challenge } : result;
+};
 
 const isTimeout = (err: unknown) => err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
 const failure = (err: unknown): ProxyResult =>
@@ -26,7 +34,7 @@ function protocolHeaders(configured: Record<string, string>): Headers {
 }
 
 /** Reads at most `max` bytes of the body; null when it is larger. */
-async function readCapped(res: Response, max: number): Promise<string | null> {
+export async function readCapped(res: Response, max: number): Promise<string | null> {
   if (!res.body) return '';
   const reader = res.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -54,10 +62,15 @@ export async function forwardGraphql(
   url: string,
   headers: Record<string, string>,
   body: GraphqlBody,
-  opts: { timeoutMs?: number; maxBytes?: number; fetchImpl?: typeof fetch } = {},
+  opts: { timeoutMs?: number; maxBytes?: number; fetchImpl?: typeof fetch; hostCheck?: HostCheck } = {},
 ): Promise<ProxyResult> {
   const { timeoutMs = UPSTREAM_TIMEOUT_MS, maxBytes = MAX_UPSTREAM_BYTES, fetchImpl = fetch } = opts;
   let res: Response;
+  try {
+    await (opts.hostCheck ?? envHostCheck())(new URL(url));
+  } catch {
+    return gatewayError(502, 'Source host is not allowed');
+  }
   try {
     res = await fetchImpl(url, {
       method: 'POST',
@@ -91,9 +104,9 @@ export async function forwardGraphql(
   }
   const envelope = upstreamEnvelope.safeParse(json);
   if (envelope.success && (envelope.data.data !== undefined || envelope.data.errors !== undefined)) {
-    return { status: res.status, body: envelope.data };
+    return withChallenge({ status: res.status, body: envelope.data }, res);
   }
   return res.ok
     ? gatewayError(502, 'Source did not return a GraphQL response')
-    : gatewayError(res.status, `Source responded with HTTP ${res.status}`);
+    : withChallenge(gatewayError(res.status, `Source responded with HTTP ${res.status}`), res);
 }
