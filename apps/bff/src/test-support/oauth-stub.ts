@@ -190,6 +190,8 @@ export async function createStubResource(asIssuer: () => string) {
   const state = {
     mode: 'ok' as ResourceMode,
     seen: [] as (string | undefined)[],
+    /** Parsed JSON bodies the resource received. */
+    bodies: [] as unknown[],
     url: '',
     /** Overrides of the protected resource metadata URL (header) and `resource` (document). */
     prmUrl: null as string | null,
@@ -201,7 +203,12 @@ export async function createStubResource(asIssuer: () => string) {
         JSON.stringify({ resource: state.prmResource ?? state.url, authorization_servers: [asIssuer()], scopes_supported: ['read'] }),
       );
     }
-    await readBody(req);
+    const raw = await readBody(req);
+    try {
+      state.bodies.push(JSON.parse(String(raw)));
+    } catch {
+      state.bodies.push(raw);
+    }
     state.seen.push(req.headers.authorization);
     const json = { 'content-type': 'application/json' };
     if (state.mode === 'unauthorized') {

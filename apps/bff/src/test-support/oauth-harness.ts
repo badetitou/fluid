@@ -10,6 +10,9 @@ import { logSerializers } from '../log';
 import { oauthRoutes } from '../routes/oauth';
 import { CLIENT_ID, CLIENT_SECRET, createStubAs, createStubResource } from './oauth-stub';
 import { sourceRoutes } from '../routes/sources';
+import { viewRunRoutes } from '../routes/view-run';
+import { createViewReader } from '../views/repository';
+import { createViewRunService } from '../views/run-service';
 
 // Test support: the real routes and services over in-memory PGlite, with stub servers.
 
@@ -40,6 +43,7 @@ export async function startHarness({ publicUrl, hostCheck }: HarnessOptions = {}
   });
   await app.register(sourceRoutes, { service });
   await app.register(oauthRoutes, { oauth, publicUrl });
+  await app.register(viewRunRoutes, { service: createViewRunService(createViewReader(storage.prisma), service) });
   await app.ready();
 
   const createSource = async (over: { oauth?: object; url?: string } = {}) => {
@@ -98,6 +102,7 @@ export async function startHarness({ publicUrl, hostCheck }: HarnessOptions = {}
       resource.state.prmUrl = null;
       resource.state.prmResource = null;
       resource.state.seen = [];
+      resource.state.bodies = [];
       logs.length = 0;
       clock.t += 3600_000; // expires the discovery cache
     },
