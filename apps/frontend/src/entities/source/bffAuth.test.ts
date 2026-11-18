@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BffSourceConfig } from '../../bff/sourcesApi';
-import { authFormError, authFormKey, authFormOf, authPatch, bffSourceName } from './bffAuth';
+import { authFormError, authFormKey, authFormOf, authPatch, bffSourceName, createAuth } from './bffAuth';
 import { oauthFormOf } from './oauthForm';
 
 const config = (over: Partial<BffSourceConfig>): BffSourceConfig => ({
@@ -47,13 +47,19 @@ describe('auth form', () => {
     });
   });
 
-  it('pre-fills OAuth from the plugin of a source that has no auth yet, but not over a stored choice', () => {
+  it('creates a config with the OAuth settings the plugin ships (no secret), else with no auth', () => {
     const suggested = { kind: 'oauth' as const, issuer: 'https://as.example.com', clientId: 'fluid', scopes: ['read'] };
-    const fresh = authFormOf(config({}), suggested);
-    expect(fresh.authKind).toBe('oauth');
-    expect(fresh.oauth).toMatchObject({ issuer: 'https://as.example.com', clientId: 'fluid', scopes: 'read', clientSecret: '' });
-    expect(authFormOf(config({ authKind: 'header', headerName: 'X' }), suggested).authKind).toBe('header');
-    expect(authFormOf(config({}), undefined).authKind).toBe('none');
+    expect(createAuth(suggested)).toEqual({
+      authKind: 'oauth',
+      oauth: { issuer: 'https://as.example.com', clientId: 'fluid', scopes: ['read'] },
+    });
+    expect(createAuth({ ...suggested, scopes: undefined, resource: 'https://api' }).oauth).toEqual({
+      issuer: 'https://as.example.com',
+      clientId: 'fluid',
+      scopes: [],
+      resource: 'https://api',
+    });
+    expect(createAuth(undefined)).toEqual({ authKind: 'none' });
   });
 
   it('removes header and secret when auth is none', () => {

@@ -20,12 +20,11 @@ const page = (element: React.ReactNode) => <Suspense fallback={<Skeleton active 
 export function App() {
   // The BFF's proxy URL for a source routed through it, else the source's own URL.
   const endpoint = useGraphqlEndpoint();
-  // A new `epoch` (the user signed in again) rebuilds the client, so the queries that failed run anew.
-  const { exchange, epoch } = useSourceAuthClient();
+  // The exchange is a new one when the user signed in again or out: the client is rebuilt, the queries run anew.
+  const authExchange = useSourceAuthClient();
   const client = useMemo(
-    () => (endpoint ? createGraphQLClient(endpoint, exchange ? [exchange] : []) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [endpoint, exchange, epoch],
+    () => (endpoint ? createGraphQLClient(endpoint, authExchange ? [authExchange] : []) : null),
+    [endpoint, authExchange],
   );
   const { writable } = useSourceWrites();
   const analyzeView = useLlmInsightAnalyzer();

@@ -1,4 +1,4 @@
-import type { BffSourceConfig, UpdateBffSource } from '../../bff/sourcesApi';
+import type { BffSourceConfig, CreateBffSource, UpdateBffSource } from '../../bff/sourcesApi';
 import type { SourceAuth } from '../plugin';
 import { oauthFormError, oauthFormOf, oauthPatch, type OAuthForm } from './oauthForm';
 
@@ -13,16 +13,30 @@ export interface AuthForm {
   oauth: OAuthForm;
 }
 
-/**
- * The form's starting point, from the stored config (never holds a secret). A source not
- * authenticated yet whose plugin ships OAuth settings starts on OAuth with those filled in.
- */
-export const authFormOf = (config: BffSourceConfig | null, suggested?: SourceAuth): AuthForm => ({
-  authKind: !config || config.authKind === 'none' ? (suggested ? 'oauth' : 'none') : config.authKind,
+/** The form's starting point, from the stored config (never holds a secret). */
+export const authFormOf = (config: BffSourceConfig | null): AuthForm => ({
+  authKind: config?.authKind ?? 'none',
   headerName: config?.headerName ?? DEFAULT_AUTH_HEADER,
   secret: '',
-  oauth: oauthFormOf(config, suggested),
+  oauth: oauthFormOf(config),
 });
+
+/**
+ * The auth a new BFF config starts with: none, or the OAuth settings (no secret) the source's
+ * plugin ships. Only a config created now gets them: one the user saved as "none" stays so.
+ */
+export const createAuth = (suggested?: SourceAuth): Pick<CreateBffSource, 'authKind' | 'oauth'> =>
+  suggested
+    ? {
+        authKind: 'oauth',
+        oauth: {
+          issuer: suggested.issuer,
+          clientId: suggested.clientId,
+          scopes: suggested.scopes ?? [],
+          ...(suggested.resource ? { resource: suggested.resource } : {}),
+        },
+      }
+    : { authKind: 'none' };
 
 /** Changes whenever the stored settings do, so the form starts over from them (not on a sign-in). */
 export const authFormKey = (config: BffSourceConfig): string =>

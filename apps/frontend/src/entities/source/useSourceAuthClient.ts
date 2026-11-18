@@ -11,26 +11,29 @@ export function useCurrentBffSourceId(): string | undefined {
   return useSavedSources((s) => (url ? s.saved.find((x) => x.url === url)?.bffSourceId : undefined));
 }
 
-/** Watches the answers of a source for the BFF's "sign in again" error, and tells the store. */
-const authRequiredExchange = (sourceId: string): Exchange =>
+/**
+ * Watches the answers of a source for the BFF's "sign in again" error, and tells the store.
+ * An answer that reaches an exchange of an older epoch (the user signed in since) is ignored.
+ */
+export const authRequiredExchange = (sourceId: string, epoch: number): Exchange =>
   mapExchange({
     onResult(result) {
-      const auth = authRequiredOf(result.error?.graphQLErrors);
       const store = useAuthRequired.getState();
-      if (auth) store.report(sourceId, auth);
-      else if (result.data) store.clear(sourceId);
+      if ((store.epoch[sourceId] ?? 0) !== epoch) return result;
+      const auth = authRequiredOf(result.error?.graphQLErrors);
+      if (auth) store.report(sourceId, auth, String(result.operation.key));
+      else if (result.data) store.succeeded(sourceId, String(result.operation.key));
       return result;
     },
   });
 
 /**
- * What the GraphQL client of the connected source needs to ask for a reconnection: an exchange
- * (only for a source routed through the BFF) and a counter that changes when the user signed in
- * again, so that the client is rebuilt and the queries run anew.
+ * The exchange the GraphQL client of the connected source needs to ask for a reconnection
+ * (`null` unless it is routed through the BFF). It is a new one each time the user signed in
+ * again or out, so that the client built with it is new too and the queries run anew.
  */
-export function useSourceAuthClient(): { exchange: Exchange | null; epoch: number } {
+export function useSourceAuthClient(): Exchange | null {
   const id = useCurrentBffSourceId();
   const epoch = useAuthRequired((s) => (id ? (s.epoch[id] ?? 0) : 0));
-  const exchange = useMemo(() => (id ? authRequiredExchange(id) : null), [id]);
-  return { exchange, epoch };
+  return useMemo(() => (id ? authRequiredExchange(id, epoch) : null), [id, epoch]);
 }

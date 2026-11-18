@@ -1,5 +1,4 @@
 import type { BffSourceConfig, OAuthDiscovery, UpdateBffSource } from '../../bff/sourcesApi';
-import type { SourceAuth } from '../plugin';
 
 /** The OAuth part of the source settings form; the client secret is typed here only until it is sent. */
 export interface OAuthForm {
@@ -14,27 +13,28 @@ export interface OAuthForm {
 
 export const splitScopes = (scopes: string): string[] => scopes.split(/\s+/).filter(Boolean);
 
-/** The form's starting point: the stored settings, else what the source's plugin suggests, else empty. */
-export function oauthFormOf(config: BffSourceConfig | null, suggested?: SourceAuth): OAuthForm {
+/** The form's starting point: the stored OAuth settings, else empty. */
+export function oauthFormOf(config: BffSourceConfig | null): OAuthForm {
   const stored = config?.authKind === 'oauth' ? config.oauth : null;
-  const from = stored ?? suggested;
   return {
-    issuer: from?.issuer ?? '',
-    clientId: from?.clientId ?? '',
+    issuer: stored?.issuer ?? '',
+    clientId: stored?.clientId ?? '',
     clientSecret: '',
-    scopes: (from?.scopes ?? []).join(' '),
-    resource: from?.resource ?? '',
+    scopes: (stored?.scopes ?? []).join(' '),
+    resource: stored?.resource ?? '',
   };
 }
 
-/** Fills issuer, scopes and resource from the source's discovery; what it did not find is left as typed. */
-export function applyDiscovery(form: OAuthForm, discovery: OAuthDiscovery): OAuthForm {
+/**
+ * The fields the source's discovery found (issuer, scopes, resource), to merge into the form as it is
+ * when the answer comes: what it did not find, and every other field, is left alone.
+ */
+export function discoveryPatch(discovery: OAuthDiscovery): Partial<OAuthForm> {
   const { issuer, scopes, resource } = discovery.suggestion;
   return {
-    ...form,
-    issuer: issuer ?? form.issuer,
-    scopes: scopes.length ? scopes.join(' ') : form.scopes,
-    resource: resource ?? form.resource,
+    ...(issuer ? { issuer } : {}),
+    ...(scopes.length ? { scopes: scopes.join(' ') } : {}),
+    ...(resource ? { resource } : {}),
   };
 }
 

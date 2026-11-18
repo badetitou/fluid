@@ -1,5 +1,6 @@
+import { useRef } from 'react';
 import { Alert, Button, Input, Space, Tag, Typography } from 'antd';
-import { applyDiscovery, useOAuthDiscovery, type OAuthForm } from '../../entities/source';
+import { discoveryPatch, useOAuthDiscovery, type OAuthForm } from '../../entities/source';
 import styles from './SourceSwitcher.module.css';
 
 interface OAuthFieldsProps {
@@ -15,9 +16,13 @@ interface OAuthFieldsProps {
 /** The OAuth settings of a source: issuer, client, write-only client secret, scopes, resource, and "Discover". */
 export function OAuthFields({ value, onChange, sourceUrl, hasClientSecret, busy, onRemoveClientSecret }: OAuthFieldsProps) {
   const discovery = useOAuthDiscovery();
+  const current = useRef(sourceUrl);
+  current.current = sourceUrl;
   const discover = async () => {
-    const found = await discovery.discover(sourceUrl, value.issuer);
-    if (found) onChange(applyDiscovery(value, found));
+    const asked = sourceUrl;
+    const found = await discovery.discover(asked, value.issuer);
+    // Only the discovered fields, merged into the form as it is now; nothing for another source.
+    if (found && current.current === asked) onChange(discoveryPatch(found));
   };
 
   return (

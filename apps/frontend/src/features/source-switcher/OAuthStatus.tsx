@@ -6,14 +6,16 @@ import styles from './SourceSwitcher.module.css';
 interface OAuthStatusProps {
   config: BffSourceConfig;
   busy: boolean;
-  /** Called once the popup sign-in succeeded (reads the config again). */
-  onSignedIn: () => void;
+  /** Called once the popup sign-in succeeded. */
+  onSignedIn: (sourceId: string) => void;
+  /** Called when the popup went away without a word: the sign-in may have worked, look again. */
+  onClosed: () => void;
   onSignOut: () => Promise<boolean>;
 }
 
 /** Whether the user is signed in to the source (expiry, granted scopes), with "Sign in" and "Sign out". */
-export function OAuthStatus({ config, busy, onSignedIn, onSignOut }: OAuthStatusProps) {
-  const { status, start } = useOAuthSignIn(config.id, onSignedIn);
+export function OAuthStatus({ config, busy, onSignedIn, onClosed, onSignOut }: OAuthStatusProps) {
+  const { status, start } = useOAuthSignIn(config.id, onSignedIn, onClosed);
   const oauth = config.oauth;
   if (config.authKind !== 'oauth' || !oauth) return null;
   const hint = signInHint(status);

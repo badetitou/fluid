@@ -17,7 +17,7 @@ export function useReconnect(): Reconnect {
   const id = useCurrentBffSourceId();
   const required = useAuthRequired((s) => (id ? (s.required[id] ?? null) : null));
   const reconnected = useAuthRequired((s) => s.reconnected);
-  const { status, start } = useOAuthSignIn(id, () => id && reconnected(id));
+  const { status, start } = useOAuthSignIn(id, reconnected);
   const reconnect = useCallback(
     () => start(required?.reason === 'insufficient_scope' ? required.scope : undefined),
     [start, required],

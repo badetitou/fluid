@@ -1,24 +1,27 @@
 import { useState } from 'react';
 import { Button, Input, Radio, Space, Tag, Typography } from 'antd';
 import { authFormError, authFormOf, type AuthForm, type BffSourceConfig, type OAuthForm } from '../../entities/source';
-import type { SourceAuth } from '../../entities/plugin';
 import { OAuthFields } from './OAuthFields';
 import styles from './SourceSwitcher.module.css';
 
 interface BffAuthFormProps {
   config: BffSourceConfig;
   busy: boolean;
-  /** OAuth settings the source's plugin ships: the form starts from them when the source has no auth yet. */
-  suggested?: SourceAuth;
   onSave: (form: AuthForm) => Promise<boolean>;
   onRemoveSecret: () => Promise<boolean>;
   onRemoveClientSecret: () => Promise<boolean>;
 }
 
 /** How the BFF authenticates to the source: none, a header with a write-only secret, or OAuth. */
-export function BffAuthForm({ config, busy, suggested, onSave, onRemoveSecret, onRemoveClientSecret }: BffAuthFormProps) {
-  const [form, setForm] = useState<AuthForm>(authFormOf(config, suggested));
-  const change = (patch: Partial<AuthForm>) => setForm((f) => ({ ...f, ...patch }));
+export function BffAuthForm({ config, busy, onSave, onRemoveSecret, onRemoveClientSecret }: BffAuthFormProps) {
+  const [form, setForm] = useState<AuthForm>(authFormOf(config));
+  // A typed client secret does not stay in the form once OAuth is left.
+  const change = (patch: Partial<AuthForm>) =>
+    setForm((f) => ({
+      ...f,
+      ...patch,
+      ...(patch.authKind && patch.authKind !== 'oauth' ? { oauth: { ...f.oauth, clientSecret: '' } } : {}),
+    }));
   const changeOAuth = (patch: Partial<OAuthForm>) => setForm((f) => ({ ...f, oauth: { ...f.oauth, ...patch } }));
   const invalid = authFormError(form);
 

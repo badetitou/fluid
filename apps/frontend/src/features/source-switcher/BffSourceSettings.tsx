@@ -7,7 +7,7 @@ import styles from './SourceSwitcher.module.css';
 /** "Via the BFF" for the connected source: its requests go through the BFF, which can hold an API key. */
 export function BffSourceSettings() {
   const { current, currentName, currentAuth } = useSources();
-  const bff = useBffSourceConfig(current ?? '', currentName);
+  const bff = useBffSourceConfig(current ?? '', currentName, currentAuth);
   // Only turning it on needs a BFF: a routed source can always go back to a direct connection.
   const disabled = !current || (!bff.routed && bff.available !== true);
   const unreachable = bff.available === false;
@@ -40,14 +40,19 @@ export function BffSourceSettings() {
           key={authFormKey(bff.config)}
           config={bff.config}
           busy={bff.busy}
-          suggested={currentAuth}
           onSave={bff.save}
           onRemoveSecret={bff.removeSecret}
           onRemoveClientSecret={bff.removeClientSecret}
         />
       )}
       {bff.routed && bff.config && (
-        <OAuthStatus config={bff.config} busy={bff.busy} onSignedIn={() => void bff.refresh()} onSignOut={bff.signOut} />
+        <OAuthStatus
+          config={bff.config}
+          busy={bff.busy}
+          onSignedIn={(id) => void bff.signedIn(id)}
+          onClosed={() => void bff.refresh()}
+          onSignOut={bff.signOut}
+        />
       )}
     </div>
   );

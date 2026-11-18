@@ -120,16 +120,47 @@ describe('useBffSourceConfig', () => {
     const signedIn = config({ authKind: 'oauth' });
     api.get.mockResolvedValue(signedIn);
     api.signOut.mockResolvedValue(undefined);
-    useAuthRequired.setState({ required: { src1: { reason: 'expired' } }, epoch: {} });
+    useAuthRequired.setState({ required: { src1: { reason: 'expired' } }, failing: {}, epoch: {} });
     const { result } = renderHook(() => useBffSourceConfig(URL_));
     await waitFor(() => expect(result.current.config?.id).toBe('src1'));
 
     await act(() => result.current.signOut());
     expect(api.signOut).toHaveBeenCalledWith('src1');
 
-    await act(() => result.current.refresh());
-    expect(useAuthRequired.getState().required).toEqual({});
     expect(useAuthRequired.getState().epoch).toEqual({ src1: 1 });
+
+    await act(() => result.current.signedIn('src1'));
+    expect(useAuthRequired.getState().required).toEqual({});
+    expect(useAuthRequired.getState().epoch).toEqual({ src1: 2 });
+  });
+
+  it('restarts the queries on a sign-in even when the config cannot be read again', async () => {
+    useSavedSources.setState({ saved: [{ url: URL_, bffSourceId: 'src1' }] });
+    const { result } = renderHook(() => useBffSourceConfig(URL_));
+    await waitFor(() => expect(result.current.config?.id).toBe('src1'));
+    api.get.mockRejectedValue(new Error('down'));
+    useAuthRequired.setState({ required: { src1: { reason: 'expired' } }, failing: { src1: ['q'] }, epoch: {} });
+
+    await act(() => result.current.signedIn('src1'));
+
+    expect(useAuthRequired.getState().epoch).toEqual({ src1: 1 });
+    expect(useAuthRequired.getState().required).toEqual({});
+  });
+
+  it('turns on with the OAuth settings of the source plugin, no secret', async () => {
+    api.create.mockResolvedValue(config());
+    const suggested = { kind: 'oauth' as const, issuer: 'https://as', clientId: 'fluid' };
+    const { result } = renderHook(() => useBffSourceConfig(URL_, undefined, suggested));
+    await waitFor(() => expect(result.current.available).toBe(true));
+
+    await act(() => result.current.enable());
+
+    expect(api.create).toHaveBeenCalledWith({
+      name: 'api.example.com',
+      url: URL_,
+      authKind: 'oauth',
+      oauth: { issuer: 'https://as', clientId: 'fluid', scopes: [] },
+    });
   });
 
   it('removes only the OAuth client secret', async () => {

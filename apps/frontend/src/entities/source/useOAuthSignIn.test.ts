@@ -6,10 +6,17 @@ vi.mock('../../runtime-config', () => ({ BFF_URL: 'http://localhost:4001' }));
 import { useOAuthSignIn } from './useOAuthSignIn';
 
 const BFF = 'http://localhost:4001';
-const post = (data: unknown, origin = BFF) =>
+type Popup = { closed: boolean; close: ReturnType<typeof vi.fn> };
+const popupOf = (): Popup => ({ closed: false, close: vi.fn() });
+
+/** A `message` event as the browser would deliver it: `source` is read-only, so it is defined on the instance. */
+const post = (data: unknown, { origin = BFF, source }: { origin?: string; source: unknown }) =>
   act(() => {
-    window.dispatchEvent(new MessageEvent('message', { data, origin }));
+    const event = new MessageEvent('message', { data, origin });
+    Object.defineProperty(event, 'source', { value: source });
+    window.dispatchEvent(event);
   });
+const message = (sourceId: string, ok = true) => ({ type: 'fluid-oauth', sourceId, ok });
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
@@ -28,49 +35,73 @@ describe('useOAuthSignIn', () => {
     expect(result.current.status).toBe('blocked');
   });
 
-  it('signs in on the BFF message of this source, ignoring other origins and sources', () => {
-    vi.spyOn(window, 'open').mockReturnValue({ closed: false } as Window);
+  it('signs in on the message of its popup from the BFF, for this source, and says which source', () => {
+    const popup = popupOf();
+    vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
     const onSignedIn = vi.fn();
     const { result } = renderHook(() => useOAuthSignIn('s1', onSignedIn));
     act(() => result.current.start());
     expect(result.current.status).toBe('waiting');
 
-    post({ type: 'fluid-oauth', sourceId: 's1', ok: true }, 'https://evil.example');
-    post({ type: 'fluid-oauth', sourceId: 's2', ok: true });
+    post(message('s1'), { origin: 'https://evil.example', source: popup });
+    post(message('s2'), { source: popup });
+    post(message('s1'), { source: window }); // another window, even with the right origin and shape
+    post(message('s1'), { source: null });
     expect(onSignedIn).not.toHaveBeenCalled();
 
-    post({ type: 'fluid-oauth', sourceId: 's1', ok: true });
-    expect(onSignedIn).toHaveBeenCalledTimes(1);
+    post(message('s1'), { source: popup });
+    expect(onSignedIn).toHaveBeenCalledExactlyOnceWith('s1');
     expect(result.current.status).toBe('idle');
   });
 
   it('reports a failed sign-in', () => {
-    vi.spyOn(window, 'open').mockReturnValue({ closed: false } as Window);
+    const popup = popupOf();
+    vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
     const onSignedIn = vi.fn();
     const { result } = renderHook(() => useOAuthSignIn('s1', onSignedIn));
     act(() => result.current.start());
-    post({ type: 'fluid-oauth', sourceId: 's1', ok: false });
+    post(message('s1', false), { source: popup });
     expect(result.current.status).toBe('failed');
     expect(onSignedIn).not.toHaveBeenCalled();
   });
 
-  it('notices a popup closed without a message, but lets a late message win', () => {
-    const popup = { closed: false } as Window;
-    vi.spyOn(window, 'open').mockReturnValue(popup);
+  it('gives a closed popup a few seconds for its message, then calls onClosed', () => {
+    const popup = popupOf();
+    vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
     const onSignedIn = vi.fn();
-    const { result } = renderHook(() => useOAuthSignIn('s1', onSignedIn));
+    const onClosed = vi.fn();
+    const { result } = renderHook(() => useOAuthSignIn('s1', onSignedIn, onClosed));
 
     act(() => result.current.start());
-    Object.assign(popup, { closed: true });
-    act(() => void vi.advanceTimersByTime(500));
-    post({ type: 'fluid-oauth', sourceId: 's1', ok: true });
+    popup.closed = true;
     act(() => void vi.advanceTimersByTime(2000));
+    expect(result.current.status).toBe('waiting');
+    post(message('s1'), { source: popup });
+    act(() => void vi.advanceTimersByTime(10_000));
     expect(onSignedIn).toHaveBeenCalledTimes(1);
+    expect(onClosed).not.toHaveBeenCalled();
     expect(result.current.status).toBe('idle');
 
     act(() => result.current.start());
-    act(() => void vi.advanceTimersByTime(2000));
+    act(() => void vi.advanceTimersByTime(10_000));
     expect(result.current.status).toBe('closed');
+    expect(onClosed).toHaveBeenCalledExactlyOnceWith('s1');
     expect(onSignedIn).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops a sign-in in progress when the source changes: popup closed, status idle, late success ignored', () => {
+    const popup = popupOf();
+    vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
+    const onSignedIn = vi.fn();
+    const { result, rerender } = renderHook(({ id }) => useOAuthSignIn(id, onSignedIn), { initialProps: { id: 'A' } });
+    act(() => result.current.start());
+    expect(result.current.status).toBe('waiting');
+
+    rerender({ id: 'B' });
+
+    expect(result.current.status).toBe('idle');
+    expect(popup.close).toHaveBeenCalled();
+    post(message('A'), { source: popup });
+    expect(onSignedIn).not.toHaveBeenCalled();
   });
 });

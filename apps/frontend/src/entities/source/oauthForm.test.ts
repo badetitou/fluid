@@ -1,25 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { applyDiscovery, oauthFormOf, splitScopes } from './oauthForm';
+import { discoveryPatch, oauthFormOf, splitScopes } from './oauthForm';
 
-describe('applyDiscovery', () => {
-  const form = { issuer: 'typed', clientId: 'c', clientSecret: 's', scopes: 'a', resource: 'r' };
-
-  it('fills issuer, scopes and resource, keeping the client id and the typed secret', () => {
-    const out = applyDiscovery(form, {
+describe('discoveryPatch', () => {
+  it('holds only the discovered fields: issuer, scopes and resource', () => {
+    const patch = discoveryPatch({
       suggestion: { issuer: 'https://as', scopes: ['read', 'write'], resource: 'https://api' },
       authorizationServer: { supportsS256: true },
     });
-    expect(out).toEqual({ issuer: 'https://as', clientId: 'c', clientSecret: 's', scopes: 'read write', resource: 'https://api' });
+    expect(patch).toEqual({ issuer: 'https://as', scopes: 'read write', resource: 'https://api' });
   });
 
-  it('leaves what the source did not suggest', () => {
-    const out = applyDiscovery(form, { suggestion: { issuer: null, scopes: [], resource: null }, authorizationServer: null });
-    expect(out).toEqual(form);
+  it('leaves out what the source did not suggest', () => {
+    const patch = discoveryPatch({ suggestion: { issuer: 'https://as', scopes: [], resource: null }, authorizationServer: null });
+    expect(patch).toEqual({ issuer: 'https://as' });
   });
 });
 
 describe('oauthFormOf / splitScopes', () => {
-  it('is empty without config nor suggestion', () => {
+  it('is empty without config', () => {
     expect(oauthFormOf(null)).toEqual({ issuer: '', clientId: '', clientSecret: '', scopes: '', resource: '' });
   });
 

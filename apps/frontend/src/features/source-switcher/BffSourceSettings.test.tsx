@@ -11,7 +11,7 @@ vi.mock('../../entities/source', () => ({
   signInHint: () => null,
   useOAuthSignIn: () => ({ status: 'idle', start: vi.fn() }),
   useOAuthDiscovery: () => ({ busy: false, error: null, discover: vi.fn() }),
-  applyDiscovery: (f: unknown) => f,
+  discoveryPatch: () => ({}),
 }));
 
 import { BffSourceSettings } from './BffSourceSettings';

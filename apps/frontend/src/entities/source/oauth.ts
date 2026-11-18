@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { bffSourcePath } from './model';
 
 // Pure logic of the OAuth sign-in: the popup's URL and message, and the GraphQL error that asks to reconnect.
 
@@ -49,7 +50,7 @@ export function bffOrigin(bffBase: string, pageOrigin: string): string | null {
 export function oauthStartUrl(bffBase: string, sourceId: string, pageOrigin: string, scope?: string): string {
   const params = new URLSearchParams({ origin: pageOrigin });
   if (scope) params.set('scope', scope);
-  return `${bffBase.replace(/\/$/, '')}/api/sources/${encodeURIComponent(sourceId)}/oauth/start?${params}`;
+  return `${bffSourcePath(bffBase, sourceId)}/oauth/start?${params}`;
 }
 
 /**

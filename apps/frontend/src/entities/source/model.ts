@@ -61,9 +61,13 @@ export function setBffSourceId(saved: SavedSource[], url: string, id: string | u
   return base.map((s) => (s.url === url ? { ...s, bffSourceId: id } : s));
 }
 
+/** The BFF's URL for a configured source (`bffBase` may be '' for a same-origin BFF). */
+export const bffSourcePath = (bffBase: string, bffSourceId: string): string =>
+  `${bffBase.replace(/\/$/, '')}/api/sources/${encodeURIComponent(bffSourceId)}`;
+
 /** The BFF's GraphQL proxy URL for a configured source. */
 export const bffGraphqlUrl = (bffBase: string, bffSourceId: string): string =>
-  `${bffBase.replace(/\/$/, '')}/api/sources/${encodeURIComponent(bffSourceId)}/graphql`;
+  `${bffSourcePath(bffBase, bffSourceId)}/graphql`;
 
 /** Where GraphQL requests for `url` go: the BFF proxy when the source is routed through it, else the URL itself. */
 export function resolveGraphqlEndpoint(url: string, saved: SavedSource[], bffBase: string): string {
