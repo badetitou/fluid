@@ -1,12 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
-import { bffSourcesApi, type BffSourceConfig } from './api';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { bffClient } from '../../bff/client';
+import { BffHttpError } from '../../bff/http';
+import type { BffSourceConfig } from '../../bff/sourcesApi';
 import { authPatch, bffSourceName, type AuthForm } from './bffAuth';
 import { useSavedSources } from './store';
 
 const errorMessage = (e: unknown) => (e instanceof Error ? e.message : 'The BFF did not answer');
+const isNotFound = (e: unknown) => e instanceof BffHttpError && e.status === 404;
+const sources = bffClient.sources;
 
 export interface BffSourceConfigResult {
-  /** `null` while checking whether a BFF answers; `false` when there is none (the option is off). */
+  /** `null` while checking whether a BFF answers; `false` when there is none (enabling is off). */
   available: boolean | null;
   /** The source is routed through the BFF. */
   routed: boolean;
@@ -16,12 +20,12 @@ export interface BffSourceConfigResult {
   error: string | null;
   /** Creates the BFF config (no auth yet) and routes the source through it. */
   enable: () => Promise<void>;
-  /** Deletes the BFF config (and its secret) and goes back to the direct connection. */
+  /** Goes back to the direct connection and deletes the BFF config (the local side is cleared even if the BFF fails). */
   disable: () => Promise<void>;
-  /** Sends the auth settings; the typed secret goes to the BFF and is kept nowhere here. */
-  save: (form: AuthForm) => Promise<void>;
-  /** Removes the stored secret only. */
-  removeSecret: () => Promise<void>;
+  /** Sends the auth settings; the typed secret goes to the BFF and is kept nowhere here. Resolves to whether it worked. */
+  save: (form: AuthForm) => Promise<boolean>;
+  /** Removes the stored secret only. Resolves to whether it worked. */
+  removeSecret: () => Promise<boolean>;
 }
 
 /** Whether a saved source goes through the BFF, and how to turn that on or off and set its auth. */
@@ -33,9 +37,13 @@ export function useBffSourceConfig(url: string, name?: string): BffSourceConfigR
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // What a result must still belong to to be applied: the source and config this hook shows now.
+  const scope = useRef('');
+  scope.current = `${url}|${id ?? ''}`;
+
   useEffect(() => {
     let cancelled = false;
-    bffSourcesApi
+    sources
       .ping()
       .then(() => !cancelled && setAvailable(true))
       .catch(() => !cancelled && setAvailable(false));
@@ -45,70 +53,81 @@ export function useBffSourceConfig(url: string, name?: string): BffSourceConfigR
   }, []);
 
   useEffect(() => {
-    if (!id || available !== true) {
-      setConfig(null);
-      return;
-    }
+    setConfig(null);
+    setError(null);
+    if (!id || available !== true) return;
     let cancelled = false;
-    bffSourcesApi
+    sources
       .get(id)
       .then((c) => !cancelled && setConfig(c))
       .catch((e) => {
         if (cancelled) return;
         setError(errorMessage(e));
         // The config is gone on the BFF side: the source goes back to a direct connection.
-        if (errorMessage(e).includes('→ 404')) setBffId(url, undefined);
+        if (isNotFound(e)) setBffId(url, undefined);
       });
     return () => {
       cancelled = true;
     };
   }, [id, available, url, setBffId]);
 
-  const run = useCallback(async (action: () => Promise<void>) => {
+  /** Runs a BFF call; `apply` only runs when the source and config are still the ones it started for. */
+  const run = useCallback(async <T,>(call: () => Promise<T>, apply: (result: T) => void): Promise<boolean> => {
+    const started = scope.current;
     setBusy(true);
     setError(null);
     try {
-      await action();
+      const result = await call();
+      if (scope.current !== started) return false;
+      apply(result);
+      return true;
     } catch (e) {
-      setError(errorMessage(e));
+      if (scope.current === started) setError(errorMessage(e));
+      return false;
     } finally {
       setBusy(false);
     }
   }, []);
 
-  const enable = useCallback(
-    () =>
-      run(async () => {
-        const created = await bffSourcesApi.create({ name: bffSourceName(url, name), url, authKind: 'none' });
+  const enable = useCallback(async () => {
+    const started = scope.current;
+    await run(
+      async () => {
+        const created = await sources.create({ name: bffSourceName(url, name), url, authKind: 'none' });
+        // Switched source meanwhile: do not leave the config created for the old one behind.
+        if (scope.current !== started) void sources.remove(created.id).catch(() => undefined);
+        return created;
+      },
+      (created) => {
         setConfig(created);
         setBffId(url, created.id);
-      }),
-    [run, url, name, setBffId],
-  );
+      },
+    );
+  }, [run, url, name, setBffId]);
 
-  const disable = useCallback(
-    () =>
-      run(async () => {
-        if (id) await bffSourcesApi.remove(id).catch((e) => (errorMessage(e).includes('→ 404') ? undefined : Promise.reject(e)));
-        setBffId(url, undefined);
-        setConfig(null);
-      }),
-    [run, id, url, setBffId],
-  );
+  const disable = useCallback(async () => {
+    const started = scope.current;
+    setBffId(url, undefined);
+    setConfig(null);
+    if (!id) return;
+    try {
+      await sources.remove(id);
+    } catch (e) {
+      // The local side is already direct again; only warn that the BFF may still hold the config.
+      if (!isNotFound(e) && scope.current.startsWith(started.split('|')[0])) {
+        setError(`The config may remain on the BFF (could not delete it): ${errorMessage(e)}`);
+      }
+    }
+  }, [id, url, setBffId]);
 
   const save = useCallback(
     (form: AuthForm) =>
-      run(async () => {
-        if (id) setConfig(await bffSourcesApi.update(id, authPatch(form)));
-      }),
+      id ? run(() => sources.update(id, authPatch(form)), setConfig) : Promise.resolve(false),
     [run, id],
   );
 
   const removeSecret = useCallback(
-    () =>
-      run(async () => {
-        if (id) setConfig(await bffSourcesApi.update(id, { secret: null }));
-      }),
+    () => (id ? run(() => sources.update(id, { secret: null }), setConfig) : Promise.resolve(false)),
     [run, id],
   );
 

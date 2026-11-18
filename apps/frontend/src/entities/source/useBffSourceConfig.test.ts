@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import type { BffSourceConfig } from './api';
+import type { BffSourceConfig } from '../../bff/sourcesApi';
+import { BffHttpError } from '../../bff/http';
 
 const api = vi.hoisted(() => ({ ping: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() }));
-vi.mock('./api', () => ({ bffSourcesApi: api }));
+vi.mock('../../bff/client', () => ({ bffClient: { sources: api } }));
 
 import { useSavedSources } from './store';
 import { useBffSourceConfig } from './useBffSourceConfig';
@@ -78,6 +79,39 @@ describe('useBffSourceConfig', () => {
     expect(api.remove).toHaveBeenCalledWith('src1');
     expect(useSavedSources.getState().saved[0].bffSourceId).toBeUndefined();
     expect(result.current.routed).toBe(false);
+  });
+
+  it('still clears the local id when the BFF cannot delete the config, and warns', async () => {
+    useSavedSources.setState({ saved: [{ url: URL_, bffSourceId: 'src1' }] });
+    api.remove.mockRejectedValue(new Error('down'));
+    const { result } = renderHook(() => useBffSourceConfig(URL_));
+    await waitFor(() => expect(result.current.config).not.toBeNull());
+
+    await act(() => result.current.disable());
+
+    expect(useSavedSources.getState().saved[0].bffSourceId).toBeUndefined();
+    expect(result.current.error).toContain('may remain on the BFF');
+  });
+
+  it('goes back to a direct connection when the stored id is gone (404)', async () => {
+    useSavedSources.setState({ saved: [{ url: URL_, bffSourceId: 'gone' }] });
+    api.get.mockRejectedValue(new BffHttpError('BFF GET → 404', 404));
+    renderHook(() => useBffSourceConfig(URL_));
+    await waitFor(() => expect(useSavedSources.getState().saved[0].bffSourceId).toBeUndefined());
+  });
+
+  it('drops the config and error of the previous source when the source changes', async () => {
+    const OTHER = 'https://other.example.com/graphql';
+    useSavedSources.setState({ saved: [{ url: URL_, bffSourceId: 'src1' }, { url: OTHER }] });
+    api.get.mockResolvedValue(config());
+    const { result, rerender } = renderHook(({ url }) => useBffSourceConfig(url), { initialProps: { url: URL_ } });
+    await waitFor(() => expect(result.current.config?.id).toBe('src1'));
+
+    rerender({ url: OTHER });
+
+    await waitFor(() => expect(result.current.config).toBeNull());
+    expect(result.current.routed).toBe(false);
+    expect(result.current.error).toBeNull();
   });
 
   it('reports a failure and stays direct', async () => {

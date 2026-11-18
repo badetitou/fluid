@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { request } from '../../bff/http';
+import { request } from './http';
 
 // The BFF's saved source configs. The secret is only ever sent (create / update), never read back:
 // the answers say whether one is stored (`hasSecret`).
@@ -31,7 +31,7 @@ export type UpdateBffSource = Partial<Omit<CreateBffSource, 'secret' | 'headerNa
 
 const path = (id: string) => `/api/sources/${encodeURIComponent(id)}`;
 
-export const bffSourcesApi = {
+export const sourcesApi = {
   /** Resolves when the BFF answers; rejects when it is absent or unreachable. */
   ping: async (): Promise<void> => {
     await request<unknown>('/api/sources');

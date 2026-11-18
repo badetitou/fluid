@@ -7,7 +7,16 @@ import styles from './SourceSwitcher.module.css';
 export function BffSourceSettings() {
   const { current, currentName } = useSources();
   const bff = useBffSourceConfig(current ?? '', currentName);
-  const disabled = bff.available !== true || !current;
+  // Only turning it on needs a BFF: a routed source can always go back to a direct connection.
+  const disabled = !current || (!bff.routed && bff.available !== true);
+  const unreachable = bff.available === false;
+  let explanation = 'Send this source’s requests through the BFF, which can add an API key or token the browser never sees.';
+  if (unreachable && bff.routed) {
+    explanation =
+      'The BFF is unreachable: requests to this source fail until it is back, or turn this off to query it directly.';
+  } else if (unreachable) {
+    explanation = 'No BFF is reachable, so this source can only be queried directly from the browser.';
+  }
 
   return (
     <div>
@@ -15,16 +24,14 @@ export function BffSourceSettings() {
         <Switch
           checked={bff.routed}
           disabled={disabled}
-          loading={bff.busy || bff.available === null}
+          loading={bff.busy || (bff.available === null && !bff.routed)}
           onChange={(on) => void (on ? bff.enable() : bff.disable())}
           aria-label="Via the BFF"
         />
         <Typography.Text strong>Via the BFF</Typography.Text>
       </Space>
       <Typography.Paragraph type="secondary" className={styles.full}>
-        {bff.available === false
-          ? 'No BFF is reachable, so this source can only be queried directly from the browser.'
-          : 'Send this source’s requests through the BFF, which can add an API key or token the browser never sees.'}
+        {explanation}
       </Typography.Paragraph>
       {bff.error && <Alert type="error" showIcon title={bff.error} />}
       {bff.routed && bff.config && (

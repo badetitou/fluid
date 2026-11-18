@@ -52,7 +52,10 @@ export const renameSource = (saved: SavedSource[], url: string, name: string): S
 /** Forgets a kept source. */
 export const forgetSource = (saved: SavedSource[], url: string): SavedSource[] => saved.filter((s) => s.url !== url);
 
-/** Sets (or, with `undefined`, clears) the id of the BFF config a kept source is routed through. */
+/**
+ * Sets (or, with `undefined`, clears) the id of the BFF config a source is routed through.
+ * A connected source not kept yet is added to the kept ones (it has to remember its id).
+ */
 export function setBffSourceId(saved: SavedSource[], url: string, id: string | undefined): SavedSource[] {
   const base = saved.some((s) => s.url === url) ? saved : [...saved, { url }];
   return base.map((s) => (s.url === url ? { ...s, bffSourceId: id } : s));

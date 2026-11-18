@@ -82,6 +82,12 @@ describe('BFF routing', () => {
     expect(setBffSourceId([], RICK, 'x')).toEqual([{ url: RICK, bffSourceId: 'x' }]);
   });
 
+  it('keeps a not-yet-kept source when routing it, leaving the others untouched', () => {
+    const other: SavedSource = { url: LOCAL, name: 'Moose', bffSourceId: 'm' };
+    expect(setBffSourceId([other], RICK, 'x')).toEqual([other, { url: RICK, bffSourceId: 'x' }]);
+    expect(setBffSourceId([other, { url: RICK }], RICK, 'x')[0]).toBe(other);
+  });
+
   it('builds the proxy URL, with or without a trailing slash or a base', () => {
     expect(bffGraphqlUrl('http://localhost:4001/', 'a b')).toBe('http://localhost:4001/api/sources/a%20b/graphql');
     expect(bffGraphqlUrl('', 'x')).toBe('/api/sources/x/graphql');

@@ -6,8 +6,8 @@ import styles from './SourceSwitcher.module.css';
 interface BffAuthFormProps {
   config: BffSourceConfig;
   busy: boolean;
-  onSave: (form: AuthForm) => Promise<void>;
-  onRemoveSecret: () => Promise<void>;
+  onSave: (form: AuthForm) => Promise<boolean>;
+  onRemoveSecret: () => Promise<boolean>;
 }
 
 /** How the BFF authenticates to the source: none, or a header with a write-only secret. */
@@ -15,11 +15,9 @@ export function BffAuthForm({ config, busy, onSave, onRemoveSecret }: BffAuthFor
   const [form, setForm] = useState<AuthForm>(authFormOf(config));
   const change = (patch: Partial<AuthForm>) => setForm((f) => ({ ...f, ...patch }));
 
-  // The typed secret leaves the form as soon as it is sent.
+  // The typed secret leaves the form once the BFF has it; if the save failed it stays to be retried.
   const save = async () => {
-    const sent = form;
-    setForm({ ...sent, secret: '' });
-    await onSave(sent);
+    if (await onSave(form)) setForm((f) => ({ ...f, secret: '' }));
   };
 
   return (

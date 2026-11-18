@@ -1,5 +1,6 @@
 import type { MutationInfo, ViewScope, ViewSpec, ViewWidgetInfo, Widget, WidgetCatalogRequest } from '@fluid/shared';
 import { BASE, request } from './http';
+import { sourcesApi } from './sourcesApi';
 
 // Thin fetch wrapper around the Fluid BFF REST API (view persistence + prefs).
 // Every call is resilient at the call site: the UI treats a rejected promise as
@@ -194,6 +195,8 @@ async function generateViewStream(
 
 export const bffClient = {
   base: BASE,
+  /** Saved source configs (secret write-only). */
+  sources: sourcesApi,
   health: () => request<{ status: string; service: string }>('/health'),
   listViews: (concept?: string) =>
     request<SavedView[]>(

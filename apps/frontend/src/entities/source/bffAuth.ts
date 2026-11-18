@@ -1,4 +1,4 @@
-import type { BffSourceConfig, UpdateBffSource } from './api';
+import type { BffSourceConfig, UpdateBffSource } from '../../bff/sourcesApi';
 
 export const DEFAULT_AUTH_HEADER = 'Authorization';
 
