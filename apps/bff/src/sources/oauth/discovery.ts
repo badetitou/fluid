@@ -1,6 +1,7 @@
 import { processDiscoveryResponse, type AuthorizationServer } from 'oauth4webapi';
 import { z } from 'zod';
 import { parseBearerChallenge } from './challenge';
+import { isIssuerUrl } from '../url';
 import type { SafeFetch } from './safe-fetch';
 
 // Authorization server metadata (RFC 8414, then OpenID Connect Discovery, in the path-insertion
@@ -40,8 +41,14 @@ export function metadataCandidates(issuer: string): string[] {
   ];
 }
 
+/** Endpoints that receive codes and secrets must be https when the issuer is (pure). */
+export const endpointsAllowed = (issuer: string, endpoints: string[]) =>
+  !issuer.startsWith('https://') || endpoints.every((e) => e.startsWith('https://'));
+
 export async function discoverAuthorizationServer(issuer: string, fetchOut: SafeFetch): Promise<AuthServerInfo> {
-  const issuerUrl = new URL(issuer.replace(/\/+$/, ''));
+  if (!isIssuerUrl(issuer)) throw new DiscoveryError('Invalid issuer');
+  // The metadata's `issuer` must equal the identifier exactly (only the well-known URLs trim it).
+  const issuerUrl = new URL(issuer);
   for (const candidate of metadataCandidates(issuer)) {
     let response: Response;
     try {
@@ -53,6 +60,7 @@ export async function discoverAuthorizationServer(issuer: string, fetchOut: Safe
     try {
       const as = await processDiscoveryResponse(issuerUrl, response.clone());
       const meta = asMetadata.parse(await response.json());
+      if (!endpointsAllowed(issuer, [meta.authorization_endpoint, meta.token_endpoint])) continue;
       return {
         as,
         authorizationEndpoint: meta.authorization_endpoint,
@@ -92,9 +100,22 @@ export interface ProtectedResourceInfo {
   scopes: string[];
 }
 
+/** RFC 9728: the document's `resource` must identify the probed URL (same origin, path prefix). */
+export function resourceMatches(resource: string, probed: string): boolean {
+  try {
+    const r = new URL(resource);
+    const p = new URL(probed);
+    const prefix = r.pathname.replace(/\/+$/, '');
+    return r.origin === p.origin && (prefix === '' || p.pathname === prefix || p.pathname.startsWith(`${prefix}/`));
+  } catch {
+    return false;
+  }
+}
+
 /**
  * RFC 9728: probes the source without credentials; on a 401 whose `WWW-Authenticate: Bearer`
- * carries `resource_metadata`, reads that document. null when the source gives no such hint.
+ * carries `resource_metadata`, reads that document. It is only trusted when it sits on the
+ * source's own origin and its `resource` matches the probed URL; otherwise null.
  */
 export async function discoverProtectedResource(sourceUrl: string, fetchOut: SafeFetch): Promise<ProtectedResourceInfo | null> {
   let probe: Response;
@@ -110,10 +131,13 @@ export async function discoverProtectedResource(sourceUrl: string, fetchOut: Saf
   const { resourceMetadata: docUrl } = parseBearerChallenge(probe.headers.get('www-authenticate'));
   if (probe.status !== 401 || !docUrl) return null;
   try {
-    const doc = resourceMetadata.parse(await (await fetchOut(docUrl, { headers: { accept: 'application/json' } })).json());
+    const target = new URL(docUrl, sourceUrl);
+    if (target.origin !== new URL(sourceUrl).origin) return null;
+    const doc = resourceMetadata.parse(await (await fetchOut(target.href, { headers: { accept: 'application/json' } })).json());
+    if (!doc.resource || !resourceMatches(doc.resource, sourceUrl)) return null;
     return {
-      resource: doc.resource ?? null,
-      authorizationServers: (doc.authorization_servers ?? []).filter((s) => endpoint.safeParse(s).success),
+      resource: doc.resource,
+      authorizationServers: (doc.authorization_servers ?? []).filter(isIssuerUrl),
       scopes: doc.scopes_supported ?? [],
     };
   } catch {

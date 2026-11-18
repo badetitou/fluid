@@ -32,6 +32,9 @@ export function buildApp(options: BuildAppOptions = {}) {
   app.register(viewRoutes);
   app.register(prefRoutes);
   app.register(llmRoutes);
+  if (process.env.NODE_ENV === 'production' && !process.env.FLUID_PUBLIC_URL) {
+    app.log.warn('FLUID_PUBLIC_URL is not set: the OAuth redirect URI is built from request headers. Set it in production.');
+  }
   const key = createKeyProvider(process.env, storageMode);
   const sources = createSourceRepository(prisma);
   const oauth = createOAuthService({ sources, creds: createCredentialRepository(prisma), key });

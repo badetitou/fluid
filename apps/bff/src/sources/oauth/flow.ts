@@ -8,10 +8,11 @@ import {
   validateAuthResponse,
 } from 'oauth4webapi';
 import { decryptSecret, encryptSecret, type KeyProvider } from '../crypto';
+import { binderMatches, hashBinder, newBinder } from './binder';
 import { clientFor, requestOptions, toStoredTokens, type OAuthSource } from './client';
 import type { CredentialRepository } from './credentials';
 import type { AuthServerInfo } from './discovery';
-import { splitScopes } from './model';
+import { configFingerprint, splitScopes } from './model';
 import type { PendingStore } from './pkce-pending';
 import type { SafeFetch } from './safe-fetch';
 
@@ -36,11 +37,19 @@ export interface FlowDeps {
   now?: () => number;
 }
 
+export interface StartOptions {
+  /** The BFF callback URL sent to the authorization server. */
+  redirectUri: string;
+  /** The fluid UI origin the callback page posts its message to. */
+  uiOrigin: string;
+  extraScopes?: string[];
+}
+
 export interface CallbackResult {
   sourceId: string | null;
   ok: boolean;
-  /** The redirect URI used at start (its origin is the fluid origin); null for an unknown state. */
-  redirectUri: string | null;
+  /** The UI origin recorded at start; null when the state is unknown or not ours. */
+  uiOrigin: string | null;
   /** A short, safe code for the logs. Never a token, code or server text. */
   failure?: string;
 }
@@ -55,8 +64,8 @@ export function createOAuthFlow(deps: FlowDeps) {
   const { creds, key, discover, fetchOut, pending, loadSource, now = Date.now } = deps;
 
   return {
-    /** The authorization endpoint URL to send the browser to. */
-    async start(source: OAuthSource, redirectUri: string, extraScopes: string[] = []): Promise<string> {
+    /** The authorization URL to send the browser to, and the binder to set as a cookie. */
+    async start(source: OAuthSource, opts: StartOptions): Promise<{ url: string; binder: string }> {
       if (source.authKind !== 'oauth' || !source.oauthIssuer || !source.oauthClientId) {
         throw new FlowError(400, 'This source is not configured for OAuth');
       }
@@ -70,12 +79,13 @@ export function createOAuthFlow(deps: FlowDeps) {
       const verifier = generateRandomCodeVerifier();
       const state = generateRandomState();
       const nonce = generateRandomNonce();
-      const scopes = [...new Set([...splitScopes(source.oauthScopes), ...extraScopes])];
+      const binder = newBinder();
+      const scopes = [...new Set([...splitScopes(source.oauthScopes), ...(opts.extraScopes ?? [])])];
       const url = new URL(info.authorizationEndpoint);
       const params: Record<string, string> = {
         response_type: 'code',
         client_id: source.oauthClientId,
-        redirect_uri: redirectUri,
+        redirect_uri: opts.redirectUri,
         state,
         nonce,
         code_challenge: await calculatePKCECodeChallenge(verifier),
@@ -84,19 +94,38 @@ export function createOAuthFlow(deps: FlowDeps) {
         ...(source.oauthResource ? { resource: source.oauthResource } : {}),
       };
       for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-      pending.add({ state, verifier, nonce, sourceId: source.id, redirectUri, oidc: scopes.includes('openid'), createdAt: now() });
-      return url.toString();
+      pending.add({
+        state,
+        verifier,
+        nonce,
+        sourceId: source.id,
+        redirectUri: opts.redirectUri,
+        uiOrigin: opts.uiOrigin,
+        scopes,
+        binderHash: hashBinder(binder),
+        fingerprint: configFingerprint(source),
+        oidc: scopes.includes('openid'),
+        createdAt: now(),
+      });
+      return { url: url.toString(), binder };
     },
 
-    /** Checks state (single use), exchanges the code with the verifier, stores the tokens. */
-    async complete(query: URLSearchParams): Promise<CallbackResult> {
+    /** Checks state (single use) and binder, exchanges the code with the verifier, stores the tokens. */
+    async complete(query: URLSearchParams, binder: string | null): Promise<CallbackResult> {
       const state = query.get('state');
       const entry = state ? pending.take(state) : null;
-      if (!entry) return { sourceId: null, ok: false, redirectUri: null, failure: 'unknown_state' };
-      const base = { sourceId: entry.sourceId, redirectUri: entry.redirectUri };
+      if (!entry) return { sourceId: null, ok: false, uiOrigin: null, failure: 'unknown_state' };
+      if (!binderMatches(entry.binderHash, binder)) {
+        return { sourceId: null, ok: false, uiOrigin: null, failure: 'binder_mismatch' };
+      }
+      const base = { sourceId: entry.sourceId, uiOrigin: entry.uiOrigin };
+      const unchanged = (s: OAuthSource | null): s is OAuthSource => !!s && configFingerprint(s) === entry.fingerprint;
       try {
         const source = await loadSource(entry.sourceId);
-        if (!source?.oauthIssuer || !source.oauthClientId) return { ...base, ok: false, failure: 'source_gone' };
+        if (!source) return { ...base, ok: false, failure: 'source_gone' };
+        if (!unchanged(source) || !source.oauthIssuer || !source.oauthClientId) {
+          return { ...base, ok: false, failure: 'config_changed' };
+        }
         const info = await discover(source.oauthIssuer);
         const secret = source.oauthClientSecret ? decryptSecret(source.oauthClientSecret, key()) : null;
         const { client, auth } = clientFor(source.oauthClientId, secret, info);
@@ -108,12 +137,14 @@ export function createOAuthFlow(deps: FlowDeps) {
           await processAuthorizationCodeResponse(info.as, client, res, entry.oidc ? { expectedNonce: entry.nonce } : {}),
           now(),
         );
+        // The exchange takes time: a reconfiguration or delete meanwhile must not be overwritten.
+        if (!unchanged(await loadSource(entry.sourceId))) return { ...base, ok: false, failure: 'config_changed' };
         await creds.save({
           sourceId: source.id,
           accessToken: encryptSecret(tokens.accessToken, key()),
           refreshToken: tokens.refreshToken ? encryptSecret(tokens.refreshToken, key()) : null,
           expiresAt: tokens.expiresAt,
-          scope: tokens.scope ?? source.oauthScopes,
+          scope: tokens.scope ?? (entry.scopes.join(' ') || null),
         });
         return { ...base, ok: true };
       } catch (err) {

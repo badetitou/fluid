@@ -1,4 +1,6 @@
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import { httpUrl, issuerUrl } from '../url';
 
 // Pure logic for OAuth sources: body fields, scope helpers, typed auth errors, redirect URI.
 
@@ -9,14 +11,6 @@ const scopeToken = z
   .regex(/^[\x21\x23-\x5b\x5d-\x7e]+$/, 'invalid scope');
 export const scopeList = z.array(scopeToken).max(50);
 
-const absoluteHttpUrl = (v: string) => {
-  try {
-    return ['http:', 'https:'].includes(new URL(v).protocol);
-  } catch {
-    return false;
-  }
-};
-const httpUrl = z.string().trim().max(2000).refine(absoluteHttpUrl, 'must be an absolute http(s) URL');
 const clientSecret = z
   .string()
   .min(1)
@@ -25,7 +19,7 @@ const clientSecret = z
 
 /** OAuth fields of a body; PUT makes them optional and lets `clientSecret`/`resource` be null. */
 export const oauthFields = {
-  issuer: httpUrl,
+  issuer: issuerUrl,
   clientId: z.string().trim().min(1).max(500),
   clientSecret,
   scopes: scopeList,
@@ -86,6 +80,19 @@ export function authRequiredResult(reason: AuthReason, scope?: string) {
       ],
     },
   };
+}
+
+/** What a token is bound to: any change to these invalidates tokens and sign-ins in flight. */
+export function configFingerprint(s: {
+  url: string;
+  oauthIssuer: string | null;
+  oauthClientId: string | null;
+  oauthClientSecret: string | null;
+  oauthScopes: string | null;
+  oauthResource: string | null;
+}): string {
+  const parts = [new URL(s.url).origin, s.oauthIssuer, s.oauthClientId, s.oauthClientSecret, s.oauthScopes, s.oauthResource];
+  return createHash('sha256').update(JSON.stringify(parts)).digest('hex');
 }
 
 /** Fluid's public base URL: FLUID_PUBLIC_URL when set, else the request's own origin. */

@@ -1,20 +1,10 @@
 import { z } from 'zod';
+import { httpUrl } from './url';
 import { oauthFields, toPublicOAuth, type CredentialRecord, type OAuthRecordFields } from './oauth/model';
 
 // Pure logic for source configs: request/response schemas and the outgoing auth header.
 
 export const DEFAULT_HEADER = 'Authorization';
-
-const httpUrl = z
-  .string()
-  .trim()
-  .refine((v) => {
-    try {
-      return ['http:', 'https:'].includes(new URL(v).protocol);
-    } catch {
-      return false;
-    }
-  }, 'url must be an absolute http(s) URL');
 
 // Protocol and hop-by-hop headers the proxy controls itself (or that fetch forbids).
 const RESERVED_HEADERS = new Set([

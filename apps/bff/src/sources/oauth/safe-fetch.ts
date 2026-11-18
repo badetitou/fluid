@@ -1,3 +1,4 @@
+import { envHostCheck, type HostCheck } from '../host-policy';
 import { readCapped } from '../proxy';
 
 // Outbound fetch toward authorization servers and metadata documents: http(s) only, a timeout,
@@ -17,12 +18,14 @@ export interface SafeFetchOptions {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
   maxBytes?: number;
+  /** Host policy, checked before every request; defaults to the environment's. */
+  hostCheck?: HostCheck;
 }
 
 export class OutboundError extends Error {}
 
 export function createSafeFetch(opts: SafeFetchOptions = {}): SafeFetch {
-  const { fetchImpl = fetch, timeoutMs = OAUTH_TIMEOUT_MS, maxBytes = OAUTH_MAX_BYTES } = opts;
+  const { fetchImpl = fetch, timeoutMs = OAUTH_TIMEOUT_MS, maxBytes = OAUTH_MAX_BYTES, hostCheck = envHostCheck() } = opts;
   return async (url, init = {}) => {
     const method = (init.method ?? 'GET').toUpperCase();
     const timeout = AbortSignal.timeout(timeoutMs);
@@ -30,6 +33,7 @@ export function createSafeFetch(opts: SafeFetchOptions = {}): SafeFetch {
     let current = new URL(url);
     for (let hops = 0; ; hops++) {
       if (!['http:', 'https:'].includes(current.protocol)) throw new OutboundError('Only http(s) URLs are allowed');
+      await hostCheck(current);
       const res = await fetchImpl(current, { ...init, method, redirect: 'manual', signal });
       if (res.status >= 300 && res.status < 400) {
         const location = res.headers.get('location');

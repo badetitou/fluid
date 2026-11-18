@@ -8,6 +8,7 @@ import {
   type SourceRecord,
   type UpdateSourceBody,
 } from './model';
+import type { HostCheck } from './host-policy';
 import { parseBearerChallenge } from './oauth/challenge';
 import { authRequiredResult, joinScopes } from './oauth/model';
 import type { OAuthService } from './oauth/service';
@@ -37,6 +38,7 @@ export interface SourceServiceOptions {
   timeoutMs?: number;
   maxBytes?: number;
   fetchImpl?: typeof fetch;
+  hostCheck?: HostCheck;
   /** Sign-in and token handling for `oauth` sources; without it they always answer "signin". */
   oauth?: OAuthService;
 }
@@ -143,7 +145,11 @@ export function createSourceService(
       if (reconfigured) await opts.oauth?.signOut(id);
       return publicOf(record);
     },
-    remove: (id) => repo.remove(id),
+    async remove(id) {
+      const removed = await repo.remove(id);
+      if (removed) await opts.oauth?.signOut(id); // drops sign-ins still in flight
+      return removed;
+    },
     async runGraphql(id, body) {
       const source = await repo.get(id);
       if (!source) return null;

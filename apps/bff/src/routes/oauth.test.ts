@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { CLIENT_SECRET } from './oauth-stub';
-import { startHarness, type Harness } from './oauth-harness';
+import { CLIENT_SECRET } from '../test-support/oauth-stub';
+import { startHarness, type Harness } from '../test-support/oauth-harness';
 
 describe('oauth routes: discovery, sign-in, callback', () => {
   let h: Harness;
@@ -146,7 +146,7 @@ describe('oauth routes: discovery, sign-in, callback', () => {
   });
 
   it('uses FLUID_PUBLIC_URL for the redirect URI and the postMessage origin', async () => {
-    const pub = await startHarness('https://fluid.example/app/');
+    const pub = await startHarness({ publicUrl: 'https://fluid.example/app/' });
     try {
       const { id } = await pub.createSource();
       const { location, cb } = await pub.signIn(id);

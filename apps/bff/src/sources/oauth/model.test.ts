@@ -1,23 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { callbackPage } from './callback-page';
-import { parseBearerChallenge } from './challenge';
-import { metadataCandidates } from './discovery';
-import { authRequiredResult, callbackUri, joinScopes, publicOrigin, splitScopes, toPublicOAuth } from './model';
-import { createPendingStore } from './pkce-pending';
-
-describe('bearer challenge', () => {
-  it('reads resource_metadata, error and scope', () => {
-    expect(
-      parseBearerChallenge('Bearer resource_metadata="https://r.test/.well-known/oauth-protected-resource", scope="a b"'),
-    ).toEqual({ resourceMetadata: 'https://r.test/.well-known/oauth-protected-resource', scope: 'a b' });
-    expect(parseBearerChallenge('Bearer error="insufficient_scope", scope="write"')).toEqual({
-      error: 'insufficient_scope',
-      scope: 'write',
-    });
-    expect(parseBearerChallenge('Basic realm="x"')).toEqual({});
-    expect(parseBearerChallenge(null)).toEqual({});
-  });
-});
+import { endpointsAllowed, metadataCandidates, resourceMatches } from './discovery';
+import { authRequiredResult, configFingerprint, callbackUri, joinScopes, publicOrigin, splitScopes, toPublicOAuth } from './model';
 
 describe('metadata candidates', () => {
   it('follows the MCP order, with path insertion for issuers that have a path', () => {
@@ -71,16 +55,34 @@ describe('callback page', () => {
   });
 });
 
-describe('pending sign-ins', () => {
-  const entry = { state: 's', verifier: 'v', nonce: 'n', sourceId: 'x', redirectUri: 'r', oidc: false };
-  it('is single use and expires after the TTL', () => {
-    let t = 0;
-    const store = createPendingStore(1000, () => t);
-    store.add({ ...entry, createdAt: 0 });
-    expect(store.take('s')?.verifier).toBe('v');
-    expect(store.take('s')).toBeNull();
-    store.add({ ...entry, createdAt: 0 });
-    t = 1000;
-    expect(store.take('s')).toBeNull();
+describe('discovery rules', () => {
+  it('requires https endpoints for an https issuer, anything for an http one', () => {
+    expect(endpointsAllowed('https://i.test', ['https://i.test/a', 'https://other.test/t'])).toBe(true);
+    expect(endpointsAllowed('https://i.test', ['https://i.test/a', 'http://i.test/t'])).toBe(false);
+    expect(endpointsAllowed('http://127.0.0.1:1', ['http://127.0.0.1:1/t'])).toBe(true);
+  });
+
+  it('matches a protected resource against the probed URL', () => {
+    expect(resourceMatches('https://api.test', 'https://api.test/graphql')).toBe(true);
+    expect(resourceMatches('https://api.test/graphql', 'https://api.test/graphql')).toBe(true);
+    expect(resourceMatches('https://api.test/v2', 'https://api.test/graphql')).toBe(false);
+    expect(resourceMatches('https://evil.test', 'https://api.test/graphql')).toBe(false);
+    expect(resourceMatches('nonsense', 'https://api.test/graphql')).toBe(false);
+  });
+
+  it('binds a fingerprint to issuer, client, secret, scopes, resource and url origin', () => {
+    const base = { url: 'https://a.test/g', oauthIssuer: 'https://i', oauthClientId: 'c', oauthClientSecret: 's', oauthScopes: 'a', oauthResource: null };
+    const fp = configFingerprint(base);
+    expect(configFingerprint({ ...base, url: 'https://a.test/other' })).toBe(fp);
+    for (const change of [
+      { url: 'https://b.test/g' },
+      { oauthIssuer: 'https://j' },
+      { oauthClientId: 'd' },
+      { oauthClientSecret: 't' },
+      { oauthScopes: 'a b' },
+      { oauthResource: 'https://r' },
+    ]) {
+      expect(configFingerprint({ ...base, ...change })).not.toBe(fp);
+    }
   });
 });

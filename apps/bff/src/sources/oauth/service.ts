@@ -9,7 +9,7 @@ import {
   type AuthServerInfo,
   type ProtectedResourceInfo,
 } from './discovery';
-import { createOAuthFlow, FlowError, type CallbackResult } from './flow';
+import { createOAuthFlow, FlowError, type CallbackResult, type StartOptions } from './flow';
 import type { CredentialRecord } from './model';
 import { createPendingStore, type PendingStore } from './pkce-pending';
 import { createSafeFetch, type SafeFetchOptions } from './safe-fetch';
@@ -35,8 +35,9 @@ export interface DiscoveryResult {
 export interface OAuthService {
   discover(query: DiscoveryQuery): Promise<DiscoveryResult>;
   /** The authorization URL; throws FlowError (404 unknown source, 400 not OAuth / no S256, 502). */
-  start(sourceId: string, redirectUri: string, extraScopes?: string[]): Promise<string>;
-  callback(query: URLSearchParams): Promise<CallbackResult>;
+  start(sourceId: string, opts: StartOptions): Promise<{ url: string; binder: string }>;
+  callback(query: URLSearchParams, binder: string | null): Promise<CallbackResult>;
+  /** Deletes the credential and forgets sign-ins in flight; true when a credential existed. */
   signOut(sourceId: string): Promise<boolean>;
   credential(sourceId: string): Promise<CredentialRecord | null>;
   accessToken(source: OAuthSource): Promise<TokenResult>;
@@ -55,16 +56,10 @@ export function createOAuthService(deps: OAuthServiceDeps): OAuthService {
   const { sources, creds, key, now } = deps;
   const fetchOut = createSafeFetch(deps.net);
   const discover = createDiscoverer(fetchOut, undefined, now);
-  const flow = createOAuthFlow({
-    creds,
-    key,
-    discover,
-    fetchOut,
-    pending: deps.pending ?? createPendingStore(undefined, now),
-    loadSource: (id) => sources.get(id),
-    now,
-  });
-  const tokens = createTokenManager({ creds, key, discover, fetchOut, now });
+  const pending = deps.pending ?? createPendingStore(undefined, now);
+  const loadSource = (id: string) => sources.get(id);
+  const flow = createOAuthFlow({ creds, key, discover, fetchOut, pending, loadSource, now });
+  const tokens = createTokenManager({ creds, key, discover, fetchOut, loadSource, now });
 
   return {
     async discover({ url, issuer }) {
@@ -91,13 +86,16 @@ export function createOAuthService(deps: OAuthServiceDeps): OAuthService {
         suggestion: { issuer: chosen, scopes: resource?.scopes ?? [], resource: resource?.resource ?? null },
       };
     },
-    async start(sourceId, redirectUri, extraScopes) {
+    async start(sourceId, opts) {
       const source = await sources.get(sourceId);
       if (!source) throw new FlowError(404, 'Source not found');
-      return flow.start(source, redirectUri, extraScopes);
+      return flow.start(source, opts);
     },
-    callback: (query) => flow.complete(query),
-    signOut: (sourceId) => creds.remove(sourceId),
+    callback: (query, binder) => flow.complete(query, binder),
+    async signOut(sourceId) {
+      pending.dropForSource(sourceId);
+      return creds.remove(sourceId);
+    },
     credential: (sourceId) => creds.get(sourceId),
     accessToken: (source) => tokens.accessToken(source),
   };

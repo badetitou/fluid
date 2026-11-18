@@ -1,3 +1,4 @@
+import { envHostCheck, type HostCheck } from './host-policy';
 import { upstreamEnvelope, type GraphqlBody, type UpstreamEnvelope } from './model';
 
 export const UPSTREAM_TIMEOUT_MS = 30_000;
@@ -61,10 +62,15 @@ export async function forwardGraphql(
   url: string,
   headers: Record<string, string>,
   body: GraphqlBody,
-  opts: { timeoutMs?: number; maxBytes?: number; fetchImpl?: typeof fetch } = {},
+  opts: { timeoutMs?: number; maxBytes?: number; fetchImpl?: typeof fetch; hostCheck?: HostCheck } = {},
 ): Promise<ProxyResult> {
   const { timeoutMs = UPSTREAM_TIMEOUT_MS, maxBytes = MAX_UPSTREAM_BYTES, fetchImpl = fetch } = opts;
   let res: Response;
+  try {
+    await (opts.hostCheck ?? envHostCheck())(new URL(url));
+  } catch {
+    return gatewayError(502, 'Source host is not allowed');
+  }
   try {
     res = await fetchImpl(url, {
       method: 'POST',

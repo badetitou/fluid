@@ -17,6 +17,10 @@ export interface StubAsOptions {
   expiresIn: number;
   expectResource: string | null;
   refreshFails: boolean;
+  /** HTTP status of a failing refresh (400 invalid_grant, or e.g. 503). */
+  refreshStatus: number;
+  /** Scope named in the code-exchange response (null: none, the client must fall back). */
+  codeScope: string | null;
   tokenDelayMs: number;
 }
 
@@ -28,6 +32,8 @@ const defaults = (): StubAsOptions => ({
   expiresIn: 3600,
   expectResource: null,
   refreshFails: false,
+  refreshStatus: 400,
+  codeScope: 'read',
   tokenDelayMs: 0,
 });
 
@@ -46,22 +52,32 @@ export async function createStubAs() {
   const opts = defaults();
   const metadataHits: string[] = [];
   const tokenCalls: { params: URLSearchParams; headers: IncomingHttpHeaders }[] = [];
-  const codes = new Map<string, { challenge: string; redirectUri: string }>();
+  const codes = new Map<string, { challenge: string; redirectUri: string; nonce?: string }>();
   const refreshTokens = new Set<string>();
   let base = '';
   let counter = 0;
 
-  const issue = (res: import('node:http').ServerResponse, scope: string | null) => {
+  const idToken = (nonce: string) => {
+    const part = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
+    const now = Math.floor(Date.now() / 1000);
+    const claims = { iss: base + opts.issuerPath, aud: CLIENT_ID, sub: 'user-1', iat: now, exp: now + 300, nonce };
+    return `${part({ alg: 'RS256' })}.${part(claims)}.c2ln`;
+  };
+  const issue = (
+    res: import('node:http').ServerResponse,
+    extra: { scope?: string | null; refresh?: boolean; nonce?: string } = {},
+  ) => {
     const refresh = `rt-${++counter}-${randomBytes(4).toString('hex')}`;
-    refreshTokens.add(refresh);
+    if (extra.refresh !== false) refreshTokens.add(refresh);
     res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
     res.end(
       JSON.stringify({
         access_token: `at-${counter}-${randomBytes(4).toString('hex')}`,
         token_type: 'Bearer',
         expires_in: opts.expiresIn,
-        refresh_token: refresh,
-        scope: scope ?? 'read',
+        ...(extra.refresh !== false ? { refresh_token: refresh } : {}),
+        ...(extra.scope === null ? {} : { scope: extra.scope ?? 'read' }),
+        ...(extra.nonce !== undefined ? { id_token: idToken(extra.nonce) } : {}),
       }),
     );
   };
@@ -108,12 +124,13 @@ export async function createStubAs() {
       if (!entry || entry.challenge !== challenge || entry.redirectUri !== params.get('redirect_uri')) {
         return fail(res, 400, 'invalid_grant');
       }
-      return issue(res, 'read');
+      return issue(res, { scope: opts.codeScope, nonce: entry.nonce });
     }
     const refresh = params.get('refresh_token') ?? '';
-    if (opts.refreshFails || !refreshTokens.has(refresh)) return fail(res, 400, 'invalid_grant');
+    if (opts.refreshFails) return fail(res, opts.refreshStatus, opts.refreshStatus >= 500 ? 'server_error' : 'invalid_grant');
+    if (!refreshTokens.has(refresh)) return fail(res, 400, 'invalid_grant');
     if (opts.rotate) refreshTokens.delete(refresh);
-    return issue(res, null);
+    return issue(res, { scope: null, refresh: opts.rotate });
   });
   base = await listen(server);
 
@@ -126,9 +143,9 @@ export async function createStubAs() {
     },
     base,
     /** What the browser step would produce: a code bound to the PKCE challenge it was sent with. */
-    issueCode(challenge: string, redirectUri: string) {
+    issueCode(challenge: string, redirectUri: string, nonce?: string) {
       const code = `code-${randomBytes(6).toString('hex')}`;
-      codes.set(code, { challenge, redirectUri });
+      codes.set(code, { challenge, redirectUri, nonce });
       return code;
     },
     reset: () => {
@@ -142,23 +159,32 @@ export async function createStubAs() {
 }
 export type StubAs = Awaited<ReturnType<typeof createStubAs>>;
 
-export type ResourceMode = 'ok' | 'unauthorized' | 'insufficient_scope';
+export type ResourceMode = 'ok' | 'unauthorized' | 'insufficient_scope' | 'forbidden';
 
 export async function createStubResource(asIssuer: () => string) {
-  const state = { mode: 'ok' as ResourceMode, seen: [] as (string | undefined)[], url: '' };
+  const state = {
+    mode: 'ok' as ResourceMode,
+    seen: [] as (string | undefined)[],
+    url: '',
+    /** Overrides of the protected resource metadata URL (header) and `resource` (document). */
+    prmUrl: null as string | null,
+    prmResource: null as string | null,
+  };
   const server = createServer(async (req, res) => {
     if (req.url?.startsWith('/.well-known/oauth-protected-resource')) {
       return void res.writeHead(200, { 'content-type': 'application/json' }).end(
-        JSON.stringify({ resource: `${state.url}`, authorization_servers: [asIssuer()], scopes_supported: ['read'] }),
+        JSON.stringify({ resource: state.prmResource ?? state.url, authorization_servers: [asIssuer()], scopes_supported: ['read'] }),
       );
     }
     await readBody(req);
     state.seen.push(req.headers.authorization);
     const json = { 'content-type': 'application/json' };
     if (state.mode === 'unauthorized') {
-      const challenge = `Bearer resource_metadata="${state.url}/.well-known/oauth-protected-resource"`;
+      const doc = state.prmUrl ?? `${state.url}/.well-known/oauth-protected-resource`;
+      const challenge = `Bearer resource_metadata="${doc}"`;
       return void res.writeHead(401, { ...json, 'www-authenticate': challenge }).end('{"errors":[{"message":"nope"}]}');
     }
+    if (state.mode === 'forbidden') return void res.writeHead(403, json).end('{"errors":[{"message":"forbidden"}]}');
     if (state.mode === 'insufficient_scope') {
       const challenge = 'Bearer error="insufficient_scope", scope="write"';
       return void res.writeHead(403, { ...json, 'www-authenticate': challenge }).end('{"errors":[{"message":"nope"}]}');

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { CLIENT_SECRET } from './oauth-stub';
-import { startHarness, type Harness } from './oauth-harness';
+import { CLIENT_SECRET } from '../test-support/oauth-stub';
+import { startHarness, type Harness } from '../test-support/oauth-harness';
 
 describe('oauth sources through the GraphQL proxy', () => {
   let h: Harness;
@@ -68,15 +68,55 @@ describe('oauth sources through the GraphQL proxy', () => {
 
   it('keeps the previous refresh token when the server does not rotate it', async () => {
     h.as.opts.expiresIn = 120;
+    h.as.opts.rotate = false;
+    const { id } = await h.createSource();
+    await h.signIn(id);
+    const first = h.as.tokenCalls[0];
+    expect(first).toBeDefined();
+    h.clock.t += 61_000;
+    expect((await h.run(id)).statusCode).toBe(200);
+    h.clock.t += 61_000;
+    expect((await h.run(id)).statusCode).toBe(200);
+    const [r1, r2] = h.as.tokenCalls.slice(1).map((c) => c.params.get('refresh_token'));
+    expect(r1).toBeTruthy();
+    expect(r2).toBe(r1);
+  });
+
+  it('passes a plain 403 (no insufficient_scope) through unchanged', async () => {
+    const { id } = await h.createSource();
+    await h.signIn(id);
+    h.resource.state.mode = 'forbidden';
+    const res = await h.run(id);
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ errors: [{ message: 'forbidden' }] });
+  });
+
+  it('keeps the credential when the token endpoint answers 5xx during a refresh', async () => {
+    h.as.opts.expiresIn = 120;
     const { id } = await h.createSource();
     await h.signIn(id);
     h.clock.t += 61_000;
-    await h.run(id);
-    // The stub always issues a new refresh token, so check the not-rotated path with the pure helper too.
-    expect(h.as.tokenCalls[1].params.get('refresh_token')).toBeTruthy();
-    const { toStoredTokens } = await import('../sources/oauth/client');
-    const kept = toStoredTokens({ access_token: 'a', token_type: 'bearer' }, 0, { refreshToken: 'old', scope: 's' });
-    expect(kept).toMatchObject({ refreshToken: 'old', scope: 's', expiresAt: null });
+    h.as.opts.refreshFails = true;
+    h.as.opts.refreshStatus = 503;
+    expect(authError(await h.run(id))).toMatchObject({ reason: 'expired' });
+    expect(await h.storage.prisma.oAuthCredential.count({ where: { sourceId: id } })).toBe(1);
+    h.as.opts.refreshFails = false;
+    expect((await h.run(id)).statusCode).toBe(200);
+  });
+
+  it('shares one refresh with a caller that starts while it is running, and none after', async () => {
+    h.as.opts.expiresIn = 120;
+    const { id } = await h.createSource();
+    await h.signIn(id);
+    h.clock.t += 61_000;
+    h.as.opts.tokenDelayMs = 150;
+    const first = h.run(id);
+    await new Promise((r) => setTimeout(r, 60));
+    const second = h.run(id);
+    expect([(await first).statusCode, (await second).statusCode]).toEqual([200, 200]);
+    // A caller arriving after the refresh finished reads the refreshed credential.
+    expect((await h.run(id)).statusCode).toBe(200);
+    expect(h.as.tokenCalls.filter((c) => c.params.get('grant_type') === 'refresh_token')).toHaveLength(1);
   });
 
   it('runs one refresh at a time per source', async () => {
