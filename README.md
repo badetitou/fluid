@@ -157,6 +157,19 @@ Secrets of configured sources (API keys, tokens) are stored encrypted (AES-256-G
 required to store secrets when `DATABASE_URL` is set. In embedded mode it is generated once into
 `<data dir>/secret.key` (mode 0600). Losing the key makes the stored secrets unreadable.
 
+Outbound calls made for a source (GraphQL proxy, OAuth discovery, token endpoint) always refuse
+link-local and cloud-metadata addresses (169.254.0.0/16, fe80::/10), checked after DNS resolution
+on every request. Loopback and private networks stay allowed, since fluid is meant to reach
+intranet and local APIs. On a deployment exposed to people who must not reach your internal
+network, set `FLUID_BLOCK_PRIVATE_HOSTS=1` to refuse those too (loopback, 10/8, 172.16/12,
+192.168/16, 100.64/10, fc00::/7).
+
+OAuth sources: set `FLUID_PUBLIC_URL` (e.g. `https://fluid.example.com`) to the address fluid is
+reached at. The redirect URI to register at the authorization server is
+`<FLUID_PUBLIC_URL>/api/oauth/callback`; without it, it is built from the request's host, which is
+fine locally but should not be relied on in production. Sign-ins in flight are kept in memory, so
+run a single BFF process.
+
 ### Useful commands
 
 | Command | What it does |

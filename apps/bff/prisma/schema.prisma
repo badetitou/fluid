@@ -27,14 +27,36 @@ model View {
 /// A GraphQL source the BFF can call on behalf of the browser. `secret` is AES-256-GCM
 /// ciphertext (never returned by the API).
 model SourceConfig {
-  id         String   @id @default(cuid())
-  name       String
-  url        String
-  authKind   String   @default("none")
-  headerName String?
-  secret     String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                String           @id @default(cuid())
+  name              String
+  url               String
+  authKind          String           @default("none")
+  headerName        String?
+  secret            String?
+  /// OAuth (authKind "oauth"): issuer, client id, encrypted client secret, space-separated scopes, RFC 8707 resource.
+  oauthIssuer       String?
+  oauthClientId     String?
+  oauthClientSecret String?
+  oauthScopes       String?
+  oauthResource     String?
+  /// Bumped by sign-out, auth reconfiguration and delete; token writes only land if it is unchanged.
+  authGeneration    Int              @default(0)
+  credential        OAuthCredential?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+}
+
+/// OAuth tokens of a source (one per source until there are several users). Tokens are
+/// AES-256-GCM ciphertext (never returned by the API).
+model OAuthCredential {
+  sourceId     String       @id
+  source       SourceConfig @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime?
+  scope        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 }
 
 /// A simple key/value store for app preferences (mono-user demo).
