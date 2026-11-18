@@ -8,6 +8,12 @@ export interface SourceData {
   headerName: string | null;
   /** Already encrypted. */
   secret: string | null;
+  oauthIssuer: string | null;
+  oauthClientId: string | null;
+  /** Already encrypted. */
+  oauthClientSecret: string | null;
+  oauthScopes: string | null;
+  oauthResource: string | null;
 }
 
 export interface SourceRepository {

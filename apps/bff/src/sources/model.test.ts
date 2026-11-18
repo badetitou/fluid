@@ -8,6 +8,11 @@ const record = {
   authKind: 'header',
   headerName: null,
   secret: 'ENCRYPTED',
+  oauthIssuer: null,
+  oauthClientId: null,
+  oauthClientSecret: null,
+  oauthScopes: null,
+  oauthResource: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
