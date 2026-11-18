@@ -123,7 +123,9 @@ export async function createStubAs(port = 0) {
         return void res.writeHead(400).end('bad authorization request');
       }
       const back = new URL(redirectUri);
-      back.searchParams.set('code', grantCode(challenge, redirectUri, q.get('nonce') ?? undefined));
+      // Like a real server: an ID token (hence the nonce) only for an OpenID Connect request.
+      const oidc = (q.get('scope') ?? '').split(/\s+/).includes('openid');
+      back.searchParams.set('code', grantCode(challenge, redirectUri, oidc ? (q.get('nonce') ?? undefined) : undefined));
       const state = q.get('state');
       if (state) back.searchParams.set('state', state);
       return void res.writeHead(302, { location: back.toString() }).end();
