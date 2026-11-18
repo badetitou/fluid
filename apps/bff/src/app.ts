@@ -13,6 +13,10 @@ import { createCredentialRepository } from './sources/oauth/credentials';
 import { createOAuthService } from './sources/oauth/service';
 import { createSourceRepository } from './sources/repository';
 import { createSourceService } from './sources/service';
+import { createPrefRepository } from './prefs/repository';
+import { createPrefService } from './prefs/service';
+import { createViewRepository } from './views/repository';
+import { createViewService } from './views/service';
 
 export interface BuildAppOptions {
   /** Built frontend directory; defaults to FLUID_STATIC_DIR. Unset = API only. */
@@ -29,8 +33,8 @@ export function buildApp(options: BuildAppOptions = {}) {
 
   app.get('/health', async () => ({ status: 'ok', service: 'fluid-bff' }));
 
-  app.register(viewRoutes);
-  app.register(prefRoutes);
+  app.register(viewRoutes, { service: createViewService(createViewRepository(prisma)) });
+  app.register(prefRoutes, { service: createPrefService(createPrefRepository(prisma)) });
   app.register(llmRoutes);
   if (process.env.NODE_ENV === 'production' && !process.env.FLUID_PUBLIC_URL) {
     app.log.warn('FLUID_PUBLIC_URL is not set: the OAuth redirect URI is built from request headers. Set it in production.');

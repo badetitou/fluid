@@ -1,138 +1,53 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { Prisma, prisma } from '../db';
-import { createViewBody, updateViewBody } from '../validation';
+import { createViewBody, updateViewBody, updateWidgetBody } from '../validation';
+import type { ViewService } from '../views/service';
 
-// CRUD for persisted dashboard views. Views are stored with their full JSON
-// spec plus denormalized concept/title for listing and filtering.
+// CRUD for persisted dashboard views: HTTP in and out, everything else in the service.
 
-export async function viewRoutes(app: FastifyInstance) {
+const invalid = (reply: FastifyReply, error: z.ZodError) =>
+  reply.code(400).send({ error: 'Invalid body', details: z.flattenError(error) });
+const viewNotFound = (reply: FastifyReply) => reply.code(404).send({ error: 'View not found' });
+
+export interface ViewRoutesOptions {
+  service: ViewService;
+}
+
+export async function viewRoutes(app: FastifyInstance, { service }: ViewRoutesOptions) {
   app.get('/api/views', async (req) => {
     const { concept } = (req.query ?? {}) as { concept?: string };
-    return prisma.view.findMany({
-      where: concept ? { concept } : undefined,
-      orderBy: { createdAt: 'asc' },
-    });
+    return service.list(concept);
   });
 
   app.get('/api/views/:id', async (req, reply) => {
     const { id } = req.params as { id: string };
-    const view = await prisma.view.findUnique({ where: { id } });
-    if (!view) return reply.code(404).send({ error: 'View not found' });
-    return view;
+    return (await service.get(id)) ?? viewNotFound(reply);
   });
 
   app.post('/api/views', async (req, reply) => {
     const parsed = createViewBody.safeParse(req.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: z.flattenError(parsed.error) });
-    }
-    const { spec, isDefault } = parsed.data;
-    const created = await prisma.$transaction(async (tx) => {
-      if (isDefault) {
-        await tx.view.updateMany({ where: { concept: spec.concept }, data: { isDefault: false } });
-      }
-      return tx.view.create({
-        data: {
-          concept: spec.concept,
-          title: spec.title,
-          spec: spec as unknown as Prisma.InputJsonValue,
-          isDefault: isDefault ?? false,
-        },
-      });
-    });
-    return reply.code(201).send(created);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    return reply.code(201).send(await service.create(parsed.data.spec, parsed.data.isDefault));
   });
 
   app.put('/api/views/:id', async (req, reply) => {
     const { id } = req.params as { id: string };
     const parsed = updateViewBody.safeParse(req.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: z.flattenError(parsed.error) });
-    }
-    const existing = await prisma.view.findUnique({ where: { id } });
-    if (!existing) return reply.code(404).send({ error: 'View not found' });
-
-    const { spec, title, isDefault } = parsed.data;
-    const concept = spec?.concept ?? existing.concept;
-
-    const updated = await prisma.$transaction(async (tx) => {
-      if (isDefault) {
-        await tx.view.updateMany({ where: { concept }, data: { isDefault: false } });
-      }
-      return tx.view.update({
-        where: { id },
-        data: {
-          ...(spec
-            ? {
-                spec: spec as unknown as Prisma.InputJsonValue,
-                concept: spec.concept,
-                title: spec.title,
-              }
-            : {}),
-          // A bare rename also updates the stored spec so its title stays in sync.
-          ...(title
-            ? {
-                title,
-                ...(spec
-                  ? {}
-                  : {
-                      spec: {
-                        ...(existing.spec as Record<string, unknown>),
-                        title,
-                      } as Prisma.InputJsonValue,
-                    }),
-              }
-            : {}),
-          ...(isDefault !== undefined ? { isDefault } : {}),
-        },
-      });
-    });
-    return updated;
+    if (!parsed.success) return invalid(reply, parsed.error);
+    return (await service.update(id, parsed.data)) ?? viewNotFound(reply);
   });
 
-  // Update a single widget in a view
   app.patch('/api/views/:id/widgets/:widgetId', async (req, reply) => {
     const { id, widgetId } = req.params as { id: string; widgetId: string };
-    const { widget } = req.body as { widget: any };
-
-    if (!widget) {
-      return reply.code(400).send({ error: 'Missing widget in request body' });
-    }
-
-    const existing = await prisma.view.findUnique({ where: { id } });
-    if (!existing) return reply.code(404).send({ error: 'View not found' });
-
-    const spec = existing.spec as any;
-    const widgetIndex = spec.widgets.findIndex((w: any) => w.id === widgetId);
-    if (widgetIndex === -1) {
-      return reply.code(404).send({ error: 'Widget not found in view' });
-    }
-
-    // Replace the widget, preserving the ID and where it was arranged on the grid
-    spec.widgets[widgetIndex] = {
-      layout: spec.widgets[widgetIndex].layout,
-      ...widget,
-      id: widgetId,
-    };
-
-    const updated = await prisma.view.update({
-      where: { id },
-      data: {
-        spec: spec as unknown as Prisma.InputJsonValue,
-      },
-    });
-
-    return updated;
+    const parsed = updateWidgetBody.safeParse(req.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    const result = await service.updateWidget(id, widgetId, parsed.data.widget);
+    if ('view' in result) return result.view;
+    return result.missing === 'view' ? viewNotFound(reply) : reply.code(404).send({ error: 'Widget not found in view' });
   });
 
   app.delete('/api/views/:id', async (req, reply) => {
     const { id } = req.params as { id: string };
-    try {
-      await prisma.view.delete({ where: { id } });
-    } catch {
-      return reply.code(404).send({ error: 'View not found' });
-    }
-    return reply.code(204).send();
+    return (await service.remove(id)) ? reply.code(204).send() : viewNotFound(reply);
   });
 }

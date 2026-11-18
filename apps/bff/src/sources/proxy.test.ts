@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { forwardGraphql } from './proxy';
-import { isNotFound } from './repository';
+import { isNotFound } from '../storage/errors';
 
 const body = { query: '{ ok }' };
 

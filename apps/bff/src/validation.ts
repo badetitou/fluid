@@ -8,6 +8,7 @@ import {
   mutationInfoSchema,
   viewSpecSchema,
   viewWidgetInfoSchema,
+  widgetSchema,
   widgetCatalogRequestSchema,
 } from '@fluid/shared';
 
@@ -30,6 +31,12 @@ export const updateViewBody = z
     message: 'Provide at least one of: spec, title, isDefault.',
   });
 export type UpdateViewBody = z.infer<typeof updateViewBody>;
+
+/** Replaces one widget of a saved view. */
+export const updateWidgetBody = z.object({ widget: widgetSchema });
+
+/** The preferences to write: a JSON object (key → any JSON value). */
+export const prefsBody = z.record(z.string(), z.json());
 
 // -----------------------------------------------------------------------------
 // LLM view generation request

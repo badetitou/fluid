@@ -3,6 +3,21 @@
 Tenu par l'agent `practices-guardian` (`.claude/agents/practices-guardian.md`).
 Entrée la plus récente en haut ; les anciennes entrées ne sont jamais réécrites.
 
+## 2026-11-18 — BFF : services pour les vues et les préférences (#22)
+
+| Indicateur | Valeur | Δ |
+| --- | --- | --- |
+| Fichiers trop gros | 3 (aucun nouveau) | — |
+| Violations de couche | 0 | — |
+| `any` explicites | 2 | ↓ 3 (route `PATCH /api/views/:id/widgets/:widgetId`) |
+| Routes BFF qui appellent Prisma | 0 | ↓ 2 (`views`, `prefs`) |
+| typecheck / tests | ✅ / ✅ | |
+
+**Progrès**
+- `views/` et `prefs/` : repository + service, comme `sources/` ; les routes ne font plus que HTTP (règle 3).
+- Le widget remplacé dans une vue est validé par zod (`widgetSchema`).
+- Les services ne dépendent pas de Fastify : base du serveur MCP (#9).
+
 ## 2026-10-21 — refonte du frontend (mini composants + performances)
 
 | Indicateur | Valeur | Δ |
