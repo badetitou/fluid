@@ -19,3 +19,12 @@ export { useSourceAuthClient } from './useSourceAuthClient';
 export type { BffSourceConfig } from '../../bff/sourcesApi';
 export { type EffectiveSourceSettings, type SourceSettings } from './settings';
 export { useSourceSettings, type SourceSettingsResult } from './useSourceSettings';
+export {
+  browserFormOf,
+  browserSettingsOf,
+  browserTokenSummary,
+  type BrowserOAuthForm,
+  type BrowserOAuthSettings,
+} from './browserOAuth/model';
+export { useBrowserOAuth, type BrowserOAuth } from './browserOAuth/useBrowserOAuth';
+export { pageRedirectUri, useBrowserSignIn, type BrowserSignIn } from './browserOAuth/useBrowserSignIn';

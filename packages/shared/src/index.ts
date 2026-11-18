@@ -6,3 +6,4 @@ export * from './guards';
 export * from './plugins';
 export * from './specFluid';
 export * from './chat';
+export * from './oauth';

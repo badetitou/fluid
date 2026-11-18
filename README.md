@@ -370,6 +370,13 @@ with repository variables (*Settings → Secrets and variables → Actions → V
 - `FLUID_DEFAULT_GRAPHQL_URL`: GraphQL URL pre-filled on the connect screen (HTTPS, CORS allowed from
   the Pages origin).
 
+For demos, an OAuth-protected source can still be signed in to without a BFF: *Settings →
+Connection → Sign in from the browser (demo)*. The page is then a public OAuth client
+(authorization code + PKCE, no client secret). Register `<site>/oauth-callback.html` as a redirect
+URI and allow the site's origin (CORS) on the authorization server's metadata and token endpoints.
+The access token stays in the tab's memory only (lost on reload, no refresh token), where plugins
+can read it: use the BFF for real deployments.
+
 </details>
 
 ## 🤝 Contributing

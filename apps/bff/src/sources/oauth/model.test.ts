@@ -1,21 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { callbackPage } from './callback-page';
-import { endpointsAllowed, metadataCandidates, resourceMatches } from './discovery';
 import { authRequiredResult, configFingerprint, callbackUri, joinScopes, publicOrigin, splitScopes, toPublicOAuth } from './model';
-
-describe('metadata candidates', () => {
-  it('follows the MCP order, with path insertion for issuers that have a path', () => {
-    expect(metadataCandidates('https://a.test')).toEqual([
-      'https://a.test/.well-known/oauth-authorization-server',
-      'https://a.test/.well-known/openid-configuration',
-    ]);
-    expect(metadataCandidates('https://a.test/t1/')).toEqual([
-      'https://a.test/.well-known/oauth-authorization-server/t1',
-      'https://a.test/.well-known/openid-configuration/t1',
-      'https://a.test/t1/.well-known/openid-configuration',
-    ]);
-  });
-});
 
 describe('auth errors and public view', () => {
   it('builds typed GraphQL errors: 401 for signin/expired, 403 for insufficient_scope', () => {
@@ -55,24 +40,7 @@ describe('callback page', () => {
   });
 });
 
-describe('discovery rules', () => {
-  it('requires https endpoints for an https issuer, anything for an http one', () => {
-    expect(endpointsAllowed('https://i.test', ['https://i.test/a', 'https://other.test/t'])).toBe(true);
-    expect(endpointsAllowed('https://i.test', ['https://i.test/a', 'http://i.test/t'])).toBe(false);
-    expect(endpointsAllowed('http://127.0.0.1:1', ['http://127.0.0.1:1/t'])).toBe(true);
-    expect(endpointsAllowed('HTTPS://i.test', ['HTTPS://i.test/a'])).toBe(true);
-    expect(endpointsAllowed('https://i.test', ['not a url'])).toBe(false);
-    expect(endpointsAllowed('https://i.test', ['https:/\\x', 'httpx://i.test'])).toBe(false);
-  });
-
-  it('matches a protected resource against the probed URL', () => {
-    expect(resourceMatches('https://api.test', 'https://api.test/graphql')).toBe(true);
-    expect(resourceMatches('https://api.test/graphql', 'https://api.test/graphql')).toBe(true);
-    expect(resourceMatches('https://api.test/v2', 'https://api.test/graphql')).toBe(false);
-    expect(resourceMatches('https://evil.test', 'https://api.test/graphql')).toBe(false);
-    expect(resourceMatches('nonsense', 'https://api.test/graphql')).toBe(false);
-  });
-
+describe('config fingerprint', () => {
   it('binds a fingerprint to issuer, client, secret, scopes, resource and url origin', () => {
     const base = { url: 'https://a.test/g', oauthIssuer: 'https://i', oauthClientId: 'c', oauthClientSecret: 's', oauthScopes: 'a', oauthResource: null };
     const fp = configFingerprint(base);

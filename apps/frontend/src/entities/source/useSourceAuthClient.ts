@@ -2,6 +2,9 @@ import { useMemo } from 'react';
 import { mapExchange, type Exchange } from 'urql';
 import { useConnection } from '../../store';
 import { useAuthRequired } from './authRequired';
+import { browserAuthExchange } from './browserOAuth/exchange';
+import { browserAuthKey } from './browserOAuth/model';
+import { useBrowserOAuthSettings } from './browserOAuth/store';
 import { authRequiredOf } from './oauth';
 import { useSavedSources } from './store';
 
@@ -28,12 +31,29 @@ export const authRequiredExchange = (sourceId: string, epoch: number): Exchange 
   });
 
 /**
- * The exchange the GraphQL client of the connected source needs to ask for a reconnection
- * (`null` unless it is routed through the BFF). It is a new one each time the user signed in
- * again or out, so that the client built with it is new too and the queries run anew.
+ * The source URL of the connected source when it is signed in to from the page (no BFF, browser
+ * OAuth settings kept for it); routing through the BFF wins.
+ */
+export function useCurrentBrowserAuthUrl(): string | undefined {
+  const url = useConnection((s) => s.graphqlUrl);
+  const routed = useCurrentBffSourceId() !== undefined;
+  const configured = useBrowserOAuthSettings((s) => (url ? url in s.byUrl : false));
+  return url && !routed && configured ? url : undefined;
+}
+
+/**
+ * The exchange the GraphQL client of the connected source needs to sign in and to ask for a
+ * reconnection: the BFF's when it is routed through it, the page's own for browser OAuth, else
+ * `null`. It is a new one each time the user signed in again or out, so that the client built
+ * with it is new too and the queries run anew.
  */
 export function useSourceAuthClient(): Exchange | null {
   const id = useCurrentBffSourceId();
-  const epoch = useAuthRequired((s) => (id ? (s.epoch[id] ?? 0) : 0));
-  return useMemo(() => (id ? authRequiredExchange(id, epoch) : null), [id, epoch]);
+  const browserUrl = useCurrentBrowserAuthUrl();
+  const key = id ?? (browserUrl ? browserAuthKey(browserUrl) : undefined);
+  const epoch = useAuthRequired((s) => (key ? (s.epoch[key] ?? 0) : 0));
+  return useMemo(() => {
+    if (id) return authRequiredExchange(id, epoch);
+    return browserUrl ? browserAuthExchange(browserUrl, epoch) : null;
+  }, [id, browserUrl, epoch]);
 }

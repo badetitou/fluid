@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { buildSchema, graphql } from 'graphql';
-import { CLIENT_ID, CLIENT_SECRET, createStubAs } from './oauth-stub';
+import { CLIENT_ID, CLIENT_SECRET, PUBLIC_CLIENT_ID, createStubAs } from './oauth-stub';
 
 // Test support, started by hand: an authorization server (auto-approving /authorize) on <port> and
 // a token-protected GraphQL resource on <port + 1>.
@@ -10,6 +10,8 @@ import { CLIENT_ID, CLIENT_SECRET, createStubAs } from './oauth-stub';
 
 const port = Number(process.argv[2] ?? 4600);
 const as = await createStubAs(port);
+// Browsers may call both servers too (browser-only sign-in, no BFF).
+as.opts.cors = true;
 
 const schema = buildSchema(`
   type User { id: ID!, name: String! }
@@ -36,6 +38,10 @@ const resourceUrl = `http://127.0.0.1:${port + 1}`;
 const resource = createServer(async (req, res) => {
   const json = { 'content-type': 'application/json' };
   const path = new URL(req.url ?? '/', resourceUrl).pathname;
+  res.setHeader('access-control-allow-origin', '*');
+  res.setHeader('access-control-allow-headers', 'content-type, authorization');
+  res.setHeader('access-control-expose-headers', 'www-authenticate');
+  if (req.method === 'OPTIONS') return void res.writeHead(204).end();
   if (path === '/.well-known/oauth-protected-resource') {
     return void res.writeHead(200, json).end(
       JSON.stringify({ resource: resourceUrl, authorization_servers: [as.issuer], scopes_supported: ['read', 'write'] }),
@@ -61,4 +67,5 @@ await new Promise<void>((r) => resource.listen(port + 1, '127.0.0.1', r));
 console.log(`Authorization server (issuer): ${as.issuer}`);
 console.log(`Protected GraphQL source:      ${resourceUrl}/graphql`);
 console.log(`Client id: ${CLIENT_ID}   Client secret: ${CLIENT_SECRET}   Scopes: read`);
+console.log(`Public client id (browser-only sign-in, no secret): ${PUBLIC_CLIENT_ID}`);
 console.log(`Expire sign-in:  curl ${resourceUrl}/_expire   (undo: curl ${resourceUrl}/_reset)`);

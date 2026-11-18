@@ -13,6 +13,9 @@ vi.mock('../../entities/source', () => ({
   useOAuthDiscovery: () => ({ busy: false, error: null, discover: vi.fn() }),
   discoveryPatch: () => ({}),
 }));
+vi.mock('./BrowserOAuthSettings', () => ({
+  BrowserOAuthSettings: ({ offered }: { offered: boolean }) => (offered ? <div>browser sign-in offered</div> : null),
+}));
 
 import { BffSourceSettings } from './BffSourceSettings';
 
@@ -37,6 +40,7 @@ describe('BffSourceSettings', () => {
     render(<BffSourceSettings />);
     expect((screen.getByRole('switch', { name: 'Via the BFF' }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText(/No BFF is reachable/)).toBeTruthy();
+    expect(screen.getByText('browser sign-in offered')).toBeTruthy();
   });
 
   it('keeps the switch usable for a routed source whose BFF is down', () => {

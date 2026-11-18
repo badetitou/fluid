@@ -1,7 +1,9 @@
 import { useCallback } from 'react';
 import { useAuthRequired } from './authRequired';
 import type { AuthRequired, SignInStatus } from './oauth';
-import { useCurrentBffSourceId } from './useSourceAuthClient';
+import { browserAuthKey } from './browserOAuth/model';
+import { useBrowserSignIn } from './browserOAuth/useBrowserSignIn';
+import { useCurrentBffSourceId, useCurrentBrowserAuthUrl } from './useSourceAuthClient';
 import { useOAuthSignIn } from './useOAuthSignIn';
 
 export interface Reconnect {
@@ -12,12 +14,19 @@ export interface Reconnect {
   reconnect: () => void;
 }
 
-/** The "Reconnect" prompt of the connected source, fed by the BFF's FLUID_AUTH_REQUIRED answers. */
+/**
+ * The "Reconnect" prompt of the connected source, fed by the BFF's FLUID_AUTH_REQUIRED answers, or
+ * by the source's 401 when it is signed in to from the page (browser OAuth).
+ */
 export function useReconnect(): Reconnect {
   const id = useCurrentBffSourceId();
-  const required = useAuthRequired((s) => (id ? (s.required[id] ?? null) : null));
+  const browserUrl = useCurrentBrowserAuthUrl();
+  const key = id ?? (browserUrl ? browserAuthKey(browserUrl) : undefined);
+  const required = useAuthRequired((s) => (key ? (s.required[key] ?? null) : null));
   const reconnected = useAuthRequired((s) => s.reconnected);
-  const { status, start } = useOAuthSignIn(id, reconnected);
+  const bff = useOAuthSignIn(id, reconnected);
+  const browser = useBrowserSignIn(browserUrl);
+  const { status, start } = id ? bff : browser;
   const reconnect = useCallback(
     () => start(required?.reason === 'insufficient_scope' ? required.scope : undefined),
     [start, required],

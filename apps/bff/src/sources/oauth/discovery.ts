@@ -1,4 +1,5 @@
 import { processDiscoveryResponse, type AuthorizationServer } from 'oauth4webapi';
+import { authServerMetadataSchema, endpointsAllowed, metadataCandidates, resourceMatches } from '@fluid/shared';
 import { z } from 'zod';
 import { parseBearerChallenge } from './challenge';
 import { isIssuerUrl } from '../url';
@@ -6,17 +7,9 @@ import type { SafeFetch } from './safe-fetch';
 
 // Authorization server metadata (RFC 8414, then OpenID Connect Discovery, in the path-insertion
 // order of the MCP authorization spec 2025-11-25) and protected resource metadata (RFC 9728).
+// The pure rules live in @fluid/shared, shared with the browser-only fallback.
 
 export class DiscoveryError extends Error {}
-
-const endpoint = z.url({ protocol: /^https?$/ });
-const asMetadata = z.looseObject({
-  authorization_endpoint: endpoint,
-  token_endpoint: endpoint,
-  code_challenge_methods_supported: z.array(z.string()).optional(),
-  scopes_supported: z.array(z.string()).optional(),
-  token_endpoint_auth_methods_supported: z.array(z.string()).optional(),
-});
 
 export interface AuthServerInfo {
   as: AuthorizationServer;
@@ -27,30 +20,6 @@ export interface AuthServerInfo {
   scopesSupported: string[];
   authMethods: string[];
 }
-
-/** Well-known URLs to try for an issuer, in order (pure). */
-export function metadataCandidates(issuer: string): string[] {
-  const url = new URL(issuer);
-  const path = url.pathname.replace(/\/+$/, '');
-  const base = url.origin;
-  if (!path) return [`${base}/.well-known/oauth-authorization-server`, `${base}/.well-known/openid-configuration`];
-  return [
-    `${base}/.well-known/oauth-authorization-server${path}`,
-    `${base}/.well-known/openid-configuration${path}`,
-    `${base}${path}/.well-known/openid-configuration`,
-  ];
-}
-
-/** Endpoints that receive codes and secrets must be https when the issuer is (pure). */
-const protocolOf = (v: string) => {
-  try {
-    return new URL(v).protocol;
-  } catch {
-    return null;
-  }
-};
-export const endpointsAllowed = (issuer: string, endpoints: string[]) =>
-  protocolOf(issuer) !== 'https:' || endpoints.every((e) => protocolOf(e) === 'https:');
 
 export async function discoverAuthorizationServer(issuer: string, fetchOut: SafeFetch): Promise<AuthServerInfo> {
   if (!isIssuerUrl(issuer)) throw new DiscoveryError('Invalid issuer');
@@ -66,7 +35,7 @@ export async function discoverAuthorizationServer(issuer: string, fetchOut: Safe
     if (!response.ok) continue;
     try {
       const as = await processDiscoveryResponse(issuerUrl, response.clone());
-      const meta = asMetadata.parse(await response.json());
+      const meta = authServerMetadataSchema.parse(await response.json());
       if (!endpointsAllowed(issuer, [meta.authorization_endpoint, meta.token_endpoint])) continue;
       return {
         as,
@@ -105,18 +74,6 @@ export interface ProtectedResourceInfo {
   resource: string | null;
   authorizationServers: string[];
   scopes: string[];
-}
-
-/** RFC 9728: the document's `resource` must identify the probed URL (same origin, path prefix). */
-export function resourceMatches(resource: string, probed: string): boolean {
-  try {
-    const r = new URL(resource);
-    const p = new URL(probed);
-    const prefix = r.pathname.replace(/\/+$/, '');
-    return r.origin === p.origin && (prefix === '' || p.pathname === prefix || p.pathname.startsWith(`${prefix}/`));
-  } catch {
-    return false;
-  }
 }
 
 /**

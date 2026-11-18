@@ -7,6 +7,8 @@ import type { AddressInfo } from 'node:net';
 
 export const CLIENT_ID = 'fluid-client';
 export const CLIENT_SECRET = 'client-secret-xyz';
+/** A public client (no secret), as the browser-only sign-in uses. */
+export const PUBLIC_CLIENT_ID = 'fluid-public';
 
 export interface StubAsOptions {
   /** Where the metadata lives: RFC 8414, OIDC (path insertion) or OIDC (appended to the issuer). */
@@ -22,6 +24,8 @@ export interface StubAsOptions {
   /** Scope named in the code-exchange response (null: none, the client must fall back). */
   codeScope: string | null;
   tokenDelayMs: number;
+  /** Answer browsers from any origin (CORS), for the browser-only sign-in. */
+  cors: boolean;
 }
 
 const defaults = (): StubAsOptions => ({
@@ -35,6 +39,7 @@ const defaults = (): StubAsOptions => ({
   refreshStatus: 400,
   codeScope: 'read',
   tokenDelayMs: 0,
+  cors: false,
 });
 
 const listen = async (server: Server, port = 0) => {
@@ -95,6 +100,11 @@ export async function createStubAs(port = 0) {
   };
   const server = createServer(async (req, res) => {
     const path = new URL(req.url ?? '/', base).pathname;
+    if (opts.cors) {
+      res.setHeader('access-control-allow-origin', '*');
+      res.setHeader('access-control-allow-headers', 'content-type, authorization');
+      if (req.method === 'OPTIONS') return void res.writeHead(204).end();
+    }
     if (path.includes('/.well-known/')) {
       metadataHits.push(path);
       const served = {
@@ -119,7 +129,7 @@ export async function createStubAs(port = 0) {
       const q = new URL(req.url ?? '/', base).searchParams;
       const redirectUri = q.get('redirect_uri');
       const challenge = q.get('code_challenge');
-      if (!redirectUri || !challenge || q.get('client_id') !== CLIENT_ID) {
+      if (!redirectUri || !challenge || ![CLIENT_ID, PUBLIC_CLIENT_ID].includes(q.get('client_id') ?? '')) {
         return void res.writeHead(400).end('bad authorization request');
       }
       const back = new URL(redirectUri);
@@ -139,7 +149,8 @@ export async function createStubAs(port = 0) {
       .toString()
       .split(':')
       .map(decodeURIComponent);
-    if (id !== CLIENT_ID || secret !== CLIENT_SECRET) return fail(res, 401, 'invalid_client');
+    const publicClient = !req.headers.authorization && params.get('client_id') === PUBLIC_CLIENT_ID;
+    if (!publicClient && (id !== CLIENT_ID || secret !== CLIENT_SECRET)) return fail(res, 401, 'invalid_client');
     if (opts.expectResource && params.get('resource') !== opts.expectResource) return fail(res, 400, 'invalid_target');
     if (params.get('grant_type') === 'authorization_code') {
       const entry = codes.get(params.get('code') ?? '');

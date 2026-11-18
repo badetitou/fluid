@@ -1,6 +1,7 @@
 import { Alert, Space, Switch, Typography } from 'antd';
 import { authFormKey, useBffSourceConfig, useSources } from '../../entities/source';
 import { BffAuthForm } from './BffAuthForm';
+import { BrowserOAuthSettings } from './BrowserOAuthSettings';
 import { OAuthStatus } from './OAuthStatus';
 import styles from './SourceSwitcher.module.css';
 
@@ -53,6 +54,9 @@ export function BffSourceSettings() {
           onClosed={() => void bff.refresh()}
           onSignOut={bff.signOut}
         />
+      )}
+      {current && !bff.routed && (
+        <BrowserOAuthSettings url={current} offered={bff.available === false} suggested={currentAuth} />
       )}
     </div>
   );
