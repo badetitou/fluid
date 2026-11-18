@@ -35,7 +35,7 @@ export interface DiscoveryResult {
 export interface OAuthService {
   discover(query: DiscoveryQuery): Promise<DiscoveryResult>;
   /** The authorization URL; throws FlowError (404 unknown source, 400 not OAuth / no S256, 502). */
-  start(sourceId: string, opts: StartOptions): Promise<{ url: string; binder: string }>;
+  start(sourceId: string, opts: StartOptions): Promise<{ url: string; binder: string; state: string }>;
   callback(query: URLSearchParams, binder: string | null): Promise<CallbackResult>;
   /** Deletes the credential and forgets sign-ins in flight; true when a credential existed. */
   signOut(sourceId: string): Promise<boolean>;
@@ -59,7 +59,7 @@ export function createOAuthService(deps: OAuthServiceDeps): OAuthService {
   const pending = deps.pending ?? createPendingStore(undefined, now);
   const loadSource = (id: string) => sources.get(id);
   const flow = createOAuthFlow({ creds, key, discover, fetchOut, pending, loadSource, now });
-  const tokens = createTokenManager({ creds, key, discover, fetchOut, loadSource, now });
+  const tokens = createTokenManager({ creds, key, discover, fetchOut, now });
 
   return {
     async discover({ url, issuer }) {
@@ -94,7 +94,7 @@ export function createOAuthService(deps: OAuthServiceDeps): OAuthService {
     callback: (query, binder) => flow.complete(query, binder),
     async signOut(sourceId) {
       pending.dropForSource(sourceId);
-      return creds.remove(sourceId);
+      return creds.revoke(sourceId);
     },
     credential: (sourceId) => creds.get(sourceId),
     accessToken: (source) => tokens.accessToken(source),

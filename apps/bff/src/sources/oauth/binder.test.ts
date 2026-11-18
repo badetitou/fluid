@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { binderMatches, hashBinder, newBinder, readBinder, setBinderCookie } from './binder';
+import { binderCookieName, binderMatches, hashBinder, newBinder, readBinder, setBinderCookie } from './binder';
 
 describe('binder cookie', () => {
   it('matches only the binder it was derived from', () => {
@@ -10,14 +10,19 @@ describe('binder cookie', () => {
   });
 
   it('sets an HttpOnly, SameSite=Lax cookie on the oauth path and reads it back', () => {
-    const cookie = setBinderCookie('abc', true);
+    const cookie = setBinderCookie('st', 'abc', true);
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('SameSite=Lax');
     expect(cookie).toContain('Path=/api/oauth');
     expect(cookie).toContain('Secure');
-    expect(setBinderCookie('abc', false)).not.toContain('Secure');
-    expect(readBinder('a=1; fluid_oauth=abc; b=2')).toBe('abc');
-    expect(readBinder('a=1')).toBeNull();
-    expect(readBinder(undefined)).toBeNull();
+    expect(setBinderCookie('st', 'abc', false)).not.toContain('Secure');
+    const header = `a=1; ${setBinderCookie('st', 'abc', false).split(';')[0]}; ${setBinderCookie('other', 'zzz', false).split(';')[0]}`;
+    expect(readBinder(header, 'st')).toBe('abc');
+    expect(readBinder(header, 'other')).toBe('zzz');
+    expect(readBinder(header, 'third')).toBeNull();
+    expect(readBinder('a=1', 'st')).toBeNull();
+    expect(readBinder(undefined, 'st')).toBeNull();
+    expect(readBinder(header, null)).toBeNull();
+    expect(binderCookieName('st')).not.toBe(binderCookieName('other'));
   });
 });

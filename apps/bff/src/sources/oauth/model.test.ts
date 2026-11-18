@@ -60,6 +60,9 @@ describe('discovery rules', () => {
     expect(endpointsAllowed('https://i.test', ['https://i.test/a', 'https://other.test/t'])).toBe(true);
     expect(endpointsAllowed('https://i.test', ['https://i.test/a', 'http://i.test/t'])).toBe(false);
     expect(endpointsAllowed('http://127.0.0.1:1', ['http://127.0.0.1:1/t'])).toBe(true);
+    expect(endpointsAllowed('HTTPS://i.test', ['HTTPS://i.test/a'])).toBe(true);
+    expect(endpointsAllowed('https://i.test', ['not a url'])).toBe(false);
+    expect(endpointsAllowed('https://i.test', ['https:/\\x', 'httpx://i.test'])).toBe(false);
   });
 
   it('matches a protected resource against the probed URL', () => {

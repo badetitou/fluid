@@ -50,6 +50,8 @@ export interface CallbackResult {
   ok: boolean;
   /** The UI origin recorded at start; null when the state is unknown or not ours. */
   uiOrigin: string | null;
+  /** The state matched a pending sign-in started by this browser (its binder cookie can be cleared). */
+  bound: boolean;
   /** A short, safe code for the logs. Never a token, code or server text. */
   failure?: string;
 }
@@ -65,7 +67,7 @@ export function createOAuthFlow(deps: FlowDeps) {
 
   return {
     /** The authorization URL to send the browser to, and the binder to set as a cookie. */
-    async start(source: OAuthSource, opts: StartOptions): Promise<{ url: string; binder: string }> {
+    async start(source: OAuthSource, opts: StartOptions): Promise<{ url: string; binder: string; state: string }> {
       if (source.authKind !== 'oauth' || !source.oauthIssuer || !source.oauthClientId) {
         throw new FlowError(400, 'This source is not configured for OAuth');
       }
@@ -104,22 +106,23 @@ export function createOAuthFlow(deps: FlowDeps) {
         scopes,
         binderHash: hashBinder(binder),
         fingerprint: configFingerprint(source),
+        generation: source.authGeneration,
         oidc: scopes.includes('openid'),
         createdAt: now(),
       });
-      return { url: url.toString(), binder };
+      return { url: url.toString(), binder, state };
     },
 
     /** Checks state (single use) and binder, exchanges the code with the verifier, stores the tokens. */
     async complete(query: URLSearchParams, binder: string | null): Promise<CallbackResult> {
       const state = query.get('state');
       const entry = state ? pending.take(state) : null;
-      if (!entry) return { sourceId: null, ok: false, uiOrigin: null, failure: 'unknown_state' };
+      if (!entry) return { sourceId: null, ok: false, uiOrigin: null, bound: false, failure: 'unknown_state' };
       if (!binderMatches(entry.binderHash, binder)) {
-        return { sourceId: null, ok: false, uiOrigin: null, failure: 'binder_mismatch' };
+        return { sourceId: null, ok: false, uiOrigin: null, bound: false, failure: 'binder_mismatch' };
       }
-      const base = { sourceId: entry.sourceId, uiOrigin: entry.uiOrigin };
-      const unchanged = (s: OAuthSource | null): s is OAuthSource => !!s && configFingerprint(s) === entry.fingerprint;
+      const base = { sourceId: entry.sourceId, uiOrigin: entry.uiOrigin, bound: true };
+      const unchanged = (s: OAuthSource | null): s is OAuthSource => !!s && configFingerprint(s) === entry.fingerprint && s.authGeneration === entry.generation;
       try {
         const source = await loadSource(entry.sourceId);
         if (!source) return { ...base, ok: false, failure: 'source_gone' };
@@ -137,15 +140,19 @@ export function createOAuthFlow(deps: FlowDeps) {
           await processAuthorizationCodeResponse(info.as, client, res, entry.oidc ? { expectedNonce: entry.nonce } : {}),
           now(),
         );
-        // The exchange takes time: a reconfiguration or delete meanwhile must not be overwritten.
-        if (!unchanged(await loadSource(entry.sourceId))) return { ...base, ok: false, failure: 'config_changed' };
-        await creds.save({
-          sourceId: source.id,
-          accessToken: encryptSecret(tokens.accessToken, key()),
-          refreshToken: tokens.refreshToken ? encryptSecret(tokens.refreshToken, key()) : null,
-          expiresAt: tokens.expiresAt,
-          scope: tokens.scope ?? (entry.scopes.join(' ') || null),
-        });
+        // The exchange takes time: the write is refused if the source was signed out,
+        // reconfigured or deleted meanwhile (generation bumped), in the same transaction.
+        const saved = await creds.saveIf(
+          {
+            sourceId: source.id,
+            accessToken: encryptSecret(tokens.accessToken, key()),
+            refreshToken: tokens.refreshToken ? encryptSecret(tokens.refreshToken, key()) : null,
+            expiresAt: tokens.expiresAt,
+            scope: tokens.scope ?? (entry.scopes.join(' ') || null),
+          },
+          { generation: entry.generation },
+        );
+        if (!saved) return { ...base, ok: false, failure: 'config_changed' };
         return { ...base, ok: true };
       } catch (err) {
         return { ...base, ok: false, failure: failureOf(err) };

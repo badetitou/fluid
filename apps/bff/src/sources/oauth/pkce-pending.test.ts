@@ -11,6 +11,7 @@ const entry = (state: string, sourceId = 'x', createdAt = 0): PendingSignIn => (
   scopes: [],
   binderHash: 'h',
   fingerprint: 'f',
+  generation: 0,
   oidc: false,
   createdAt,
 });

@@ -18,15 +18,21 @@ export function binderMatches(expectedHash: string, binder: string | null): bool
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export const setBinderCookie = (binder: string, secure: boolean) =>
-  `${BINDER_COOKIE}=${binder}; Path=${COOKIE_PATH}; Max-Age=${MAX_AGE_SECONDS}; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`;
-export const clearBinderCookie = (secure: boolean) =>
-  `${BINDER_COOKIE}=; Path=${COOKIE_PATH}; Max-Age=0; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`;
+/** One cookie per sign-in (named after its state), so concurrent sign-ins do not collide. */
+export const binderCookieName = (state: string) =>
+  `${BINDER_COOKIE}_${createHash('sha256').update(state).digest('hex').slice(0, 16)}`;
 
-export function readBinder(cookieHeader: string | undefined): string | null {
+export const setBinderCookie = (state: string, binder: string, secure: boolean) =>
+  `${binderCookieName(state)}=${binder}; Path=${COOKIE_PATH}; Max-Age=${MAX_AGE_SECONDS}; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`;
+export const clearBinderCookie = (state: string, secure: boolean) =>
+  `${binderCookieName(state)}=; Path=${COOKIE_PATH}; Max-Age=0; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`;
+
+export function readBinder(cookieHeader: string | undefined, state: string | null): string | null {
+  if (!state) return null;
+  const wanted = binderCookieName(state);
   for (const part of (cookieHeader ?? '').split(';')) {
     const [name, ...value] = part.trim().split('=');
-    if (name === BINDER_COOKIE && value.length) return value.join('=') || null;
+    if (name === wanted && value.length) return value.join('=') || null;
   }
   return null;
 }

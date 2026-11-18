@@ -42,8 +42,15 @@ export function metadataCandidates(issuer: string): string[] {
 }
 
 /** Endpoints that receive codes and secrets must be https when the issuer is (pure). */
+const protocolOf = (v: string) => {
+  try {
+    return new URL(v).protocol;
+  } catch {
+    return null;
+  }
+};
 export const endpointsAllowed = (issuer: string, endpoints: string[]) =>
-  !issuer.startsWith('https://') || endpoints.every((e) => e.startsWith('https://'));
+  protocolOf(issuer) !== 'https:' || endpoints.every((e) => protocolOf(e) === 'https:');
 
 export async function discoverAuthorizationServer(issuer: string, fetchOut: SafeFetch): Promise<AuthServerInfo> {
   if (!isIssuerUrl(issuer)) throw new DiscoveryError('Invalid issuer');

@@ -25,6 +25,8 @@ export interface OAuthSource {
   oauthClientSecret: string | null;
   oauthScopes: string | null;
   oauthResource: string | null;
+  /** Bumped by sign-out, reconfiguration and delete: guards token writes. */
+  authGeneration: number;
 }
 
 /** Confidential client: Basic unless the server only lists POST; no secret: public client. */

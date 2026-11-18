@@ -124,16 +124,8 @@ export function createSourceService(
       else if (moved && !input.secret) secret = null;
       else if (input.secret) secret = encryptSecret(input.secret, key());
       const oauth = authKind === 'oauth' ? mergeOAuth(current, input, moved) : noOAuth;
-      const record = await repo.update(id, {
-        ...(input.name !== undefined ? { name: input.name } : {}),
-        ...(input.url !== undefined ? { url: input.url } : {}),
-        authKind,
-        headerName: authKind === 'header' ? (input.headerName ?? current.headerName) : null,
-        secret,
-        ...oauth,
-      });
-      if (!record) return null;
-      // Tokens are only good for the config they were issued under.
+      // Tokens are only good for the config they were issued under: bump the generation in the
+      // same statement as the update, so a token write racing with it is refused.
       const reconfigured =
         moved ||
         authKind !== current.authKind ||
@@ -142,6 +134,16 @@ export function createSourceService(
         oauth.oauthClientSecret !== current.oauthClientSecret ||
         oauth.oauthScopes !== current.oauthScopes ||
         oauth.oauthResource !== current.oauthResource;
+      const record = await repo.update(id, {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.url !== undefined ? { url: input.url } : {}),
+        authKind,
+        headerName: authKind === 'header' ? (input.headerName ?? current.headerName) : null,
+        secret,
+        ...oauth,
+        bumpAuthGeneration: reconfigured,
+      });
+      if (!record) return null;
       if (reconfigured) await opts.oauth?.signOut(id);
       return publicOf(record);
     },

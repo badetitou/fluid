@@ -8,6 +8,7 @@ const record = {
   authKind: 'header',
   headerName: null,
   secret: 'ENCRYPTED',
+  authGeneration: 0,
   oauthIssuer: null,
   oauthClientId: null,
   oauthClientSecret: null,

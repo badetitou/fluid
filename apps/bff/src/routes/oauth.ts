@@ -27,8 +27,9 @@ const startQuery = z.object({
 
 export async function oauthRoutes(app: FastifyInstance, { oauth, publicUrl }: OAuthRoutesOptions) {
   const redirectOrigin = (req: { protocol: string; host: string }) => publicOrigin(publicUrl, req);
-  /** Where the page posts its message when `?origin` is not given: FLUID_PUBLIC_URL, else the callback's origin. */
-  const defaultUiOrigin = (req: { protocol: string; host: string }) => redirectOrigin(req);
+  /** The page posts to FLUID_PUBLIC_URL's origin when set (any `?origin` is ignored); else `?origin`, else the callback's. */
+  const uiOriginFor = (req: { protocol: string; host: string }, requested?: string) =>
+    publicUrl?.trim() ? redirectOrigin(req) : (requested ?? redirectOrigin(req));
 
   app.get('/api/oauth/discover', async (req, reply) => {
     const parsed = discoverQuery.safeParse(req.query);
@@ -43,13 +44,13 @@ export async function oauthRoutes(app: FastifyInstance, { oauth, publicUrl }: OA
     if (!query.success || !extra.success) return reply.code(400).send({ error: 'Invalid scope or origin' });
     const redirectUri = callbackUri(redirectOrigin(req));
     try {
-      const { url, binder } = await oauth.start(id, {
+      const { url, binder, state } = await oauth.start(id, {
         redirectUri,
-        uiOrigin: query.data.origin ?? defaultUiOrigin(req),
+        uiOrigin: uiOriginFor(req, query.data.origin),
         extraScopes: extra.data,
       });
       return reply
-        .header('set-cookie', setBinderCookie(binder, redirectUri.startsWith('https://')))
+        .header('set-cookie', setBinderCookie(state, binder, redirectUri.startsWith('https://')))
         .header('cache-control', 'no-store')
         .redirect(url, 302);
     } catch (err) {
@@ -59,16 +60,21 @@ export async function oauthRoutes(app: FastifyInstance, { oauth, publicUrl }: OA
   });
 
   app.get('/api/oauth/callback', async (req, reply) => {
-    const result = await oauth.callback(new URL(req.url, 'http://fluid.invalid').searchParams, readBinder(req.headers.cookie));
+    const query = new URL(req.url, 'http://fluid.invalid').searchParams;
+    const state = query.get('state');
+    const result = await oauth.callback(query, readBinder(req.headers.cookie, state));
     // Only a short failure code reaches the logs: never the code, state, tokens or server text.
     if (!result.ok) req.log.warn({ failure: result.failure }, 'oauth sign-in failed');
+    // The binder cookie is cleared only once it matched; an unknown or forged callback sets nothing.
+    if (result.bound && state) {
+      reply.header('set-cookie', clearBinderCookie(state, callbackUri(redirectOrigin(req)).startsWith('https://')));
+    }
     return reply
-      .header('set-cookie', clearBinderCookie(callbackUri(redirectOrigin(req)).startsWith('https://')))
       .header('cache-control', 'no-store')
       .header('referrer-policy', 'no-referrer')
       .header('content-security-policy', "default-src 'none'; script-src 'unsafe-inline'")
       .type('text/html; charset=utf-8')
-      .send(callbackPage({ sourceId: result.sourceId, ok: result.ok, origin: result.uiOrigin ?? defaultUiOrigin(req) }));
+      .send(callbackPage({ sourceId: result.sourceId, ok: result.ok, origin: result.uiOrigin ?? uiOriginFor(req) }));
   });
 
   app.delete('/api/sources/:id/oauth/credential', async (req, reply) => {

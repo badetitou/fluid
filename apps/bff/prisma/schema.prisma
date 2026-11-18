@@ -39,6 +39,8 @@ model SourceConfig {
   oauthClientSecret String?
   oauthScopes       String?
   oauthResource     String?
+  /// Bumped by sign-out, auth reconfiguration and delete; token writes only land if it is unchanged.
+  authGeneration    Int              @default(0)
   credential        OAuthCredential?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt

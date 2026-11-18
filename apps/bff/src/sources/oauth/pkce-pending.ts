@@ -18,6 +18,8 @@ export interface PendingSignIn {
   scopes: string[];
   /** Hash of the cookie binder of the browser that started the flow. */
   binderHash: string;
+  /** The source's `authGeneration` at start: the token write is refused if it moved. */
+  generation: number;
   /** Source config the sign-in was started for; a change refuses the callback. */
   fingerprint: string;
   /** The `openid` scope was requested: an ID token with this nonce is expected back. */

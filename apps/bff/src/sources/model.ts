@@ -108,6 +108,7 @@ export interface SourceRecord extends OAuthRecordFields {
   authKind: string;
   headerName: string | null;
   secret: string | null;
+  authGeneration: number;
   createdAt: Date;
   updatedAt: Date;
 }

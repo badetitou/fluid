@@ -102,15 +102,40 @@ describe('sign-in binding and races', () => {
     expect(String(f.started.headers['set-cookie'])).toContain('Path=/api/oauth');
     const forged = await h.callback(f.query);
     expect(forged.body).toContain('"ok":false');
+    expect(forged.headers['set-cookie']).toBeUndefined();
     expect(h.as.tokenCalls).toHaveLength(0);
     // The state was consumed by the refused attempt.
     expect((await h.callback(f.query, f.cookie)).body).toContain('"ok":false');
     const g = await startFlow(id);
-    expect((await h.callback(g.query, 'fluid_oauth=somebody-else')).body).toContain('"ok":false');
+    expect((await h.callback(g.query, `${g.cookie.split('=')[0]}=somebody-else`)).body).toContain('"ok":false');
     const ok = await startFlow(id);
     const done = await h.callback(ok.query, ok.cookie);
     expect(done.body).toContain('"ok":true');
     expect(String(done.headers['set-cookie'])).toContain('Max-Age=0');
+  });
+
+  it('keeps concurrent sign-ins apart (one cookie per state) and sets no cookie for an unknown state', async () => {
+    const { id } = await h.createSource();
+    const a = await startFlow(id);
+    const b = await startFlow(id);
+    expect(a.cookie.split('=')[0]).not.toBe(b.cookie.split('=')[0]);
+    const both = `${a.cookie}; ${b.cookie}`;
+    expect((await h.callback(a.query, both)).body).toContain('"ok":true');
+    expect((await h.callback(b.query, both)).body).toContain('"ok":true');
+    const unknown = await h.callback('code=x&state=nope', both);
+    expect(unknown.headers['set-cookie']).toBeUndefined();
+  });
+
+  it('ignores ?origin when FLUID_PUBLIC_URL is set', async () => {
+    const pub = await startHarness({ publicUrl: 'https://fluid.example' });
+    try {
+      const { id } = await pub.createSource();
+      const { cb } = await pub.signIn(id, { query: '?origin=http://evil.test' });
+      expect(cb.body).toContain('"https://fluid.example"');
+      expect(cb.body).not.toContain('evil.test');
+    } finally {
+      await pub.close();
+    }
   });
 
   it('posts to the UI origin given at start, validates it, and keeps tokens out of the message', async () => {
@@ -168,6 +193,24 @@ describe('sign-in binding and races', () => {
     await new Promise((r) => setTimeout(r, 60));
     await h.app.inject({ method: 'DELETE', url: `/api/sources/${id}/oauth/credential` });
     expect((await inFlight).statusCode).toBe(401);
+    expect(await h.storage.prisma.oAuthCredential.count({ where: { sourceId: id } })).toBe(0);
+  });
+
+  it('stores nothing when the user signs out or the source is deleted during the code exchange', async () => {
+    const { id } = await h.createSource();
+    const f = await startFlow(id);
+    h.as.opts.tokenDelayMs = 200;
+    const inFlight = h.callback(f.query, f.cookie);
+    await new Promise((r) => setTimeout(r, 60));
+    await h.app.inject({ method: 'DELETE', url: `/api/sources/${id}/oauth/credential` });
+    expect((await inFlight).body).toContain('"ok":false');
+    expect(await h.storage.prisma.oAuthCredential.count({ where: { sourceId: id } })).toBe(0);
+
+    const g = await startFlow(id);
+    const second = h.callback(g.query, g.cookie);
+    await new Promise((r) => setTimeout(r, 60));
+    await h.app.inject({ method: 'DELETE', url: `/api/sources/${id}` });
+    expect((await second).body).toContain('"ok":false');
     expect(await h.storage.prisma.oAuthCredential.count({ where: { sourceId: id } })).toBe(0);
   });
 

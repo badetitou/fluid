@@ -3,7 +3,7 @@ import { SecretKeyError, decryptSecret, encryptSecret, type KeyProvider } from '
 import { clientFor, requestOptions, toStoredTokens, type OAuthSource } from './client';
 import type { CredentialRepository } from './credentials';
 import type { AuthServerInfo } from './discovery';
-import { configFingerprint, type CredentialRecord } from './model';
+import type { CredentialRecord } from './model';
 import type { SafeFetch } from './safe-fetch';
 
 /** Refresh when the access token expires within this window. */
@@ -21,27 +21,14 @@ export interface TokenDeps {
   key: KeyProvider;
   discover: (issuer: string) => Promise<AuthServerInfo>;
   fetchOut: SafeFetch;
-  loadSource: (id: string) => Promise<OAuthSource | null>;
   now?: () => number;
 }
 
 export function createTokenManager(deps: TokenDeps): TokenManager {
-  const { creds, key, discover, fetchOut, loadSource, now = Date.now } = deps;
+  const { creds, key, discover, fetchOut, now = Date.now } = deps;
   // One read -> refresh -> save at a time per source: concurrent callers share the same promise,
   // so a rotating refresh token is never spent twice.
   const inflight = new Map<string, Promise<TokenResult>>();
-
-  /** Skips the save when the source was reconfigured or the user signed out/in meanwhile. */
-  async function stillCurrent(source: OAuthSource, cred: CredentialRecord): Promise<boolean> {
-    const [fresh, current] = await Promise.all([loadSource(source.id), creds.get(source.id)]);
-    return (
-      !!fresh &&
-      configFingerprint(fresh) === configFingerprint(source) &&
-      !!current &&
-      current.refreshToken === cred.refreshToken &&
-      current.accessToken === cred.accessToken
-    );
-  }
 
   async function refresh(source: OAuthSource, cred: CredentialRecord): Promise<TokenResult> {
     if (!cred.refreshToken || !source.oauthIssuer || !source.oauthClientId) return { ok: false, reason: 'expired' };
@@ -56,14 +43,19 @@ export function createTokenManager(deps: TokenDeps): TokenManager {
         refreshToken: previous,
         scope: cred.scope,
       });
-      if (!(await stillCurrent(source, cred))) return { ok: false, reason: 'signin' };
-      await creds.save({
-        sourceId: source.id,
-        accessToken: encryptSecret(stored.accessToken, key()),
-        refreshToken: stored.refreshToken ? encryptSecret(stored.refreshToken, key()) : null,
-        expiresAt: stored.expiresAt,
-        scope: stored.scope,
-      });
+      // Refused when the user signed out, the source was reconfigured or deleted, or another
+      // sign-in replaced the credential since it was read.
+      const saved = await creds.saveIf(
+        {
+          sourceId: source.id,
+          accessToken: encryptSecret(stored.accessToken, key()),
+          refreshToken: stored.refreshToken ? encryptSecret(stored.refreshToken, key()) : null,
+          expiresAt: stored.expiresAt,
+          scope: stored.scope,
+        },
+        { generation: source.authGeneration, expectedAccessToken: cred.accessToken },
+      );
+      if (!saved) return { ok: false, reason: 'signin' };
       return { ok: true, token: stored.accessToken };
     } catch (err) {
       if (err instanceof SecretKeyError) throw err;
