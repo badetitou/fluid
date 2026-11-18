@@ -24,6 +24,19 @@ model View {
   @@index([concept])
 }
 
+/// A GraphQL source the BFF can call on behalf of the browser. `secret` is AES-256-GCM
+/// ciphertext (never returned by the API).
+model SourceConfig {
+  id         String   @id @default(cuid())
+  name       String
+  url        String
+  authKind   String   @default("none")
+  headerName String?
+  secret     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 /// A simple key/value store for app preferences (mono-user demo).
 model Preference {
   key       String   @id
