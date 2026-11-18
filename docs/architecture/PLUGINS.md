@@ -252,7 +252,7 @@ premier fournisseur qui la propose.
 ```ts
 interface SourceProvider {
   id: string; label: string;
-  listSources(settings, signal): Promise<{ name; url; description?; limits? }[]>;  // validé par zod
+  listSources(settings, signal): Promise<{ name; url; description?; limits?; auth? }[]>;  // validé par zod
 }
 ```
 
@@ -261,6 +261,13 @@ défaut de ses réglages de lignes (Settings → Connection → *Large lists*), 
 `rowLimit` = lignes chargées d'abord (la variable `$take` des requêtes) ; `maxPerRequest` = le plus de
 lignes que le serveur rend par requête (Moose : 1000), pour distinguer une liste coupée d'une liste courte
 et paginer avec l'argument d'offset (`skip`/`offset`) trouvé par introspection.
+
+Une source peut aussi donner `auth: { kind: 'oauth', issuer, clientId, scopes?, resource? }` : les réglages
+OAuth publics de la source (URL `http(s)`, **aucun secret** : le schéma est strict et refuse `clientSecret`).
+Quand l'utilisateur fait passer la source par le BFF (*Settings → Connection → Via the BFF*), le formulaire
+d'authentification démarre sur *OAuth* avec ces valeurs ; il tape le secret client (écriture seule), enregistre,
+puis se connecte avec *Sign in* (popup vers le BFF). Si la source répond `FLUID_AUTH_REQUIRED`, une bannière
+*Reconnect* relance la connexion (avec le scope manquant le cas échéant) et les requêtes sont rejouées.
 
 Un fournisseur qui écrit ses `sources` dans le manifeste n'a pas besoin de module (JSON pur, comme un
 thème). Sinon le module exporte `{ sourceProviders: { "<id>": { listSources(settings, signal) } } }`

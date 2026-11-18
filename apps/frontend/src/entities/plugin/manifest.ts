@@ -24,12 +24,26 @@ export const sourceLimitsSchema = z.object({
 });
 export type SourceLimits = z.infer<typeof sourceLimitsSchema>;
 
+/**
+ * How a source signs in, when it asks for OAuth: public settings only (no client secret, which the
+ * user types in the source settings). Picking the source pre-fills those settings.
+ */
+export const sourceAuthSchema = z.strictObject({
+  kind: z.literal('oauth'),
+  issuer: z.url({ protocol: /^https?$/ }),
+  clientId: z.string().min(1).max(500),
+  scopes: z.array(z.string().regex(/^\S+$/).max(200)).max(50).optional(),
+  resource: z.url({ protocol: /^https?$/ }).optional(),
+});
+export type SourceAuth = z.infer<typeof sourceAuthSchema>;
+
 /** A GraphQL source a source provider offers: a name and the endpoint URL. */
 export const sourceEntrySchema = z.object({
   name: z.string().min(1).max(80),
   url: z.url({ protocol: /^https?$/ }),
   description: z.string().max(300).optional(),
   limits: sourceLimitsSchema.optional(),
+  auth: sourceAuthSchema.optional(),
 });
 export type SourceEntry = z.infer<typeof sourceEntrySchema>;
 

@@ -3,6 +3,7 @@ import { bffClient } from '../../bff/client';
 import { BffHttpError } from '../../bff/http';
 import type { BffSourceConfig } from '../../bff/sourcesApi';
 import { authPatch, bffSourceName, type AuthForm } from './bffAuth';
+import { useAuthRequired } from './authRequired';
 import { useSavedSources } from './store';
 
 const errorMessage = (e: unknown) => (e instanceof Error ? e.message : 'The BFF did not answer');
@@ -26,6 +27,12 @@ export interface BffSourceConfigResult {
   save: (form: AuthForm) => Promise<boolean>;
   /** Removes the stored secret only. Resolves to whether it worked. */
   removeSecret: () => Promise<boolean>;
+  /** Removes the stored OAuth client secret only (a public client). Resolves to whether it worked. */
+  removeClientSecret: () => Promise<boolean>;
+  /** Reads the config again (after a sign-in) and restarts the source's queries, which may have been waiting for it. */
+  refresh: () => Promise<boolean>;
+  /** Forgets the stored sign-in of the source. Resolves to whether it worked. */
+  signOut: () => Promise<boolean>;
 }
 
 /** Whether a saved source goes through the BFF, and how to turn that on or off and set its auth. */
@@ -131,5 +138,52 @@ export function useBffSourceConfig(url: string, name?: string): BffSourceConfigR
     [run, id],
   );
 
-  return { available, routed: Boolean(id), config, busy, error, enable, disable, save, removeSecret };
+  const removeClientSecret = useCallback(
+    () =>
+      id ? run(() => sources.update(id, { oauth: { clientSecret: null } }), setConfig) : Promise.resolve(false),
+    [run, id],
+  );
+
+  const refresh = useCallback(
+    () =>
+      id
+        ? run(
+            () => sources.get(id),
+            (c) => {
+              setConfig(c);
+              useAuthRequired.getState().reconnected(id);
+            },
+          )
+        : Promise.resolve(false),
+    [run, id],
+  );
+
+  const signOut = useCallback(
+    () =>
+      id
+        ? run(
+            async () => {
+              await sources.signOut(id);
+              return sources.get(id);
+            },
+            setConfig,
+          )
+        : Promise.resolve(false),
+    [run, id],
+  );
+
+  return {
+    available,
+    routed: Boolean(id),
+    config,
+    busy,
+    error,
+    enable,
+    disable,
+    save,
+    removeSecret,
+    removeClientSecret,
+    refresh,
+    signOut,
+  };
 }

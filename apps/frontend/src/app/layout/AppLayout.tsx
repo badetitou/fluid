@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Layout } from 'antd';
 import { useServerPreferences } from '../../entities/preferences/useServerPreferences';
 import { usePreferences } from '../../store';
+import { ReconnectBanner } from '../../features/reconnect';
 import { AppHeader } from './AppHeader';
 import { AppSider } from './AppSider';
 import styles from './AppLayout.module.css';
@@ -16,6 +17,7 @@ export function AppLayout() {
       {navbarSide === 'left' && <AppSider />}
       <Layout>
         <AppHeader />
+        <ReconnectBanner />
         <Layout.Content className={styles.content}>
           <Outlet />
         </Layout.Content>

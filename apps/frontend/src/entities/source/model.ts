@@ -1,4 +1,4 @@
-import type { SourceGroup } from '../plugin';
+import type { SourceAuth, SourceGroup } from '../plugin';
 
 /** A GraphQL source the user kept, with the name they gave it. */
 export interface SavedSource {
@@ -78,6 +78,10 @@ export function sourceName(url: string, saved: SavedSource[], groups: SourceGrou
     groups.flatMap((g) => g.sources).find((s) => s.url === url)?.name
   );
 }
+
+/** The OAuth settings a source provider ships with the source at `url`, if any. */
+export const sourceAuth = (url: string, groups: SourceGroup[]): SourceAuth | undefined =>
+  groups.flatMap((g) => g.sources).find((s) => s.url === url)?.auth;
 
 /** A kept source, with the name a provider gives it when the user gave none. */
 export interface KeptSource extends SavedSource {

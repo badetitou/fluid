@@ -4,11 +4,13 @@ export {
   PLUGIN_KINDS,
   pluginKind,
   pluginManifestSchema,
+  sourceAuthSchema,
   sourceLimitsSchema,
   type PluginKind,
   type PluginManifest,
   type PageActionContract,
   type PluginSetting,
+  type SourceAuth,
   type SourceEntry,
   type SourceLimits,
 } from './manifest';

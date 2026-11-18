@@ -9,7 +9,13 @@ export {
 export { useSources } from './useSources';
 export { useGraphqlEndpoint } from './useGraphqlEndpoint';
 export { useBffSourceConfig, type BffSourceConfigResult } from './useBffSourceConfig';
-export { authFormOf, DEFAULT_AUTH_HEADER, type AuthForm } from './bffAuth';
+export { authFormError, authFormKey, authFormOf, DEFAULT_AUTH_HEADER, type AuthForm } from './bffAuth';
+export { applyDiscovery, type OAuthForm } from './oauthForm';
+export { signInHint, type AuthRequired, type AuthRequiredReason, type SignInStatus } from './oauth';
+export { useOAuthSignIn, type OAuthSignIn } from './useOAuthSignIn';
+export { useOAuthDiscovery, type OAuthDiscoveryResult } from './useOAuthDiscovery';
+export { useReconnect, type Reconnect } from './useReconnect';
+export { useSourceAuthClient } from './useSourceAuthClient';
 export type { BffSourceConfig } from '../../bff/sourcesApi';
 export { type EffectiveSourceSettings, type SourceSettings } from './settings';
 export { useSourceSettings, type SourceSettingsResult } from './useSourceSettings';

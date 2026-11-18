@@ -3,9 +3,10 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import type { BffSourceConfig } from '../../bff/sourcesApi';
 import { BffHttpError } from '../../bff/http';
 
-const api = vi.hoisted(() => ({ ping: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() }));
+const api = vi.hoisted(() => ({ ping: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn(), signOut: vi.fn() }));
 vi.mock('../../bff/client', () => ({ bffClient: { sources: api } }));
 
+import { useAuthRequired } from './authRequired';
 import { useSavedSources } from './store';
 import { useBffSourceConfig } from './useBffSourceConfig';
 
@@ -112,6 +113,34 @@ describe('useBffSourceConfig', () => {
     await waitFor(() => expect(result.current.config).toBeNull());
     expect(result.current.routed).toBe(false);
     expect(result.current.error).toBeNull();
+  });
+
+  it('signs out then reads the config again; refresh restarts the queries of the source', async () => {
+    useSavedSources.setState({ saved: [{ url: URL_, bffSourceId: 'src1' }] });
+    const signedIn = config({ authKind: 'oauth' });
+    api.get.mockResolvedValue(signedIn);
+    api.signOut.mockResolvedValue(undefined);
+    useAuthRequired.setState({ required: { src1: { reason: 'expired' } }, epoch: {} });
+    const { result } = renderHook(() => useBffSourceConfig(URL_));
+    await waitFor(() => expect(result.current.config?.id).toBe('src1'));
+
+    await act(() => result.current.signOut());
+    expect(api.signOut).toHaveBeenCalledWith('src1');
+
+    await act(() => result.current.refresh());
+    expect(useAuthRequired.getState().required).toEqual({});
+    expect(useAuthRequired.getState().epoch).toEqual({ src1: 1 });
+  });
+
+  it('removes only the OAuth client secret', async () => {
+    useSavedSources.setState({ saved: [{ url: URL_, bffSourceId: 'src1' }] });
+    api.update.mockResolvedValue(config());
+    const { result } = renderHook(() => useBffSourceConfig(URL_));
+    await waitFor(() => expect(result.current.config?.id).toBe('src1'));
+
+    await act(() => result.current.removeClientSecret());
+
+    expect(api.update).toHaveBeenCalledWith('src1', { oauth: { clientSecret: null } });
   });
 
   it('reports a failure and stays direct', async () => {

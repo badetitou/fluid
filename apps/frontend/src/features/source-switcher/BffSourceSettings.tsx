@@ -1,11 +1,12 @@
 import { Alert, Space, Switch, Typography } from 'antd';
-import { useBffSourceConfig, useSources } from '../../entities/source';
+import { authFormKey, useBffSourceConfig, useSources } from '../../entities/source';
 import { BffAuthForm } from './BffAuthForm';
+import { OAuthStatus } from './OAuthStatus';
 import styles from './SourceSwitcher.module.css';
 
 /** "Via the BFF" for the connected source: its requests go through the BFF, which can hold an API key. */
 export function BffSourceSettings() {
-  const { current, currentName } = useSources();
+  const { current, currentName, currentAuth } = useSources();
   const bff = useBffSourceConfig(current ?? '', currentName);
   // Only turning it on needs a BFF: a routed source can always go back to a direct connection.
   const disabled = !current || (!bff.routed && bff.available !== true);
@@ -36,12 +37,17 @@ export function BffSourceSettings() {
       {bff.error && <Alert type="error" showIcon title={bff.error} />}
       {bff.routed && bff.config && (
         <BffAuthForm
-          key={`${bff.config.id}:${bff.config.authKind}:${bff.config.headerName}:${bff.config.hasSecret}`}
+          key={authFormKey(bff.config)}
           config={bff.config}
           busy={bff.busy}
+          suggested={currentAuth}
           onSave={bff.save}
           onRemoveSecret={bff.removeSecret}
+          onRemoveClientSecret={bff.removeClientSecret}
         />
+      )}
+      {bff.routed && bff.config && (
+        <OAuthStatus config={bff.config} busy={bff.busy} onSignedIn={() => void bff.refresh()} onSignOut={bff.signOut} />
       )}
     </div>
   );
