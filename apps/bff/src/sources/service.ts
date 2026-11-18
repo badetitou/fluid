@@ -10,6 +10,8 @@ import {
 import { forwardGraphql, type ProxyResult } from './proxy';
 import type { SourceRepository } from './repository';
 
+const originOf = (url: string) => new URL(url).origin;
+
 export interface SourceService {
   list(): Promise<PublicSource[]>;
   get(id: string): Promise<PublicSource | null>;
@@ -55,7 +57,10 @@ export function createSourceService(
       if (!current) return null;
       const authKind = input.authKind ?? current.authKind;
       let secret = current.secret;
+      // Repointing to another origin must not hand the stored secret to the new host.
+      const moved = input.url !== undefined && originOf(input.url) !== originOf(current.url);
       if (input.secret === null || authKind === 'none') secret = null;
+      else if (moved && !input.secret) secret = null;
       else if (input.secret) secret = encryptSecret(input.secret, key());
       const record = await repo.update(id, {
         ...(input.name !== undefined ? { name: input.name } : {}),

@@ -16,7 +16,13 @@ describe('source routes', () => {
   let stub: Server;
   let stubUrl: string;
   let seen: { headers: IncomingHttpHeaders; body: unknown }[] = [];
-  let reply: { status: number; body: string } = { status: 200, body: '{"data":{"ok":true}}' };
+  let reply: { status: number; body: string; headers?: Record<string, string> } = {
+    status: 200,
+    body: '{"data":{"ok":true}}',
+  };
+  let other: Server;
+  let otherUrl: string;
+  let otherHits: IncomingHttpHeaders[] = [];
   const logs: string[] = [];
 
   beforeAll(async () => {
@@ -25,11 +31,19 @@ describe('source routes', () => {
       req.on('data', (c) => (raw += c));
       req.on('end', () => {
         seen.push({ headers: req.headers, body: JSON.parse(raw) });
-        res.writeHead(reply.status, { 'content-type': 'application/json' }).end(reply.body);
+        res.writeHead(reply.status, { 'content-type': 'application/json', ...reply.headers }).end(reply.body);
       });
     });
     await new Promise<void>((r) => stub.listen(0, '127.0.0.1', r));
     stubUrl = `http://127.0.0.1:${(stub.address() as AddressInfo).port}/graphql`;
+
+    other = createServer((req, res) => {
+      otherHits.push(req.headers);
+      req.resume();
+      res.writeHead(200, { 'content-type': 'application/json' }).end('{"data":{"other":true}}');
+    });
+    await new Promise<void>((r) => other.listen(0, '127.0.0.1', r));
+    otherUrl = `http://127.0.0.1:${(other.address() as AddressInfo).port}/graphql`;
 
     storage = createStorage({ kind: 'pglite', dataDir: 'memory://' });
     await storage.init();
@@ -45,9 +59,11 @@ describe('source routes', () => {
     await app.close();
     await storage.close();
     await new Promise((r) => stub.close(r));
+    await new Promise((r) => other.close(r));
   });
   beforeEach(() => {
     seen = [];
+    otherHits = [];
     reply = { status: 200, body: '{"data":{"ok":true}}' };
   });
 
@@ -140,6 +156,42 @@ describe('source routes', () => {
     expect((await app.inject({ method: 'PUT', url: '/api/sources/nope', payload: { name: 'x' } })).statusCode).toBe(404);
     expect((await app.inject({ method: 'DELETE', url: `/api/sources/${id}` })).statusCode).toBe(204);
     expect((await app.inject({ method: 'DELETE', url: `/api/sources/${id}` })).statusCode).toBe(404);
+  });
+
+  it('drops the stored secret when the url moves to another origin, unless a new one is given', async () => {
+    const { id } = await create();
+    const samePath = await app.inject({ method: 'PUT', url: `/api/sources/${id}`, payload: { url: `${stubUrl}/v2` } });
+    expect(samePath.json()).toMatchObject({ hasSecret: true });
+    const moved = await app.inject({ method: 'PUT', url: `/api/sources/${id}`, payload: { url: otherUrl } });
+    expect(moved.json()).toMatchObject({ hasSecret: false });
+    await run(id);
+    expect(otherHits).toHaveLength(1);
+    expect(otherHits[0].authorization).toBeUndefined();
+    const again = await create();
+    const withNew = await app.inject({
+      method: 'PUT',
+      url: `/api/sources/${again.id}`,
+      payload: { url: otherUrl, secret: 'new-secret' },
+    });
+    expect(withNew.json()).toMatchObject({ hasSecret: true });
+    await run(again.id);
+    expect(otherHits[1].authorization).toBe('Bearer new-secret');
+  });
+
+  it('answers 413 above the request body limit', async () => {
+    const { id } = await create();
+    const res = await run(id, { query: 'x'.repeat(1024 * 1024 + 1) });
+    expect(res.statusCode).toBe(413);
+    expect(seen).toHaveLength(0);
+  });
+
+  it('does not follow a redirect with the secret', async () => {
+    const { id } = await create();
+    reply = { status: 302, body: '', headers: { location: otherUrl } };
+    const res = await run(id);
+    expect(res.statusCode).toBe(502);
+    expect(res.body).not.toContain(SECRET);
+    expect(otherHits).toHaveLength(0);
   });
 
   it('never logs the secret', () => {
