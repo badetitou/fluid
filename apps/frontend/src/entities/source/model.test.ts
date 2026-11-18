@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { SourceGroup } from '../plugin';
 import {
+  bffGraphqlUrl,
   forgetSource,
+  resolveGraphqlEndpoint,
+  setBffSourceId,
   keptSources,
   normalizeSourceUrl,
   rememberSource,
@@ -67,5 +70,27 @@ describe('sources', () => {
 
   it('leave out empty groups', () => {
     expect(sourceOptions(null, [], [{ providerId: 'p', label: 'P', sources: [], error: 'down' }])).toEqual([]);
+  });
+});
+
+describe('BFF routing', () => {
+  it('sets and clears the BFF id, keeping the name, and adds an unknown source', () => {
+    const routed = setBffSourceId([{ url: LOCAL, name: 'Moose' }], LOCAL, 'abc');
+    expect(routed).toEqual([{ url: LOCAL, name: 'Moose', bffSourceId: 'abc' }]);
+    expect(renameSource(routed, LOCAL, 'M')[0].bffSourceId).toBe('abc');
+    expect(setBffSourceId(routed, LOCAL, undefined)[0].bffSourceId).toBeUndefined();
+    expect(setBffSourceId([], RICK, 'x')).toEqual([{ url: RICK, bffSourceId: 'x' }]);
+  });
+
+  it('builds the proxy URL, with or without a trailing slash or a base', () => {
+    expect(bffGraphqlUrl('http://localhost:4001/', 'a b')).toBe('http://localhost:4001/api/sources/a%20b/graphql');
+    expect(bffGraphqlUrl('', 'x')).toBe('/api/sources/x/graphql');
+  });
+
+  it('targets the proxy only for a source routed through the BFF', () => {
+    const saved: SavedSource[] = [{ url: LOCAL, bffSourceId: 'abc' }, { url: RICK }];
+    expect(resolveGraphqlEndpoint(LOCAL, saved, 'http://bff')).toBe('http://bff/api/sources/abc/graphql');
+    expect(resolveGraphqlEndpoint(RICK, saved, 'http://bff')).toBe(RICK);
+    expect(resolveGraphqlEndpoint('http://other', saved, 'http://bff')).toBe('http://other');
   });
 });

@@ -7,7 +7,7 @@ import { RowPagingProvider } from './app/RowPagingProvider';
 import { useLlmInsightAnalyzer } from './entities/llm';
 import { useSourceWrites } from './entities/preferences/useSourceWrites';
 import { createGraphQLClient } from './graphql/client';
-import { useConnection } from './store';
+import { useGraphqlEndpoint } from './entities/source';
 import { InsightAnalyzerContext, WriteAccessContext } from './views/plugin-api';
 
 // Each page is its own chunk: the first paint only loads the screen it shows.
@@ -18,8 +18,9 @@ const MillerListPage = lazy(() => import('./pages/miller/MillerListPage').then((
 const page = (element: React.ReactNode) => <Suspense fallback={<Skeleton active />}>{element}</Suspense>;
 
 export function App() {
-  const graphqlUrl = useConnection((s) => s.graphqlUrl);
-  const client = useMemo(() => (graphqlUrl ? createGraphQLClient(graphqlUrl) : null), [graphqlUrl]);
+  // The BFF's proxy URL for a source routed through it, else the source's own URL.
+  const endpoint = useGraphqlEndpoint();
+  const client = useMemo(() => (endpoint ? createGraphQLClient(endpoint) : null), [endpoint]);
   const { writable } = useSourceWrites();
   const analyzeView = useLlmInsightAnalyzer();
 

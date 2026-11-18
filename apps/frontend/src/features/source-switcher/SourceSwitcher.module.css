@@ -79,3 +79,7 @@
 .rowName {
   margin: 0 !important;
 }
+
+.full {
+  width: 100%;
+}
