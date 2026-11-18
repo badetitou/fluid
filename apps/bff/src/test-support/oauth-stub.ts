@@ -3,7 +3,7 @@ import { createServer, type IncomingHttpHeaders, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 // Test support: a stub authorization server (metadata, token endpoint with PKCE / resource /
-// client-secret checks and refresh-token rotation) and a stub protected resource.
+// client-secret checks and refresh-token rotation; `/authorize` auto-approves) and a stub protected resource.
 
 export const CLIENT_ID = 'fluid-client';
 export const CLIENT_SECRET = 'client-secret-xyz';
@@ -37,8 +37,8 @@ const defaults = (): StubAsOptions => ({
   tokenDelayMs: 0,
 });
 
-const listen = async (server: Server) => {
-  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+const listen = async (server: Server, port = 0) => {
+  await new Promise<void>((r) => server.listen(port, '127.0.0.1', r));
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 };
 const readBody = (req: NodeJS.ReadableStream) =>
@@ -48,12 +48,14 @@ const readBody = (req: NodeJS.ReadableStream) =>
     req.on('end', () => resolve(raw));
   });
 
-export async function createStubAs() {
+/** `port` 0 picks a free one; a fixed port serves the by-hand runner (`run-oauth-stub.ts`). */
+export async function createStubAs(port = 0) {
   const opts = defaults();
   const metadataHits: string[] = [];
   const tokenCalls: { params: URLSearchParams; headers: IncomingHttpHeaders }[] = [];
   const codes = new Map<string, { challenge: string; redirectUri: string; nonce?: string }>();
   const refreshTokens = new Set<string>();
+  const accessTokens = new Set<string>();
   let base = '';
   let counter = 0;
 
@@ -69,10 +71,12 @@ export async function createStubAs() {
   ) => {
     const refresh = `rt-${++counter}-${randomBytes(4).toString('hex')}`;
     if (extra.refresh !== false) refreshTokens.add(refresh);
+    const access = `at-${counter}-${randomBytes(4).toString('hex')}`;
+    accessTokens.add(access);
     res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
     res.end(
       JSON.stringify({
-        access_token: `at-${counter}-${randomBytes(4).toString('hex')}`,
+        access_token: access,
         token_type: 'Bearer',
         expires_in: opts.expiresIn,
         ...(extra.refresh !== false ? { refresh_token: refresh } : {}),
@@ -84,6 +88,11 @@ export async function createStubAs() {
   const fail = (res: import('node:http').ServerResponse, status: number, error: string) =>
     res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify({ error }));
 
+  const grantCode = (challenge: string, redirectUri: string, nonce?: string) => {
+    const code = `code-${randomBytes(6).toString('hex')}`;
+    codes.set(code, { challenge, redirectUri, nonce });
+    return code;
+  };
   const server = createServer(async (req, res) => {
     const path = new URL(req.url ?? '/', base).pathname;
     if (path.includes('/.well-known/')) {
@@ -104,6 +113,20 @@ export async function createStubAs() {
           token_endpoint_auth_methods_supported: ['client_secret_basic'],
         }),
       );
+    }
+    if (path === '/authorize' && req.method === 'GET') {
+      // Auto-approves, like a user who clicks "Allow": back to the client with a code bound to its PKCE challenge.
+      const q = new URL(req.url ?? '/', base).searchParams;
+      const redirectUri = q.get('redirect_uri');
+      const challenge = q.get('code_challenge');
+      if (!redirectUri || !challenge || q.get('client_id') !== CLIENT_ID) {
+        return void res.writeHead(400).end('bad authorization request');
+      }
+      const back = new URL(redirectUri);
+      back.searchParams.set('code', grantCode(challenge, redirectUri, q.get('nonce') ?? undefined));
+      const state = q.get('state');
+      if (state) back.searchParams.set('state', state);
+      return void res.writeHead(302, { location: back.toString() }).end();
     }
     if (path !== '/token' || req.method !== 'POST') return void res.writeHead(404).end();
     const params = new URLSearchParams(await readBody(req));
@@ -132,7 +155,7 @@ export async function createStubAs() {
     if (opts.rotate) refreshTokens.delete(refresh);
     return issue(res, { scope: null, refresh: opts.rotate });
   });
-  base = await listen(server);
+  base = await listen(server, port);
 
   return {
     opts,
@@ -143,16 +166,16 @@ export async function createStubAs() {
     },
     base,
     /** What the browser step would produce: a code bound to the PKCE challenge it was sent with. */
-    issueCode(challenge: string, redirectUri: string, nonce?: string) {
-      const code = `code-${randomBytes(6).toString('hex')}`;
-      codes.set(code, { challenge, redirectUri, nonce });
-      return code;
-    },
+    issueCode: grantCode,
+    /** Whether the stub issued this access token (and it was not revoked). */
+    isValidToken: (token: string) => accessTokens.has(token),
+    revokeAccessTokens: () => accessTokens.clear(),
     reset: () => {
       Object.assign(opts, defaults());
       metadataHits.length = 0;
       tokenCalls.length = 0;
       refreshTokens.clear();
+      accessTokens.clear();
     },
     close: () => new Promise((r) => server.close(r)),
   };
