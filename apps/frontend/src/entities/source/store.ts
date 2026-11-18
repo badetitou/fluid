@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { forgetSource, rememberSource, renameSource, type SavedSource } from './model';
+import { forgetSource, rememberSource, renameSource, setBffSourceId, type SavedSource } from './model';
 import { parseSavedSettings, updateSettings, type SourceSettings } from './settings';
 
 interface SavedSourcesState {
@@ -9,6 +9,8 @@ interface SavedSourcesState {
   remember: (url: string, name?: string) => void;
   rename: (url: string, name: string) => void;
   forget: (url: string) => void;
+  /** Routes a source through the BFF config `id`, or back to a direct connection (`undefined`). */
+  setBffId: (url: string, id: string | undefined) => void;
 }
 
 // Kept per browser, like the connection. Only read and written through `useSources`.
@@ -19,6 +21,7 @@ export const useSavedSources = create<SavedSourcesState>()(
       remember: (url, name) => set({ saved: rememberSource(get().saved, url, name) }),
       rename: (url, name) => set({ saved: renameSource(get().saved, url, name) }),
       forget: (url) => set({ saved: forgetSource(get().saved, url) }),
+      setBffId: (url, id) => set({ saved: setBffSourceId(get().saved, url, id) }),
     }),
     { name: 'fluid-sources' },
   ),

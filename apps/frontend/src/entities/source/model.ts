@@ -4,6 +4,8 @@ import type { SourceGroup } from '../plugin';
 export interface SavedSource {
   url: string;
   name?: string;
+  /** Id of the BFF's config for this source, when it is routed through the BFF (not a secret). */
+  bffSourceId?: string;
 }
 
 /** A source as the switcher offers it. */
@@ -45,10 +47,29 @@ export function rememberSource(saved: SavedSource[], url: string, name?: string)
 
 /** Renames a kept source; an empty name removes it. */
 export const renameSource = (saved: SavedSource[], url: string, name: string): SavedSource[] =>
-  saved.map((s) => (s.url === url ? { url, name: name.trim() || undefined } : s));
+  saved.map((s) => (s.url === url ? { ...s, name: name.trim() || undefined } : s));
 
 /** Forgets a kept source. */
 export const forgetSource = (saved: SavedSource[], url: string): SavedSource[] => saved.filter((s) => s.url !== url);
+
+/**
+ * Sets (or, with `undefined`, clears) the id of the BFF config a source is routed through.
+ * A connected source not kept yet is added to the kept ones (it has to remember its id).
+ */
+export function setBffSourceId(saved: SavedSource[], url: string, id: string | undefined): SavedSource[] {
+  const base = saved.some((s) => s.url === url) ? saved : [...saved, { url }];
+  return base.map((s) => (s.url === url ? { ...s, bffSourceId: id } : s));
+}
+
+/** The BFF's GraphQL proxy URL for a configured source. */
+export const bffGraphqlUrl = (bffBase: string, bffSourceId: string): string =>
+  `${bffBase.replace(/\/$/, '')}/api/sources/${encodeURIComponent(bffSourceId)}/graphql`;
+
+/** Where GraphQL requests for `url` go: the BFF proxy when the source is routed through it, else the URL itself. */
+export function resolveGraphqlEndpoint(url: string, saved: SavedSource[], bffBase: string): string {
+  const id = saved.find((s) => s.url === url)?.bffSourceId;
+  return id ? bffGraphqlUrl(bffBase, id) : url;
+}
 
 /** The name of a source: the user's, else the first provider's that offers it. */
 export function sourceName(url: string, saved: SavedSource[], groups: SourceGroup[]): string | undefined {
