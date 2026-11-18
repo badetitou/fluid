@@ -3,9 +3,10 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import type { BffSourceConfig } from '../../bff/sourcesApi';
 import { BffHttpError } from '../../bff/http';
 
-const api = vi.hoisted(() => ({ ping: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() }));
+const api = vi.hoisted(() => ({ ping: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn(), signOut: vi.fn() }));
 vi.mock('../../bff/client', () => ({ bffClient: { sources: api } }));
 
+import { useAuthRequired } from './authRequired';
 import { useSavedSources } from './store';
 import { useBffSourceConfig } from './useBffSourceConfig';
 
@@ -112,6 +113,65 @@ describe('useBffSourceConfig', () => {
     await waitFor(() => expect(result.current.config).toBeNull());
     expect(result.current.routed).toBe(false);
     expect(result.current.error).toBeNull();
+  });
+
+  it('signs out then reads the config again; refresh restarts the queries of the source', async () => {
+    useSavedSources.setState({ saved: [{ url: URL_, bffSourceId: 'src1' }] });
+    const signedIn = config({ authKind: 'oauth' });
+    api.get.mockResolvedValue(signedIn);
+    api.signOut.mockResolvedValue(undefined);
+    useAuthRequired.setState({ required: { src1: { reason: 'expired' } }, failing: {}, epoch: {} });
+    const { result } = renderHook(() => useBffSourceConfig(URL_));
+    await waitFor(() => expect(result.current.config?.id).toBe('src1'));
+
+    await act(() => result.current.signOut());
+    expect(api.signOut).toHaveBeenCalledWith('src1');
+
+    expect(useAuthRequired.getState().epoch).toEqual({ src1: 1 });
+
+    await act(() => result.current.signedIn('src1'));
+    expect(useAuthRequired.getState().required).toEqual({});
+    expect(useAuthRequired.getState().epoch).toEqual({ src1: 2 });
+  });
+
+  it('restarts the queries on a sign-in even when the config cannot be read again', async () => {
+    useSavedSources.setState({ saved: [{ url: URL_, bffSourceId: 'src1' }] });
+    const { result } = renderHook(() => useBffSourceConfig(URL_));
+    await waitFor(() => expect(result.current.config?.id).toBe('src1'));
+    api.get.mockRejectedValue(new Error('down'));
+    useAuthRequired.setState({ required: { src1: { reason: 'expired' } }, failing: { src1: ['q'] }, epoch: {} });
+
+    await act(() => result.current.signedIn('src1'));
+
+    expect(useAuthRequired.getState().epoch).toEqual({ src1: 1 });
+    expect(useAuthRequired.getState().required).toEqual({});
+  });
+
+  it('turns on with the OAuth settings of the source plugin, no secret', async () => {
+    api.create.mockResolvedValue(config());
+    const suggested = { kind: 'oauth' as const, issuer: 'https://as', clientId: 'fluid' };
+    const { result } = renderHook(() => useBffSourceConfig(URL_, undefined, suggested));
+    await waitFor(() => expect(result.current.available).toBe(true));
+
+    await act(() => result.current.enable());
+
+    expect(api.create).toHaveBeenCalledWith({
+      name: 'api.example.com',
+      url: URL_,
+      authKind: 'oauth',
+      oauth: { issuer: 'https://as', clientId: 'fluid', scopes: [] },
+    });
+  });
+
+  it('removes only the OAuth client secret', async () => {
+    useSavedSources.setState({ saved: [{ url: URL_, bffSourceId: 'src1' }] });
+    api.update.mockResolvedValue(config());
+    const { result } = renderHook(() => useBffSourceConfig(URL_));
+    await waitFor(() => expect(result.current.config?.id).toBe('src1'));
+
+    await act(() => result.current.removeClientSecret());
+
+    expect(api.update).toHaveBeenCalledWith('src1', { oauth: { clientSecret: null } });
   });
 
   it('reports a failure and stays direct', async () => {

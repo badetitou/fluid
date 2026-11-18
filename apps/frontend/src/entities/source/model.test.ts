@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { SourceGroup } from '../plugin';
 import {
   bffGraphqlUrl,
+  bffSourcePath,
   forgetSource,
   resolveGraphqlEndpoint,
   setBffSourceId,
@@ -91,6 +92,7 @@ describe('BFF routing', () => {
   it('builds the proxy URL, with or without a trailing slash or a base', () => {
     expect(bffGraphqlUrl('http://localhost:4001/', 'a b')).toBe('http://localhost:4001/api/sources/a%20b/graphql');
     expect(bffGraphqlUrl('', 'x')).toBe('/api/sources/x/graphql');
+    expect(bffSourcePath('http://localhost:4001/', 'a b')).toBe('http://localhost:4001/api/sources/a%20b');
   });
 
   it('targets the proxy only for a source routed through the BFF', () => {

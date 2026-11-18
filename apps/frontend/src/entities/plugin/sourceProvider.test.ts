@@ -22,6 +22,21 @@ describe('source provider plugins', () => {
     expect(providersOf(plugin).map((p) => p.id)).toEqual(['local']);
   });
 
+  it('may ship OAuth settings with a source, validated and without any secret', () => {
+    const auth = { kind: 'oauth', issuer: 'https://auth.example.com', clientId: 'fluid', scopes: ['read'] };
+    const entry = (extra: unknown) => ({
+      id: 'p',
+      name: 'P',
+      version: '1.0.0',
+      contributes: { sourceProviders: [{ id: 'x', label: 'X', sources: [{ ...moose, auth: extra }] }] },
+    });
+    const ok = pluginManifestSchema.safeParse(entry(auth));
+    expect(ok.success && ok.data.contributes.sourceProviders?.[0].sources?.[0].auth).toEqual(auth);
+    expect(pluginManifestSchema.safeParse(entry({ ...auth, clientSecret: 's3cret' })).success).toBe(false);
+    expect(pluginManifestSchema.safeParse(entry({ ...auth, issuer: 'javascript:alert(1)' })).success).toBe(false);
+    expect(pluginManifestSchema.safeParse(entry({ ...auth, kind: 'basic' })).success).toBe(false);
+  });
+
   it('need a module when they fetch their sources', () => {
     const manifest = {
       id: 'moose-images',

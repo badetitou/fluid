@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { usePluginSources } from '../plugin';
 import { useConnection } from '../../store';
-import { keptSources, sourceName, sourceOptions } from './model';
+import { keptSources, sourceAuth, sourceName, sourceOptions } from './model';
 import { useSavedSources } from './store';
 
 /**
@@ -24,6 +24,11 @@ export function useSources() {
     [current, saved, pluginGroups],
   );
 
+  const currentAuth = useMemo(
+    () => (current ? sourceAuth(current, pluginGroups) : undefined),
+    [current, pluginGroups],
+  );
+
   /** Connects to a source and keeps it (with its name, if given), and the one left too. */
   const switchTo = useCallback(
     (url: string, name?: string) => {
@@ -34,5 +39,5 @@ export function useSources() {
     [current, remember, connect],
   );
 
-  return { current, currentName, groups, saved: kept, switchTo, rename, forget };
+  return { current, currentName, currentAuth, groups, saved: kept, switchTo, rename, forget };
 }

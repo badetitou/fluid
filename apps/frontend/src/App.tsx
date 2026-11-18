@@ -7,7 +7,7 @@ import { RowPagingProvider } from './app/RowPagingProvider';
 import { useLlmInsightAnalyzer } from './entities/llm';
 import { useSourceWrites } from './entities/preferences/useSourceWrites';
 import { createGraphQLClient } from './graphql/client';
-import { useGraphqlEndpoint } from './entities/source';
+import { useGraphqlEndpoint, useSourceAuthClient } from './entities/source';
 import { InsightAnalyzerContext, WriteAccessContext } from './views/plugin-api';
 
 // Each page is its own chunk: the first paint only loads the screen it shows.
@@ -20,7 +20,12 @@ const page = (element: React.ReactNode) => <Suspense fallback={<Skeleton active 
 export function App() {
   // The BFF's proxy URL for a source routed through it, else the source's own URL.
   const endpoint = useGraphqlEndpoint();
-  const client = useMemo(() => (endpoint ? createGraphQLClient(endpoint) : null), [endpoint]);
+  // The exchange is a new one when the user signed in again or out: the client is rebuilt, the queries run anew.
+  const authExchange = useSourceAuthClient();
+  const client = useMemo(
+    () => (endpoint ? createGraphQLClient(endpoint, authExchange ? [authExchange] : []) : null),
+    [endpoint, authExchange],
+  );
   const { writable } = useSourceWrites();
   const analyzeView = useLlmInsightAnalyzer();
 

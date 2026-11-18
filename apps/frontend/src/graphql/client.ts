@@ -1,9 +1,10 @@
-import { Client, cacheExchange, fetchExchange } from 'urql';
+import { Client, cacheExchange, fetchExchange, type Exchange } from 'urql';
 
-export function createGraphQLClient(url: string): Client {
+/** `extra` exchanges watch the network answers (they sit between the cache and the fetch). */
+export function createGraphQLClient(url: string, extra: Exchange[] = []): Client {
   return new Client({
     url,
-    exchanges: [cacheExchange, fetchExchange],
+    exchanges: [cacheExchange, ...extra, fetchExchange],
     requestPolicy: 'cache-first',
     // Always POST: Apollo servers (e.g. GraphQLZero) reject GET queries as potential CSRF.
     preferGetMethod: false,

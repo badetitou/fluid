@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, Input, Radio, Space, Tag, Typography } from 'antd';
-import { authFormOf, type AuthForm, type BffSourceConfig } from '../../entities/source';
+import { authFormError, authFormOf, type AuthForm, type BffSourceConfig, type OAuthForm } from '../../entities/source';
+import { OAuthFields } from './OAuthFields';
 import styles from './SourceSwitcher.module.css';
 
 interface BffAuthFormProps {
@@ -8,16 +9,25 @@ interface BffAuthFormProps {
   busy: boolean;
   onSave: (form: AuthForm) => Promise<boolean>;
   onRemoveSecret: () => Promise<boolean>;
+  onRemoveClientSecret: () => Promise<boolean>;
 }
 
-/** How the BFF authenticates to the source: none, or a header with a write-only secret. */
-export function BffAuthForm({ config, busy, onSave, onRemoveSecret }: BffAuthFormProps) {
+/** How the BFF authenticates to the source: none, a header with a write-only secret, or OAuth. */
+export function BffAuthForm({ config, busy, onSave, onRemoveSecret, onRemoveClientSecret }: BffAuthFormProps) {
   const [form, setForm] = useState<AuthForm>(authFormOf(config));
-  const change = (patch: Partial<AuthForm>) => setForm((f) => ({ ...f, ...patch }));
+  // A typed client secret does not stay in the form once OAuth is left.
+  const change = (patch: Partial<AuthForm>) =>
+    setForm((f) => ({
+      ...f,
+      ...patch,
+      ...(patch.authKind && patch.authKind !== 'oauth' ? { oauth: { ...f.oauth, clientSecret: '' } } : {}),
+    }));
+  const changeOAuth = (patch: Partial<OAuthForm>) => setForm((f) => ({ ...f, oauth: { ...f.oauth, ...patch } }));
+  const invalid = authFormError(form);
 
-  // The typed secret leaves the form once the BFF has it; if the save failed it stays to be retried.
+  // The typed secrets leave the form once the BFF has them; if the save failed they stay to be retried.
   const save = async () => {
-    if (await onSave(form)) setForm((f) => ({ ...f, secret: '' }));
+    if (await onSave(form)) setForm((f) => ({ ...f, secret: '', oauth: { ...f.oauth, clientSecret: '' } }));
   };
 
   return (
@@ -28,6 +38,7 @@ export function BffAuthForm({ config, busy, onSave, onRemoveSecret }: BffAuthFor
         options={[
           { value: 'none', label: 'No authentication' },
           { value: 'header', label: 'Header' },
+          { value: 'oauth', label: 'OAuth' },
         ]}
       />
       {form.authKind === 'header' && (
@@ -59,7 +70,17 @@ export function BffAuthForm({ config, busy, onSave, onRemoveSecret }: BffAuthFor
           </Typography.Text>
         </>
       )}
-      <Button type="primary" size="small" onClick={save} loading={busy}>
+      {form.authKind === 'oauth' && (
+        <OAuthFields
+          value={form.oauth}
+          onChange={changeOAuth}
+          sourceUrl={config.url}
+          hasClientSecret={config.oauth?.hasClientSecret ?? false}
+          busy={busy}
+          onRemoveClientSecret={onRemoveClientSecret}
+        />
+      )}
+      <Button type="primary" size="small" onClick={save} loading={busy} disabled={invalid !== null} title={invalid ?? undefined}>
         Save
       </Button>
     </Space>

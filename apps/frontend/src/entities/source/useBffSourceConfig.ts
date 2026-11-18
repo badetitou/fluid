@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { bffClient } from '../../bff/client';
 import { BffHttpError } from '../../bff/http';
 import type { BffSourceConfig } from '../../bff/sourcesApi';
-import { authPatch, bffSourceName, type AuthForm } from './bffAuth';
+import type { SourceAuth } from '../plugin';
+import { authPatch, bffSourceName, createAuth, type AuthForm } from './bffAuth';
+import { useAuthRequired } from './authRequired';
 import { useSavedSources } from './store';
 
 const errorMessage = (e: unknown) => (e instanceof Error ? e.message : 'The BFF did not answer');
@@ -18,7 +20,7 @@ export interface BffSourceConfigResult {
   config: BffSourceConfig | null;
   busy: boolean;
   error: string | null;
-  /** Creates the BFF config (no auth yet) and routes the source through it. */
+  /** Creates the BFF config (no auth yet, or the OAuth settings the source's plugin ships) and routes the source through it. */
   enable: () => Promise<void>;
   /** Goes back to the direct connection and deletes the BFF config (the local side is cleared even if the BFF fails). */
   disable: () => Promise<void>;
@@ -26,10 +28,18 @@ export interface BffSourceConfigResult {
   save: (form: AuthForm) => Promise<boolean>;
   /** Removes the stored secret only. Resolves to whether it worked. */
   removeSecret: () => Promise<boolean>;
+  /** Removes the stored OAuth client secret only (a public client). Resolves to whether it worked. */
+  removeClientSecret: () => Promise<boolean>;
+  /** Reads the config again. Resolves to whether it worked. */
+  refresh: () => Promise<boolean>;
+  /** A sign-in to the source succeeded: restarts its queries (always), then reads the config again. */
+  signedIn: (sourceId: string) => Promise<boolean>;
+  /** Forgets the stored sign-in of the source and restarts its queries. Resolves to whether it worked. */
+  signOut: () => Promise<boolean>;
 }
 
 /** Whether a saved source goes through the BFF, and how to turn that on or off and set its auth. */
-export function useBffSourceConfig(url: string, name?: string): BffSourceConfigResult {
+export function useBffSourceConfig(url: string, name?: string, suggested?: SourceAuth): BffSourceConfigResult {
   const id = useSavedSources((s) => s.saved.find((x) => x.url === url)?.bffSourceId);
   const setBffId = useSavedSources((s) => s.setBffId);
   const [available, setAvailable] = useState<boolean | null>(null);
@@ -93,7 +103,7 @@ export function useBffSourceConfig(url: string, name?: string): BffSourceConfigR
     const started = scope.current;
     await run(
       async () => {
-        const created = await sources.create({ name: bffSourceName(url, name), url, authKind: 'none' });
+        const created = await sources.create({ name: bffSourceName(url, name), url, ...createAuth(suggested) });
         // Switched source meanwhile: do not leave the config created for the old one behind.
         if (scope.current !== started) void sources.remove(created.id).catch(() => undefined);
         return created;
@@ -103,7 +113,7 @@ export function useBffSourceConfig(url: string, name?: string): BffSourceConfigR
         setBffId(url, created.id);
       },
     );
-  }, [run, url, name, setBffId]);
+  }, [run, url, name, suggested, setBffId]);
 
   const disable = useCallback(async () => {
     const started = scope.current;
@@ -131,5 +141,55 @@ export function useBffSourceConfig(url: string, name?: string): BffSourceConfigR
     [run, id],
   );
 
-  return { available, routed: Boolean(id), config, busy, error, enable, disable, save, removeSecret };
+  const removeClientSecret = useCallback(
+    () =>
+      id ? run(() => sources.update(id, { oauth: { clientSecret: null } }), setConfig) : Promise.resolve(false),
+    [run, id],
+  );
+
+  const refresh = useCallback(
+    () => (id ? run(() => sources.get(id), setConfig) : Promise.resolve(false)),
+    [run, id],
+  );
+
+  const signedIn = useCallback(
+    (signedInId: string) => {
+      // The credential changed whether or not the config can be read again: the queries must run anew.
+      useAuthRequired.getState().reconnected(signedInId);
+      return refresh();
+    },
+    [refresh],
+  );
+
+  const signOut = useCallback(
+    () =>
+      id
+        ? run(
+            async () => {
+              await sources.signOut(id);
+              // Whatever was cached came with the old credential.
+              useAuthRequired.getState().reconnected(id);
+              return sources.get(id);
+            },
+            setConfig,
+          )
+        : Promise.resolve(false),
+    [run, id],
+  );
+
+  return {
+    available,
+    routed: Boolean(id),
+    config,
+    busy,
+    error,
+    enable,
+    disable,
+    save,
+    removeSecret,
+    removeClientSecret,
+    refresh,
+    signedIn,
+    signOut,
+  };
 }

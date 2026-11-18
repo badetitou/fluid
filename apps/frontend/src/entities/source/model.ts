@@ -1,4 +1,4 @@
-import type { SourceGroup } from '../plugin';
+import type { SourceAuth, SourceGroup } from '../plugin';
 
 /** A GraphQL source the user kept, with the name they gave it. */
 export interface SavedSource {
@@ -61,9 +61,13 @@ export function setBffSourceId(saved: SavedSource[], url: string, id: string | u
   return base.map((s) => (s.url === url ? { ...s, bffSourceId: id } : s));
 }
 
+/** The BFF's URL for a configured source (`bffBase` may be '' for a same-origin BFF). */
+export const bffSourcePath = (bffBase: string, bffSourceId: string): string =>
+  `${bffBase.replace(/\/$/, '')}/api/sources/${encodeURIComponent(bffSourceId)}`;
+
 /** The BFF's GraphQL proxy URL for a configured source. */
 export const bffGraphqlUrl = (bffBase: string, bffSourceId: string): string =>
-  `${bffBase.replace(/\/$/, '')}/api/sources/${encodeURIComponent(bffSourceId)}/graphql`;
+  `${bffSourcePath(bffBase, bffSourceId)}/graphql`;
 
 /** Where GraphQL requests for `url` go: the BFF proxy when the source is routed through it, else the URL itself. */
 export function resolveGraphqlEndpoint(url: string, saved: SavedSource[], bffBase: string): string {
@@ -78,6 +82,10 @@ export function sourceName(url: string, saved: SavedSource[], groups: SourceGrou
     groups.flatMap((g) => g.sources).find((s) => s.url === url)?.name
   );
 }
+
+/** The OAuth settings a source provider ships with the source at `url`, if any. */
+export const sourceAuth = (url: string, groups: SourceGroup[]): SourceAuth | undefined =>
+  groups.flatMap((g) => g.sources).find((s) => s.url === url)?.auth;
 
 /** A kept source, with the name a provider gives it when the user gave none. */
 export interface KeptSource extends SavedSource {

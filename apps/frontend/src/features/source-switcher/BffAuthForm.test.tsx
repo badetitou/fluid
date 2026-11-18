@@ -6,7 +6,7 @@ const config = { id: 's', name: 'n', url: 'http://x', authKind: 'header' as cons
 
 function setup(saved: boolean) {
   const onSave = vi.fn().mockResolvedValue(saved);
-  render(<BffAuthForm config={config} busy={false} onSave={onSave} onRemoveSecret={vi.fn()} />);
+  render(<BffAuthForm config={config} busy={false} onSave={onSave} onRemoveSecret={vi.fn()} onRemoveClientSecret={vi.fn()} />);
   const input = screen.getByLabelText('Secret') as HTMLInputElement;
   fireEvent.change(input, { target: { value: 'tok-123' } });
   fireEvent.click(screen.getByRole('button', { name: /Save/ }));

@@ -5,7 +5,13 @@ const state = vi.hoisted(() => ({ bff: {} as Record<string, unknown> }));
 vi.mock('../../entities/source', () => ({
   useSources: () => ({ current: 'https://api.example.com/graphql', currentName: 'Example' }),
   useBffSourceConfig: () => state.bff,
-  authFormOf: () => ({ authKind: 'none', headerName: 'Authorization', secret: '' }),
+  authFormOf: () => ({ authKind: 'none', headerName: 'Authorization', secret: '', oauth: {} }),
+  authFormKey: () => 'k',
+  authFormError: () => null,
+  signInHint: () => null,
+  useOAuthSignIn: () => ({ status: 'idle', start: vi.fn() }),
+  useOAuthDiscovery: () => ({ busy: false, error: null, discover: vi.fn() }),
+  discoveryPatch: () => ({}),
 }));
 
 import { BffSourceSettings } from './BffSourceSettings';
