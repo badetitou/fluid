@@ -4,6 +4,11 @@ import { viewRoutes } from './routes/views';
 import { prefRoutes } from './routes/prefs';
 import { llmRoutes } from './routes/llm';
 import { staticRoutes } from './routes/static';
+import { sourceRoutes } from './routes/sources';
+import { prisma, storageMode } from './db';
+import { createKeyProvider } from './sources/crypto';
+import { createSourceRepository } from './sources/repository';
+import { createSourceService } from './sources/service';
 
 export interface BuildAppOptions {
   /** Built frontend directory; defaults to FLUID_STATIC_DIR. Unset = API only. */
@@ -23,6 +28,9 @@ export function buildApp(options: BuildAppOptions = {}) {
   app.register(viewRoutes);
   app.register(prefRoutes);
   app.register(llmRoutes);
+  app.register(sourceRoutes, {
+    service: createSourceService(createSourceRepository(prisma), createKeyProvider(process.env, storageMode)),
+  });
 
   const staticDir = options.staticDir ?? process.env.FLUID_STATIC_DIR;
   if (staticDir) app.register(staticRoutes, { dir: staticDir });
