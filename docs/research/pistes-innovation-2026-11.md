@@ -107,6 +107,9 @@ fluid le fait déjà pour Pharo avec Spec-Fluid. Proposer un **protocole ouvert*
 (ex. `/.well-known/fluid/views?type=…`) qui rend des ViewSpec (ou des onglets) pour un type, et qu'un
 `viewBuilder` générique consomme. Une équipe métier publie ses perspectives *avec* son API.
 Les vues voyagent avec les données, sans plugin à écrire.
+*Statut : **démarré** (2026-11, epic badetitou/fluid#44)* : protocole « fluid Open Views » v1
+([`OPEN-VIEWS.md`](../architecture/OPEN-VIEWS.md)), builder générique `open-views`, Spec-Fluid comme
+premier fournisseur, [exemple de fournisseur Node](../examples/open-views-provider/).
 
 ### C. Pente douce pour l'utilisateur final
 
@@ -265,7 +268,7 @@ CodeCity pour Moose, IFC enrichi par le bSDD, Speckle en direct : trois démos q
 | 2 | **B1** annotations sémantiques (+ B2) | améliore la génération et les vues automatiques ; socle de B3 | — |
 | 3 | **D2** checks avec pastilles | la fonction « une demande, une règle permanente » la plus visible ; démo Moose sans dépendance | — (D1 pour l'action) |
 | 4 | **F1 → F2** fluid serveur MCP puis MCP Apps | met fluid là où sont les utilisateurs et les agents | A4, F6, une auth minimale |
-| 5 | **B4** protocole de perspectives livrées par le backend | simplifie l'intégration de tout système métier ; généralise Spec-Fluid | — |
+| 5 | **B4** protocole de perspectives livrées par le backend (**démarré**, #44) | simplifie l'intégration de tout système métier ; généralise Spec-Fluid | — |
 | démo | **F4 + F6 + Speckle** | démo industrielle et 3D en direct | — |
 
 Gains rapides (E1) : C3 (voir les données d'un widget), F5 (JSON Schema des contrats), A3 (stocker

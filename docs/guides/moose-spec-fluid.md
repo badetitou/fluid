@@ -5,6 +5,11 @@ packages…) as fluid concepts, open the **Pharo inspector tabs** of each entity
 Blueprint, source…) right in fluid, generate dashboards with the assistant, and run Smalltalk on an
 entity from the browser.
 
+It is also the reference example of **[fluid Open Views](../architecture/OPEN-VIEWS.md)**, the open
+protocol through which any tool serves the views of its own objects: Pharo's Spec-Fluid is one
+provider among others, and fluid reads it with no Pharo-specific code. To write a provider for
+another tool, start from the [plain Node example](../examples/open-views-provider/).
+
 <a href="../media/moose-demo.mp4">
   <img src="../media/moose-demo.webp" alt="fluid on a Moose model: open a package, its overview pyramid and Pharo Navigation tab, ask the assistant for a view of its classes, open a class blueprint drawn by Pharo, then a method's source" width="960" />
 </a>
@@ -16,7 +21,7 @@ Two Pharo projects do the work, both loaded in the same image:
 | Project | Serves | Used by fluid for |
 |---|---|---|
 | [Moose-REST-API](https://github.com/evref-bl/Moose-REST-API) (package `Moose-GraphQL`) | GraphQL, `MGServer` | Concepts, lists, entity data, generated views |
-| [Spec-Fluid](https://gitlab.com/badetitou/spec-fluid) | JSON, `SFServer` | Inspector tabs, Pharo scripts |
+| [Spec-Fluid](https://gitlab.com/badetitou/spec-fluid) | fluid Open Views, `SFServer` | Inspector tabs (as views), Pharo scripts (`evaluate`) |
 
 ```mermaid
 flowchart LR
@@ -31,13 +36,15 @@ flowchart LR
       SF --> M
     end
     F -->|GraphQL: concepts, data| MG
-    F -->|tabs, scripts| SF
+    F -->|Open Views: views, items, evaluate| SF
     F -->|saved views, LLM| B[fluid BFF :4001]
 ```
 
 Both servers read the **same model** and use the **same entity ids** (`<modelId>:<mooseID>`, e.g.
-`1:74008`). That is what lets fluid ask Spec-Fluid for the tabs of the entity a GraphQL column shows,
-and open, as a GraphQL entity, what you click in a Pharo tab.
+`1:74008`). That is the Open Views contract: an object id in the provider's routes is the id of the
+same object in the GraphQL source, and every `ref` a view carries points back into that source. So
+fluid asks Spec-Fluid for the views of the entity a GraphQL column shows, and opens, as a GraphQL
+entity, what you click in a Pharo tab.
 
 ## 1. Prepare the image
 
@@ -87,13 +94,32 @@ curl -s http://localhost:8080/graphql -H 'content-type: application/json' \
   -d '{"query":"{ classes(take: 2) { id name } }"}'
 # {"data":{"classes":[{"id":"1:74008","name":"AIWeightedHits"}, …]}}
 
-curl -s http://localhost:8081/spec-fluid
-# {"name":"Spec-Fluid","version":"0.2.0","model":"MyModel","evaluates":false}
+curl -s http://localhost:8081/spec-fluid/.well-known/fluid-views
+# {"protocol":"fluid-views","version":1,"name":"Spec-Fluid","capabilities":{"actions":false,"evaluate":false}}
 
-curl -s 'http://localhost:8081/spec-fluid/entities/1%3A74008/tabs'
-# {"entity":{"id":"1:74008","name":"AIWeightedHits","type":"Class"},
-#  "tabs":[{"key":"miInspectionNavigation:","title":"Navigation","order":1}, …]}
+curl -s 'http://localhost:8081/spec-fluid/objects/1%3A74008/views'
+# {"object":{"id":"1:74008","label":"AIWeightedHits","type":"Class"},
+#  "views":[{"key":"miInspectionNavigation:","title":"Navigation","priority":1}, …]}
 ```
+
+These are the first two routes of the [protocol](../architecture/OPEN-VIEWS.md#routes): the
+**discovery** document, then the **views of an object**, one per inspector tab. Each tab's key is the
+method that builds it, and its priority comes from `<inspectorPresentationOrder:title:>`. The rest of
+the protocol follows from there:
+
+```bash
+curl -s 'http://localhost:8081/spec-fluid/objects/1%3A74008/views/miInspectionNavigation%3A'
+# {"key":"miInspectionNavigation:","title":"Navigation","priority":1,
+#  "view":{"kind":"tree","roots":[…],"total":9}}
+
+curl -s 'http://localhost:8081/spec-fluid/objects/1%3A74008/views/miInspectionNavigation%3A/items?path=0&offset=0&limit=50'
+# {"items":[…],"total":9}
+```
+
+A Spec presenter becomes a view node: a table is a `columnedList`, a tree a `tree`, a Roassal canvas
+an `svg` whose shapes are `hotspots`, a notebook `tabs`, a code presenter `text` with its selection
+in `highlights`. A long list or tree sends its first 100 items with `total`, and fluid pages the rest
+through the **items** route; a tree node whose children were not sent carries `hasChildren`.
 
 After the model changes (new entity types, re-import), run `MGServer restart`; Spec-Fluid picks up
 the model again at its next request.
@@ -113,17 +139,23 @@ Or from a clone (`VITE_DEFAULT_GRAPHQL_URL` in `apps/frontend/.env`, then `pnpm 
 type the URL on the connection screen. To generate views, configure an LLM provider (see the
 [README](../../README.md#-llm-providers)); for instance `LLM_PROVIDER=claude-code`.
 
-## 4. Turn on the Pharo plugins
+## 4. Turn on the plugins
 
-In **Settings → Plugins**, set the **Spec-Fluid endpoint** to `http://localhost:8081/spec-fluid` on:
+In **Settings → Plugins**, set the endpoint to `http://localhost:8081/spec-fluid` on:
 
 | Plugin | Adds |
 |---|---|
-| **Spec-Fluid (Pharo inspectors)** (view builder) | The inspector tabs of an entity, as perspectives of its detail column |
-| **Pharo script** (page action) | A Smalltalk editor on the entity of a detail column |
+| **Spec-Fluid (Pharo inspectors)** (view builder) | The views of an entity, as perspectives of its detail column |
+| **Pharo script** (page action) | A Smalltalk editor on the entity of a detail column (`evaluate` capability) |
 
-Both stay silent while the endpoint is empty, and when the image does not answer. The
-**Inspectors** widget collection (the `specPresenter` widget that draws a tab) must stay enabled, as
+The Spec-Fluid view builder is the generic **Open Views** builder on one endpoint. Instead, you can
+add `http://localhost:8081/spec-fluid` to the endpoints of the **Open Views** plugin, next to other
+providers: their views are merged by priority in the same columns. The only difference is that the
+Spec-Fluid plugin still reads an older image, whose server predates Open Views (no discovery route),
+through the old Spec-Fluid routes.
+
+The plugins stay silent while the endpoint is empty, and when the image does not answer. The
+**Inspectors** widget collection (the `specPresenter` widget that draws a view) must stay enabled, as
 well as **Software maps** if you want the Moose visualizations below.
 
 ## 5. Explore
@@ -131,9 +163,10 @@ well as **Software maps** if you want the Moose visualizations below.
 - **Concepts.** The concepts are the entity types of the model. Open
   `Class`, then a class: its detail column opens.
 - **Inspector tabs.** The perspective selector of the detail column lists the saved views of the
-  concept, then the Pharo tabs of the entity (Navigation, SourceText, Fame, Blueprint, Tree…), in
-  Pharo's order. They are drawn as Pharo built them: tables, trees, Roassal canvases (SVG), source
-  code with its selection highlighted, diffs and notebooks.
+  concept, then the views Spec-Fluid declares for the entity (Navigation, SourceText, Fame,
+  Blueprint, Tree…), by priority. They are drawn as Pharo built them: tables, trees, Roassal
+  canvases (SVG), source code with its selection highlighted, diffs and notebooks. Long lists show
+  *Load more*, and tree nodes load their children when you unfold them.
 - **Navigate.** A row, a cell, a tree node or a Roassal shape that names an entity is a link: it
   opens that entity in the next column, with its own tabs.
 - **Generate views.** Press **+** on a column and describe what you want, e.g. *"a table of the
@@ -173,8 +206,8 @@ seconds. Turn evaluation off with `SFServer disableEvaluation`.
 
 ## Add your own tab
 
-Spec-Fluid serves the tabs the Pharo inspector already has, so a new inspector tab shows up in
-fluid too, with no change on the fluid side:
+Spec-Fluid serves the tabs the Pharo inspector already has, so a new inspector tab becomes a new
+Open Views view, and shows up in fluid too, with no change on the fluid side:
 
 ```st
 FamixJavaClass >> inspectionMethodsBySize: aBuilder
@@ -186,10 +219,15 @@ FamixJavaClass >> inspectionMethodsBySize: aBuilder
 		yourself
 ```
 
-Rows whose item is an entity are clickable in fluid. Build tabs from lists, tables, trees, text,
-labels, diffs, notebooks and Roassal canvases, or layouts of those; other presenters appear as
-*unsupported*. The document format and its limits are described in the
-[Spec-Fluid README](https://gitlab.com/badetitou/spec-fluid).
+Rows whose item is an entity carry a `ref`, and are clickable in fluid. Build tabs from lists,
+tables, trees, text, labels, diffs, notebooks and Roassal canvases, or layouts of those; other
+presenters become `unsupported` nodes. The view format is the
+[Open Views protocol](../architecture/OPEN-VIEWS.md#view-nodes); how Spec-Fluid maps presenters to it
+is described in the [Spec-Fluid README](https://gitlab.com/badetitou/spec-fluid).
+
+The same tab could come from any other tool: a Python or Node service that answers the same routes
+for these entity ids adds its views next to Pharo's (see the
+[provider example](../examples/open-views-provider/)).
 
 ## Troubleshooting
 
@@ -197,9 +235,10 @@ labels, diffs, notebooks and Roassal canvases, or layouts of those; other presen
 |---|---|
 | fluid cannot connect to the GraphQL URL | `MGServer isRunning`? fluid served over HTTPS cannot reach `http://localhost`: run it locally. |
 | Concepts are `Model`, `Entity`, `MetaClass`… | `MGServer` runs in generic mode: restart it with `MGServer startOn: 8080 model: model`. |
-| No Pharo tabs in the perspective selector | Endpoint not set, or `SFServer isRunning` is false. Open `http://localhost:8081/spec-fluid` in the browser to check. |
+| No Pharo tabs in the perspective selector | Endpoint not set, or `SFServer isRunning` is false. Open `http://localhost:8081/spec-fluid/.well-known/fluid-views` in the browser to check. |
+| A tab says *sent an unexpected answer* | The image sends a view that does not match the [schema](../architecture/open-views.schema.json): update Spec-Fluid, and report the tab if it persists. |
 | *Origin not allowed* (403) | fluid is served from another origin than `localhost`/`127.0.0.1`: run `SFServer allowOrigin: 'http://<host>:<port>'` with the origin in the address bar. |
-| `curl …/spec-fluid` answers `"model": null` | No model to serve: start `MGServer` in model mode, or `SFServer startOn: 8081 model: model`. |
+| `curl …/spec-fluid` answers `"model": null`, or every object is unknown | No model to serve: start `MGServer` in model mode, or `SFServer startOn: 8081 model: model`. |
 | A tab says *Unknown entity* | The ids changed: mooseIDs differ from one image (or import) to another. Reload the concept in fluid. |
 | Clicking an entity in a tab opens nothing | Its GraphQL type is unknown (generic mode, or a type with no instances): use model mode. |
 | A part of a tab is *unsupported* | That Spec presenter has no Spec-Fluid export yet; the rest of the tab is still shown. |
