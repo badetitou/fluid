@@ -15,7 +15,7 @@
     "lint": "pnpm -r lint",
     "test": "pnpm -r --if-present test",
     "frontend": "pnpm --filter @fluid/frontend",
-    "pack:cli": "pnpm --filter @fluid/frontend build && pnpm --filter @fluid/bff prisma:generate && pnpm --filter @fluid/cli build:pack && mkdir -p out && npm pack ./apps/cli/pkg --pack-destination ./out",
+    "pack:cli": "pnpm --filter @fluid/frontend build && pnpm --filter @fluid/frontend build:viewer && pnpm --filter @fluid/bff prisma:generate && pnpm --filter @fluid/cli build:pack && mkdir -p out && npm pack ./apps/cli/pkg --pack-destination ./out",
     "test:pack": "pnpm --filter @fluid/cli smoke",
     "docs:media": "node scripts/docs/capture.mjs"
   },

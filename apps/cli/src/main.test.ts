@@ -64,11 +64,11 @@ describe('main in mcp mode', () => {
 
   it('prefers --url over FLUID_URL over the default', async () => {
     await runWith(['mcp', '--url', 'http://a:1'], { FLUID_URL: 'http://b:2' });
-    expect(runMcp).toHaveBeenLastCalledWith('http://a:1', '9.9.9');
+    expect(runMcp).toHaveBeenLastCalledWith('http://a:1', '9.9.9', expect.stringMatching(/viewer\.html$/));
     await runWith(['mcp'], { FLUID_URL: 'http://b:2/' });
-    expect(runMcp).toHaveBeenLastCalledWith('http://b:2', '9.9.9');
+    expect(runMcp).toHaveBeenLastCalledWith('http://b:2', '9.9.9', expect.stringMatching(/viewer\.html$/));
     await runWith(['mcp'], {});
-    expect(runMcp).toHaveBeenLastCalledWith('http://localhost:4001', '9.9.9');
+    expect(runMcp).toHaveBeenLastCalledWith('http://localhost:4001', '9.9.9', expect.stringMatching(/viewer\.html$/));
   });
 
   it('exits 2 on an invalid FLUID_URL without echoing it, and writes nothing to stdout', async () => {

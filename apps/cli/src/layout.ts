@@ -6,6 +6,8 @@ export interface PackageLayout {
   staticDir: string;
   migrationsDir: string;
   manifestPath: string;
+  /** The MCP App viewer: one self-contained HTML file. */
+  viewerPath: string;
 }
 
 /** Paths of the installed package, derived from the entry file URL (dist/fluid.mjs) only. */
@@ -16,6 +18,7 @@ export function packageLayout(entryUrl: string): PackageLayout {
     staticDir: join(root, 'web'),
     migrationsDir: join(root, 'migrations'),
     manifestPath: join(root, '..', 'package.json'),
+    viewerPath: join(root, 'viewer.html'),
   };
 }
 

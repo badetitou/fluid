@@ -7,6 +7,9 @@ const ALLOWED_EXTERNALS = new Set(['pg-native', 'pg-cloudflare', '@electric-sql/
 // The dev default of storage/client.ts; harmless in the bundle because main always passes migrationsDir.
 const ALLOWED_IMPORT_META_PATHS = ['../../prisma/migrations'];
 
+/** Present in the built viewer (its `appInfo.name`), absent from the placeholder. */
+export const VIEWER_MARKER = 'fluid-mcp-app-viewer';
+
 const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
 
 function isAllowedExternal(path) {
@@ -62,6 +65,9 @@ export function checkVersions({ bffDir, publishManifest }) {
 export function checkStaged(distDir) {
   if (!existsSync(join(distDir, 'web', 'index.html'))) throw new Error('guard (f): dist/web/index.html is missing');
   if (existsSync(join(distDir, 'web', 'config.js'))) throw new Error('guard (f): dist/web/config.js must not ship');
+  const viewer = join(distDir, 'viewer.html');
+  if (!existsSync(viewer)) throw new Error('guard (f): dist/viewer.html is missing');
+  if (!readFileSync(viewer, 'utf8').includes(VIEWER_MARKER)) throw new Error('guard (f): dist/viewer.html is not the fluid viewer');
   const migrations = existsSync(join(distDir, 'migrations')) ? readdirSync(join(distDir, 'migrations')) : [];
   if (!migrations.some((m) => existsSync(join(distDir, 'migrations', m, 'migration.sql')))) {
     throw new Error('guard (f): no migration was copied');
