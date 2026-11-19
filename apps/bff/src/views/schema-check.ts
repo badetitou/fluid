@@ -1,4 +1,4 @@
-import { buildClientSchema, getIntrospectionQuery, parse, printSchema, validate, type GraphQLSchema, type IntrospectionQuery } from 'graphql';
+import { buildClientSchema, getIntrospectionQuery, Kind, OperationTypeNode, parse, printSchema, validate, type GraphQLSchema, type IntrospectionQuery } from 'graphql';
 import type { QuerySpec } from '@fluid/shared';
 import type { SourceService } from '../sources/service';
 
@@ -20,7 +20,14 @@ export function checkQueries(schema: GraphQLSchema, queries: Record<string, Quer
   for (const [name, q] of Object.entries(queries)) {
     if (q.source) continue;
     try {
-      for (const e of validate(schema, parse(q.query))) issues.push(`queries.${name}: ${e.message}`);
+      const doc = parse(q.query);
+      const ops = doc.definitions.filter((d) => d.kind === Kind.OPERATION_DEFINITION);
+      // Only a single query runs (see views/model.ts): say so now rather than when the view runs.
+      if (ops.length !== 1 || ops[0].operation !== OperationTypeNode.QUERY) {
+        issues.push(`queries.${name}: must be exactly one query operation (use "actions" for mutations)`);
+        continue;
+      }
+      for (const e of validate(schema, doc)) issues.push(`queries.${name}: ${e.message}`);
     } catch (err) {
       issues.push(`queries.${name}: ${err instanceof Error ? err.message : 'parse error'}`);
     }

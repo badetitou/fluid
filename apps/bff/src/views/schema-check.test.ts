@@ -16,8 +16,10 @@ describe('checkQueries', () => {
       wrong: { query: '{ characters { id species } }' },
       broken: { query: '{ characters {' },
       plugin: { query: 'select 1', source: 'spec-fluid' },
+      write: { query: 'mutation { renameCharacter(id: "1", name: "x") { id } }' },
     });
-    expect(issues).toHaveLength(2);
+    expect(issues).toHaveLength(3);
+    expect(issues[2]).toMatch(/^queries\.write: must be exactly one query operation/);
     expect(issues[0]).toMatch(/^queries\.wrong: .*species/);
     expect(issues[1]).toMatch(/^queries\.broken: /);
   });
