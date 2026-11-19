@@ -182,5 +182,5 @@ Providers do not need this section; it says how fluid reads them.
 
   The `specPresenter` widget runs `items`, `action`, `views` and `view` itself (paging, actions,
   `forward` nodes), with the variables of the query it is bound to, overriding only what changes.
-- **Unknown kinds.** Before validating a view, fluid turns a node of an unknown `kind` into
-  `{ kind: 'unsupported', type: <kind> }`.
+- **Unknown kinds.** The schema reads a node of an unknown `kind` as `{ kind: 'unsupported', type: <kind> }`,
+  so a newer provider never breaks the rest of the view.
