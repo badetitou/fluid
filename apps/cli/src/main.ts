@@ -84,7 +84,7 @@ export async function main(argv: string[], env: Env, entryUrl: string): Promise<
       console.error('fluid: invalid FLUID_URL: expected an http(s) URL without credentials, query or hash');
       return 2;
     }
-    return runMcp(parsed.url ?? fromEnv ?? DEFAULT_FLUID_URL, readVersion(layout));
+    return runMcp(parsed.url ?? fromEnv ?? DEFAULT_FLUID_URL, readVersion(layout), layout.viewerPath);
   }
   const { options } = parsed;
   if (options.envFile) {

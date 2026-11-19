@@ -18,6 +18,7 @@ describe('layout', () => {
       staticDir: '/pkg/dist/web',
       migrationsDir: '/pkg/dist/migrations',
       manifestPath: '/pkg/package.json',
+      viewerPath: '/pkg/dist/viewer.html',
     });
   });
   it('accepts a complete install', () => {

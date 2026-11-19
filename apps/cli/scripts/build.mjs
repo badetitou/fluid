@@ -11,6 +11,7 @@ const REPO = join(CLI, '..', '..');
 const PKG = join(CLI, 'pkg');
 const DIST = join(PKG, 'dist');
 const FRONTEND_DIST = join(REPO, 'apps', 'frontend', 'dist');
+const VIEWER_HTML = join(REPO, 'apps', 'frontend', 'dist-viewer', 'viewer.html');
 const BFF = join(REPO, 'apps', 'bff');
 const PRISMA_CLIENT = join(BFF, 'src', 'generated', 'prisma');
 const MIGRATIONS = join(BFF, 'prisma', 'migrations');
@@ -53,8 +54,8 @@ function thirdPartyLicenses(metafile) {
 }
 
 rmSync(PKG, { recursive: true, force: true });
-if (!existsSync(join(FRONTEND_DIST, 'index.html')) || !existsSync(PRISMA_CLIENT)) {
-  throw new Error('frontend build or generated Prisma client is missing: run `pnpm pack:cli`');
+if (!existsSync(join(FRONTEND_DIST, 'index.html')) || !existsSync(VIEWER_HTML) || !existsSync(PRISMA_CLIENT)) {
+  throw new Error('frontend build, viewer build or generated Prisma client is missing: run `pnpm pack:cli`');
 }
 
 const result = await build({
@@ -80,6 +81,7 @@ const outputs = walk(DIST).filter((f) => f.endsWith('.mjs'));
 for (const file of outputs) execFileSync(process.execPath, ['--check', file]);
 
 cpSync(FRONTEND_DIST, join(DIST, 'web'), { recursive: true, filter: (src) => src !== join(FRONTEND_DIST, 'config.js') });
+cpSync(VIEWER_HTML, join(DIST, 'viewer.html'));
 for (const name of readdirSync(MIGRATIONS)) {
   const sql = join(MIGRATIONS, name, 'migration.sql');
   if (!existsSync(sql)) continue;

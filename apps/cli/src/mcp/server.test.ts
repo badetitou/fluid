@@ -57,8 +57,8 @@ beforeAll(async () => {
 });
 afterAll(() => new Promise<void>((r) => bff.close(() => r())));
 
-async function connect(url: string): Promise<Client> {
-  const server = createFluidMcpServer(createFluidApi(url), url);
+async function connect(url: string, viewerHtml?: string): Promise<Client> {
+  const server = createFluidMcpServer(createFluidApi(url), url, '0.0.0', viewerHtml);
   const client = new Client({ name: 'test', version: '0' });
   const [a, b] = InMemoryTransport.createLinkedPair();
   await Promise.all([server.connect(a), client.connect(b)]);
@@ -138,7 +138,7 @@ describe('fluid MCP server', () => {
     expect(r.isError).toBeFalsy();
     expect(textOf(r)).toContain('- list: 2 rows');
     expect(textOf(r)).toContain('Skipped');
-    expect(r.structuredContent).toEqual({ spec: SPEC, data: { list: { data: { characters: [{ id: 1 }, { id: 2 }] } } } });
+    expect(r.structuredContent).toEqual({ viewId: 'v1', sourceId: 's1', take: 5, spec: SPEC, data: { list: { data: { characters: [{ id: 1 }, { id: 2 }] } } } });
     expect(lastRun).toEqual({ sourceId: 's1', take: 5 });
   });
 
@@ -161,6 +161,12 @@ describe('fluid MCP server', () => {
     const html = String((read.contents[0] as { text?: string }).text);
     expect(html).toContain('<html');
     expect(html).not.toMatch(/https?:\/\//);
+  });
+
+  it('serves the packaged viewer page it is given for ui://fluid/viewer', async () => {
+    const client = await connect(baseUrl, '<html>packaged viewer</html>');
+    const read = await client.readResource({ uri: 'ui://fluid/viewer' });
+    expect((read.contents[0] as { text?: string }).text).toBe('<html>packaged viewer</html>');
   });
 
   it('turns FLUID_AUTH_REQUIRED into a sign-in tool error naming the source', async () => {

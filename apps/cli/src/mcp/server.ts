@@ -12,7 +12,7 @@ import {
   summarizeSources,
   summarizeViews,
 } from './model';
-import { VIEWER_HTML, VIEWER_MIME, VIEWER_URI } from './viewerHtml';
+import { PLACEHOLDER_HTML, VIEWER_MIME, VIEWER_URI } from './viewerHtml';
 
 const ui = (visibility: Array<'model' | 'app'>, withViewer: boolean) => ({
   ui: { ...(withViewer ? { resourceUri: VIEWER_URI } : {}), visibility },
@@ -36,7 +36,7 @@ const runInput = {
     .describe(`Row limit passed to the view queries (default ${DEFAULT_TAKE}; results over 256 KB are refused: lower it)`),
 };
 
-export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '0.0.0'): McpServer {
+export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '0.0.0', viewerHtml = PLACEHOLDER_HTML): McpServer {
   const server = new McpServer({ name: 'fluid', version });
 
   async function sourceName(sourceId: string): Promise<string | undefined> {
@@ -103,7 +103,7 @@ export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '
       guarded(sourceId, async () => {
         const { spec, rawSpec } = await api.getView(viewId);
         const out = await run(viewId, { sourceId, take });
-        return { ...text(summarizeRun(spec, out)), structuredContent: { spec: rawSpec, data: out.results } };
+        return { ...text(summarizeRun(spec, out)), structuredContent: { viewId, sourceId, take: take ?? DEFAULT_TAKE, spec: rawSpec, data: out.results } };
       }),
   );
 
@@ -125,7 +125,7 @@ export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '
     'viewer',
     VIEWER_URI,
     { title: 'fluid viewer', description: 'Renders a fluid view', mimeType: VIEWER_MIME },
-    () => ({ contents: [{ uri: VIEWER_URI, mimeType: VIEWER_MIME, text: VIEWER_HTML }] }),
+    () => ({ contents: [{ uri: VIEWER_URI, mimeType: VIEWER_MIME, text: viewerHtml }] }),
   );
 
   return server;

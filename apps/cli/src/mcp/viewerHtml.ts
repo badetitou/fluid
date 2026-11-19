@@ -1,10 +1,11 @@
 export const VIEWER_URI = 'ui://fluid/viewer';
 export const VIEWER_MIME = 'text/html;profile=mcp-app';
 
-// Placeholder viewer: self-contained, loads nothing (CSP forbids it). It does the MCP Apps handshake
-// (ui/initialize, then ui/notifications/initialized once the host answered), accepts messages from the
-// host frame only, and shows the view title with the raw data. The real viewer replaces this page.
-export const VIEWER_HTML = `<!doctype html>
+// Fallback viewer, served when the real one (apps/frontend/viewer.html, built into the package as
+// dist/viewer.html) is not there, e.g. when running from sources. Self-contained, loads nothing (CSP
+// forbids it). It does the MCP Apps handshake (ui/initialize, then ui/notifications/initialized once the
+// host answered), accepts messages from the host frame only, and shows the view title with the raw data.
+export const PLACEHOLDER_HTML = `<!doctype html>
 <html><head><meta charset="utf-8"><title>fluid</title>
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
 <style>body{font:14px system-ui,sans-serif;margin:12px}pre{overflow:auto;max-height:60vh;background:#f4f4f5;padding:8px;border-radius:6px}</style>
@@ -32,3 +33,19 @@ export const VIEWER_HTML = `<!doctype html>
 })();
 </script></body></html>
 `;
+
+export interface ViewerPage {
+  html: string;
+  source: 'packaged' | 'placeholder';
+}
+
+/** The packaged viewer when `read` finds a non-empty file at `path`, else the placeholder. */
+export function loadViewerHtml(path: string, read: (path: string) => string): ViewerPage {
+  try {
+    const html = read(path);
+    if (html.trim().length > 0) return { html, source: 'packaged' };
+  } catch {
+    // Not built: from sources, or a corrupted install. The placeholder still does the handshake.
+  }
+  return { html: PLACEHOLDER_HTML, source: 'placeholder' };
+}

@@ -9,6 +9,9 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Marker of the real viewer (absent from the placeholder) and the size its single HTML file must stay under.
+const VIEWER_MARKER = 'fluid-mcp-app-viewer';
+const VIEWER_MAX_BYTES = 4_000_000;
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FAKE_CLAUDE = join(HERE, '..', 'test', 'fixtures', 'fake-claude.mjs');
 const tmp = mkdtempSync(join(tmpdir(), 'fluid-smoke-'));
@@ -118,6 +121,12 @@ async function mcpChecks(bin, cwd, env, url = 'http://127.0.0.1:1') {
     const call = (await reply(3)).result;
     check(call.isError === true && call.content[0].text.includes('is not reachable'), 'unreachable fluid is a tool error');
   }
+  send({ id: 4, method: 'resources/read', params: { uri: 'ui://fluid/viewer' } });
+  const viewer = (await reply(4)).result.contents[0];
+  check(viewer.mimeType === 'text/html;profile=mcp-app', 'the viewer resource has the MCP Apps MIME type');
+  check(viewer.text.includes(VIEWER_MARKER), 'the viewer resource is the real viewer, not the placeholder');
+  check(Buffer.byteLength(viewer.text) < VIEWER_MAX_BYTES, `the viewer is under ${VIEWER_MAX_BYTES / 1e6} MB (${(Buffer.byteLength(viewer.text) / 1e6).toFixed(2)} MB)`);
+  check(!/<(script|link|img)\b[^>]*\b(src|href)=["']?https?:/i.test(viewer.text), 'the viewer loads nothing from the network');
   check(lines.every((l) => JSON.parse(l).jsonrpc === '2.0'), 'every stdout line of fluid mcp is JSON-RPC');
   child.stdin.end();
   const exit = await Promise.race([new Promise((r) => child.on('exit', (code) => r(code))), sleep(10_000).then(() => null)]);
@@ -136,6 +145,7 @@ async function main() {
   const listing = run('tar', ['-tzf', tgz]).trim().split('\n');
   check(listing.includes('package/dist/fluid.mjs'), 'tarball has dist/fluid.mjs');
   check(listing.includes('package/dist/web/index.html'), 'tarball has dist/web/index.html');
+  check(listing.includes('package/dist/viewer.html'), 'tarball has dist/viewer.html');
   check(listing.some((f) => /^package\/dist\/migrations\/[^/]+\/migration\.sql$/.test(f)), 'tarball has migrations');
   check(!listing.some((f) => /\/src\/|\.env|node_modules|config\.js$/.test(f)), 'tarball has no src, .env, node_modules or config.js');
   check(statSync(tgz).size < 10e6, 'tarball is under 10 MB');
