@@ -1,4 +1,4 @@
-import { hasAuthRequired, type FluidErrorKind, QueryResult, RunOutput, SourceInfo, SpecInfo, ViewRow } from './fluidApi';
+import { FluidApiError, hasAuthRequired, type DraftOutput, type FluidErrorKind, QueryResult, RunOutput, SourceInfo, SpecInfo, ViewRow } from './fluidApi';
 
 // Pure formatting of what the MCP tools tell the model.
 
@@ -26,6 +26,14 @@ export function oversizeKb(value: unknown): number | null {
 /** Any query of a successful run that needs a sign-in (some queries may have worked, others not). */
 export const needsSignIn = (run: RunOutput): boolean => Object.values(run.results).some(hasAuthRequired);
 
+/** Why a run cannot go to the host: a missing sign-in (some queries may have worked) or a result over the cap. */
+export function deliveryError(run: RunOutput): FluidApiError | null {
+  if (needsSignIn(run)) return new FluidApiError('auth-required', 'sign-in required');
+  const kb = oversizeKb(run);
+  if (kb !== null) return new FluidApiError('too-large', `The result is too large (${kb} KB, limit 256 KB): call again with a lower take.`);
+  return null;
+}
+
 export function summarizeSources(sources: SourceInfo[]) {
   return sources.map((s) => ({
     id: s.id,
@@ -37,7 +45,7 @@ export function summarizeSources(sources: SourceInfo[]) {
 }
 
 export function summarizeViews(views: ViewRow[]) {
-  return views.map((v) => ({ id: v.id, title: v.title, concept: v.concept }));
+  return views.map((v) => ({ id: v.id, title: v.title, concept: v.concept, ...(v.spec?.scope ? { scope: v.spec.scope } : {}) }));
 }
 
 /** Rows of a GraphQL `data`: the first array found within 3 levels, or null when there is none. */
@@ -85,10 +93,25 @@ export function summarizeRun(spec: SpecInfo, run: RunOutput): string {
   return lines.join('\n');
 }
 
+/** What draft_view tells the model: the run, then the issues to fix or how the user keeps the view. */
+export function summarizeDraft(spec: SpecInfo, draft: DraftOutput): string {
+  const lines = [summarizeRun(spec, draft)];
+  if (draft.issues.length) {
+    lines.push('Issues to fix (call draft_view again with a corrected view):', ...draft.issues.map((i) => `- ${i}`));
+  } else lines.push('Shown in the viewer: the user can keep it with "Save in fluid".');
+  return lines.join('\n');
+}
+
+/** What invoke_action tells the model: the action and whether the source took it (never upstream text). */
+export function summarizeAction(action: string, out: { errors?: unknown[] }): string {
+  const n = out.errors?.length ?? 0;
+  return n === 0 ? `Ran the action "${action}".` : `The action "${action}" failed (${n} error${n > 1 ? 's' : ''} from the source).`;
+}
+
 /** Tool error text: fixed wording, ids and names only (no secrets, no upstream bodies). */
 export function errorText(
   kind: FluidErrorKind,
-  ctx: { baseUrl: string; sourceName?: string; detail?: string },
+  ctx: { baseUrl: string; sourceName?: string; detail?: string; issues?: string[] },
 ): string {
   switch (kind) {
     case 'unreachable':
@@ -97,6 +120,10 @@ export function errorText(
       return `Sign in to ${ctx.sourceName ?? 'the source'} from fluid's settings (Settings → Connection)`;
     case 'timeout':
       return `fluid at ${ctx.baseUrl} did not answer in time`;
+    case 'forbidden':
+      return ctx.detail ?? 'fluid does not allow this';
+    case 'rejected':
+      return `fluid refused it:\n${(ctx.issues ?? []).map((i) => `- ${i}`).join('\n') || ctx.detail || ''}`;
     case 'not-found':
       return `Not found: ${ctx.detail ?? 'unknown view or source'}. Use list_views and list_sources for valid ids.`;
     default:

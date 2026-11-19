@@ -44,7 +44,7 @@ describe('useBffSourceConfig', () => {
 
     await act(() => result.current.enable());
 
-    expect(api.create).toHaveBeenCalledWith({ name: 'api.example.com', url: URL_, authKind: 'none' });
+    expect(api.create).toHaveBeenCalledWith({ name: 'api.example.com', url: URL_, allowWrites: false, authKind: 'none' });
     expect(useSavedSources.getState().saved).toEqual([{ url: URL_, bffSourceId: 'src1' }]);
     expect(result.current.routed).toBe(true);
   });
@@ -158,6 +158,7 @@ describe('useBffSourceConfig', () => {
     expect(api.create).toHaveBeenCalledWith({
       name: 'api.example.com',
       url: URL_,
+      allowWrites: false,
       authKind: 'oauth',
       oauth: { issuer: 'https://as', clientId: 'fluid', scopes: [] },
     });

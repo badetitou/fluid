@@ -5,6 +5,7 @@ import type { BffSourceConfig } from '../../bff/sourcesApi';
 import type { SourceAuth } from '../plugin';
 import { authPatch, bffSourceName, createAuth, type AuthForm } from './bffAuth';
 import { useAuthRequired } from './authRequired';
+import { useWritableSources } from '../../store';
 import { useSavedSources } from './store';
 
 const errorMessage = (e: unknown) => (e instanceof Error ? e.message : 'The BFF did not answer');
@@ -103,7 +104,9 @@ export function useBffSourceConfig(url: string, name?: string, suggested?: Sourc
     const started = scope.current;
     await run(
       async () => {
-        const created = await sources.create({ name: bffSourceName(url, name), url, ...createAuth(suggested) });
+        // The BFF honours "Allow changes" for the actions it runs (MCP hosts): it starts as set here.
+        const allowWrites = useWritableSources.getState().byUrl[url] === true;
+        const created = await sources.create({ name: bffSourceName(url, name), url, allowWrites, ...createAuth(suggested) });
         // Switched source meanwhile: do not leave the config created for the old one behind.
         if (scope.current !== started) void sources.remove(created.id).catch(() => undefined);
         return created;

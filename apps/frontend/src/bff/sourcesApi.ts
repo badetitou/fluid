@@ -11,6 +11,8 @@ export const bffSourceConfigSchema = z.object({
   authKind: z.enum(['none', 'header', 'oauth']),
   headerName: z.string().nullable(),
   hasSecret: z.boolean(),
+  /** View actions may run on it from the BFF (MCP hosts): the "Allow changes" setting. */
+  allowWrites: z.boolean().optional(),
   /** OAuth settings and sign-in state (never the client secret nor a token); only for `authKind: 'oauth'`. */
   oauth: z
     .object({
@@ -52,6 +54,7 @@ export interface CreateBffSource {
   name: string;
   url: string;
   authKind: 'none' | 'header' | 'oauth';
+  allowWrites?: boolean;
   headerName?: string;
   secret?: string;
   oauth?: OAuthSettingsBody;

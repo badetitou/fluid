@@ -9,6 +9,7 @@ const record = {
   headerName: null,
   secret: 'ENCRYPTED',
   authGeneration: 0,
+  allowWrites: false,
   oauthIssuer: null,
   oauthClientId: null,
   oauthClientSecret: null,

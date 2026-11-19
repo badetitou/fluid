@@ -178,6 +178,17 @@ describe('source routes', () => {
     expect(otherHits[1].authorization).toBe('Bearer new-secret');
   });
 
+  it('allows writes only when asked, and forgets it when the url moves to another origin', async () => {
+    const { id } = await create();
+    expect((await app.inject({ url: `/api/sources/${id}` })).json()).toMatchObject({ allowWrites: false });
+    const on = await app.inject({ method: 'PUT', url: `/api/sources/${id}`, payload: { allowWrites: true } });
+    expect(on.json()).toMatchObject({ allowWrites: true });
+    const samePath = await app.inject({ method: 'PUT', url: `/api/sources/${id}`, payload: { url: `${stubUrl}/v2` } });
+    expect(samePath.json()).toMatchObject({ allowWrites: true });
+    const moved = await app.inject({ method: 'PUT', url: `/api/sources/${id}`, payload: { url: otherUrl } });
+    expect(moved.json()).toMatchObject({ allowWrites: false });
+  });
+
   it('rejects a non-http url on update and leaves the source unchanged', async () => {
     const { id } = await create();
     const res = await app.inject({ method: 'PUT', url: `/api/sources/${id}`, payload: { url: 'file:///etc/passwd' } });

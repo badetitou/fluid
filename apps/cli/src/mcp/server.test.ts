@@ -28,7 +28,7 @@ beforeAll(async () => {
     req.on('end', () => {
       if (url.pathname === '/api/sources') return json(res, 200, SOURCES);
       if (url.pathname === '/api/views') {
-        const rows = [{ id: 'v1', concept: 'Character', title: 'Characters', spec: SPEC, isDefault: false }];
+        const rows = [{ id: 'v1', concept: 'Character', title: 'Characters', spec: { ...SPEC, scope: url.searchParams.get('concept') ? 'detail' : undefined }, isDefault: false }];
         return json(res, 200, url.searchParams.get('concept') === 'Other' ? [] : rows);
       }
       if (url.pathname === '/api/views/v1') return json(res, 200, { id: 'v1', concept: 'Character', title: 'Characters', spec: SPEC });
@@ -71,9 +71,10 @@ describe('fluid MCP server', () => {
   it('declares the tools with their UI visibility', async () => {
     const { tools } = await (await connect(baseUrl)).listTools();
     const meta = Object.fromEntries(tools.map((t) => [t.name, t._meta?.ui]));
-    expect(Object.keys(meta).sort()).toEqual(['list_sources', 'list_views', 'run_queries', 'show_view']);
+    expect(Object.keys(meta).sort()).toEqual(['draft_view', 'get_source_schema', 'invoke_action', 'list_sources', 'list_views', 'run_queries', 'save_view', 'show_view']);
+    expect(meta.invoke_action).toEqual({ visibility: ['app'] });
     expect(meta.list_sources).toEqual({ visibility: ['model'] });
-    expect(meta.list_views).toEqual({ visibility: ['model'] });
+    expect(meta.list_views).toEqual({ visibility: ['model', 'app'] });
     expect(tools.find((t) => t.name === 'show_view')?._meta?.['ui/resourceUri']).toBe('ui://fluid/viewer');
     expect(meta.show_view).toEqual({ resourceUri: 'ui://fluid/viewer', visibility: ['model', 'app'] });
     expect(meta.run_queries).toEqual({ visibility: ['app'] });
@@ -138,8 +139,21 @@ describe('fluid MCP server', () => {
     expect(r.isError).toBeFalsy();
     expect(textOf(r)).toContain('- list: 2 rows');
     expect(textOf(r)).toContain('Skipped');
-    expect(r.structuredContent).toEqual({ viewId: 'v1', sourceId: 's1', take: 5, spec: SPEC, data: { list: { data: { characters: [{ id: 1 }, { id: 2 }] } } } });
+    expect(r.structuredContent).toEqual({
+      viewId: 'v1', sourceId: 's1', take: 5, fluidUrl: baseUrl, writable: false, spec: SPEC, data: { list: { data: { characters: [{ id: 1 }, { id: 2 }] } } },
+    });
     expect(lastRun).toEqual({ sourceId: 's1', take: 5 });
+  });
+
+  it('show_view passes the item id of a detail view and echoes it for the viewer', async () => {
+    const r = await (await connect(baseUrl)).callTool({ name: 'show_view', arguments: { viewId: 'v1', sourceId: 's1', variables: { id: '7' } } });
+    expect(lastRun).toEqual({ sourceId: 's1', variables: { id: '7' }, take: 100 });
+    expect(r.structuredContent).toMatchObject({ variables: { id: '7' } });
+  });
+
+  it('list_views gives the scope of each view', async () => {
+    const r = await (await connect(baseUrl)).callTool({ name: 'list_views', arguments: { concept: 'Character' } });
+    expect(r.structuredContent).toEqual({ items: [{ id: 'v1', title: 'Characters', concept: 'Character', scope: 'detail' }] });
   });
 
   it('run_queries wraps the run endpoint and forwards variables', async () => {

@@ -99,6 +99,7 @@ export function createSourceService(
         name: input.name,
         url: input.url,
         authKind: input.authKind,
+        allowWrites: input.allowWrites ?? false,
         headerName: input.authKind === 'header' ? (input.headerName ?? null) : null,
         secret: input.authKind === 'header' ? secret : null,
         ...(o
@@ -138,6 +139,8 @@ export function createSourceService(
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.url !== undefined ? { url: input.url } : {}),
         authKind,
+        // Writes allowed on one host are not allowed on another one the source moved to.
+        allowWrites: input.allowWrites ?? (moved ? false : current.allowWrites),
         headerName: authKind === 'header' ? (input.headerName ?? current.headerName) : null,
         secret,
         ...oauth,

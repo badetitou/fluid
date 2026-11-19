@@ -48,6 +48,68 @@ cours sont fusionnées, et sans variables la réponse alimente le cache de toute
 Le viewer ne fournit pas d'`offsetArg` : la pagination se fait par un `take` plus grand
 (chaque `run_queries` relance toutes les requêtes de la vue, la réponse est limitée à 256 Ko).
 
+## Écrire des vues (`draft_view`, `save_view`)
+
+- `get_source_schema` (modèle) : le SDL de la source (introspection par le BFF, sans descriptions,
+  coupé à 60 000 caractères), pour que l'assistant écrive des requêtes valides.
+- `draft_view` (modèle + app) : sa description porte le format du brouillon, `renderWidgetDocs` et
+  `renderPortDocs` du catalogue MCP (`mcpWidgetCatalog` : les widgets intégrés sauf network, 3D et
+  insight, que le viewer ne dessine pas) et `VIEW_DRAFT_TYPES_DOC` (LinkConfig, Transform, Format),
+  partagé avec les prompts du BFF. Arguments : `sourceId`, `concept`, `request` (la demande de
+  l'utilisateur, gardée comme `intent` de la vue) et `view` (le brouillon).
+- Le BFF (`POST /api/views/draft`, `views/draft-service.ts`) valide le brouillon avec
+  `validateDraftValue`, le même code que l'assistant intégré (zod, catalogue, câblage, actions
+  contre les mutations de la source), vérifie chaque requête contre le schéma introspecté (gardé
+  5 min par source), puis lance les requêtes avec les règles d'une vue enregistrée
+  (`runSpec` : lecture seule, plafonds). Réponse `{ spec, data, issues }` ; un brouillon refusé
+  donne un 422 avec ses `issues`, rendues au modèle en erreur d'outil pour qu'il corrige.
+- Le viewer affiche un aperçu (titre et une carte par widget) pendant que le modèle écrit
+  (`ui/notifications/tool-input-partial`), puis la vue et ses `issues`, avec un bouton
+  « Save in fluid » qui appelle `save_view` (app seulement ; `POST /api/views/from-draft`, même
+  validation, refusé si une requête ne passe pas le schéma). Une fois enregistrée, la vue a un id :
+  « charger plus » passe par `run_queries` comme pour `show_view`. Avant, un brouillon ne sert que
+  les lignes déjà reçues.
+
+## Le viewer dans la conversation
+
+- **Sélection** : `ViewRenderer` accepte un store de sorties (`outputs`) ; le viewer en crée un par
+  vue et le lit (`useSelectionContext`). Les sorties `selected` des widgets, compactées
+  (`selectionModel.ts` : 20 clés, 10 éléments, chaînes de 200 caractères, profondeur 3, 4 000
+  caractères au plus), partent en `ui/update-model-context` 400 ms après le dernier changement,
+  avec une phrase qui les présente comme des données de la source, pas des instructions.
+- **Ask about this** : poste la sélection comme message de l'utilisateur (`ui/message`).
+- **Liens** : les widgets naviguent dans le `MemoryRouter` du viewer ; `LinkWatcher` lit le
+  chemin (`/<Concept>@<id>`), revient à `/`, puis le viewer cherche une vue enregistrée du concept
+  (`list_views`, visible par l'app ; une vue `detail` pour un élément) et l'affiche sur place avec
+  `show_view` (`variables: { id }`, injecté dans les requêtes qui déclarent `$id` comme dans les
+  colonnes de l'app). Un bouton « Back » revient aux vues précédentes (20 au plus). Sans vue,
+  `ui/open-link` ouvre l'élément dans fluid (`fluidUrl` du résultat, l'URL donnée à `fluid mcp`).
+- **Plein écran** : `ui/request-display-mode` ; le bouton n'apparaît pas si l'hôte annonce des
+  `availableDisplayModes` sans `fullscreen`. En plein écran, la grille passe à 3 colonnes.
+
+## Actions de vue (`invoke_action`)
+
+- `invoke_action` est visible par l'app seulement : le modèle ne peut pas lancer une mutation.
+- Le BFF n'exécute que l'action enregistrée de la vue (`POST /api/views/:id/actions/:action`,
+  `views/action-service.ts`) : la clé et les variables résolues (`$target`, `$form` remplacés par le
+  moteur) arrivent, jamais le texte d'une mutation ; le document doit être une seule opération
+  `mutation`, et seules ses variables déclarées passent.
+- Écriture : la source doit avoir `allowWrites` (colonne de `SourceConfig`, désactivée par défaut,
+  remise à `false` quand l'URL change d'origine). C'est le réglage « Allow changes » de l'app
+  (`useSourceWrites`), envoyé au BFF pour une source routée par lui, et repris à la création de la
+  config BFF. Sinon 403. `show_view` dit au viewer si la source l'accepte (`writable`).
+- La route refuse toute requête portant un en-tête `Origin` (403) : seul le serveur MCP (processus
+  local) l'appelle, une page web ne peut pas déclencher d'écriture sans la confirmation du viewer.
+- Chaque run est journalisé dans la table `ActionLog` (vue, action, source, variables, succès,
+  réponse coupée au-delà de 8 Ko).
+- Viewer : sans `writable` ou pour un brouillon non enregistré, la vue est en lecture seule. Sinon
+  chaque action reçoit une confirmation (`actionModel.ts`) qui nomme toujours les champs de mutation
+  appelés (le `confirm` et le `label` d'une vue écrite par un assistant ne peuvent pas les cacher),
+  une suppression dit qu'elle efface des
+  données de la source et que c'est définitif ; le moteur la pose (`useViewActions`), puis
+  l'échange urql du viewer retrouve l'action par le texte de sa mutation et appelle
+  `invoke_action`. Le patch local et les `refetch` du moteur s'appliquent comme dans l'app.
+
 ## Thème
 
 Le thème du contexte hôte (`light` / `dark`) choisit la variante du thème intégré

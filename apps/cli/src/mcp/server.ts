@@ -1,28 +1,20 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import { registerActionTools } from './actionTools';
+import { registerDraftTools } from './draftTools';
 import { FluidApiError, type FluidApi, type RunOutput, type RunParams } from './fluidApi';
 import {
   DEFAULT_TAKE,
+  deliveryError,
   errorText,
-  needsSignIn,
-  oversizeKb,
   summarizeRun,
   summarizeRunShort,
   summarizeSources,
   summarizeViews,
 } from './model';
+import { json, text, ui, viewerMeta } from './results';
 import { PLACEHOLDER_HTML, VIEWER_MIME, VIEWER_URI } from './viewerHtml';
-
-const ui = (visibility: Array<'model' | 'app'>, withViewer: boolean) => ({
-  ui: { ...(withViewer ? { resourceUri: VIEWER_URI } : {}), visibility },
-});
-
-const text = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t }] });
-const json = (value: unknown): CallToolResult => ({
-  content: [{ type: 'text', text: JSON.stringify(value) }],
-  structuredContent: Array.isArray(value) ? { items: value } : (value as Record<string, unknown>),
-});
 
 const runInput = {
   viewId: z.string().min(1).describe('Id of a saved view (see list_views)'),
@@ -36,12 +28,14 @@ const runInput = {
     .describe(`Row limit passed to the view queries (default ${DEFAULT_TAKE}; results over 256 KB are refused: lower it)`),
 };
 
+const variables = z.record(z.string(), z.unknown()).optional().describe('Variables of the view queries, e.g. { "id": "1" }');
+
 export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '0.0.0', viewerHtml = PLACEHOLDER_HTML): McpServer {
   const server = new McpServer({ name: 'fluid', version });
 
-  async function sourceName(sourceId: string): Promise<string | undefined> {
+  async function sourceInfo(sourceId: string) {
     try {
-      return (await api.listSources()).find((s) => s.id === sourceId)?.name;
+      return (await api.listSources()).find((s) => s.id === sourceId);
     } catch {
       return undefined;
     }
@@ -53,9 +47,8 @@ export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '
    */
   async function run(viewId: string, params: RunParams): Promise<RunOutput> {
     const out = await api.runView(viewId, { ...params, take: params.take ?? DEFAULT_TAKE });
-    if (needsSignIn(out)) throw new FluidApiError('auth-required', 'sign-in required');
-    const kb = oversizeKb(out);
-    if (kb !== null) throw new FluidApiError('too-large', `The result is too large (${kb} KB, limit 256 KB): call again with a lower take.`);
+    const blocked = deliveryError(out);
+    if (blocked) throw blocked;
     return out;
   }
 
@@ -65,9 +58,9 @@ export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '
       return await fn();
     } catch (err) {
       if (!(err instanceof FluidApiError)) throw err;
-      const name = err.kind === 'auth-required' && sourceId ? await sourceName(sourceId) : undefined;
+      const name = err.kind === 'auth-required' && sourceId ? (await sourceInfo(sourceId))?.name : undefined;
       const detail = err.kind === 'not-found' ? err.message : err.kind === 'unreachable' ? undefined : err.message;
-      return { isError: true, ...text(errorText(err.kind, { baseUrl, sourceName: name ?? sourceId, detail })) };
+      return { isError: true, ...text(errorText(err.kind, { baseUrl, sourceName: name ?? sourceId, detail, issues: err.issues })) };
     }
   }
 
@@ -83,9 +76,10 @@ export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '
   server.registerTool(
     'list_views',
     {
-      description: 'List the saved fluid views (id, title, concept), optionally for one concept.',
+      description: 'List the saved fluid views (id, title, concept, scope list or detail), optionally for one concept.',
       inputSchema: { concept: z.string().min(1).optional().describe('Only views of this concept') },
-      _meta: ui(['model'], false),
+      // The viewer looks up the view of a linked item with it.
+      _meta: ui(['model', 'app'], false),
     },
     ({ concept }) => guarded(undefined, async () => json(summarizeViews(await api.listViews(concept)))),
   );
@@ -94,16 +88,18 @@ export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '
     'show_view',
     {
       description:
-        'Run a saved view on a data source and show it. Returns a short summary; the data is shown in the viewer.',
-      inputSchema: runInput,
-      // `ui/resourceUri` (flat) is deprecated in MCP Apps 2026-01-26; kept for hosts that predate `_meta.ui`.
-      _meta: { ...ui(['model', 'app'], true), 'ui/resourceUri': VIEWER_URI },
+        'Run a saved view on a data source and show it. Returns a short summary; the data is shown in the viewer. For a detail view, pass the item id as variables.id.',
+      inputSchema: { ...runInput, variables },
+      _meta: viewerMeta(['model', 'app']),
     },
-    ({ viewId, sourceId, take }) =>
+    ({ viewId, sourceId, take, variables: vars }) =>
       guarded(sourceId, async () => {
         const { spec, rawSpec } = await api.getView(viewId);
-        const out = await run(viewId, { sourceId, take });
-        return { ...text(summarizeRun(spec, out)), structuredContent: { viewId, sourceId, take: take ?? DEFAULT_TAKE, spec: rawSpec, data: out.results } };
+        const out = await run(viewId, { sourceId, take, ...(vars ? { variables: vars } : {}) });
+        // Whether the viewer may offer the view's actions: the source allows changes ("Allow changes" in fluid).
+        const writable = (await sourceInfo(sourceId))?.allowWrites === true;
+        const shown = { viewId, sourceId, take: take ?? DEFAULT_TAKE, ...(vars ? { variables: vars } : {}), fluidUrl: baseUrl, writable };
+        return { ...text(summarizeRun(spec, out)), structuredContent: { ...shown, spec: rawSpec, data: out.results } };
       }),
   );
 
@@ -111,7 +107,7 @@ export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '
     'run_queries',
     {
       description: 'Run the stored queries of a saved view (used by the viewer to refresh data).',
-      inputSchema: { ...runInput, variables: z.record(z.string(), z.unknown()).optional() },
+      inputSchema: { ...runInput, variables },
       _meta: ui(['app'], false),
     },
     ({ viewId, sourceId, variables, take }) =>
@@ -120,6 +116,9 @@ export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '
         return { ...text(summarizeRunShort(out)), structuredContent: out };
       }),
   );
+
+  registerDraftTools(server, api, guarded, baseUrl);
+  registerActionTools(server, api, guarded);
 
   server.registerResource(
     'viewer',

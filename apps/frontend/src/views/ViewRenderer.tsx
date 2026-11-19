@@ -4,7 +4,7 @@ import type { ViewSpec, Widget } from '@fluid/shared';
 import { useElementWidth } from '../hooks/useElementWidth';
 import { WidgetGrid } from './grid/WidgetGrid';
 import { useViewActions } from './actions/useViewActions';
-import { useOutputsStore, useWriteAccess } from './plugin-api';
+import { useOutputsStore, useWriteAccess, type OutputsStore } from './plugin-api';
 import { rowSpans } from './spanLayout';
 import { useViewData } from './useViewData';
 import { ViewContexts } from './ViewContexts';
@@ -31,6 +31,8 @@ interface ViewRendererProps {
    * Keep it referentially stable: widget cards are memoised on it.
    */
   renderWidgetActions?: (widget: Widget) => ReactNode;
+  /** The store the widgets emit their outputs to, when the caller watches them (one per view otherwise). */
+  outputs?: OutputsStore;
 }
 
 /**
@@ -52,9 +54,11 @@ export function ViewRenderer({
   renderWidgetActions,
   selectedWidgetId,
   onSelectWidget,
+  outputs: watched,
 }: ViewRendererProps) {
   const view = useViewData(spec);
-  const outputs = useOutputsStore();
+  const own = useOutputsStore();
+  const outputs = watched ?? own;
   const runAction = useViewActions(spec, view);
   const writable = useWriteAccess() && Object.keys(spec.actions ?? {}).length > 0;
   const [containerRef, width] = useElementWidth<HTMLDivElement>();

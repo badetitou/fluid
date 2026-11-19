@@ -41,6 +41,8 @@ model SourceConfig {
   oauthResource     String?
   /// Bumped by sign-out, auth reconfiguration and delete; token writes only land if it is unchanged.
   authGeneration    Int              @default(0)
+  /// Whether view actions (mutations) may run on this source from the BFF (MCP hosts). Off by default.
+  allowWrites       Boolean          @default(false)
   credential        OAuthCredential?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
@@ -64,4 +66,20 @@ model Preference {
   key       String   @id
   value     Json
   updatedAt DateTime @updatedAt
+}
+
+/// One run of a view action from an MCP host: what ran, with what, and what came back.
+model ActionLog {
+  id        String   @id @default(cuid())
+  viewId    String
+  action    String
+  sourceId  String
+  /// The resolved variables sent with the mutation.
+  variables Json
+  ok        Boolean
+  /// The answer, cut when large (see views/action-service.ts).
+  result    Json
+  createdAt DateTime @default(now())
+
+  @@index([viewId])
 }
