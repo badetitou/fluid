@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { appendColumn, parseDashboardSplat, rootSegment, splatFromPathname } from '../../navigation/millerPath';
 import { buildColumns, columnSlot, columnSubtitle, columnTitle, resolveRoot, reuseColumns } from './model';
 
 const saved = { id: 'x', title: 'Rick', concept: 'Character', itemId: '1', perspective: 'p' };
+const scipKey = 'model java . . java/lang/String#`<init>`().';
 
 describe('resolveRoot', () => {
   it('opens the Concepts page, a concept column or a saved dashboard', () => {
@@ -35,6 +37,15 @@ describe('buildColumns', () => {
 
   it('starts from the Concepts page', () => {
     expect(buildColumns('@home', { kind: 'home' }, [{ concept: 'Order' }]).map((c) => c.kind)).toEqual(['home', 'concept']);
+  });
+
+  it('builds a root path that appendColumn can extend without re-encoding its id', () => {
+    const root = { kind: 'concept' as const, conceptName: 'Constructor', itemId: scipKey };
+    const [first] = buildColumns(rootSegment({ kind: 'column', concept: root.conceptName, itemId: scipKey }), root, []);
+    const href = appendColumn(first.path, { concept: 'Constructor', itemId: scipKey });
+    const parsed = parseDashboardSplat(splatFromPathname(href));
+    expect(parsed.root).toEqual({ kind: 'column', concept: 'Constructor', itemId: scipKey });
+    expect(parsed.stack).toEqual([{ concept: 'Constructor', itemId: scipKey }]);
   });
 });
 
