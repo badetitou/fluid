@@ -1,4 +1,4 @@
-import type { SpecFluidRef } from '@fluid/shared';
+import type { ViewRef } from '@fluid/shared';
 
 // The pure half of the Pharo script panel: which result opens a column, and the
 // keys that run the script or close the panel.
@@ -7,7 +7,7 @@ import type { SpecFluidRef } from '@fluid/shared';
  * The concept opening `ref` in the next column: its type, when it has one the
  * source can open (`openable` null: unknown, every type is allowed).
  */
-export function openableScriptConcept(ref: SpecFluidRef | undefined, openable: ReadonlySet<string> | null): string | undefined {
+export function openableScriptConcept(ref: ViewRef | undefined, openable: ReadonlySet<string> | null): string | undefined {
   if (!ref?.type) return undefined;
   return openable === null || openable.has(ref.type) ? ref.type : undefined;
 }

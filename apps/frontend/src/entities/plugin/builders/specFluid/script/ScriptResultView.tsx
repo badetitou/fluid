@@ -1,14 +1,14 @@
 import { RightOutlined } from '@ant-design/icons';
 import { Alert } from 'antd';
 import { Link } from 'react-router-dom';
-import type { SpecFluidRef } from '@fluid/shared';
+import type { ViewRef } from '@fluid/shared';
 import { itemsTitle } from './model';
 import type { ScriptRun } from './useScriptSession';
 import styles from './Script.module.css';
 
 interface ScriptResultViewProps {
   run: ScriptRun;
-  hrefOf: (ref: SpecFluidRef | undefined) => string | undefined;
+  hrefOf: (ref: ViewRef | undefined) => string | undefined;
 }
 
 /** The last run of a script: its error, the item it opened, or what it printed and the items it holds. */

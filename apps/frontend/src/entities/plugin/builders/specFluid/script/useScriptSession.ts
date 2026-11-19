@@ -1,8 +1,8 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { SpecFluidEvaluation, SpecFluidRef } from '@fluid/shared';
+import type { ViewEvaluation, ViewRef } from '@fluid/shared';
 import { OpenableConceptsContext, useNavigationHref } from '../../../../../navigation/columnPath';
-import { evaluate } from '../api';
+import { evaluateOn } from '../../openViews';
 import { openableScriptConcept } from './model';
 
 /** The code the editor starts with, as in the Script button of the Moose inspector. */
@@ -12,7 +12,7 @@ export type ScriptRun =
   | { status: 'idle' }
   | { status: 'running' }
   /** `opened`: the result is an entity, now shown in the next column. */
-  | { status: 'done'; result: SpecFluidEvaluation; opened: boolean }
+  | { status: 'done'; result: ViewEvaluation; opened: boolean }
   | { status: 'error'; message: string };
 
 /**
@@ -30,7 +30,7 @@ export function useScriptSession(endpoint: string, itemId: string) {
   useEffect(() => () => controller.current?.abort(), []);
 
   const hrefOf = useCallback(
-    (ref: SpecFluidRef | undefined) => {
+    (ref: ViewRef | undefined) => {
       const concept = openableScriptConcept(ref, openable);
       return concept && ref ? hrefFor(concept, ref.id) : undefined;
     },
@@ -43,7 +43,7 @@ export function useScriptSession(endpoint: string, itemId: string) {
     const current = new AbortController();
     controller.current = current;
     setRun({ status: 'running' });
-    evaluate(endpoint, itemId, code, current.signal).then(
+    evaluateOn(endpoint, itemId, code, current.signal).then(
       (result) => {
         if (current.signal.aborted) return;
         const href = hrefOf(result.ref);

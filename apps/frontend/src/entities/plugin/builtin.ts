@@ -5,6 +5,7 @@ import { autoViewBuilder } from './builders/autoViews';
 import { curatedViewBuilder } from './builders/curatedViews';
 import { chatAction } from './actions/chat';
 import { fireworksAction } from './actions/fireworks';
+import { ENDPOINTS_SETTING, openViewsBuilder } from './builders/openViews';
 import { ENDPOINT_SETTING, pharoScriptAction, specFluidViewBuilder } from './builders/specFluid';
 import { HIGH_CONTRAST_THEME, SOLARIZED_THEME } from './builtinThemes';
 import { CATPPUCCIN_THEMES } from './catppuccin';
@@ -101,6 +102,24 @@ const viewBuilderPlugins: ViewBuilderPlugin[] = [
     },
     specFluidViewBuilder,
     '#722ed1',
+  ),
+  viewBuilderPlugin(
+    {
+      id: 'fluid-open-views',
+      name: 'Open Views',
+      description:
+        'The views any tool serves for its objects in the fluid Open Views format (<base>/.well-known/fluid-views), as perspectives of their detail columns.',
+      settings: [
+        {
+          key: ENDPOINTS_SETTING,
+          label: 'Open Views endpoints',
+          description: 'Base URLs of Open Views providers, one per line (or separated by commas). Leave empty to turn it off.',
+          placeholder: 'http://localhost:8081/spec-fluid',
+        },
+      ],
+    },
+    openViewsBuilder,
+    '#13c2c2',
   ),
 ];
 

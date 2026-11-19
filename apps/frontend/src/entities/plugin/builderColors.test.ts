@@ -15,8 +15,8 @@ const installed = (id: string, color?: string) =>
 describe('builderColors', () => {
   it('gives each built-in view builder a colour of its own', () => {
     const colors = builderColors(BUILTIN_PLUGINS, {});
-    expect([...colors.keys()]).toEqual(['curated-views', 'auto-views', 'spec-fluid']);
-    expect(new Set(colors.values()).size).toBe(3);
+    expect([...colors.keys()]).toEqual(['curated-views', 'auto-views', 'spec-fluid', 'open-views']);
+    expect(new Set(colors.values()).size).toBe(4);
   });
 
   it('prefers the colour the user chose, when it is one', () => {

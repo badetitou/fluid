@@ -180,11 +180,12 @@ describe('pluginManifestSchema', () => {
 describe('view builders', () => {
   const specFluid = BUILTIN_PLUGINS.find((p) => p.manifest.id === 'spec-fluid')!;
 
-  it('are built in, curated before auto, Spec-Fluid last', () => {
+  it('are built in, curated before auto, then Spec-Fluid and Open Views', () => {
     expect(activeViewBuilders(BUILTIN_PLUGINS, [], {}).map((b) => b.builder.id)).toEqual([
       'curated-views',
       'auto-views',
       'spec-fluid',
+      'open-views',
     ]);
     expect(activeViewBuilders(BUILTIN_PLUGINS, ['spec-fluid'], {}).map((b) => b.builder.id)).not.toContain(
       'spec-fluid',
@@ -200,7 +201,7 @@ describe('view builders', () => {
 
   it('bring their data sources', () => {
     const sources = activeDataSources(activeViewBuilders(BUILTIN_PLUGINS, [], {}));
-    expect([...sources.keys()]).toEqual(['spec-fluid']);
+    expect([...sources.keys()]).toEqual(['spec-fluid', 'open-views']);
   });
 
   it('bring their column overlays (none built in: the Pharo script is a page action)', () => {

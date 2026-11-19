@@ -1,14 +1,14 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import type { SpecFluidEvaluation } from '@fluid/shared';
+import type { ViewEvaluation } from '@fluid/shared';
 import { OpenableConceptsContext } from '../../../../../navigation/columnPath';
 import type { PageActionContext } from '../../../pageAction';
-import { evaluate } from '../api';
+import { evaluateOn } from '../../openViews';
 import { pharoScriptAction } from './ScriptCommand';
 
-vi.mock('../api', () => ({ evaluate: vi.fn() }));
-const evaluateMock = vi.mocked(evaluate);
+vi.mock('../../openViews', () => ({ evaluateOn: vi.fn() }));
+const evaluateMock = vi.mocked(evaluateOn);
 const ENDPOINT = 'http://localhost:8081/spec-fluid';
 
 function Location() {
@@ -44,7 +44,7 @@ function renderPanel() {
   );
 }
 
-async function typeAndRun(code: string, result: SpecFluidEvaluation | Error) {
+async function typeAndRun(code: string, result: ViewEvaluation | Error) {
   if (result instanceof Error) evaluateMock.mockRejectedValueOnce(result);
   else evaluateMock.mockResolvedValueOnce(result);
   const editor = screen.getByLabelText('Smalltalk code');
