@@ -195,11 +195,11 @@ export const BUILTIN_WIDGET_CONTRACTS: { [T in CoreWidgetType]: WidgetContract }
   ),
   specPresenter: contract(
     'specPresenter',
-    'Inspector tab',
-    'A Pharo inspector tab (Spec-Fluid): tables, trees, Roassal SVG, text.',
+    'Open view',
+    'A view served by a tool in the fluid Open Views format (Pharo inspector tabs included): lists, tables, trees, SVG, text, tabs, actions.',
     specPresenterWidgetDoc,
     {
-      inputs: [{ ...DATA_INPUT, description: 'The Spec-Fluid node to draw (the "root" of a tab).' }],
+      inputs: [{ ...DATA_INPUT, description: 'The Open Views response to draw (or a view node, or an old Spec-Fluid node).' }],
       outputs: [{ ...SELECTED_OUTPUT, description: 'The entity the user last clicked: `{ id, type? }`.' }],
     },
   ),

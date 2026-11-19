@@ -1,37 +1,17 @@
-import {
-  specFluidNodeSchema,
-  type CodeWidget,
-  type SpecFluidCell,
-  type SpecFluidNode,
-  type SpecFluidRef,
-  type SpecFluidTreeNode,
-} from '@fluid/shared';
+import type { CodeWidget, ViewAction, ViewCell, ViewItem, ViewNode, ViewRef } from '@fluid/shared';
 
-// The pure half of the Spec-Fluid presenter: validating the document, keying
-// its rows, sorting cells and deciding which entities can be opened.
-
-export type ParsedSpecNode = { node: SpecFluidNode; reason?: undefined } | { node?: undefined; reason: string };
-
-/** The Spec-Fluid node of `data`, or why there is none to draw. */
-export function parseSpecNode(data: unknown): ParsedSpecNode {
-  if (data === undefined || data === null) {
-    return { reason: 'No inspector tab to show: the data source returned nothing for this binding.' };
-  }
-  const parsed = specFluidNodeSchema.safeParse(data);
-  if (parsed.success) return { node: parsed.data };
-  const issue = parsed.error.issues[0];
-  const where = issue?.path.length ? ` (at ${issue.path.join('.')})` : '';
-  return { reason: `Not a Spec-Fluid document${where}: ${issue?.message ?? 'invalid'}. Bind "data" to the tab's "root".` };
-}
+// The pure half of the Open Views presenter: keying the rows of lists and
+// trees, sorting cells and deciding which entities can be opened. Reading the
+// document is in `parseView.ts`.
 
 /** A stable key of an entity, to compare selections. */
-export const refKey = (ref: SpecFluidRef): string => `${ref.type ?? ''}#${ref.id}`;
+export const refKey = (ref: ViewRef): string => `${ref.type ?? ''}#${ref.id}`;
 
 /**
  * The concept opening `ref` in a new column: its type, when it has one and the
  * source can open it (`openable` null: unknown, every type is allowed).
  */
-export function openableConcept(ref: SpecFluidRef | undefined, openable: ReadonlySet<string> | null): string | undefined {
+export function openableConcept(ref: ViewRef | undefined, openable: ReadonlySet<string> | null): string | undefined {
   if (!ref?.type) return undefined;
   return openable === null || openable.has(ref.type) ? ref.type : undefined;
 }
@@ -39,43 +19,50 @@ export function openableConcept(ref: SpecFluidRef | undefined, openable: Readonl
 /** A table row as antd draws it: its cells, its entity and a key. */
 export interface SpecRow {
   key: string;
-  cells: SpecFluidCell[];
-  ref?: SpecFluidRef;
-  /** Pharo has more children than it sent. */
-  hasMore?: boolean;
+  cells: ViewCell[];
+  ref?: ViewRef;
+  /** The provider has more children than it sent, and cannot page them. */
+  truncated?: boolean;
+  /** Its children come from the items route, once unfolded (`children` is then empty). */
+  lazy?: boolean;
   /** Absent on leaves, so antd draws no expand button. */
   children?: SpecRow[];
 }
 
 /** The entity a row stands for: its own, else the first one of its cells. */
-export const rowRef = (row: Pick<SpecRow, 'cells' | 'ref'>): SpecFluidRef | undefined =>
+export const rowRef = (row: Pick<SpecRow, 'cells' | 'ref'>): ViewRef | undefined =>
   row.ref ?? row.cells.find((cell) => cell.ref)?.ref;
 
 /**
  * The cells of a row naming an entity: when none links anywhere, the first one
  * links to the row's entity (Pharo puts the entity on the row, e.g. FAST trees).
  */
-export function linkedCells(cells: SpecFluidCell[], ref: SpecFluidRef | undefined): SpecFluidCell[] {
+export function linkedCells(cells: ViewCell[], ref: ViewRef | undefined): ViewCell[] {
   if (!ref || cells.length === 0 || cells.some((cell) => cell.ref)) return cells;
   return [{ ...cells[0], ref }, ...cells.slice(1)];
 }
 
-/** The rows of a table node, keyed by position. */
-export function tableRows(rows: { cells: SpecFluidCell[]; ref?: SpecFluidRef }[]): SpecRow[] {
-  return rows.map((row, index) => ({ key: String(index), cells: linkedCells(row.cells, row.ref), ref: row.ref }));
+/** The items of a list or columned list as flat rows, keyed by position. */
+export function tableRows(items: Pick<ViewItem, 'cells' | 'ref'>[]): SpecRow[] {
+  return items.map((item, index) => ({ key: String(index), cells: linkedCells(item.cells, item.ref), ref: item.ref }));
 }
 
-/** The roots of a tree node as nested rows, keyed by their path ("0.2.1"). */
-export function treeRows(nodes: SpecFluidTreeNode[], prefix = ''): SpecRow[] {
-  return nodes.map((node, index) => {
+/**
+ * The roots of a tree as nested rows, keyed by their item path ("0.2.1", as
+ * the items route names it). An item announcing children it did not send gets
+ * an empty `children`, so antd draws an expand button.
+ */
+export function treeRows(items: ViewItem[], prefix = ''): SpecRow[] {
+  return items.map((item, index) => {
     const key = prefix ? `${prefix}.${index}` : String(index);
-    const children = node.children?.length ? treeRows(node.children, key) : undefined;
-    return { key, cells: linkedCells(node.cells, node.ref), ref: node.ref, hasMore: node.hasMore, children };
+    const lazy = !item.children && item.hasChildren === true;
+    const children = item.children?.length ? treeRows(item.children, key) : lazy ? [] : undefined;
+    return { key, cells: linkedCells(item.cells, item.ref), ref: item.ref, truncated: item.truncated, lazy, children };
   });
 }
 
-/** Keys of the rows unfolded at first: the roots having children. */
-export const rootKeys = (rows: SpecRow[]): string[] => rows.filter((row) => row.children).map((row) => row.key);
+/** Keys of the rows unfolded at first: the roots whose children were sent. */
+export const rootKeys = (rows: SpecRow[]): string[] => rows.filter((row) => row.children?.length).map((row) => row.key);
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
@@ -92,13 +79,13 @@ export function columnCount(columns: { title: string }[], rows: SpecRow[]): numb
   return Math.max(columns.length, widest(rows));
 }
 
-/** The tab key of the page a notebook opens on: Pharo's selected page, else the first one. */
+/** The key of the tab a `tabs` node opens on: the selected one, else the first one. */
 export function openPageKey(pageCount: number, selected: number | undefined): string {
   return String(selected !== undefined && selected < pageCount ? selected : 0);
 }
 
 /** A diff node as a code widget comparing its two texts (`data` is the node itself). */
-export function diffCodeWidget(node: Extract<SpecFluidNode, { kind: 'diff' }>): CodeWidget {
+export function diffCodeWidget(node: Extract<ViewNode, { kind: 'diff' }>): CodeWidget {
   return {
     id: 'spec-diff',
     type: 'code',
@@ -109,9 +96,13 @@ export function diffCodeWidget(node: Extract<SpecFluidNode, { kind: 'diff' }>): 
   };
 }
 
-/** The text of a row of labels only (a Pharo header line), drawn as one line; undefined for other composites. */
-export function labelLine(node: Extract<SpecFluidNode, { kind: 'composite' }>): string | undefined {
+/** The text of a row of labels only (a header line), drawn as one line; undefined for other composites. */
+export function labelLine(node: Extract<ViewNode, { kind: 'composite' }>): string | undefined {
   if (node.direction !== 'row') return undefined;
   const texts = node.children.map((child) => (child.kind === 'label' ? child.text : undefined));
   return texts.every((text) => text !== undefined) ? texts.join('').replace(/\s+/g, ' ').trim() : undefined;
 }
+
+/** The question to ask before running a view action, if any (`confirm: true` asks with its label). */
+export const confirmQuestion = (action: ViewAction): string | undefined =>
+  action.confirm === true ? `${action.label}?` : action.confirm || undefined;

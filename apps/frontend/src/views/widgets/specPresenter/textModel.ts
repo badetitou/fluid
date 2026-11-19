@@ -1,4 +1,4 @@
-import type { SpecFluidTextRange } from '@fluid/shared';
+import type { ViewTextRange } from '@fluid/shared';
 
 // The pure half of a Spec-Fluid text node: cutting its text around the
 // highlighted ranges (an inspector tab selects its entity in a larger source).
@@ -13,7 +13,7 @@ export interface TextSegment {
  * The text cut into runs, in order: ranges are clamped to the text, sorted and
  * merged when they overlap; empty ones are dropped.
  */
-export function textSegments(text: string, highlights: SpecFluidTextRange[] = []): TextSegment[] {
+export function textSegments(text: string, highlights: ViewTextRange[] = []): TextSegment[] {
   const ranges = highlights
     .map((r) => ({ start: Math.min(r.start, text.length), end: Math.min(r.end, text.length) }))
     .filter((r) => r.end > r.start)

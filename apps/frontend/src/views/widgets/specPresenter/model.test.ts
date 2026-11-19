@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   columnCount,
+  confirmQuestion,
   compareByCell,
   openableConcept,
-  parseSpecNode,
   refKey,
   rootKeys,
   labelLine,
@@ -14,24 +14,8 @@ import {
   tableRows,
   treeRows,
 } from './model';
-import { commitHeader, fameTab, methodsTable, packagesTree, methodDiff, sourceNotebook } from './specPresenterFixture';
-
-describe('parseSpecNode', () => {
-  it('accepts a Spec-Fluid document, composites included', () => {
-    expect(parseSpecNode(fameTab).node).toEqual(fameTab);
-  });
-
-  it('explains a missing document', () => {
-    expect(parseSpecNode(undefined).reason).toMatch(/returned nothing/);
-    expect(parseSpecNode(null).reason).toMatch(/returned nothing/);
-  });
-
-  it('explains an invalid document, with where it breaks', () => {
-    const reason = parseSpecNode({ kind: 'composite', direction: 'row', children: [{ kind: 'table' }] }).reason;
-    expect(reason).toMatch(/^Not a Spec-Fluid document \(at children\.0\.columns\)/);
-    expect(parseSpecNode({ root: fameTab }).reason).toMatch(/Bind "data" to the tab's "root"/);
-  });
-});
+import { specFluidNodeToViewNode } from '@fluid/shared';
+import { commitHeader, methodsTable, packagesTree, methodDiff } from './specPresenterFixture';
 
 describe('openableConcept', () => {
   it('opens a typed entity when every type is allowed or its type is openable', () => {
@@ -57,11 +41,19 @@ describe('rows', () => {
   });
 
   it('nests tree rows by path, leaves without children, roots unfolded', () => {
-    if (packagesTree.kind !== 'tree') throw new Error('fixture');
-    const rows = treeRows(packagesTree.roots);
+    const tree = specFluidNodeToViewNode(packagesTree);
+    if (tree.kind !== 'tree') throw new Error('fixture');
+    const rows = treeRows(tree.roots);
     expect(rows[0].key).toBe('0');
-    expect(rows[0].children?.[0]).toMatchObject({ key: '0.0', hasMore: true, children: undefined });
+    expect(rows[0].children?.[0]).toMatchObject({ key: '0.0', truncated: true, children: undefined });
     expect(rootKeys(rows)).toEqual(['0']);
+  });
+
+  it('gives an item announcing unsent children an empty, lazy children list, not unfolded', () => {
+    const rows = treeRows([{ cells: [{ text: 'a' }], hasChildren: true }, { cells: [{ text: 'b' }], children: [] }]);
+    expect(rows[0]).toMatchObject({ lazy: true, children: [] });
+    expect(rows[1]).toMatchObject({ lazy: false, children: undefined });
+    expect(rootKeys(rows)).toEqual([]);
   });
 
   it('sorts by the text of a cell, numbers as numbers', () => {
@@ -94,11 +86,7 @@ describe('linkedCells', () => {
   });
 });
 
-describe('notebooks', () => {
-  it('accepts a notebook document', () => {
-    expect(parseSpecNode(sourceNotebook).node).toEqual(sourceNotebook);
-  });
-
+describe('tabs', () => {
   it('opens on the selected page, else the first one', () => {
     expect(openPageKey(2, 1)).toBe('1');
     expect(openPageKey(2, undefined)).toBe('0');
@@ -108,7 +96,6 @@ describe('notebooks', () => {
 
 describe('diffCodeWidget', () => {
   it('compares the newer text to the older one, under its label', () => {
-    expect(parseSpecNode(methodDiff).node).toEqual(methodDiff);
     expect(diffCodeWidget(methodDiff as Extract<typeof methodDiff, { kind: 'diff' }>)).toMatchObject({
       type: 'code',
       field: 'after',
@@ -127,5 +114,14 @@ describe('labelLine', () => {
   it('leaves other composites alone', () => {
     expect(labelLine({ kind: 'composite', direction: 'row', children: [header, message] })).toBeUndefined();
     expect(labelLine({ kind: 'composite', direction: 'column', children: [{ kind: 'label', text: 'a' }] })).toBeUndefined();
+  });
+});
+
+describe('confirmQuestion', () => {
+  it('asks with the action label, or its own text, or not at all', () => {
+    expect(confirmQuestion({ id: 'd', label: 'Delete', confirm: true })).toBe('Delete?');
+    expect(confirmQuestion({ id: 'd', label: 'Delete', confirm: 'Really?' })).toBe('Really?');
+    expect(confirmQuestion({ id: 'd', label: 'Delete', confirm: false })).toBeUndefined();
+    expect(confirmQuestion({ id: 'd', label: 'Delete' })).toBeUndefined();
   });
 });

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef } from 'react';
-import type { SpecFluidTextRange } from '@fluid/shared';
+import type { ViewTextRange } from '@fluid/shared';
 import { textSegments } from './textModel';
 import styles from './SpecPresenter.module.css';
 
 interface SpecTextProps {
   text: string;
   language?: string;
-  highlights?: SpecFluidTextRange[];
+  highlights?: ViewTextRange[];
 }
 
 /** A text node: its highlighted ranges are marked and the first one is scrolled into view. */

@@ -1,11 +1,11 @@
 import { Suspense, useMemo } from 'react';
 import { Skeleton } from 'antd';
-import type { SpecFluidNode } from '@fluid/shared';
+import type { ViewNode } from '@fluid/shared';
 import { LazyCodeWidget } from '../code/lazy';
 import { diffCodeWidget } from './model';
 
 interface SpecDiffProps {
-  node: Extract<SpecFluidNode, { kind: 'diff' }>;
+  node: Extract<ViewNode, { kind: 'diff' }>;
 }
 
 const resolveNothing = () => undefined;

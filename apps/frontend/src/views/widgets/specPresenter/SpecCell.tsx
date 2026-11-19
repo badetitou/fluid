@@ -1,11 +1,11 @@
 import { RightOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
-import type { SpecFluidCell } from '@fluid/shared';
+import type { ViewCell } from '@fluid/shared';
 import type { SpecInteraction } from './useSpecInteraction';
 import styles from './SpecPresenter.module.css';
 
 interface SpecCellProps {
-  cell?: SpecFluidCell;
+  cell?: ViewCell;
   interaction: SpecInteraction;
 }
 

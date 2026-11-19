@@ -8,7 +8,7 @@ import { deletingFields, patchResults, resolveActionVariables, type ActionContex
 export type RunAction = (key: string, context?: ActionContext) => Promise<ActionResult>;
 
 /** Asks the action's `confirm` question; true when there is none or the user accepted. */
-function useConfirm(): (question: string | undefined) => Promise<boolean> {
+export function useConfirm(): (question: string | undefined) => Promise<boolean> {
   const { modal } = AntdApp.useApp();
   return useCallback(
     (question) => {

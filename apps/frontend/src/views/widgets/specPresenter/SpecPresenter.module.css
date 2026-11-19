@@ -101,3 +101,11 @@
   outline: 2px solid var(--spec-selection);
   outline-offset: 1px;
 }
+
+/* The actions a view offers, above it. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0 8px;
+}

@@ -58,9 +58,9 @@ describe('SpecPresenterWidget', () => {
   it('draws every kind of node of a tab: table, tree, svg, text, unsupported', () => {
     const { container } = renderWidget(fameTab);
     expect(screen.getAllByText('Method').length).toBeGreaterThan(0);
-    expect(screen.getByText('Pharo sent only the first rows.')).toBeTruthy();
+    expect(screen.getByText('The provider sent only the first rows.')).toBeTruthy();
     expect(screen.getByText('Collections-Abstract')).toBeTruthy();
-    expect(screen.getByTitle('Pharo has more children than it sent')).toBeTruthy();
+    expect(screen.getByTitle('The provider has more children than it sent')).toBeTruthy();
     expect(container.querySelector('pre')?.textContent).toContain('aStream << self name');
     expect(screen.getByText('SpRoassalInspectorPresenter')).toBeTruthy();
     expect(container.querySelector('svg script')).toBeNull();
@@ -102,8 +102,17 @@ describe('SpecPresenterWidget', () => {
     renderWidget(undefined);
     expect(screen.getByText(/returned nothing/)).toBeTruthy();
     cleanup();
-    renderWidget({ kind: 'chart' } as unknown as SpecFluidNode);
-    expect(screen.getByText(/Not a Spec-Fluid document/)).toBeTruthy();
+    renderWidget({ kind: 'text' } as unknown as SpecFluidNode);
+    expect(screen.getByText(/Not an Open Views document \(at text\)/)).toBeTruthy();
+    cleanup();
+    renderWidget({ kind: 'table', columns: [] } as unknown as SpecFluidNode);
+    expect(screen.getByText(/Not a Spec-Fluid document \(at rows\)/)).toBeTruthy();
+  });
+
+  it('shows a kind of view it does not know as unsupported, the rest of the view drawn', () => {
+    renderWidget({ kind: 'composite', direction: 'column', children: [{ kind: 'chart' }, { kind: 'label', text: 'kept' }] });
+    expect(screen.getByText('chart')).toBeTruthy();
+    expect(screen.getByText('kept')).toBeTruthy();
   });
 
   it('marks the highlighted part of a text, as Pharo selects an entity in its source', () => {
@@ -114,7 +123,7 @@ describe('SpecPresenterWidget', () => {
     expect(container.querySelector('pre')?.textContent).toBe(text);
   });
 
-  it('draws a notebook as tabs, open on the page Pharo selected', () => {
+  it('draws a Spec-Fluid notebook as tabs, open on the page Pharo selected', () => {
     const { container } = renderWidget(sourceNotebook);
     expect(screen.getByRole('tab', { name: 'Source', selected: true })).toBeTruthy();
     expect(container.querySelector('pre')?.textContent).toBe('size\n\t^ tally');
