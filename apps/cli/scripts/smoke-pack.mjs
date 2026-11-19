@@ -111,7 +111,7 @@ async function mcpChecks(bin, cwd, env, url = 'http://127.0.0.1:1') {
   send({ method: 'notifications/initialized' });
   send({ id: 2, method: 'tools/list' });
   const names = (await reply(2)).result.tools.map((t) => t.name).sort().join();
-  check(names === 'list_sources,list_views,run_queries,show_view', `fluid mcp lists its tools (${names})`);
+  check(names === 'draft_view,get_source_schema,list_sources,list_views,run_queries,save_view,show_view', `fluid mcp lists its tools (${names})`);
   if (live) {
     send({ id: 3, method: 'tools/call', params: { name: 'list_views', arguments: {} } });
     const views = (await reply(3)).result;
