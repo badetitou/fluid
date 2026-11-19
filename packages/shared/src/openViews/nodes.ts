@@ -64,16 +64,16 @@ export type ViewNode =
 
 const KNOWN_KINDS = new Set<string>(VIEW_NODE_KINDS);
 
-/** A `kind` fluid does not know (a newer provider): exported to JSON Schema as `not: { enum: VIEW_NODE_KINDS }`. */
-export const unknownViewKindSchema = z.string().refine((kind) => !KNOWN_KINDS.has(kind), 'a known kind');
-
 /**
- * A node of a kind fluid does not know. Within v1 it is shown as `unsupported`
- * (see the spec, "Versioning"); its other fields are ignored.
+ * A node of a kind fluid does not know (a newer provider) becomes `unsupported`
+ * within v1 (see the spec, "Versioning"); its other fields are dropped. Known
+ * kinds pass through untouched, so their errors keep their path.
  */
-const unknownKindNodeSchema = z
-  .looseObject({ kind: unknownViewKindSchema })
-  .transform((node): ViewNode => ({ kind: 'unsupported', type: node.kind }));
+export function unknownKindAsUnsupported(raw: unknown): unknown {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return raw;
+  const { kind } = raw as { kind?: unknown };
+  return typeof kind === 'string' && !KNOWN_KINDS.has(kind) ? { kind: 'unsupported', type: kind } : raw;
+}
 
 const knownNodeSchema: z.ZodType<ViewNode> = z.lazy(() =>
   z.discriminatedUnion('kind', [
@@ -122,4 +122,4 @@ const knownNodeSchema: z.ZodType<ViewNode> = z.lazy(() =>
 );
 
 /** A view node; a node of an unknown kind parses to `{ kind: 'unsupported', type: <its kind> }`. */
-export const viewNodeSchema: z.ZodType<ViewNode, unknown> = z.union([knownNodeSchema, unknownKindNodeSchema]);
+export const viewNodeSchema: z.ZodType<ViewNode, unknown> = z.preprocess(unknownKindAsUnsupported, knownNodeSchema);

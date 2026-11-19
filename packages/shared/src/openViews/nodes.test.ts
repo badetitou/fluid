@@ -60,6 +60,12 @@ describe('viewNodeSchema', () => {
     });
   });
 
+  it('keeps the path of an error inside a node of a known kind', () => {
+    const result = viewNodeSchema.safeParse({ kind: 'composite', direction: 'row', children: [{ kind: 'list' }] });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path.join('.')).toContain('children.0');
+  });
+
   it.each([
     ['a kind that is not a string', { kind: 3 }],
     ['no kind', { text: 'hello' }],

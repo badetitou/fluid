@@ -442,8 +442,7 @@
           },
           "required": [
             "kind"
-          ],
-          "additionalProperties": {}
+          ]
         }
       ]
     },
