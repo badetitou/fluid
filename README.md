@@ -12,6 +12,7 @@ An LLM writes the view, you keep it, and it runs again without the LLM.
 [**Live demo**](https://fluid.badetitou.fr) ·
 [Quick start](#-quick-start) ·
 [Getting started](#-getting-started) ·
+[AI assistants (MCP)](#-use-fluid-from-an-ai-assistant-mcp) ·
 [Plugins](#-plugins) ·
 [Deployment](#-deployment) ·
 [Architecture](docs/architecture/REARCHITECTURE.md)
@@ -42,6 +43,15 @@ LLM_PROVIDER=claude-code npx @badetitou/fluid   # generate views with your Claud
 Pick **Explore the Rick and Morty demo** on the connection screen, open a concept, and press **+**
 on a column to describe the view you want. Options are listed in [Run with npx](#run-with-npx).
 
+Prefer to stay in your AI assistant? Plug fluid into Claude Code (or any MCP host) and ask for views
+from the conversation:
+
+```bash
+claude mcp add fluid -- npx -y @badetitou/fluid@latest mcp
+```
+
+See [Use fluid from an AI assistant (MCP)](#-use-fluid-from-an-ai-assistant-mcp).
+
 ## ✨ What is fluid?
 
 fluid is an experiment in **interface-less web apps**. Instead of shipping pre-built screens, it
@@ -57,6 +67,8 @@ Clicking a concept or an instance opens a **view**:
   **declarative view spec** (tables, charts, stats: dashboards, not prose), streamed and previewed live.
 - 💾 **Keep what you like.** Saved views are reused **without the LLM**: they take the concept (and
   instance) as a parameter and run as plain GraphQL queries.
+- 🔌 **From your AI assistant.** `fluid mcp` lets Claude Code, Claude Desktop or VS Code list your
+  views, run them and write new ones that fluid checks and keeps.
 - 🧩 **Extend everything.** Widgets, themes, view builders, data sources and page actions are
   **plugins** you enable, disable or install from a URL.
 
@@ -213,20 +225,35 @@ It starts fluid on http://localhost:4001 (embedded PGlite storage, offline mock 
 
 Build and check the package locally with `pnpm pack:cli && pnpm test:pack` (tarball in `out/`). See `apps/cli/README.md`.
 
-### Use fluid from Claude Desktop / VS Code
+## 🔌 Use fluid from an AI assistant (MCP)
 
-`fluid mcp` is an MCP server over stdio that exposes your saved views to AI hosts (tools `list_sources`,
-`list_views`, `show_view`; `show_view` also declares an MCP Apps viewer, `ui://fluid/viewer`). Add it to the
-host configuration (Claude Desktop: `claude_desktop_config.json`; VS Code: `.vscode/mcp.json`, with `servers` instead of `mcpServers`):
+`fluid mcp` is an MCP server over stdio. It is a client of a **running fluid** (default
+`http://localhost:4001`, or `--url` / `FLUID_URL`) and gives the assistant these tools:
 
-```json
-{ "mcpServers": { "fluid": { "command": "npx", "args": ["-y", "@badetitou/fluid", "mcp"] } } }
-```
+- **Read**: `list_sources`, `list_views`, `show_view` (run a saved view and summarize it).
+- **Write views**: `get_source_schema`, then `draft_view`: fluid validates the draft exactly like its
+  own assistant (widgets, wiring, queries against the schema), runs it and returns the result or the
+  issues to fix. The draft is kept with **Save in fluid** (`save_view`).
+- **Viewer**: in hosts that support [MCP Apps](https://modelcontextprotocol.io/extensions/apps)
+  (`ui://fluid/viewer`), the view is drawn live in the conversation, selections flow back to the
+  assistant, and view actions (mutations) run only after you confirm, on sources where **Allow
+  changes** is on.
 
-**fluid must be running** (`npx @badetitou/fluid`): the MCP server is a client of it and never opens its data
-directory. It looks for fluid at `http://localhost:4001`; use `fluid mcp --url <base URL>` or `FLUID_URL` for another
-address. If fluid is down, tools answer with an error telling you to start it. For a source that uses OAuth, sign
-in first from fluid's settings (Settings → Connection).
+Try it with Claude Code in three steps:
+
+1. Start fluid: `npx @badetitou/fluid@latest`.
+2. Connect to the Rick and Morty demo and turn on **Settings → Connection → Via the BFF**: the
+   assistant only sees sources stored in the BFF.
+3. Register the server, then start `claude` (`/mcp` should list **fluid**):
+
+   ```bash
+   claude mcp add fluid -- npx -y @badetitou/fluid@latest mcp
+   ```
+
+Then ask: *"Which sources does fluid have? Build me an overview of the episodes with their code,
+name and air date."* For Claude Desktop, VS Code, a local build (`fluid mcp` needs 0.2.0 or
+later), a full example draft and troubleshooting, read the
+**[MCP guide](docs/guides/mcp.md)**.
 
 ## 🤖 LLM providers
 
@@ -236,6 +263,9 @@ in first from fluid's settings (Settings → Connection).
 | **OpenAI** (or any compatible API) | `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL` |
 | **Ollama** | `OLLAMA_BASE_URL`, `OLLAMA_MODEL` |
 | **Claude** via your local Claude Code login | `claude` installed and logged in, see below |
+
+> This is fluid's built-in assistant calling Claude. The other way round, Claude Code driving fluid,
+> is [`fluid mcp`](#-use-fluid-from-an-ai-assistant-mcp).
 
 Pick the default with `LLM_PROVIDER` (`openai | ollama | claude-code | mock`); users can override it in
 **Settings → Configure LLM**.
@@ -282,12 +312,13 @@ Mocha, Matcha). Examples of installable plugins live in
 ```
 fluid/
 ├── apps/
-│   ├── frontend/   React + Vite + antd + urql: connect, explore, render views, assistant
-│   └── bff/        Fastify + Prisma: LLM proxy, view persistence, preferences
+│   ├── frontend/   React + Vite + antd + urql: connect, explore, render views, assistant, MCP viewer
+│   ├── bff/        Fastify + Prisma: LLM proxy, view persistence, source proxy, preferences
+│   └── cli/        npx @badetitou/fluid: single-process fluid and the `fluid mcp` server
 ├── packages/
 │   └── shared/     ViewSpec, widget contracts, zod schemas
 ├── charts/fluid/   Helm chart (frontend + BFF + PostgreSQL)
-├── docs/           Architecture notes, plugin API, health log
+├── docs/           Guides (MCP, Moose), architecture notes, plugin API, health log
 └── scripts/        Architecture metrics, README media capture (scripts/docs)
 ```
 

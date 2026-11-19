@@ -6,7 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-19
+
 ### Added
+- **`fluid mcp`, an MCP server over stdio** (#27, #34): tools `list_sources`, `list_views` and `show_view` for AI hosts (Claude Code, Claude Desktop, VS Code); it talks to a running fluid (`--url`, `FLUID_URL`). The BFF runs a saved view's queries on a configured source (#26, #33).
+- **MCP Apps viewer** (#28, #35): saved views rendered inside MCP hosts as a single-file page (`ui://fluid/viewer`), with data served from the tool results and `run_queries` to load more.
+- **Write views from an MCP host** (#10, #39): `get_source_schema`, `draft_view` (validated and run like fluid's own assistant) and `save_view` from the viewer's "Save in fluid" button.
+- **Viewer in the conversation** (#11, #40): widget selections sent to the model as context, "Ask about this", links followed to saved views, fullscreen.
+- **View actions from an MCP host** (#12, #41): `invoke_action` (viewer only) runs a saved view's mutation after confirmation, on sources with "Allow changes", logged in `ActionLog`.
+- **MCP guide** (`docs/guides/mcp.md`): set up `fluid mcp` with Claude Code, Claude Desktop or VS Code, with a worked `draft_view` example; README section on MCP.
 - **View actions from an MCP host** (#12): `invoke_action` (viewer only) runs a saved view's stored mutation through `POST /api/views/:id/actions/:action` when the source allows changes (`allowWrites` on BFF source configs, off by default, synced from "Allow changes" in the settings); every run is logged in the new `ActionLog` table. The viewer confirms every action and says when one deletes data.
 - **MCP viewer in the conversation** (#11): widget selections update the model context (`ui/update-model-context`, compacted and framed as untrusted data), an "Ask about this" button posts them (`ui/message`), links between entities open in place through `list_views` and `show_view` (with a Back button) or in fluid (`ui/open-link`), and a fullscreen button (`ui/request-display-mode`). `show_view` accepts `variables` (a detail view's item id) and `list_views` gives each view's scope.
 - **Write views from an MCP host** (#10): `draft_view` (model; widget docs from `renderWidgetDocs` of the MCP catalog), `save_view` (viewer only) and `get_source_schema` tools. The BFF checks drafts with the in-app assistant's validation and against the introspected source schema, runs them read-only (`POST /api/views/draft`) and saves them with the user's request as the view's `intent` (`POST /api/views/from-draft`). The viewer previews the draft while it streams and saves it with a "Save in fluid" button.
@@ -21,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Config lifecycle hardening** (#18): tokens and pending sign-ins are bound to a source config fingerprint; pending sign-ins are dropped on sign-out, reconfiguration, and delete.
 
 ### Fixed
+- **`draft_view` always failed** with "unexpected answer from fluid": `POST /api/views/draft` now answers `{ spec, results, issues }` like `/run`, as the MCP client expects.
 - **Source switching and resilience** (#15): a BFF-routed source can always be switched back to a direct connection; a failed delete on the BFF still clears the local ID with a warning. Source config/error state resets on source change and stale results are dropped.
 - **Proxy and source update hardening** (#14): only Prisma “not found” is treated as a missing source; a stored secret is dropped when a source URL moves to another origin without a new secret; proxy enforces timeout/size caps and refuses to follow redirects.
 - **OAuth UI robustness** (#19): discovery merges only its own fields and ignores answers for another source; reconnect prompt tracks failing operations and remains while any remain; a sign-in is bound to the source it started for (popup closed on source switch, callback message must come from the popup); sign-out restarts queries; plugin OAuth settings seed a newly created BFF config instead of overriding a saved choice; client rebuild is explicit.
