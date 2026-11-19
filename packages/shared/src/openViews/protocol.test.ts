@@ -52,6 +52,11 @@ describe('Open Views protocol documents', () => {
     expect(viewResponseSchema.parse(doc)).toEqual(doc);
   });
 
+  it('parses a view whose node kind is unknown as unsupported', () => {
+    const doc = { key: 'k', title: 't', priority: 1, view: { kind: 'map', points: [] } };
+    expect(viewResponseSchema.parse(doc).view).toEqual({ kind: 'unsupported', type: 'map' });
+  });
+
   it('rejects a view without its node or with a bad action', () => {
     expect(viewResponseSchema.safeParse({ key: 'k', title: 't', priority: 1 }).success).toBe(false);
     const badAction = { key: 'k', title: 't', priority: 1, view: { kind: 'label', text: '' }, actions: [{ label: 'x' }] };
@@ -79,5 +84,6 @@ describe('Open Views protocol documents', () => {
     expect(viewEvaluationSchema.parse(evaluation)).toEqual(evaluation);
     expect(openViewsErrorSchema.parse({ error: 'No such view', code: 'view-not-found' })).toBeTruthy();
     expect(openViewsErrorSchema.safeParse({ message: 'oops' }).success).toBe(false);
+    expect(openViewsErrorSchema.safeParse({ error: 'No code' }).success).toBe(false);
   });
 });
