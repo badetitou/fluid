@@ -61,7 +61,7 @@ Le viewer ne fournit pas d'`offsetArg` : la pagination se fait par un `take` plu
   `validateDraftValue`, le même code que l'assistant intégré (zod, catalogue, câblage, actions
   contre les mutations de la source), vérifie chaque requête contre le schéma introspecté (gardé
   5 min par source), puis lance les requêtes avec les règles d'une vue enregistrée
-  (`runSpec` : lecture seule, plafonds). Réponse `{ spec, data, issues }` ; un brouillon refusé
+  (`runSpec` : lecture seule, plafonds). Réponse `{ spec, results, issues }` (comme `/run`) ; un brouillon refusé
   donne un 422 avec ses `issues`, rendues au modèle en erreur d'outil pour qu'il corrige.
 - Le viewer affiche un aperçu (titre et une carte par widget) pendant que le modèle écrit
   (`ui/notifications/tool-input-partial`), puis la vue et ses `issues`, avec un bouton

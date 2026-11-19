@@ -37,10 +37,12 @@ owner. A `.env` file in the current directory is never read: use `--env-file`.
 - **Postgres**: with `DATABASE_URL` set, fluid uses that database instead of PGlite. It must already
   be migrated (`prisma migrate deploy`); fluid does not apply migrations there.
 
-## Use fluid from Claude Desktop / VS Code
+## Use fluid from Claude Code, Claude Desktop or VS Code
 
-`fluid mcp` is an MCP server over stdio that exposes your saved views to AI hosts (tools `list_sources`,
-`list_views`, `show_view`; `show_view` also declares an MCP Apps viewer, `ui://fluid/viewer`). Add it to the
+`fluid mcp` is an MCP server over stdio that exposes your sources and saved views to AI hosts and lets them
+write new views (tools `list_sources`, `list_views`, `show_view`, `get_source_schema`, `draft_view`; the MCP
+Apps viewer `ui://fluid/viewer` adds `save_view`, `run_queries` and `invoke_action`). Claude Code:
+`claude mcp add fluid -- npx -y @badetitou/fluid mcp`. Other hosts: add it to the
 host configuration (Claude Desktop: `claude_desktop_config.json`; VS Code: `.vscode/mcp.json`, with `servers` instead of `mcpServers`):
 
 ```json
@@ -50,7 +52,8 @@ host configuration (Claude Desktop: `claude_desktop_config.json`; VS Code: `.vsc
 **fluid must be running** (`npx @badetitou/fluid`): the MCP server is a client of it and never opens its data
 directory. It looks for fluid at `http://localhost:4001`; use `fluid mcp --url <base URL>` or `FLUID_URL` for another
 address. If fluid is down, tools answer with an error telling you to start it. For a source that uses OAuth, sign
-in first from fluid's settings (Settings → Connection).
+in first from fluid's settings (Settings → Connection). Only sources routed through fluid's BFF (Settings →
+Connection → Via the BFF) are visible. Full walkthrough: [docs/guides/mcp.md](https://github.com/badetitou/fluid/blob/main/docs/guides/mcp.md).
 
 ## Security
 

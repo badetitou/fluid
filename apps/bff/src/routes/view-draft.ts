@@ -31,7 +31,7 @@ export async function viewDraftRoutes(app: FastifyInstance, { service }: { servi
       case 'auth-required':
         return reply.code(out.status).send(out.body);
       case 'ok':
-        return { spec: out.spec, data: out.data, issues: out.issues, ...(out.skipped ? { skipped: out.skipped } : {}) };
+        return { spec: out.spec, results: out.data, issues: out.issues, ...(out.skipped ? { skipped: out.skipped } : {}) };
     }
   });
 

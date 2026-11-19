@@ -27,7 +27,7 @@ describe('view draft routes', () => {
     const invalid = await post({ kind: 'invalid', issues: ['widgets.0: bad'] });
     expect([invalid.statusCode, invalid.json()]).toEqual([422, { error: 'Invalid view draft', issues: ['widgets.0: bad'] }]);
     const ok = await post({ kind: 'ok', spec: { id: 'd' } as never, data: {}, issues: [] });
-    expect([ok.statusCode, ok.json()]).toEqual([200, { spec: { id: 'd' }, data: {}, issues: [] }]);
+    expect([ok.statusCode, ok.json()]).toEqual([200, { spec: { id: 'd' }, results: {}, issues: [] }]);
   });
 
   it('answers 201 with the saved row', async () => {
