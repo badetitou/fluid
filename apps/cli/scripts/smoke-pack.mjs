@@ -82,6 +82,40 @@ async function httpChecks(url) {
   check(nope.status === 404 && nope.type.includes('json'), '/api/nope is a JSON 404');
 }
 
+/** `fluid mcp` over stdio against a dead URL: initialize, tools/list and one tool error; stdout must be protocol only. */
+async function mcpChecks(bin, cwd, env) {
+  const child = spawn(bin, ['mcp', '--url', 'http://127.0.0.1:1'], { cwd, env: { PATH: process.env.PATH, ...env }, stdio: ['pipe', 'pipe', 'pipe'] });
+  const lines = [];
+  let buffer = '';
+  child.stdout.on('data', (c) => {
+    buffer += c;
+    const parts = buffer.split('\n');
+    buffer = parts.pop();
+    lines.push(...parts.filter(Boolean));
+  });
+  const send = (msg) => child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', ...msg })}\n`);
+  const reply = async (id) => {
+    for (let i = 0; i < 300; i++) {
+      const found = lines.map((l) => JSON.parse(l)).find((m) => m.id === id);
+      if (found) return found;
+      await sleep(100);
+    }
+    return fail(`no MCP answer for request ${id}`);
+  };
+  send({ id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'smoke', version: '0' } } });
+  check((await reply(1)).result?.serverInfo?.name === 'fluid', 'fluid mcp answers initialize');
+  send({ method: 'notifications/initialized' });
+  send({ id: 2, method: 'tools/list' });
+  const names = (await reply(2)).result.tools.map((t) => t.name).sort().join();
+  check(names === 'list_sources,list_views,run_queries,show_view', `fluid mcp lists its tools (${names})`);
+  send({ id: 3, method: 'tools/call', params: { name: 'list_sources', arguments: {} } });
+  const call = (await reply(3)).result;
+  check(call.isError === true && call.content[0].text.includes('is not reachable'), 'unreachable fluid is a tool error');
+  child.stdin.end();
+  const exit = await Promise.race([new Promise((r) => child.on('exit', (code) => r(code))), sleep(10_000).then(() => null)]);
+  check(exit === 0, 'fluid mcp exits 0 when stdin closes');
+}
+
 const VIEW = { spec: { id: 'smoke', concept: 'Character', title: 'Smoke view', queries: {}, widgets: [] } };
 const postView = (url) =>
   fetch(`${url}/api/views`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(VIEW) });
@@ -147,6 +181,8 @@ async function main() {
   const generated = await gen.json();
   check(gen.status === 200 && generated.spec?.title === 'Fake Claude view', 'generate-view returns the canned view');
   await stop(claude);
+
+  await mcpChecks(bin, project, env);
 
   const other = join(tmp, 'other');
   mkdirSync(other);

@@ -12,6 +12,7 @@ export interface CliOptions {
 
 export type ParsedArgs =
   | { kind: 'run'; options: CliOptions }
+  | { kind: 'mcp'; url?: string }
   | { kind: 'help' }
   | { kind: 'version' }
   | { kind: 'error'; message: string };
@@ -21,14 +22,27 @@ export const DEFAULT_HOST = '127.0.0.1';
 
 const portSchema = z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(0).max(65535));
 
+/** The base URL of a fluid (no trailing slash), or null when it is not an http(s) URL. */
+export function parseFluidUrl(raw: string): string | null {
+  try {
+    const u = new URL(raw.trim());
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+    return raw.trim().replace(/\/+$/, '');
+  } catch {
+    return null;
+  }
+}
+
 export function parseCliArgs(argv: string[]): ParsedArgs {
   let values;
+  let positionals: string[];
   try {
-    ({ values } = parseArgs({
+    ({ values, positionals } = parseArgs({
       args: argv,
       strict: true,
-      allowPositionals: false,
+      allowPositionals: true,
       options: {
+        url: { type: 'string' },
         port: { type: 'string' },
         host: { type: 'string' },
         'data-dir': { type: 'string' },
@@ -44,6 +58,16 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
   }
   if (values.help) return { kind: 'help' };
   if (values.version) return { kind: 'version' };
+  const [command, ...extra] = positionals;
+  if (command !== undefined && (command !== 'mcp' || extra.length > 0)) {
+    return { kind: 'error', message: `unknown command "${positionals.join(' ')}" (expected: mcp)` };
+  }
+  if (command === 'mcp') {
+    if (values.url === undefined) return { kind: 'mcp' };
+    const url = parseFluidUrl(values.url);
+    return url ? { kind: 'mcp', url } : { kind: 'error', message: `invalid --url "${values.url}": expected an http(s) URL` };
+  }
+  if (values.url !== undefined) return { kind: 'error', message: '--url only applies to `fluid mcp`' };
 
   let port = DEFAULT_PORT;
   if (values.port !== undefined) {

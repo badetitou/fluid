@@ -1,7 +1,8 @@
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { z } from 'zod';
-import { parseCliArgs, type CliOptions } from './args';
+import { parseCliArgs, parseFluidUrl, type CliOptions } from './args';
+import { DEFAULT_FLUID_URL, runMcp } from './mcp/run';
 import { browserCommand, shouldOpenBrowser } from './browser';
 import { resolveRunConfig } from './config';
 import { describeStartupError } from './errors';
@@ -76,6 +77,14 @@ export async function main(argv: string[], env: Env, entryUrl: string): Promise<
   if (parsed.kind === 'error') {
     console.error(`fluid: ${parsed.message}\n\n${USAGE}`);
     return 2;
+  }
+  if (parsed.kind === 'mcp') {
+    const fromEnv = env.FLUID_URL ? parseFluidUrl(env.FLUID_URL) : null;
+    if (env.FLUID_URL && !fromEnv && !parsed.url) {
+      console.error(`fluid: invalid FLUID_URL "${env.FLUID_URL}": expected an http(s) URL`);
+      return 2;
+    }
+    return runMcp(parsed.url ?? fromEnv ?? DEFAULT_FLUID_URL, readVersion(layout));
   }
   const { options } = parsed;
   if (options.envFile) {
