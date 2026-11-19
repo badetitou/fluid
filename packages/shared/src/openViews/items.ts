@@ -59,10 +59,12 @@ export const viewPagingShape = {
 };
 
 /** A highlighted part of a text node: 0-based offsets, `end` exclusive. */
-export const viewTextRangeSchema = z.object({
-  start: z.number().int().min(0),
-  end: z.number().int().min(0),
-});
+export const viewTextRangeSchema = z
+  .object({
+    start: z.number().int().min(0),
+    end: z.number().int().min(0),
+  })
+  .refine((range) => range.end >= range.start, { message: '`end` before `start`', path: ['end'] });
 export type ViewTextRange = z.infer<typeof viewTextRangeSchema>;
 
 /** Where an object is drawn in an SVG node (viewBox coordinates). */

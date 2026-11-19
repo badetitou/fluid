@@ -112,9 +112,9 @@ export const viewEvaluationSchema = z.object({
 });
 export type ViewEvaluation = z.infer<typeof viewEvaluationSchema>;
 
-/** Body of every 4xx/5xx answer. `code` is a machine-readable reason (see the spec). */
+/** Body of every 4xx/5xx answer. `code` is a machine-readable reason (see the spec's error table). */
 export const openViewsErrorSchema = z.object({
   error: z.string(),
-  code: z.string().optional(),
+  code: z.string().min(1),
 });
 export type OpenViewsError = z.infer<typeof openViewsErrorSchema>;

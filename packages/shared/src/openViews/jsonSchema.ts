@@ -7,7 +7,7 @@
 
 import { z } from 'zod';
 import { viewItemSchema, viewRefSchema } from './items';
-import { viewNodeSchema } from './nodes';
+import { unknownViewKindSchema, VIEW_NODE_KINDS, viewNodeSchema } from './nodes';
 import {
   objectViewsResponseSchema,
   openViewsDiscoverySchema,
@@ -40,7 +40,14 @@ export const OPEN_VIEWS_SCHEMA_ID = 'https://github.com/badetitou/fluid/docs/arc
 export function openViewsJsonSchema(): Record<string, unknown> {
   const registry = z.registry<{ id: string }>();
   for (const [id, schema] of Object.entries(DOCUMENTS)) registry.add(schema, { id });
-  const { schemas } = z.toJSONSchema(registry, { target: 'draft-2020-12', io: 'input', uri: (id) => `#/$defs/${id}` });
+  const { schemas } = z.toJSONSchema(registry, {
+    target: 'draft-2020-12',
+    io: 'input',
+    uri: (id) => `#/$defs/${id}`,
+    override: ({ zodSchema, jsonSchema }) => {
+      if (zodSchema === unknownViewKindSchema) jsonSchema.not = { enum: [...VIEW_NODE_KINDS] };
+    },
+  });
   const defs: Record<string, unknown> = {};
   for (const [id, schema] of Object.entries(schemas)) {
     const { $schema: _ignored, $id: _id, ...rest } = schema as Record<string, unknown>;
