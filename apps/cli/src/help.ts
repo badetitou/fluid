@@ -1,10 +1,17 @@
 export const USAGE = `Usage: fluid [options]
+       fluid mcp [--url URL]
+
+Commands:
+  mcp               run an MCP server over stdio for Claude Desktop, VS Code...
+                    it talks to a running fluid (--url, default http://localhost:4001
+                    or $FLUID_URL); start fluid first. Logs go to stderr.
 
 Options:
   --port N          port to listen on (default 4001, 0 = pick a free one)
   --host H          address to bind (default 127.0.0.1; the API has no auth)
   --data-dir DIR    where PGlite stores data (default ~/.fluid/data)
   --env-file F      load variables from F (never overrides the shell)
+  --url URL         (mcp) base URL of the running fluid
   --no-open         do not open the browser
   --verbose         log requests and show stack traces
   -h, --help        show this help
