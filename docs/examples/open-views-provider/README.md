@@ -1,7 +1,7 @@
 # A minimal fluid Open Views provider
 
 [`server.mjs`](server.mjs) is a whole [fluid Open Views](../../architecture/OPEN-VIEWS.md) provider in
-about 60 lines of plain Node: no dependency, no fluid import. Copy it as a starting point for your own
+one file of plain Node: no dependency, no fluid import. Copy it as a starting point for your own
 tool, in any language: only the JSON on the wire matters.
 
 It gives **every** object id the same three views, so it works next to any GraphQL source:
@@ -35,6 +35,8 @@ curl -s 'localhost:8090/objects/42/views/numbers/items?path=0&offset=995&limit=1
 curl -s 'localhost:8090/objects/42/views/divisors/items?path=0'                     # roots: the divisors of 360
 curl -s 'localhost:8090/objects/42/views/divisors/items?path=0.5'                   # children of root 5 (divisors of 6)
 curl -s -X POST localhost:8090/objects/42/views/about/actions/hello                 # {"message":"Hello from object 42"}
+curl -s localhost:8090/objects/42/views/nope                                        # 404 {"error":"No view nope","code":"view-not-found"}
+curl -s localhost:8090/objects/%zz/views                                            # 400 {"error":"Bad request","code":"bad-request"}
 ```
 
 To check the answers, validate them against

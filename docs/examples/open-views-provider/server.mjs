@@ -49,8 +49,17 @@ function answer(req, url) {
   return [404, { error: 'No such action', code: 'action-not-found' }];
 }
 
+function safeAnswer(req) {
+  if (req.method === 'OPTIONS') return [204, null];
+  try {
+    return answer(req, new URL(req.url, 'http://localhost'));
+  } catch {
+    return [400, { error: 'Bad request', code: 'bad-request' }]; // e.g. a malformed %-escape in the path
+  }
+}
+
 createServer((req, res) => {
-  const [status, body] = req.method === 'OPTIONS' ? [204, null] : answer(req, new URL(req.url, 'http://localhost'));
+  const [status, body] = safeAnswer(req);
   res.writeHead(status, { 'content-type': 'application/json', 'access-control-allow-origin': '*',
     'access-control-allow-methods': 'GET, POST', 'access-control-allow-headers': 'content-type' });
   res.end(body === null ? undefined : JSON.stringify(body));
