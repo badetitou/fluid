@@ -27,16 +27,42 @@ const actionsSchema = z.array(viewActionSchema);
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-/** Whether `raw` uses a field or kind only the old Spec-Fluid format has. */
-export function looksLegacy(raw: unknown): boolean {
-  if (Array.isArray(raw)) return raw.some(looksLegacy);
-  if (!isRecord(raw)) return false;
-  if (raw.kind === 'table' || raw.kind === 'notebook') return true;
-  if ((raw.kind === 'svg' && 'refs' in raw) || (raw.kind === 'unsupported' && 'presenter' in raw) || 'hasMore' in raw) {
-    return true;
+const legacyItem = (item: unknown): boolean =>
+  isRecord(item) && ('hasMore' in item || (Array.isArray(item.children) && item.children.some(legacyItem)));
+
+type LegacyMark = 'kind' | 'field' | undefined;
+
+const firstMark = (marks: LegacyMark[]): LegacyMark => (marks.includes('kind') ? 'kind' : marks.find(Boolean));
+
+/**
+ * What in the node `raw` belongs to the old Spec-Fluid format only: a `kind`
+ * (`table`, `notebook`: surely Spec-Fluid) or a `field` (svg `refs`,
+ * unsupported `presenter`, tree item `hasMore`: probably). Only node positions
+ * and tree items are looked at, never the content of cells or texts.
+ */
+export function legacyMark(raw: unknown): LegacyMark {
+  if (!isRecord(raw)) return undefined;
+  switch (raw.kind) {
+    case 'table':
+    case 'notebook':
+      return 'kind';
+    case 'svg':
+      return 'refs' in raw ? 'field' : undefined;
+    case 'unsupported':
+      return 'presenter' in raw ? 'field' : undefined;
+    case 'tree':
+      return Array.isArray(raw.roots) && raw.roots.some(legacyItem) ? 'field' : undefined;
+    case 'composite':
+      return Array.isArray(raw.children) ? firstMark(raw.children.map(legacyMark)) : undefined;
+    case 'tabs':
+      return Array.isArray(raw.tabs) ? firstMark(raw.tabs.map((tab) => (isRecord(tab) ? legacyMark(tab.node) : undefined))) : undefined;
+    default:
+      return undefined;
   }
-  return Object.values(raw).some(looksLegacy);
 }
+
+/** Whether the node `raw` uses a kind or field only the old Spec-Fluid format has. */
+export const looksLegacy = (raw: unknown): boolean => legacyMark(raw) !== undefined;
 
 /** Replaces every node of an unknown kind by an `unsupported` one, as the protocol asks. */
 export function unknownKindsAsUnsupported(raw: unknown): unknown {
@@ -57,14 +83,20 @@ function failure(error: z.ZodError, what: string): ParsedOpenView {
   return { reason: `Not ${what}${where}: ${issue?.message ?? 'invalid'}.` };
 }
 
-/** The node of `raw`, read as Open Views, or as Spec-Fluid when it uses the old format. */
+/**
+ * The node of `raw`: as Spec-Fluid first when it uses the old format (read as
+ * Open Views, a legacy `table` would become `unsupported` and svg `refs` would
+ * be dropped), else as Open Views. A document only marked by a field (which an
+ * Open Views provider may add) is read as Open Views when Spec-Fluid fails.
+ */
 function parseNode(raw: unknown): { node: ViewNode } | { error: z.ZodError; what: string } {
-  if (looksLegacy(raw)) {
-    const legacy = specFluidNodeSchema.safeParse(raw);
-    return legacy.success ? { node: specFluidNodeToViewNode(legacy.data) } : { error: legacy.error, what: 'a Spec-Fluid document' };
-  }
+  const mark = legacyMark(raw);
+  const legacy = mark ? specFluidNodeSchema.safeParse(raw) : undefined;
+  if (legacy?.success) return { node: specFluidNodeToViewNode(legacy.data) };
+  if (legacy && mark === 'kind') return { error: legacy.error, what: 'a Spec-Fluid document' };
   const parsed = viewNodeSchema.safeParse(unknownKindsAsUnsupported(raw));
-  return parsed.success ? { node: parsed.data } : { error: parsed.error, what: 'an Open Views document' };
+  if (parsed.success) return { node: parsed.data };
+  return legacy ? { error: legacy.error, what: 'a Spec-Fluid document' } : { error: parsed.error, what: 'an Open Views document' };
 }
 
 /** The document in `data`, or why there is none to draw. */

@@ -56,6 +56,15 @@ describe('looksLegacy', () => {
     expect(looksLegacy({ kind: 'tree', roots: [{ cells: [], children: [{ cells: [], hasMore: true }] }] })).toBe(true);
   });
 
+  it('reads an Open Views document whose data looks like Spec-Fluid as Open Views', () => {
+    const items = [{ cells: [{ text: 'hasMore', note: { kind: 'table', hasMore: true } }] }];
+    expect(looksLegacy({ kind: 'list', items })).toBe(false);
+    expect(parseOpenView({ kind: 'list', items }).doc?.node).toEqual({ kind: 'list', items: [{ cells: [{ text: 'hasMore' }] }] });
+    // An unknown `hasMore` on a tree item: not a valid Spec-Fluid tree (no columns), so read as Open Views.
+    const tree = { kind: 'tree', roots: [{ cells: [{ text: 'r' }], hasChildren: true, hasMore: true }] };
+    expect(parseOpenView(tree).doc?.node).toEqual({ kind: 'tree', roots: [{ cells: [{ text: 'r' }], hasChildren: true }] });
+  });
+
   it('does not take an Open Views document for an old one', () => {
     expect(looksLegacy(list)).toBe(false);
     expect(looksLegacy({ kind: 'svg', svg: '<svg/>', hotspots: [] })).toBe(false);

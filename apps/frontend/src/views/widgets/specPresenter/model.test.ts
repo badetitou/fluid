@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   columnCount,
   confirmQuestion,
+  forwardBlocked,
+  forwardKey,
+  MAX_FORWARD_DEPTH,
   compareByCell,
   openableConcept,
   refKey,
@@ -123,5 +126,19 @@ describe('confirmQuestion', () => {
     expect(confirmQuestion({ id: 'd', label: 'Delete', confirm: 'Really?' })).toBe('Really?');
     expect(confirmQuestion({ id: 'd', label: 'Delete', confirm: false })).toBeUndefined();
     expect(confirmQuestion({ id: 'd', label: 'Delete' })).toBeUndefined();
+  });
+});
+
+describe('forwardBlocked', () => {
+  const a = forwardKey({ id: '1', type: 'Class' }, 'src');
+  it('stops a forward loop', () => {
+    expect(forwardBlocked([a], a)).toBe(true);
+    expect(forwardBlocked([a], forwardKey({ id: '1', type: 'Class' }, 'other'))).toBe(false);
+    expect(forwardBlocked([], a)).toBe(false);
+  });
+  it('stops past the maximal depth', () => {
+    const trail = Array.from({ length: MAX_FORWARD_DEPTH }, (_, i) => `#${i}:v`);
+    expect(forwardBlocked(trail)).toBe(true);
+    expect(forwardBlocked(trail.slice(1))).toBe(false);
   });
 });

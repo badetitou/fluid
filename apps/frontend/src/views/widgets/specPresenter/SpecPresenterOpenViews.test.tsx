@@ -30,7 +30,7 @@ function renderWidget(data: unknown, answers?: Answers) {
   const run = vi.fn<DataSource['run']>((query, variables) => Promise.resolve(answers?.(query, variables)));
   const sources = new Map<string, DataSource>(answers ? [['ov', { id: 'ov', run }]] : []);
   const emit = vi.fn();
-  const view = render(
+  const ui = (value: unknown) => (
     <MemoryRouter initialEntries={['/d/Class']}>
       <RenderedViewContext.Provider value={spec}>
         <DataSourcesContext.Provider value={sources}>
@@ -39,7 +39,7 @@ function renderWidget(data: unknown, answers?: Answers) {
               path="*"
               element={
                 <>
-                  <SpecPresenterWidget widget={widget} data={data} emit={emit} />
+                  <SpecPresenterWidget widget={widget} data={value} emit={emit} />
                   <Location />
                 </>
               }
@@ -47,9 +47,10 @@ function renderWidget(data: unknown, answers?: Answers) {
           </Routes>
         </DataSourcesContext.Provider>
       </RenderedViewContext.Provider>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
-  return { ...view, run, emit };
+  const view = render(ui(data));
+  return { ...view, run, emit, show: (value: unknown) => view.rerender(ui(value)) };
 }
 
 beforeAll(() => {
@@ -110,6 +111,13 @@ describe('Open Views kinds', () => {
     expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['First', 'Second']);
   });
 
+  it('stops an object forwarding to itself after one level', async () => {
+    const loop = { kind: 'forward', ref: { id: 'o1' }, view: 'k' };
+    const { run } = renderWidget(loop, () => ({ key: 'k', title: 'K', priority: 0, view: loop }));
+    expect(await screen.findByText(/Shown in the views of/)).toBeTruthy();
+    expect(run.mock.calls.filter(([query]) => query === 'view')).toHaveLength(1);
+  });
+
   it('links a forwarded object when there is no source to load its views from', () => {
     renderWidget({ kind: 'forward', ref: { id: 'c2', type: 'Class' } });
     expect(screen.getByRole('link', { name: /c2/ })).toBeTruthy();
@@ -148,6 +156,16 @@ describe('lazy items', () => {
     fireEvent.click(expand[0]);
     expect(await screen.findByText('Collections-Abstract')).toBeTruthy();
     expect(run).toHaveBeenCalledWith('items', { id: 'o1', view: 'k', path: '0.1', offset: 0 });
+  });
+
+  it('drops the items of a node the view no longer shows', async () => {
+    let answer: (value: unknown) => void = () => {};
+    const { show } = renderWidget({ kind: 'list', items: [], lazy: true }, () => new Promise((resolve) => (answer = resolve)));
+    show({ kind: 'list', items: [cell('fresh')] });
+    answer({ items: [cell('stale')] });
+    await waitFor(() => expect(screen.getByText('fresh')).toBeTruthy());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByText('stale')).toBeNull();
   });
 
   it('says so when a lazy node has no source to load from', () => {

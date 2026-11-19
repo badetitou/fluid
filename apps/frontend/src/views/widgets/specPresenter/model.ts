@@ -106,3 +106,16 @@ export function labelLine(node: Extract<ViewNode, { kind: 'composite' }>): strin
 /** The question to ask before running a view action, if any (`confirm: true` asks with its label). */
 export const confirmQuestion = (action: ViewAction): string | undefined =>
   action.confirm === true ? `${action.label}?` : action.confirm || undefined;
+
+/** How many forwarded views may be drawn one inside the other. */
+export const MAX_FORWARD_DEPTH = 5;
+
+/** The key of one view of one object, to spot a forward loop. */
+export const forwardKey = (ref: ViewRef, view: string): string => `${refKey(ref)}:${view}`;
+
+/**
+ * Whether a forwarded view must not be drawn in place: `trail` (the forwarded
+ * views around it) is as deep as allowed, or already holds `key` (a loop).
+ */
+export const forwardBlocked = (trail: readonly string[], key?: string): boolean =>
+  trail.length >= MAX_FORWARD_DEPTH || (key !== undefined && trail.includes(key));

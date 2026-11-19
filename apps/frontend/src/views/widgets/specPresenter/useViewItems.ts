@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   appendPage,
   initialItems,
@@ -34,27 +34,46 @@ export function useViewItems(node: PageableNode, index: number | undefined, load
   const [state, setState] = useState<ItemsState>(() => initialItems(node));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
+  // Bumped when the node changes (or the widget goes away): answers asked before are dropped.
+  const generation = useRef(0);
+  // Loads running for the current generation; `loading` until the last one ends.
+  const pending = useRef(0);
 
   const run = useCallback(
     (task: (load: ItemsLoader, index: number) => Promise<(s: ItemsState) => ItemsState>) => {
       if (!load || index === undefined) return setError(NO_SOURCE);
+      const started = generation.current;
+      const current = () => generation.current === started;
+      pending.current += 1;
       setLoading(true);
       setError(undefined);
       task(load, index)
-        .then((update) => setState(update))
-        .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
-        .finally(() => setLoading(false));
+        .then((update) => current() && setState(update))
+        .catch((err: unknown) => current() && setError(err instanceof Error ? err.message : String(err)))
+        .finally(() => {
+          if (!current()) return;
+          pending.current -= 1;
+          if (pending.current === 0) setLoading(false);
+        });
     },
     [load, index],
   );
 
   useEffect(() => {
+    generation.current += 1;
+    pending.current = 0;
     setState(initialItems(node));
-    if (!node.lazy) return;
-    run(async (l, i) => {
-      const all = await loadAll(l, itemsPath(i));
-      return () => all;
-    });
+    setLoading(false);
+    setError(undefined);
+    if (node.lazy) {
+      run(async (l, i) => {
+        const all = await loadAll(l, itemsPath(i));
+        return () => all;
+      });
+    }
+    return () => {
+      generation.current += 1;
+    };
   }, [node, run]);
 
   const loaded = state.items.length;
