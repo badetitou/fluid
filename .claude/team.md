@@ -49,8 +49,8 @@ Project agent prompts are in French. General UI work and browser verification st
 - Board: user project **#6 « fluid »** (https://github.com/users/badetitou/projects/6), linked to the repo.
   Project id `PVT_kwHOAF78j84BsKT4`; Status field `PVTSSF_lAHOAF78j84BsKT4zhqZsvQ` —
   Todo `f75ad846`, In Progress `47fc9ee4`, Done `98236657` (no *In Review* column).
-  The project adds every new repo issue by itself (`item-add` then fails with "already exists"); set
-  the status by URL: `gh project item-edit 6 --owner badetitou --url <issue url> --field Status --value "In Progress"`.
+  The project adds new repo issues by itself, but with a delay: run `gh project item-add` anyway and
+  ignore its "already exists" error, then set the status by URL: `gh project item-edit 6 --owner badetitou --url <issue url> --field Status --value "In Progress"`.
   Merging a PR with `Closes #N` moves the card to Done.
 - Stacked PRs: open the child PR against the parent branch; once the parent is merged, merge `main`
   into the child and push before retargeting (GitHub marks it "dirty" when the parent arrived by two merges).
