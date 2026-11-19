@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Proxy and source update hardening** (#14): only Prisma “not found” is treated as a missing source; a stored secret is dropped when a source URL moves to another origin without a new secret; proxy enforces timeout/size caps and refuses to follow redirects.
 - **OAuth UI robustness** (#19): discovery merges only its own fields and ignores answers for another source; reconnect prompt tracks failing operations and remains while any remain; a sign-in is bound to the source it started for (popup closed on source switch, callback message must come from the popup); sign-out restarts queries; plugin OAuth settings seed a newly created BFF config instead of overriding a saved choice; client rebuild is explicit.
 - **OAuth token correctness** (#19): the OAuth stub returns an ID token only for OpenID Connect requests.
+- **Miller navigation for ids containing slashes** (#29): the dashboard URL is parsed from the still-encoded `location.pathname` instead of React Router's decoded splat, so a key containing `/` (e.g. a Java/SCIP key) opens one detail column with the unchanged id instead of several bogus `Unknown concept` columns. Root and appended column paths now share the same encoding.
 
 ### Security
 - **Secret and header handling in the proxy** (#14): reserved and hop-by-hop header names are rejected and protocol headers always win; upstream read timeout maps to `504`; generated key file is created atomically without overwrite and invalid key files are reported by path.
