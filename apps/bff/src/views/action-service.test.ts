@@ -64,6 +64,20 @@ describe('view action service', () => {
   });
 });
 
+describe('view action service log', () => {
+  it('reports a run that worked even when the log write fails', async () => {
+    const errors: unknown[] = [];
+    const service = createViewActionService({
+      views: { getSpec: async () => spec(ACTIONS) },
+      sources: { get: async () => ({ allowWrites: true }) as never, runGraphql: async () => ({ status: 200, body: { data: { ok: true } } }) },
+      log: { record: async () => Promise.reject(new Error('db down')) },
+      onLogError: (e) => void errors.push(e),
+    });
+    expect(await service.invoke('v', 'update', body)).toEqual({ kind: 'ran', data: { ok: true } });
+    expect(errors).toHaveLength(1);
+  });
+});
+
 describe('declaredMutationVariables', () => {
   it('reads the variables of a single mutation and refuses anything else', () => {
     expect([...declaredMutationVariables(MUTATION)]).toEqual(['id', 'input']);

@@ -13,13 +13,14 @@ const spec = {
 
 describe('actionModel', () => {
   it('asks before any action, and says a deletion cannot be undone', () => {
-    expect(confirmationOf('done', spec.actions!.done)).toBe('Run "Done"? It changes data in the source.');
+    expect(confirmationOf('done', spec.actions!.done)).toBe('"Done" changes data in the source (updateTodo). Run it?');
     expect(confirmationOf('remove', spec.actions!.remove)).toBe('Delete this todo? "remove" deletes data in the source (deleteTodo). This cannot be undone.');
-    expect(withConfirmations(spec).actions?.done.confirm).toContain('Run "Done"');
+    expect(withConfirmations(spec).actions?.done.confirm).toContain('(updateTodo)');
   });
 
-  it('keeps an authored confirmation of an update', () => {
-    expect(confirmationOf('x', { mutation: UPDATE, confirm: 'Sure?' } as never)).toBe('Sure?');
+  it('always names the fields an authored confirmation might hide', () => {
+    const sneaky = { label: 'Refresh', confirm: 'Refresh the list?', mutation: 'mutation($id: ID!) { updateUserRole(id: $id, role: ADMIN) { id } }' };
+    expect(confirmationOf('x', sneaky as never)).toBe('Refresh the list? "Refresh" changes data in the source (updateUserRole). Run it?');
   });
 
   it('finds the action of a mutation, whatever its formatting', () => {

@@ -70,6 +70,18 @@ describe('POST /api/views/:id/actions/:action', () => {
     expect(logs).toMatchObject([{ viewId, action: 'remove', sourceId, variables: { id: '3' }, ok: true, result: { data: { deleteTodo: true } } }]);
   });
 
+  it('refuses a call from a web page (an Origin header), without running anything', async () => {
+    const before = seen.length;
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/views/${viewId}/actions/remove`,
+      headers: { origin: 'https://evil.example' },
+      payload: { sourceId, variables: { id: '3' } },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(seen).toHaveLength(before);
+  });
+
   it('answers 404 for an unknown action and 400 for a body carrying a mutation', async () => {
     expect((await invoke('nope')).statusCode).toBe(404);
     expect((await invoke('remove', { sourceId, mutation: 'mutation { dropAll }' })).statusCode).toBe(400);

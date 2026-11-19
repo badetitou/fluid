@@ -57,7 +57,12 @@ export function buildApp(options: BuildAppOptions = {}) {
     writer: createViewWriter(prisma),
   });
   app.register(viewDraftRoutes, { service: drafts });
-  const actions = createViewActionService({ views: createViewReader(prisma), sources: sourceService, log: createActionLog(prisma) });
+  const actions = createViewActionService({
+    views: createViewReader(prisma),
+    sources: sourceService,
+    log: createActionLog(prisma),
+    onLogError: (err) => app.log.error({ err: { message: err instanceof Error ? err.message : String(err) } }, 'view action ran but was not logged'),
+  });
   app.register(viewActionRoutes, { service: actions });
   app.register(oauthRoutes, { oauth, publicUrl: process.env.FLUID_PUBLIC_URL });
 

@@ -9,6 +9,9 @@ export async function viewActionRoutes(app: FastifyInstance, { service }: { serv
   app.setErrorHandler(secretAwareErrorHandler);
 
   app.post('/api/views/:id/actions/:action', async (req, reply) => {
+    // Only the MCP server (a local process, no Origin header) calls this: a web page always sends an
+    // Origin on a cross-site POST, and must never trigger a write without the viewer's confirmation.
+    if (req.headers.origin !== undefined) return reply.code(403).send({ error: 'View actions cannot be called from a web page' });
     const { id, action } = req.params as { id: string; action: string };
     const parsed = invokeActionBody.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: 'Invalid body', details: z.flattenError(parsed.error) });

@@ -98,10 +98,14 @@ Le viewer ne fournit pas d'`offsetArg` : la pagination se fait par un `take` plu
   remise à `false` quand l'URL change d'origine). C'est le réglage « Allow changes » de l'app
   (`useSourceWrites`), envoyé au BFF pour une source routée par lui, et repris à la création de la
   config BFF. Sinon 403. `show_view` dit au viewer si la source l'accepte (`writable`).
+- La route refuse toute requête portant un en-tête `Origin` (403) : seul le serveur MCP (processus
+  local) l'appelle, une page web ne peut pas déclencher d'écriture sans la confirmation du viewer.
 - Chaque run est journalisé dans la table `ActionLog` (vue, action, source, variables, succès,
   réponse coupée au-delà de 8 Ko).
 - Viewer : sans `writable` ou pour un brouillon non enregistré, la vue est en lecture seule. Sinon
-  chaque action reçoit une confirmation (`actionModel.ts`), une suppression dit qu'elle efface des
+  chaque action reçoit une confirmation (`actionModel.ts`) qui nomme toujours les champs de mutation
+  appelés (le `confirm` et le `label` d'une vue écrite par un assistant ne peuvent pas les cacher),
+  une suppression dit qu'elle efface des
   données de la source et que c'est définitif ; le moteur la pose (`useViewActions`), puis
   l'échange urql du viewer retrouve l'action par le texte de sa mutation et appelle
   `invoke_action`. Le patch local et les `refetch` du moteur s'appliquent comme dans l'app.

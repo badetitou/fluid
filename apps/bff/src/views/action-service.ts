@@ -58,6 +58,8 @@ export function createViewActionService(deps: {
   views: ViewReader;
   sources: Pick<SourceService, 'get' | 'runGraphql'>;
   log: ActionLog;
+  /** Told when a run could not be logged. */
+  onLogError?: (err: unknown) => void;
 }): ViewActionService {
   return {
     async invoke(viewId, key, body) {
@@ -82,7 +84,10 @@ export function createViewActionService(deps: {
       const res = await deps.sources.runGraphql(body.sourceId, { query: action.mutation, variables });
       if (!res) return { kind: 'source-not-found' };
       const ok = res.status < 400 && !(res.body.errors?.length ?? 0);
-      await deps.log.record({ viewId, action: key, sourceId: body.sourceId, variables, ok, result: loggedResult(res.body) });
+      // The mutation already ran: a failed log write must not report the run as failed (a retry would run it twice).
+      await deps.log
+        .record({ viewId, action: key, sourceId: body.sourceId, variables, ok, result: loggedResult(res.body) })
+        .catch((err: unknown) => deps.onLogError?.(err));
       if (isAuthRequired(res.body)) return { kind: 'auth-required', status: res.status, body: res.body };
       return {
         kind: 'ran',
