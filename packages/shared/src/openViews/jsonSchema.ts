@@ -7,7 +7,7 @@
 
 import { z } from 'zod';
 import { viewItemSchema, viewRefSchema } from './items';
-import { viewNodeSchema } from './nodes';
+import { VIEW_NODE_KINDS, viewNodeSchema } from './nodes';
 import {
   objectViewsResponseSchema,
   openViewsDiscoverySchema,
@@ -36,11 +36,32 @@ const DOCUMENTS = {
 
 export const OPEN_VIEWS_SCHEMA_ID = 'https://github.com/badetitou/fluid/docs/architecture/open-views.schema.json';
 
+/** A node of a kind fluid does not know is valid (it is shown as `unsupported`, see `unknownKindAsUnsupported`). */
+function acceptUnknownKinds(jsonSchema: Record<string, unknown>): void {
+  const known = { ...jsonSchema };
+  for (const key of Object.keys(jsonSchema)) delete jsonSchema[key];
+  jsonSchema.anyOf = [
+    known,
+    {
+      type: 'object',
+      properties: { kind: { type: 'string', not: { enum: [...VIEW_NODE_KINDS] } } },
+      required: ['kind'],
+    },
+  ];
+}
+
 /** The JSON Schema (draft 2020-12) of protocol v1: every document under `$defs`. */
 export function openViewsJsonSchema(): Record<string, unknown> {
   const registry = z.registry<{ id: string }>();
   for (const [id, schema] of Object.entries(DOCUMENTS)) registry.add(schema, { id });
-  const { schemas } = z.toJSONSchema(registry, { target: 'draft-2020-12', io: 'input', uri: (id) => `#/$defs/${id}` });
+  const { schemas } = z.toJSONSchema(registry, {
+    target: 'draft-2020-12',
+    io: 'input',
+    uri: (id) => `#/$defs/${id}`,
+    override: ({ zodSchema, jsonSchema }) => {
+      if ((zodSchema as unknown) === viewNodeSchema) acceptUnknownKinds(jsonSchema);
+    },
+  });
   const defs: Record<string, unknown> = {};
   for (const [id, schema] of Object.entries(schemas)) {
     const { $schema: _ignored, $id: _id, ...rest } = schema as Record<string, unknown>;

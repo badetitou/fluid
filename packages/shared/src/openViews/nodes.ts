@@ -62,7 +62,20 @@ export type ViewNode =
   /** A view the provider cannot export: `type` is its provider-side name. */
   | { kind: 'unsupported'; type: string; message?: string };
 
-export const viewNodeSchema: z.ZodType<ViewNode> = z.lazy(() =>
+const KNOWN_KINDS = new Set<string>(VIEW_NODE_KINDS);
+
+/**
+ * A node of a kind fluid does not know (a newer provider) becomes `unsupported`
+ * within v1 (see the spec, "Versioning"); its other fields are dropped. Known
+ * kinds pass through untouched, so their errors keep their path.
+ */
+export function unknownKindAsUnsupported(raw: unknown): unknown {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return raw;
+  const { kind } = raw as { kind?: unknown };
+  return typeof kind === 'string' && !KNOWN_KINDS.has(kind) ? { kind: 'unsupported', type: kind } : raw;
+}
+
+const knownNodeSchema: z.ZodType<ViewNode> = z.lazy(() =>
   z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('list'), items: z.array(viewItemSchema), ...viewPagingShape }),
     z.object({
@@ -107,3 +120,6 @@ export const viewNodeSchema: z.ZodType<ViewNode> = z.lazy(() =>
     z.object({ kind: z.literal('unsupported'), type: z.string(), message: z.string().optional() }),
   ]),
 );
+
+/** A view node; a node of an unknown kind parses to `{ kind: 'unsupported', type: <its kind> }`. */
+export const viewNodeSchema: z.ZodType<ViewNode, unknown> = z.preprocess(unknownKindAsUnsupported, knownNodeSchema);
