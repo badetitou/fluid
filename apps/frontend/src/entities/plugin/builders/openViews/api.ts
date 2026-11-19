@@ -9,11 +9,13 @@ import {
   specFluidTabsResponseSchema,
   specFluidTabToView,
   specFluidTabsToViews,
+  viewActionResultSchema,
   viewEvaluationSchema,
   viewItemsResponseSchema,
   viewResponseSchema,
   type ObjectViewsResponse,
   type OpenViewsCapabilities,
+  type ViewActionResult,
   type ViewEvaluation,
   type ViewItemsResponse,
   type ViewResponse,
@@ -128,6 +130,15 @@ const postJson = (body: unknown): RequestInit => ({
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(body),
 });
+
+/** Runs an action of a view (capability `actions`). */
+export async function runAction(provider: ViewProvider, id: string, key: string, action: string, signal?: AbortSignal): Promise<ViewActionResult> {
+  if (provider.protocol === 'spec-fluid' || !provider.capabilities.actions) {
+    throw new Error(`${provider.protocol === 'spec-fluid' ? 'Spec-Fluid' : provider.name} does not run view actions (no "actions" capability).`);
+  }
+  const url = openViewsUrl(provider.endpoint, 'objects', id, 'views', key, 'actions', action);
+  return getJson(url, viewActionResultSchema, signal, postJson({}));
+}
 
 /**
  * Evaluates code with an object as receiver, through the `evaluate` capability

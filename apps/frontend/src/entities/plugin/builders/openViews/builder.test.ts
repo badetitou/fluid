@@ -61,6 +61,17 @@ describe('Open Views builder', () => {
     await expect(source.run('tab', {})).rejects.toThrow(/not "tab"/);
   });
 
+  it('answers views and action queries, actions only with the capability', async () => {
+    routes[`GET ${A}/.well-known/fluid-views`] = discovery('A', { actions: true });
+    routes[`GET ${A}/objects/8/views`] = { body: { object: { id: '8' }, views: [{ key: 'z', title: 'Z', priority: 0 }] } };
+    routes[`POST ${A}/objects/7/views/x/actions/refresh`] = { body: { refresh: true } };
+    routes[`GET ${B}/.well-known/fluid-views`] = discovery('B');
+    const source = builder.dataSource!({ endpoints: `${A} ${B}` });
+    expect(await source.run('views', { endpoint: A, id: '8' })).toMatchObject({ views: [{ key: 'z' }] });
+    expect(await source.run('action', { endpoint: A, id: '7', view: 'x', action: 'refresh' })).toEqual({ refresh: true });
+    await expect(source.run('action', { endpoint: B, id: '7', view: 'x', action: 'refresh' })).rejects.toThrow(/no "actions" capability/);
+  });
+
   it('reads an old Spec-Fluid server through the legacy routes', async () => {
     routes[`GET ${SF}/.well-known/fluid-views`] = { status: 404, body: { error: 'not found' } };
     routes[`GET ${SF}/entities/7/tabs`] = { body: { entity: { id: '7' }, tabs: [{ key: 'fame:', title: 'Fame', order: 2 }] } };

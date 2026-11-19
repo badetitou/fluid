@@ -68,7 +68,7 @@ describe('Open Views builder model', () => {
       query: 'view',
       variables: { endpoint: A, id: '1:42', view: 'fame:' },
     });
-    expect(p.spec.widgets[0]).toMatchObject({ type: 'specPresenter', data: { query: 'view', path: 'view' } });
+    expect(p.spec.widgets[0]).toMatchObject({ type: 'specPresenter', data: { query: 'view' } });
   });
 
   it('checks the variables of a query, and that its endpoint is a configured one', () => {
@@ -77,5 +77,7 @@ describe('Open Views builder model', () => {
     expect(() => queryVariables('view', { endpoint: 'http://evil.test', id: '1', view: 'k' }, [A])).toThrow(/not one of/);
     expect(() => queryVariables('view', { id: 3 }, [A])).toThrow(/needs "endpoint"/);
     expect(() => queryVariables('items', { endpoint: A, id: '1', view: 'k', path: 'x' }, [A])).toThrow(/"path"/);
+    expect(queryVariables('views', { endpoint: A, id: '1', view: 'ignored' }, [A])).toEqual({ endpoint: A, id: '1' });
+    expect(() => queryVariables('action', { endpoint: A, id: '1', view: 'k' }, [A])).toThrow(/"action"/);
   });
 });

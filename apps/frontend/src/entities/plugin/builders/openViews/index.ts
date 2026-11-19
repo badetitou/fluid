@@ -1,6 +1,7 @@
 import type { ViewBuilder } from '../../viewBuilder';
-import { discoverProvider, fetchItems, fetchObjectViews, fetchView } from './api';
-import { ENDPOINTS_SETTING, ITEMS_QUERY, VIEW_QUERY, mergeByPriority, parseEndpoints, queryVariables, viewPerspective } from './model';
+import type { DataSource } from '../../../../views/plugin-api';
+import { discoverProvider, fetchItems, fetchObjectViews, fetchView, runAction } from './api';
+import { ENDPOINTS_SETTING, isOpenViewsQuery, mergeByPriority, parseEndpoints, queryVariables, viewPerspective } from './model';
 
 export { ENDPOINTS_SETTING } from './model';
 export { evaluateOn, forgetProviders } from './api';
@@ -42,19 +43,39 @@ export function createOpenViewsBuilder({ id, label, endpoints, legacy = false }:
     },
     dataSource: (settings) => ({
       id,
-      run: async (query, variables, signal) => {
-        const bases = endpoints(settings);
-        if (bases.length === 0) throw new Error(`Set the endpoint of ${label} in Settings → Plugins.`);
-        if (query !== VIEW_QUERY && query !== ITEMS_QUERY) {
-          throw new Error(`Open Views answers "${VIEW_QUERY}" and "${ITEMS_QUERY}" queries, not "${query}".`);
-        }
-        const vars = queryVariables(query, variables, bases);
-        const provider = await discoverProvider(vars.endpoint, legacy);
-        if ('path' in vars) return fetchItems(provider, vars.id, vars.view, vars, signal);
-        return fetchView(provider, vars.id, vars.view, signal);
-      },
+      run: (query, variables, signal) => runQuery(endpoints(settings), legacy, label, query, variables, signal),
     }),
   };
+}
+
+/** Answers one query of an Open Views data source (`OPEN_VIEWS_QUERIES`), on one of `bases`. */
+async function runQuery(
+  bases: string[],
+  legacy: boolean,
+  label: string,
+  query: string,
+  variables: Record<string, unknown>,
+  signal?: AbortSignal,
+): ReturnType<DataSource['run']> {
+  if (bases.length === 0) throw new Error(`Set the endpoint of ${label} in Settings → Plugins.`);
+  if (!isOpenViewsQuery(query)) throw new Error(`Open Views answers views, view, items and action queries, not "${query}".`);
+  const provider = await discoverProvider(queryVariables(query, variables, bases).endpoint, legacy);
+  switch (query) {
+    case 'views':
+      return fetchObjectViews(provider, queryVariables(query, variables, bases).id, signal);
+    case 'view': {
+      const { id, view } = queryVariables(query, variables, bases);
+      return fetchView(provider, id, view, signal);
+    }
+    case 'items': {
+      const { id, view, ...page } = queryVariables(query, variables, bases);
+      return fetchItems(provider, id, view, page, signal);
+    }
+    case 'action': {
+      const { id, view, action } = queryVariables(query, variables, bases);
+      return runAction(provider, id, view, action, signal);
+    }
+  }
 }
 
 /** The generic Open Views builder: any number of endpoints, one per line. */

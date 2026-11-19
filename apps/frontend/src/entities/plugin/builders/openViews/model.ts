@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { VIEW_NODE_KINDS, type ViewDeclaration, type ViewSpec } from '@fluid/shared';
+import { OPEN_VIEWS_QUERIES, VIEW_NODE_KINDS, type ViewDeclaration, type ViewSpec } from '@fluid/shared';
 import type { Concept } from '../../../../graphql/introspection';
 import type { Perspective } from '../../viewBuilder';
 
@@ -10,11 +10,10 @@ import type { Perspective } from '../../viewBuilder';
 /** The setting of the generic builder: base URLs, one per line (or separated by spaces or commas). */
 export const ENDPOINTS_SETTING = 'endpoints';
 
-/** One view of one object (answers a `ViewResponse`). */
-export const VIEW_QUERY = 'view';
-
-/** A page of the items of a list, columned list or tree of a view (answers a `ViewItemsResponse`). */
-export const ITEMS_QUERY = 'items';
+/** The queries the data source answers (contract shared with the `specPresenter` widget). */
+export type OpenViewsQuery = keyof typeof OPEN_VIEWS_QUERIES;
+const QUERY_NAMES: ReadonlySet<string> = new Set(Object.values(OPEN_VIEWS_QUERIES));
+export const isOpenViewsQuery = (query: string): query is OpenViewsQuery => QUERY_NAMES.has(query);
 
 /** A base URL without its trailing slashes. */
 export const trimEndpoint = (endpoint: string): string => endpoint.trim().replace(/\/+$/, '');
@@ -68,33 +67,38 @@ export function normalizeUnknownKinds(node: unknown): unknown {
 export const normalizeViewResponse = (body: unknown): unknown =>
   isRecord(body) && 'view' in body ? { ...body, view: normalizeUnknownKinds(body.view) } : body;
 
-const viewVariablesSchema = z.object({
-  endpoint: z.string().min(1),
-  id: z.string().min(1),
-  view: z.string().min(1),
-});
-const itemsVariablesSchema = viewVariablesSchema.extend({
-  path: z.string().regex(/^\d+(\.\d+)*$/),
-  offset: z.number().int().min(0).optional(),
-  limit: z.number().int().min(1).optional(),
-});
-export type ViewVariables = z.infer<typeof viewVariablesSchema>;
-export type ItemsVariables = z.infer<typeof itemsVariablesSchema>;
+const objectVariables = z.object({ endpoint: z.string().min(1), id: z.string().min(1) });
+const viewVariables = objectVariables.extend({ view: z.string().min(1) });
+const VARIABLES = {
+  views: objectVariables,
+  view: viewVariables,
+  items: viewVariables.extend({
+    path: z.string().regex(/^\d+(\.\d+)*$/),
+    offset: z.number().int().min(0).optional(),
+    limit: z.number().int().min(1).optional(),
+  }),
+  action: viewVariables.extend({ action: z.string().min(1) }),
+};
+export type QueryVariables<Q extends OpenViewsQuery> = z.infer<(typeof VARIABLES)[Q]>;
+
+const NEEDS: Record<OpenViewsQuery, string> = {
+  views: '"endpoint" and "id"',
+  view: '"endpoint", "id" and "view"',
+  items: '"endpoint", "id", "view" and "path"',
+  action: '"endpoint", "id", "view" and "action"',
+};
 
 /**
- * The variables of a `view` or `items` query, checked (they come from a saved
- * view or the LLM): the endpoint must be one the user configured, so a view
- * cannot make fluid call any other URL.
+ * The variables of a query, checked (they come from a saved view, the LLM or a
+ * widget): the endpoint must be one the user configured, so a view cannot make
+ * fluid call any other URL.
  */
-export function queryVariables(query: string, variables: Record<string, unknown>, endpoints: string[]): ViewVariables | ItemsVariables {
-  const schema = query === ITEMS_QUERY ? itemsVariablesSchema : viewVariablesSchema;
-  const parsed = schema.safeParse(variables);
-  if (!parsed.success) {
-    throw new Error(`An Open Views "${query}" query needs ${query === ITEMS_QUERY ? '"endpoint", "id", "view" and "path"' : '"endpoint", "id" and "view"'}.`);
-  }
+export function queryVariables<Q extends OpenViewsQuery>(query: Q, variables: Record<string, unknown>, endpoints: string[]): QueryVariables<Q> {
+  const parsed = VARIABLES[query].safeParse(variables);
+  if (!parsed.success) throw new Error(`An Open Views "${query}" query needs ${NEEDS[query]}.`);
   const endpoint = trimEndpoint(parsed.data.endpoint);
   if (!endpoints.includes(endpoint)) throw new Error(`${endpoint} is not one of the Open Views endpoints set in Settings → Plugins.`);
-  return { ...parsed.data, endpoint };
+  return { ...parsed.data, endpoint } as QueryVariables<Q>;
 }
 
 /** The views every endpoint declared for an object. */
@@ -120,8 +124,8 @@ export function viewPerspective(source: string, concept: Concept, itemId: string
     concept: concept.name,
     scope: 'detail',
     title: view.title,
-    queries: { [VIEW_QUERY]: { source, query: VIEW_QUERY, variables: { endpoint, id: itemId, view: view.key } } },
-    widgets: [{ id: 'view', type: 'specPresenter', span: 24, data: { query: VIEW_QUERY, path: 'view' } }],
+    queries: { view: { source, query: OPEN_VIEWS_QUERIES.view, variables: { endpoint, id: itemId, view: view.key } } },
+    widgets: [{ id: 'view', type: 'specPresenter', span: 24, data: { query: 'view' } }],
   };
   return { key: `${source}:${endpoint}:${view.key}`, title: view.title, origin: 'remote', spec };
 }
