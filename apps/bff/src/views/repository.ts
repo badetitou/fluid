@@ -2,8 +2,8 @@ import type { PrismaClient } from '../generated/prisma/client';
 
 /** Read-only access to stored views (the only Prisma access of the run feature). */
 export interface ViewReader {
-  /** The stored spec, unvalidated; null when the view does not exist. */
-  getSpec(id: string): Promise<unknown | null>;
+  /** The stored spec, unvalidated; `null` when the view does not exist (JSON null never is a valid spec). */
+  getSpec(id: string): Promise<unknown>;
 }
 
 export function createViewReader(prisma: PrismaClient): ViewReader {

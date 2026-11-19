@@ -85,7 +85,7 @@ describe('POST /api/views/:id/run (header source)', () => {
     await run(await saveView(), { sourceId, variables: { kind: 'b' }, take: 5 });
     const vars = (q: string) => seen.find((s) => s.body.query === q)?.body.variables;
     expect(vars(STORED.accounts.query)).toEqual({ kind: 'b', take: 5 });
-    expect(vars(STORED.total.query)).toEqual({ kind: 'b' });
+    expect(vars(STORED.total.query)).toEqual({});
   });
 
   it('does not accept query text and never forwards any other text than the stored one', async () => {
@@ -94,6 +94,52 @@ describe('POST /api/views/:id/run (header source)', () => {
     expect(seen).toHaveLength(0);
     await run(await saveView(), { sourceId, variables: { query: '{ evil }' } });
     expect(sent()).toEqual([STORED.accounts.query, STORED.total.query].sort());
+  });
+
+  it('never runs a stored mutation, subscription or multi-operation document', async () => {
+    const id = await saveView({
+      m: { query: 'mutation { drop }' },
+      s: { query: 'subscription { tick }' },
+      two: { query: 'query A { a } query B { b }' },
+      ok: { query: '{ total }' },
+    });
+    const res = await run(id, { sourceId });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().results.m.errors).toEqual([{ message: 'Only a single query operation can run' }]);
+    expect(res.json().results.ok.data).toEqual({ total: 7 });
+    expect(sent()).toEqual(['{ total }']);
+  });
+
+  it('sends exactly the declared variables and does not touch $limit or $Take', async () => {
+    const id = await saveView({ q: { query: 'query($limit: Int, $Take: Int) { total }' } });
+    await run(id, { sourceId, take: 9, variables: { limit: 2, extra: 1, take: 5 } });
+    expect(seen[0].body.variables).toEqual({ limit: 2 });
+  });
+
+  it('answers 200 with skipped names for a view whose queries all target plugin sources', async () => {
+    const id = await saveView({ p: { query: 'select 1', source: 'spec-fluid' } });
+    const res = await run(id, { sourceId });
+    expect(res.json()).toEqual({ results: {}, skipped: ['p'] });
+    expect(seen).toHaveLength(0);
+    expect((await run(id, { sourceId: 'nope' })).statusCode).toBe(404);
+  });
+
+  it('validates take bounds and variables', async () => {
+    const id = await saveView();
+    for (const take of [0, 10_001, 1.5]) expect((await run(id, { sourceId, take })).statusCode).toBe(400);
+    expect((await run(id, { sourceId, variables: 'x' })).statusCode).toBe(400);
+    for (const take of [1, 10_000]) expect((await run(id, { sourceId, take })).statusCode).toBe(200);
+  });
+
+  it('refuses a view with too many queries (422)', async () => {
+    const many = Object.fromEntries(Array.from({ length: 21 }, (_, i) => [`q${i}`, { query: '{ total }' }]));
+    expect((await run(await saveView(many), { sourceId })).statusCode).toBe(422);
+    expect(seen).toHaveLength(0);
+  });
+
+  it('never leaks the source secret in the response', async () => {
+    const res = await run(await saveView(), { sourceId });
+    expect(res.body).not.toContain('sk-1');
   });
 
   it('answers 404 for an unknown view or source, 422 for an invalid stored spec', async () => {
@@ -122,6 +168,10 @@ describe('POST /api/views/:id/run (OAuth source)', () => {
     await h.signIn(sourceId);
     const res = await run(await saveView(), { sourceId, take: 3 });
     expect(res.statusCode).toBe(200);
+    const bodies = h.resource.state.bodies as { query: string; variables: object }[];
+    expect(bodies.map((b) => b.query).sort()).toEqual([STORED.accounts.query, STORED.total.query].sort());
+    expect(bodies.find((b) => b.query === STORED.accounts.query)?.variables).toEqual({ kind: 'a', take: 3 });
+    expect(bodies.find((b) => b.query === STORED.total.query)?.variables).toEqual({});
     expect(res.json().results.total).toEqual({ data: { ok: true } });
     expect(h.resource.state.seen).toHaveLength(2);
     expect(h.resource.state.seen[0]).toMatch(/^Bearer at-/);
@@ -136,6 +186,18 @@ describe('POST /api/views/:id/run (OAuth source)', () => {
     expect(h.resource.state.seen).toHaveLength(0);
   });
 
+  it('refreshes an expiring access token during a run', async () => {
+    h.as.opts.expiresIn = 120;
+    const { id: sourceId } = await h.createSource();
+    await h.signIn(sourceId);
+    h.clock.t += 61_000;
+    const res = await run(await saveView(), { sourceId });
+    expect(res.statusCode).toBe(200);
+    expect(h.as.tokenCalls).toHaveLength(2);
+    expect(h.as.tokenCalls[1].params.get('grant_type')).toBe('refresh_token');
+    expect(h.resource.state.seen.every((a) => a?.startsWith('Bearer at-'))).toBe(true);
+  });
+
   it('propagates an upstream 401 as reason expired', async () => {
     const { id: sourceId } = await h.createSource();
     await h.signIn(sourceId);
@@ -143,5 +205,25 @@ describe('POST /api/views/:id/run (OAuth source)', () => {
     const res = await run(await saveView(), { sourceId });
     expect(res.statusCode).toBe(401);
     expect(res.json().errors[0].extensions.reason).toBe('expired');
+  });
+});
+
+describe('POST /api/views/:id/run (key problems)', () => {
+  it('answers a fixed-message 500 when the stored secret cannot be decrypted', async () => {
+    const storage = createStorage({ kind: 'pglite', dataDir: 'memory://' });
+    await storage.init();
+    const repo = createSourceRepository(storage.prisma);
+    const first = createSourceService(repo, () => randomBytes(32));
+    const src = await first.create({ name: 'S', url: 'http://127.0.0.1:9/graphql', authKind: 'header', headerName: 'X', secret: 'sk-9' });
+    const service = createSourceService(repo, () => randomBytes(32)); // another key
+    const app = Fastify();
+    await app.register(viewRunRoutes, { service: createViewRunService(createViewReader(storage.prisma), service) });
+    const view = await storage.prisma.view.create({ data: { concept: 'A', title: 'T', spec: spec(STORED) } });
+    const res = await app.inject({ method: 'POST', url: `/api/views/${view.id}/run`, payload: { sourceId: src.id } });
+    expect(res.statusCode).toBe(500);
+    expect(res.json()).toEqual({ error: 'Stored secret cannot be decrypted with the current FLUID_SECRET_KEY' });
+    expect(res.body).not.toContain('sk-9');
+    await app.close();
+    await storage.close();
   });
 });

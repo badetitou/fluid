@@ -1,11 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { runViewBody } from '../views/run-model';
+import { runViewBody } from '../views/model';
+import { secretAwareErrorHandler } from './error-handler';
 import type { ViewRunService } from '../views/run-service';
 
 // Runs the stored queries of a saved view on a configured source. No query text is accepted.
 
 export async function viewRunRoutes(app: FastifyInstance, { service }: { service: ViewRunService }) {
+  app.setErrorHandler(secretAwareErrorHandler);
+
   app.post('/api/views/:id/run', async (req, reply) => {
     const { id } = req.params as { id: string };
     const parsed = runViewBody.safeParse(req.body);
@@ -20,6 +23,8 @@ export async function viewRunRoutes(app: FastifyInstance, { service }: { service
         return reply.code(404).send({ error: 'Source not found' });
       case 'invalid-spec':
         return reply.code(422).send({ error: 'Stored view spec is invalid', issues: out.issues });
+      case 'too-many-queries':
+        return reply.code(422).send({ error: `Too many queries to run (max ${out.max})` });
       case 'auth-required':
         return reply.code(out.status).send(out.body);
       case 'ok':
