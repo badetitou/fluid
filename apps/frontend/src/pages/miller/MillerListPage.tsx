@@ -1,8 +1,8 @@
 import { useMemo, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Alert } from 'antd';
 import { useDashboards } from '../../entities/dashboard';
-import { parseDashboardSplat } from '../../navigation/millerPath';
+import { parseDashboardSplat, splatFromPathname } from '../../navigation/millerPath';
 import { buildColumns, resolveRoot, reuseColumns, type ColumnConfig } from './model';
 import { MillerListView } from './MillerListView';
 import styles from './MillerColumn.module.css';
@@ -13,7 +13,10 @@ import styles from './MillerColumn.module.css';
  * graph) followed by the Miller columns its links opened.
  */
 export function MillerListPage() {
-  const splat = useParams<{ '*': string }>()['*'] ?? '';
+  // Not useParams' splat: React Router decodes it and turns an id's `%2F` into
+  // a real `/`, which would open one bogus column per fragment of the key.
+  const { pathname } = useLocation();
+  const splat = splatFromPathname(pathname);
   const { find } = useDashboards();
   const { root, rootSegment, stack } = useMemo(() => parseDashboardSplat(splat), [splat]);
   const rootColumn = useMemo(() => resolveRoot(root, find), [root, find]);
