@@ -60,358 +60,388 @@
       ]
     },
     "ViewNode": {
-      "oneOf": [
+      "anyOf": [
         {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "list"
-            },
-            "items": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/ViewItem"
-              }
-            },
-            "total": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "lazy": {
-              "type": "boolean"
-            },
-            "truncated": {
-              "type": "boolean"
-            }
-          },
-          "required": [
-            "kind",
-            "items"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "columnedList"
-            },
-            "columns": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "type": "string"
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "list"
+                },
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/ViewItem"
                   }
                 },
-                "required": [
-                  "title"
-                ]
-              }
-            },
-            "items": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/ViewItem"
-              }
-            },
-            "total": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "lazy": {
-              "type": "boolean"
-            },
-            "truncated": {
-              "type": "boolean"
-            }
-          },
-          "required": [
-            "kind",
-            "columns",
-            "items"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "tree"
-            },
-            "columns": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "type": "string"
-                  }
+                "total": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
                 },
-                "required": [
-                  "title"
-                ]
-              }
-            },
-            "roots": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/ViewItem"
-              }
-            },
-            "total": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "lazy": {
-              "type": "boolean"
-            },
-            "truncated": {
-              "type": "boolean"
-            }
-          },
-          "required": [
-            "kind",
-            "roots"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "text"
-            },
-            "text": {
-              "type": "string"
-            },
-            "language": {
-              "type": "string"
-            },
-            "highlights": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "start": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "end": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  }
+                "lazy": {
+                  "type": "boolean"
                 },
-                "required": [
-                  "start",
-                  "end"
-                ]
-              }
-            }
-          },
-          "required": [
-            "kind",
-            "text"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "svg"
-            },
-            "svg": {
-              "type": "string"
-            },
-            "hotspots": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "ref": {
-                    "$ref": "#/$defs/ViewRef"
-                  },
-                  "x": {
-                    "type": "number"
-                  },
-                  "y": {
-                    "type": "number"
-                  },
-                  "width": {
-                    "type": "number"
-                  },
-                  "height": {
-                    "type": "number"
-                  }
-                },
-                "required": [
-                  "ref",
-                  "x",
-                  "y",
-                  "width",
-                  "height"
-                ]
-              }
-            }
-          },
-          "required": [
-            "kind",
-            "svg"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "label"
-            },
-            "text": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "kind",
-            "text"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "composite"
-            },
-            "direction": {
-              "type": "string",
-              "enum": [
-                "row",
-                "column"
+                "truncated": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "kind",
+                "items"
               ]
             },
-            "children": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/ViewNode"
-              }
-            }
-          },
-          "required": [
-            "kind",
-            "direction",
-            "children"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "tabs"
-            },
-            "tabs": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "type": "string"
-                  },
-                  "node": {
-                    "$ref": "#/$defs/ViewNode"
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "columnedList"
+                },
+                "columns": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "title"
+                    ]
                   }
                 },
-                "required": [
-                  "title",
-                  "node"
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/ViewItem"
+                  }
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "lazy": {
+                  "type": "boolean"
+                },
+                "truncated": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "kind",
+                "columns",
+                "items"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "tree"
+                },
+                "columns": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "title"
+                    ]
+                  }
+                },
+                "roots": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/ViewItem"
+                  }
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "lazy": {
+                  "type": "boolean"
+                },
+                "truncated": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "kind",
+                "roots"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "text"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "language": {
+                  "type": "string"
+                },
+                "highlights": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "start": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "end": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "start",
+                      "end"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "text"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "svg"
+                },
+                "svg": {
+                  "type": "string"
+                },
+                "hotspots": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "ref": {
+                        "$ref": "#/$defs/ViewRef"
+                      },
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      },
+                      "width": {
+                        "type": "number"
+                      },
+                      "height": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "ref",
+                      "x",
+                      "y",
+                      "width",
+                      "height"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "svg"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "label"
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "text"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "composite"
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": [
+                    "row",
+                    "column"
+                  ]
+                },
+                "children": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/ViewNode"
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "direction",
+                "children"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "tabs"
+                },
+                "tabs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "node": {
+                        "$ref": "#/$defs/ViewNode"
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "node"
+                    ]
+                  }
+                },
+                "selected": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "kind",
+                "tabs"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "diff"
+                },
+                "before": {
+                  "type": "string"
+                },
+                "after": {
+                  "type": "string"
+                },
+                "beforeLabel": {
+                  "type": "string"
+                },
+                "afterLabel": {
+                  "type": "string"
+                },
+                "language": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "before",
+                "after"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "forward"
+                },
+                "ref": {
+                  "$ref": "#/$defs/ViewRef"
+                },
+                "view": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "kind",
+                "ref"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "unsupported"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "not": {
+                "enum": [
+                  "list",
+                  "columnedList",
+                  "tree",
+                  "text",
+                  "svg",
+                  "label",
+                  "composite",
+                  "tabs",
+                  "diff",
+                  "forward",
+                  "unsupported"
                 ]
               }
-            },
-            "selected": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
             }
           },
           "required": [
-            "kind",
-            "tabs"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "diff"
-            },
-            "before": {
-              "type": "string"
-            },
-            "after": {
-              "type": "string"
-            },
-            "beforeLabel": {
-              "type": "string"
-            },
-            "afterLabel": {
-              "type": "string"
-            },
-            "language": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "kind",
-            "before",
-            "after"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "forward"
-            },
-            "ref": {
-              "$ref": "#/$defs/ViewRef"
-            },
-            "view": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "required": [
-            "kind",
-            "ref"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "unsupported"
-            },
-            "type": {
-              "type": "string"
-            },
-            "message": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "kind",
-            "type"
+            "kind"
           ]
         }
       ]
@@ -637,11 +667,13 @@
           "type": "string"
         },
         "code": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       },
       "required": [
-        "error"
+        "error",
+        "code"
       ]
     }
   }

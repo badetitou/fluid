@@ -47,8 +47,28 @@ describe('viewNodeSchema', () => {
     expect(viewNodeSchema.safeParse(nested).success).toBe(true);
   });
 
+  it('reads a node of an unknown kind as unsupported, at any depth', () => {
+    expect(viewNodeSchema.parse({ kind: 'heatmap', cells: [[1, 2]] })).toEqual({ kind: 'unsupported', type: 'heatmap' });
+    expect(
+      viewNodeSchema.parse({
+        kind: 'tabs',
+        tabs: [{ title: 'New', node: { kind: 'composite', direction: 'row', children: [{ kind: 'timeline' }] } }],
+      }),
+    ).toEqual({
+      kind: 'tabs',
+      tabs: [{ title: 'New', node: { kind: 'composite', direction: 'row', children: [{ kind: 'unsupported', type: 'timeline' }] } }],
+    });
+  });
+
+  it('keeps the path of an error inside a node of a known kind', () => {
+    const result = viewNodeSchema.safeParse({ kind: 'composite', direction: 'row', children: [{ kind: 'list' }] });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path.join('.')).toContain('children.0');
+  });
+
   it.each([
-    ['an unknown kind', { kind: 'table', columns: [], rows: [] }],
+    ['a kind that is not a string', { kind: 3 }],
+    ['no kind', { text: 'hello' }],
     ['a missing field', { kind: 'columnedList', items: [] }],
     ['an empty ref id', { kind: 'forward', ref: { id: '' } }],
     ['a negative selected tab', { kind: 'tabs', tabs: [], selected: -1 }],
@@ -56,6 +76,7 @@ describe('viewNodeSchema', () => {
     ['a bad direction', { kind: 'composite', direction: 'diagonal', children: [] }],
     ['an invalid child', { kind: 'composite', direction: 'row', children: [{ kind: 'label' }] }],
     ['a tree item without cells', { kind: 'tree', roots: [{ children: [] }] }],
+    ['a text range ending before it starts', { kind: 'text', text: 'abc', highlights: [{ start: 2, end: 1 }] }],
   ])('rejects %s', (_name, node) => {
     expect(viewNodeSchema.safeParse(node).success).toBe(false);
   });
