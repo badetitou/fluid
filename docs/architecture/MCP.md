@@ -87,6 +87,25 @@ Le viewer ne fournit pas d'`offsetArg` : la pagination se fait par un `take` plu
 - **Plein écran** : `ui/request-display-mode` ; le bouton n'apparaît pas si l'hôte annonce des
   `availableDisplayModes` sans `fullscreen`. En plein écran, la grille passe à 3 colonnes.
 
+## Actions de vue (`invoke_action`)
+
+- `invoke_action` est visible par l'app seulement : le modèle ne peut pas lancer une mutation.
+- Le BFF n'exécute que l'action enregistrée de la vue (`POST /api/views/:id/actions/:action`,
+  `views/action-service.ts`) : la clé et les variables résolues (`$target`, `$form` remplacés par le
+  moteur) arrivent, jamais le texte d'une mutation ; le document doit être une seule opération
+  `mutation`, et seules ses variables déclarées passent.
+- Écriture : la source doit avoir `allowWrites` (colonne de `SourceConfig`, désactivée par défaut,
+  remise à `false` quand l'URL change d'origine). C'est le réglage « Allow changes » de l'app
+  (`useSourceWrites`), envoyé au BFF pour une source routée par lui, et repris à la création de la
+  config BFF. Sinon 403. `show_view` dit au viewer si la source l'accepte (`writable`).
+- Chaque run est journalisé dans la table `ActionLog` (vue, action, source, variables, succès,
+  réponse coupée au-delà de 8 Ko).
+- Viewer : sans `writable` ou pour un brouillon non enregistré, la vue est en lecture seule. Sinon
+  chaque action reçoit une confirmation (`actionModel.ts`), une suppression dit qu'elle efface des
+  données de la source et que c'est définitif ; le moteur la pose (`useViewActions`), puis
+  l'échange urql du viewer retrouve l'action par le texte de sa mutation et appelle
+  `invoke_action`. Le patch local et les `refetch` du moteur s'appliquent comme dans l'app.
+
 ## Thème
 
 Le thème du contexte hôte (`light` / `dark`) choisit la variante du thème intégré

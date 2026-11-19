@@ -126,6 +126,9 @@ Dans `apps/frontend/src/views/actions/` (moteur) :
   *Settings → Connection → Allow changes* via `useSourceWrites`, transmise au moteur par
   `WriteAccessContext` (posé dans `App.tsx` ; `false` sans fournisseur).
 
+Depuis un hôte MCP (viewer `ui://fluid/viewer`), les actions passent par le BFF et l'outil
+`invoke_action` ; l'écriture y dépend du drapeau `allowWrites` de la source côté BFF (voir `MCP.md`).
+
 Limites connues :
 - GraphQLZero n'enregistre rien : un `refetch` (ou un remontage de la vue) affiche à nouveau
   l'ancienne valeur. Sans `refetch`, le patch local reste affiché.

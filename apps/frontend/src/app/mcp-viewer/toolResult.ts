@@ -21,6 +21,8 @@ const showViewSchema = z.object({
   variables: z.record(z.string(), z.unknown()).optional(),
   /** Where fluid runs, to open an item there. */
   fluidUrl: z.string().url().optional().catch(undefined),
+  /** The source allows changes: the view's actions may run. */
+  writable: z.boolean().optional().catch(undefined),
 });
 
 /** `draft_view`: a view the assistant wrote, not saved yet. */
@@ -56,6 +58,7 @@ export interface ViewPayload {
   data: Record<string, QueryResult>;
   variables?: Record<string, unknown>;
   fluidUrl?: string;
+  writable?: boolean;
 }
 
 export type ParsedToolResult = { kind: 'view'; payload: ViewPayload } | { kind: 'error'; message: string };
@@ -74,8 +77,8 @@ export function parseToolResult(params: unknown): ParsedToolResult {
   if (!shown.success) return { kind: 'error', message: 'This result is not a fluid view.' };
   const spec = viewSpecSchema.safeParse(shown.data.spec);
   if (!spec.success) return { kind: 'error', message: 'The view spec is not valid.' };
-  const { sourceId, take, data, variables, fluidUrl } = shown.data;
-  const common = { sourceId, take, data, ...(variables ? { variables } : {}), ...(fluidUrl ? { fluidUrl } : {}) };
+  const { sourceId, take, data, variables, fluidUrl, writable } = shown.data;
+  const common = { sourceId, take, data, ...(variables ? { variables } : {}), ...(fluidUrl ? { fluidUrl } : {}), ...(writable ? { writable } : {}) };
   // The item id of a detail view goes into the queries that read it, as in the app's columns.
   const itemId = typeof variables?.id === 'string' || typeof variables?.id === 'number' ? String(variables.id) : undefined;
   const shownSpec = injectItemId(spec.data, undefined, itemId);
@@ -118,4 +121,14 @@ export function parseViewRows(params: unknown): z.infer<typeof viewRowsSchema>['
   const rows = viewRowsSchema.safeParse(result.data.structuredContent);
   if (!rows.success) throw new Error('list_views answered something unexpected.');
   return rows.data.items;
+}
+
+/** The answer of `invoke_action`; throws with the error text of a refused call. */
+export function parseActionResult(params: unknown): { data?: unknown; errors?: unknown[] } {
+  const result = toolResultSchema.safeParse(params);
+  if (!result.success) throw new Error('The host sent an unreadable answer.');
+  if (result.data.isError) throw new Error(textOf(result.data.content) || 'invoke_action failed.');
+  const out = queryResultSchema.safeParse(result.data.structuredContent ?? {});
+  if (!out.success) throw new Error('invoke_action answered something unexpected.');
+  return out.data;
 }

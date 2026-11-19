@@ -46,6 +46,8 @@ export const createSourceBody = z
     name,
     url: httpUrl,
     authKind: z.enum(AUTH_KINDS).default('none'),
+    /** View actions (mutations) may run on it from the BFF. */
+    allowWrites: z.boolean().optional(),
     headerName: headerName.optional(),
     secret: secret.optional(),
     oauth: z
@@ -70,6 +72,7 @@ export const updateSourceBody = z
     name,
     url: httpUrl,
     authKind: z.enum(AUTH_KINDS),
+    allowWrites: z.boolean(),
     headerName: headerName.nullish(),
     secret: secret.nullish(),
     /** Fields left out keep their value; `clientSecret` / `resource` accept null to clear. */
@@ -109,6 +112,7 @@ export interface SourceRecord extends OAuthRecordFields {
   headerName: string | null;
   secret: string | null;
   authGeneration: number;
+  allowWrites: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -122,6 +126,7 @@ export function toPublicSource(r: SourceRecord, credential: CredentialRecord | n
     authKind: r.authKind,
     headerName: r.headerName ?? (r.authKind === 'header' ? DEFAULT_HEADER : null),
     hasSecret: r.secret !== null,
+    allowWrites: r.allowWrites,
     oauth: r.authKind === 'oauth' ? toPublicOAuth(r, credential) : null,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,

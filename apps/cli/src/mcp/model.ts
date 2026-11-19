@@ -102,6 +102,12 @@ export function summarizeDraft(spec: SpecInfo, draft: DraftOutput): string {
   return lines.join('\n');
 }
 
+/** What invoke_action tells the model: the action and whether the source took it (never upstream text). */
+export function summarizeAction(action: string, out: { errors?: unknown[] }): string {
+  const n = out.errors?.length ?? 0;
+  return n === 0 ? `Ran the action "${action}".` : `The action "${action}" failed (${n} error${n > 1 ? 's' : ''} from the source).`;
+}
+
 /** Tool error text: fixed wording, ids and names only (no secrets, no upstream bodies). */
 export function errorText(
   kind: FluidErrorKind,
@@ -114,6 +120,8 @@ export function errorText(
       return `Sign in to ${ctx.sourceName ?? 'the source'} from fluid's settings (Settings → Connection)`;
     case 'timeout':
       return `fluid at ${ctx.baseUrl} did not answer in time`;
+    case 'forbidden':
+      return ctx.detail ?? 'fluid does not allow this';
     case 'rejected':
       return `fluid refused it:\n${(ctx.issues ?? []).map((i) => `- ${i}`).join('\n') || ctx.detail || ''}`;
     case 'not-found':

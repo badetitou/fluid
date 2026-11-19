@@ -14,6 +14,7 @@ export interface SourceData {
   oauthClientSecret: string | null;
   oauthScopes: string | null;
   oauthResource: string | null;
+  allowWrites?: boolean;
 }
 
 /** Update data: `bumpAuthGeneration` invalidates in-flight token writes in the same statement. */

@@ -36,3 +36,32 @@ export function createViewWriter(prisma: PrismaClient): ViewWriter {
       }),
   };
 }
+
+/** A view action run, as the BFF keeps it. */
+export interface ActionLogEntry {
+  viewId: string;
+  action: string;
+  sourceId: string;
+  variables: Record<string, unknown>;
+  ok: boolean;
+  result: unknown;
+}
+
+/** Where action runs are written down. */
+export interface ActionLog {
+  record(entry: ActionLogEntry): Promise<void>;
+}
+
+export function createActionLog(prisma: PrismaClient): ActionLog {
+  return {
+    async record(entry) {
+      await prisma.actionLog.create({
+        data: {
+          ...entry,
+          variables: entry.variables as Prisma.InputJsonValue,
+          result: (entry.result ?? null) as Prisma.InputJsonValue,
+        },
+      });
+    },
+  };
+}

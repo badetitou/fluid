@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import { registerActionTools } from './actionTools';
 import { registerDraftTools } from './draftTools';
 import { FluidApiError, type FluidApi, type RunOutput, type RunParams } from './fluidApi';
 import {
@@ -32,9 +33,9 @@ const variables = z.record(z.string(), z.unknown()).optional().describe('Variabl
 export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '0.0.0', viewerHtml = PLACEHOLDER_HTML): McpServer {
   const server = new McpServer({ name: 'fluid', version });
 
-  async function sourceName(sourceId: string): Promise<string | undefined> {
+  async function sourceInfo(sourceId: string) {
     try {
-      return (await api.listSources()).find((s) => s.id === sourceId)?.name;
+      return (await api.listSources()).find((s) => s.id === sourceId);
     } catch {
       return undefined;
     }
@@ -57,7 +58,7 @@ export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '
       return await fn();
     } catch (err) {
       if (!(err instanceof FluidApiError)) throw err;
-      const name = err.kind === 'auth-required' && sourceId ? await sourceName(sourceId) : undefined;
+      const name = err.kind === 'auth-required' && sourceId ? (await sourceInfo(sourceId))?.name : undefined;
       const detail = err.kind === 'not-found' ? err.message : err.kind === 'unreachable' ? undefined : err.message;
       return { isError: true, ...text(errorText(err.kind, { baseUrl, sourceName: name ?? sourceId, detail, issues: err.issues })) };
     }
@@ -95,7 +96,9 @@ export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '
       guarded(sourceId, async () => {
         const { spec, rawSpec } = await api.getView(viewId);
         const out = await run(viewId, { sourceId, take, ...(vars ? { variables: vars } : {}) });
-        const shown = { viewId, sourceId, take: take ?? DEFAULT_TAKE, ...(vars ? { variables: vars } : {}), fluidUrl: baseUrl };
+        // Whether the viewer may offer the view's actions: the source allows changes ("Allow changes" in fluid).
+        const writable = (await sourceInfo(sourceId))?.allowWrites === true;
+        const shown = { viewId, sourceId, take: take ?? DEFAULT_TAKE, ...(vars ? { variables: vars } : {}), fluidUrl: baseUrl, writable };
         return { ...text(summarizeRun(spec, out)), structuredContent: { ...shown, spec: rawSpec, data: out.results } };
       }),
   );
@@ -115,6 +118,7 @@ export function createFluidMcpServer(api: FluidApi, baseUrl: string, version = '
   );
 
   registerDraftTools(server, api, guarded, baseUrl);
+  registerActionTools(server, api, guarded);
 
   server.registerResource(
     'viewer',

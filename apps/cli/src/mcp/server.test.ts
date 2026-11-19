@@ -71,7 +71,8 @@ describe('fluid MCP server', () => {
   it('declares the tools with their UI visibility', async () => {
     const { tools } = await (await connect(baseUrl)).listTools();
     const meta = Object.fromEntries(tools.map((t) => [t.name, t._meta?.ui]));
-    expect(Object.keys(meta).sort()).toEqual(['draft_view', 'get_source_schema', 'list_sources', 'list_views', 'run_queries', 'save_view', 'show_view']);
+    expect(Object.keys(meta).sort()).toEqual(['draft_view', 'get_source_schema', 'invoke_action', 'list_sources', 'list_views', 'run_queries', 'save_view', 'show_view']);
+    expect(meta.invoke_action).toEqual({ visibility: ['app'] });
     expect(meta.list_sources).toEqual({ visibility: ['model'] });
     expect(meta.list_views).toEqual({ visibility: ['model', 'app'] });
     expect(tools.find((t) => t.name === 'show_view')?._meta?.['ui/resourceUri']).toBe('ui://fluid/viewer');
@@ -139,7 +140,7 @@ describe('fluid MCP server', () => {
     expect(textOf(r)).toContain('- list: 2 rows');
     expect(textOf(r)).toContain('Skipped');
     expect(r.structuredContent).toEqual({
-      viewId: 'v1', sourceId: 's1', take: 5, fluidUrl: baseUrl, spec: SPEC, data: { list: { data: { characters: [{ id: 1 }, { id: 2 }] } } },
+      viewId: 'v1', sourceId: 's1', take: 5, fluidUrl: baseUrl, writable: false, spec: SPEC, data: { list: { data: { characters: [{ id: 1 }, { id: 2 }] } } },
     });
     expect(lastRun).toEqual({ sourceId: 's1', take: 5 });
   });

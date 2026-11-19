@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // Small HTTP client of a running fluid. Every answer is validated; nothing here opens the data dir.
 
-export type FluidErrorKind = 'unreachable' | 'timeout' | 'auth-required' | 'not-found' | 'invalid' | 'too-large' | 'rejected' | 'http';
+export type FluidErrorKind = 'unreachable' | 'timeout' | 'auth-required' | 'not-found' | 'forbidden' | 'invalid' | 'too-large' | 'rejected' | 'http';
 
 export class FluidApiError extends Error {
   constructor(
@@ -20,6 +20,7 @@ const sourceSchema = z.looseObject({
   name: z.string(),
   url: z.string(),
   authKind: z.string(),
+  allowWrites: z.boolean().optional(),
   oauth: z.looseObject({ signedIn: z.boolean() }).nullish(),
 });
 export type SourceInfo = z.infer<typeof sourceSchema>;
@@ -79,6 +80,8 @@ const draftOutSchema = runSchema.extend({ spec: z.unknown(), issues: z.array(z.s
 export type DraftOutput = z.infer<typeof draftOutSchema>;
 const savedSchema = viewRowSchema;
 const sdlSchema = z.object({ sdl: z.string(), truncated: z.boolean() });
+const actionOutSchema = z.looseObject({ data: z.unknown().optional(), errors: z.array(z.unknown()).optional() });
+export type ActionOutput = z.infer<typeof actionOutSchema>;
 
 /** A view written by the assistant: the draft and what it is for. */
 export interface DraftParams {
@@ -104,6 +107,7 @@ export interface FluidApi {
   sourceSchema(sourceId: string): Promise<{ sdl: string; truncated: boolean }>;
   draftView(params: DraftParams & { take?: number }): Promise<DraftOutput>;
   saveDraft(params: DraftParams): Promise<ViewRow>;
+  invokeAction(viewId: string, action: string, params: { sourceId: string; variables?: Record<string, unknown> }): Promise<ActionOutput>;
 }
 
 export function createFluidApi(baseUrl: string, fetchImpl: typeof fetch = fetch, timeoutMs = 90_000): FluidApi {
@@ -129,6 +133,7 @@ export function createFluidApi(baseUrl: string, fetchImpl: typeof fetch = fetch,
       throw new FluidApiError('auth-required', 'sign-in required');
     }
     if (res.status === 404) throw new FluidApiError('not-found', errorField(body) ?? 'not found');
+    if (res.status === 403) throw new FluidApiError('forbidden', errorField(body) ?? 'not allowed');
     const rejected = res.status === 422 ? issuesSchema.safeParse(body) : undefined;
     if (rejected?.success) throw new FluidApiError('rejected', errorField(body) ?? 'rejected', rejected.data.issues);
     if (!res.ok) {
@@ -161,6 +166,7 @@ export function createFluidApi(baseUrl: string, fetchImpl: typeof fetch = fetch,
     sourceSchema: (sourceId) => call(`/api/views/draft/schema?sourceId=${enc(sourceId)}`, sdlSchema),
     draftView: (params) => call('/api/views/draft', draftOutSchema, post(params)),
     saveDraft: (params) => call('/api/views/from-draft', savedSchema, post(params)),
+    invokeAction: (viewId, action, params) => call(`/api/views/${enc(viewId)}/actions/${enc(action)}`, actionOutSchema, post(params)),
   };
 }
 

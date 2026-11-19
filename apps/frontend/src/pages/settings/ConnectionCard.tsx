@@ -1,4 +1,4 @@
-import { Button, Card, Space, Switch, Typography } from 'antd';
+import { Alert, Button, Card, Space, Switch, Typography } from 'antd';
 import { DisconnectOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useSourceWrites } from '../../entities/preferences/useSourceWrites';
@@ -11,7 +11,7 @@ export function ConnectionCard() {
   const navigate = useNavigate();
   const graphqlUrl = useConnection((s) => s.graphqlUrl);
   const disconnect = useConnection((s) => s.disconnect);
-  const { writable, setWritable } = useSourceWrites();
+  const { writable, setWritable, syncError } = useSourceWrites();
 
   const handleDisconnect = () => {
     disconnect();
@@ -38,6 +38,7 @@ export function ConnectionCard() {
             Let views send mutations to this source (edit, create, delete). Off by default; each change
             still needs a click, and deletions a confirmation.
           </Typography.Paragraph>
+          {syncError && <Alert type="warning" showIcon title={syncError} />}
         </div>
         <BffSourceSettings />
         <div>

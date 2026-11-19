@@ -14,9 +14,11 @@ import { createOAuthService } from './sources/oauth/service';
 import { createSourceRepository } from './sources/repository';
 import { createSourceService } from './sources/service';
 import { viewRunRoutes } from './routes/view-run';
+import { viewActionRoutes } from './routes/view-action';
 import { viewDraftRoutes } from './routes/view-draft';
+import { createViewActionService } from './views/action-service';
 import { createViewDraftService } from './views/draft-service';
-import { createViewReader, createViewWriter } from './views/repository';
+import { createActionLog, createViewReader, createViewWriter } from './views/repository';
 import { createViewRunService } from './views/run-service';
 import { createSchemaLookup } from './views/schema-check';
 
@@ -55,6 +57,8 @@ export function buildApp(options: BuildAppOptions = {}) {
     writer: createViewWriter(prisma),
   });
   app.register(viewDraftRoutes, { service: drafts });
+  const actions = createViewActionService({ views: createViewReader(prisma), sources: sourceService, log: createActionLog(prisma) });
+  app.register(viewActionRoutes, { service: actions });
   app.register(oauthRoutes, { oauth, publicUrl: process.env.FLUID_PUBLIC_URL });
 
   const staticDir = options.staticDir ?? process.env.FLUID_STATIC_DIR;
