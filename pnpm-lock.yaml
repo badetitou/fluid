@@ -78,6 +78,9 @@ importers:
       '@fluid/bff':
         specifier: workspace:*
         version: link:../bff
+      '@fluid/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@modelcontextprotocol/sdk':
         specifier: ^1.32.2
         version: 1.32.2(zod@4.6.7)

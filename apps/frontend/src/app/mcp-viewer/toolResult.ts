@@ -18,15 +18,32 @@ const showViewSchema = z.object({
   data: z.record(z.string(), queryResultSchema),
 });
 
+/** `draft_view`: a view the assistant wrote, not saved yet. */
+const draftViewSchema = showViewSchema.omit({ viewId: true }).extend({
+  draft: z.literal(true),
+  concept: z.string().min(1),
+  request: z.string().min(1),
+  issues: z.array(z.string()).default([]),
+});
+
 const toolResultSchema = z.object({
   isError: z.boolean().optional(),
   content: z.array(z.object({ type: z.string(), text: z.string().optional() })).optional(),
   structuredContent: z.unknown().optional(),
 });
 
-/** The view to show, with the data `show_view` already ran. */
+/** What the viewer needs to save a drafted view (`save_view`). */
+export interface DraftInfo {
+  concept: string;
+  request: string;
+  issues: string[];
+}
+
+/** The view to show, with the data `show_view` (or `draft_view`) already ran. */
 export interface ViewPayload {
-  viewId: string;
+  /** Unset for a draft until it is saved. */
+  viewId?: string;
+  draft?: DraftInfo;
   sourceId: string;
   /** Rows the first run asked for, when the server said. */
   take?: number;
@@ -45,12 +62,17 @@ export function parseToolResult(params: unknown): ParsedToolResult {
   if (!result.success) return { kind: 'error', message: 'The host sent an unreadable tool result.' };
   const { isError, content, structuredContent } = result.data;
   if (isError) return { kind: 'error', message: textOf(content) || 'The tool failed.' };
-  const shown = showViewSchema.safeParse(structuredContent);
+  const drafted = draftViewSchema.safeParse(structuredContent);
+  const shown = drafted.success ? drafted : showViewSchema.safeParse(structuredContent);
   if (!shown.success) return { kind: 'error', message: 'This result is not a fluid view.' };
   const spec = viewSpecSchema.safeParse(shown.data.spec);
   if (!spec.success) return { kind: 'error', message: 'The view spec is not valid.' };
-  const { viewId, sourceId, take, data } = shown.data;
-  return { kind: 'view', payload: { viewId, sourceId, take, spec: spec.data, data } };
+  const { sourceId, take, data } = shown.data;
+  if (drafted.success) {
+    const { concept, request, issues } = drafted.data;
+    return { kind: 'view', payload: { sourceId, take, spec: spec.data, data, draft: { concept, request, issues } } };
+  }
+  return { kind: 'view', payload: { viewId: (shown.data as { viewId: string }).viewId, sourceId, take, spec: spec.data, data } };
 }
 
 /** The results of a `run_queries` call; throws with the error text it carried. */
@@ -61,4 +83,14 @@ export function parseRunResult(params: unknown): Record<string, QueryResult> {
   const run = runOutputSchema.safeParse(result.data.structuredContent);
   if (!run.success) throw new Error('run_queries answered something unexpected.');
   return run.data.results;
+}
+
+/** The answer of `save_view`; throws with the error text it carried. */
+export function parseSaveResult(params: unknown): { viewId: string; title: string } {
+  const result = toolResultSchema.safeParse(params);
+  if (!result.success) throw new Error('The host sent an unreadable answer.');
+  if (result.data.isError) throw new Error(textOf(result.data.content) || 'save_view failed.');
+  const saved = z.object({ viewId: z.string().min(1), title: z.string() }).safeParse(result.data.structuredContent);
+  if (!saved.success) throw new Error('save_view answered something unexpected.');
+  return saved.data;
 }

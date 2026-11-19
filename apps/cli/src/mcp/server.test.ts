@@ -71,7 +71,7 @@ describe('fluid MCP server', () => {
   it('declares the tools with their UI visibility', async () => {
     const { tools } = await (await connect(baseUrl)).listTools();
     const meta = Object.fromEntries(tools.map((t) => [t.name, t._meta?.ui]));
-    expect(Object.keys(meta).sort()).toEqual(['list_sources', 'list_views', 'run_queries', 'show_view']);
+    expect(Object.keys(meta).sort()).toEqual(['draft_view', 'get_source_schema', 'list_sources', 'list_views', 'run_queries', 'save_view', 'show_view']);
     expect(meta.list_sources).toEqual({ visibility: ['model'] });
     expect(meta.list_views).toEqual({ visibility: ['model'] });
     expect(tools.find((t) => t.name === 'show_view')?._meta?.['ui/resourceUri']).toBe('ui://fluid/viewer');

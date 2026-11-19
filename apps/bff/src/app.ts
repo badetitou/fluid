@@ -14,8 +14,11 @@ import { createOAuthService } from './sources/oauth/service';
 import { createSourceRepository } from './sources/repository';
 import { createSourceService } from './sources/service';
 import { viewRunRoutes } from './routes/view-run';
-import { createViewReader } from './views/repository';
+import { viewDraftRoutes } from './routes/view-draft';
+import { createViewDraftService } from './views/draft-service';
+import { createViewReader, createViewWriter } from './views/repository';
 import { createViewRunService } from './views/run-service';
+import { createSchemaLookup } from './views/schema-check';
 
 export interface BuildAppOptions {
   /** Built frontend directory; defaults to FLUID_STATIC_DIR. Unset = API only. */
@@ -43,7 +46,15 @@ export function buildApp(options: BuildAppOptions = {}) {
   const oauth = createOAuthService({ sources, creds: createCredentialRepository(prisma), key });
   const sourceService = createSourceService(sources, key, { oauth });
   app.register(sourceRoutes, { service: sourceService });
-  app.register(viewRunRoutes, { service: createViewRunService(createViewReader(prisma), sourceService) });
+  const runs = createViewRunService(createViewReader(prisma), sourceService);
+  app.register(viewRunRoutes, { service: runs });
+  const drafts = createViewDraftService({
+    sources: sourceService,
+    schemas: createSchemaLookup(sourceService),
+    runs,
+    writer: createViewWriter(prisma),
+  });
+  app.register(viewDraftRoutes, { service: drafts });
   app.register(oauthRoutes, { oauth, publicUrl: process.env.FLUID_PUBLIC_URL });
 
   const staticDir = options.staticDir ?? process.env.FLUID_STATIC_DIR;

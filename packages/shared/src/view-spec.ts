@@ -291,6 +291,8 @@ export const viewSpecSchema = z.object({
   scope: viewScopeSchema.optional(),
   title: z.string().min(1),
   description: z.string().optional(),
+  /** The request the view was built for, in the user's words (set by the system, never by a model). */
+  intent: z.string().max(2000).optional(),
   /** Named GraphQL queries widgets pull their data from. */
   queries: z.record(z.string(), querySpecSchema),
   /** Named GraphQL mutations widgets can trigger (see docs/architecture/MUTATIONS.md). */
@@ -321,6 +323,7 @@ export const viewSpecDraftSchema = viewSpecSchema.omit({
   version: true,
   id: true,
   concept: true,
+  intent: true,
 });
 export type ViewSpecDraft = z.infer<typeof viewSpecDraftSchema>;
 
@@ -332,12 +335,13 @@ export function safeParseViewSpecDraft(input: unknown) {
 /** Turn a validated draft into a full, renderable/persistable ViewSpec. */
 export function finalizeViewSpec(
   draft: ViewSpecDraft,
-  meta: { concept: string; id: string },
+  meta: { concept: string; id: string; intent?: string },
 ): ViewSpec {
   return {
     version: VIEW_SPEC_VERSION,
     id: meta.id,
     concept: meta.concept,
+    ...(meta.intent ? { intent: meta.intent } : {}),
     ...draft,
   };
 }

@@ -7,6 +7,8 @@ import { ViewRenderer } from '../../views/ViewRenderer';
 import { builtinWidgetCatalog } from '../../views/widgets/catalog';
 import { WidgetCatalogContext, WidgetThemeContext } from '../../views/plugin-api';
 import { createViewerClient } from './viewerClient';
+import { DraftBar } from './DraftBar';
+import { DraftPreview } from './DraftPreview';
 import { useMcpHost } from './useMcpHost';
 import { useReportSize } from './useReportSize';
 import { viewerTheme } from './viewerTheme';
@@ -20,7 +22,7 @@ export function McpViewer() {
   const sizeRef = useReportSize(host.reportSize);
   const theme = useMemo(() => viewerTheme(host.hostTheme), [host.hostTheme]);
   const antdTheme = useMemo(() => buildAntdTheme(theme.tokens, theme.mode), [theme]);
-  const { view, error, runQueries } = host;
+  const { view, error, preview, savedTitle, runQueries, saveDraft } = host;
   const client = useMemo(
     () => (view ? createViewerClient(view, runQueries) : null),
     [view, runQueries],
@@ -42,8 +44,10 @@ export function McpViewer() {
         <ConfigProvider theme={antdTheme}>
           <div ref={sizeRef} style={{ padding: 8 }}>
             {error && <Alert type="error" showIcon title={error} style={{ marginBottom: 8 }} />}
-            {!view && !error && <Empty description="Waiting for the view…" />}
-            {client && view && (
+            {preview && <DraftPreview preview={preview} />}
+            {!view && !error && !preview && <Empty description="Waiting for the view…" />}
+            {view && !preview && <DraftBar draft={view.draft} savedTitle={savedTitle} onSave={saveDraft} />}
+            {client && view && !preview && (
               <UrqlProvider value={client}>
                 {/* Widgets link to other items with router hooks; nothing navigates inside the host frame. */}
                 <MemoryRouter>

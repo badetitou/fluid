@@ -29,6 +29,15 @@ export function validateDraft(
   } catch (err) {
     return { ok: false, errorText: (err as Error).message };
   }
+  return validateDraftValue(raw, catalog, mutationFields);
+}
+
+/** Same checks as `validateDraft`, on a value that is already parsed (a draft sent through MCP). */
+export function validateDraftValue(
+  raw: unknown,
+  catalog: WidgetContract[],
+  mutationFields?: string[],
+): Validation<ViewSpecDraft> {
   const parsed = safeParseViewSpecDraft(raw);
   if (!parsed.success) return { ok: false, errorText: describeIssues(parsed.error) };
   const problems = [

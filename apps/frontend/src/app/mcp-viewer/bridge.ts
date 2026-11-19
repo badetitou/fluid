@@ -18,6 +18,8 @@ export type HostContext = z.infer<typeof hostContextSchema>;
 
 export interface BridgeHandlers {
   onToolResult: (params: unknown) => void;
+  /** `tool-input-partial` (while the model writes the arguments) and `tool-input` (complete). */
+  onToolInput?: (params: unknown, partial: boolean) => void;
   onHostContext: (context: HostContext) => void;
 }
 
@@ -83,6 +85,8 @@ export class HostBridge {
 
   private notified(method: string, params: unknown): void {
     if (method === 'ui/notifications/tool-result') this.handlers.onToolResult(params);
+    else if (method === 'ui/notifications/tool-input-partial') this.handlers.onToolInput?.(params, true);
+    else if (method === 'ui/notifications/tool-input') this.handlers.onToolInput?.(params, false);
     else if (method === 'ui/notifications/host-context-changed') this.context(params);
   }
 

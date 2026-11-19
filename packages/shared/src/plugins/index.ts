@@ -4,3 +4,5 @@ export * from './contracts';
 export * from './issues';
 export * from './ports';
 export * from './widgetType';
+export * from './hostCatalog';
+export * from './draftTypesDoc';

@@ -48,6 +48,28 @@ cours sont fusionnées, et sans variables la réponse alimente le cache de toute
 Le viewer ne fournit pas d'`offsetArg` : la pagination se fait par un `take` plus grand
 (chaque `run_queries` relance toutes les requêtes de la vue, la réponse est limitée à 256 Ko).
 
+## Écrire des vues (`draft_view`, `save_view`)
+
+- `get_source_schema` (modèle) : le SDL de la source (introspection par le BFF, sans descriptions,
+  coupé à 60 000 caractères), pour que l'assistant écrive des requêtes valides.
+- `draft_view` (modèle + app) : sa description porte le format du brouillon, `renderWidgetDocs` et
+  `renderPortDocs` du catalogue MCP (`mcpWidgetCatalog` : les widgets intégrés sauf network, 3D et
+  insight, que le viewer ne dessine pas) et `VIEW_DRAFT_TYPES_DOC` (LinkConfig, Transform, Format),
+  partagé avec les prompts du BFF. Arguments : `sourceId`, `concept`, `request` (la demande de
+  l'utilisateur, gardée comme `intent` de la vue) et `view` (le brouillon).
+- Le BFF (`POST /api/views/draft`, `views/draft-service.ts`) valide le brouillon avec
+  `validateDraftValue`, le même code que l'assistant intégré (zod, catalogue, câblage, actions
+  contre les mutations de la source), vérifie chaque requête contre le schéma introspecté (gardé
+  5 min par source), puis lance les requêtes avec les règles d'une vue enregistrée
+  (`runSpec` : lecture seule, plafonds). Réponse `{ spec, data, issues }` ; un brouillon refusé
+  donne un 422 avec ses `issues`, rendues au modèle en erreur d'outil pour qu'il corrige.
+- Le viewer affiche un aperçu (titre et une carte par widget) pendant que le modèle écrit
+  (`ui/notifications/tool-input-partial`), puis la vue et ses `issues`, avec un bouton
+  « Save in fluid » qui appelle `save_view` (app seulement ; `POST /api/views/from-draft`, même
+  validation, refusé si une requête ne passe pas le schéma). Une fois enregistrée, la vue a un id :
+  « charger plus » passe par `run_queries` comme pour `show_view`. Avant, un brouillon ne sert que
+  les lignes déjà reçues.
+
 ## Thème
 
 Le thème du contexte hôte (`light` / `dark`) choisit la variante du thème intégré
