@@ -22,16 +22,23 @@ export const DEFAULT_HOST = '127.0.0.1';
 
 const portSchema = z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(0).max(65535));
 
-/** The base URL of a fluid (no trailing slash), or null when it is not an http(s) URL. */
+/**
+ * The base URL of a fluid as origin + path without trailing slash, or null when it is not an http(s)
+ * URL or carries credentials, a query or a hash. Callers must not echo the raw value (it may hold a secret).
+ */
 export function parseFluidUrl(raw: string): string | null {
   try {
     const u = new URL(raw.trim());
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
-    return raw.trim().replace(/\/+$/, '');
+    if (u.username || u.password || u.search || u.hash) return null;
+    return `${u.origin}${u.pathname}`.replace(/\/+$/, '');
   } catch {
     return null;
   }
 }
+
+const INVALID_URL = 'invalid --url: expected an http(s) URL without credentials, query or hash';
+const RUN_ONLY = ['port', 'host', 'data-dir', 'env-file', 'no-open', 'verbose'] as const;
 
 export function parseCliArgs(argv: string[]): ParsedArgs {
   let values;
@@ -63,9 +70,11 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
     return { kind: 'error', message: `unknown command "${positionals.join(' ')}" (expected: mcp)` };
   }
   if (command === 'mcp') {
+    const runOnly = RUN_ONLY.find((o) => values[o] !== undefined);
+    if (runOnly) return { kind: 'error', message: `--${runOnly} does not apply to \`fluid mcp\`` };
     if (values.url === undefined) return { kind: 'mcp' };
     const url = parseFluidUrl(values.url);
-    return url ? { kind: 'mcp', url } : { kind: 'error', message: `invalid --url "${values.url}": expected an http(s) URL` };
+    return url ? { kind: 'mcp', url } : { kind: 'error', message: INVALID_URL };
   }
   if (values.url !== undefined) return { kind: 'error', message: '--url only applies to `fluid mcp`' };
 

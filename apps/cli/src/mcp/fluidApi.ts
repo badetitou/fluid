@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // Small HTTP client of a running fluid. Every answer is validated; nothing here opens the data dir.
 
-export type FluidErrorKind = 'unreachable' | 'auth-required' | 'not-found' | 'invalid' | 'http';
+export type FluidErrorKind = 'unreachable' | 'timeout' | 'auth-required' | 'not-found' | 'invalid' | 'too-large' | 'http';
 
 export class FluidApiError extends Error {
   constructor(
@@ -44,16 +44,20 @@ const runSchema = z.looseObject({
 export type RunOutput = z.infer<typeof runSchema>;
 
 const AUTH_CODE = 'FLUID_AUTH_REQUIRED';
-const hasAuthRequired = (body: unknown): boolean => {
+/** Whether a GraphQL-style body (or query result) carries a FLUID_AUTH_REQUIRED error. */
+export const hasAuthRequired = (body: unknown): boolean => {
   const errors = (body as { errors?: unknown } | null)?.errors;
   return (
     Array.isArray(errors) &&
     errors.some((e) => (e as { extensions?: { code?: unknown } } | null)?.extensions?.code === AUTH_CODE)
   );
 };
+/** The BFF's `error` text, on one line and at most 200 characters (it is shown to the model). */
 const errorField = (body: unknown): string | undefined => {
   const message = (body as { error?: unknown } | null | undefined)?.error;
-  return typeof message === 'string' ? message : undefined;
+  if (typeof message !== 'string') return undefined;
+  const line = message.replace(/\s+/g, ' ').trim();
+  return line.length > 200 ? `${line.slice(0, 200)}...` : line;
 };
 
 export interface RunParams {
@@ -69,14 +73,17 @@ export interface FluidApi {
   runView(id: string, params: RunParams): Promise<RunOutput>;
 }
 
-export function createFluidApi(baseUrl: string, fetchImpl: typeof fetch = fetch): FluidApi {
+export function createFluidApi(baseUrl: string, fetchImpl: typeof fetch = fetch, timeoutMs = 90_000): FluidApi {
   const base = baseUrl.replace(/\/+$/, '');
 
   async function call<T>(path: string, schema: z.ZodType<T>, init?: RequestInit): Promise<T> {
     let res: Response;
     try {
-      res = await fetchImpl(`${base}${path}`, { ...init, signal: AbortSignal.timeout(90_000) });
-    } catch {
+      res = await fetchImpl(`${base}${path}`, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+    } catch (err) {
+      if ((err as { name?: unknown } | null)?.name === 'TimeoutError') {
+        throw new FluidApiError('timeout', `fluid at ${base} did not answer in time`);
+      }
       throw new FluidApiError('unreachable', `fluid is not reachable at ${base}`);
     }
     let body: unknown;

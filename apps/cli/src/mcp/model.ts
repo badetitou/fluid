@@ -1,12 +1,36 @@
-import type { FluidErrorKind, QueryResult, RunOutput, SourceInfo, SpecInfo, ViewRow } from './fluidApi';
+import { hasAuthRequired, type FluidErrorKind, QueryResult, RunOutput, SourceInfo, SpecInfo, ViewRow } from './fluidApi';
 
 // Pure formatting of what the MCP tools tell the model.
+
+/** Rows requested when the caller gives no `take`. */
+export const DEFAULT_TAKE = 100;
+/** Largest structuredContent (serialized) returned; beyond it the tool errors and asks for a lower `take`. */
+export const MAX_RESULT_BYTES = 256 * 1024;
+
+/** A source URL as origin + path: never userinfo, query or hash. */
+export function safeUrl(raw: string): string {
+  try {
+    const u = new URL(raw);
+    return `${u.origin}${u.pathname}`.replace(/\/+$/, '');
+  } catch {
+    return '(invalid url)';
+  }
+}
+
+/** Null when the value fits MAX_RESULT_BYTES, else the size in KB. */
+export function oversizeKb(value: unknown): number | null {
+  const bytes = Buffer.byteLength(JSON.stringify(value));
+  return bytes > MAX_RESULT_BYTES ? Math.ceil(bytes / 1024) : null;
+}
+
+/** Any query of a successful run that needs a sign-in (some queries may have worked, others not). */
+export const needsSignIn = (run: RunOutput): boolean => Object.values(run.results).some(hasAuthRequired);
 
 export function summarizeSources(sources: SourceInfo[]) {
   return sources.map((s) => ({
     id: s.id,
     name: s.name,
-    url: s.url,
+    url: safeUrl(s.url),
     authKind: s.authKind,
     ...(s.authKind === 'oauth' ? { signedIn: s.oauth?.signedIn ?? false } : {}),
   }));
@@ -35,17 +59,21 @@ function widgetsLine(spec: SpecInfo): string {
   return `${spec.widgets.length} widget${spec.widgets.length > 1 ? 's' : ''} (${kinds})`;
 }
 
-function firstErrorMessage(errors: unknown[]): string {
-  const message = (errors[0] as { message?: unknown } | null)?.message;
-  return typeof message === 'string' ? message : 'unknown error';
-}
-
 function queryLine(name: string, result: QueryResult): string {
   const n = result.errors?.length ?? 0;
-  const errors = n > 0 ? `, ${n} error${n > 1 ? 's' : ''}: ${firstErrorMessage(result.errors ?? [])}` : '';
+  // Upstream error text is untrusted: only a count (and a fixed label for a missing sign-in) goes to the model.
+  const label = hasAuthRequired(result) ? ' (sign-in required)' : '';
+  const errors = n > 0 ? `, ${n} error${n > 1 ? 's' : ''}${label}` : '';
   const rows = countRows(result.data);
   const rowText = rows === null ? (result.data === undefined ? 'no data' : 'data') : `${rows} row${rows === 1 ? '' : 's'}`;
   return `- ${name}: ${rowText}${errors}`;
+}
+
+/** One-line recap for run_queries, whose payload is for the viewer. */
+export function summarizeRunShort(run: RunOutput): string {
+  const n = Object.keys(run.results).length;
+  const failed = Object.values(run.results).filter((r) => (r.errors?.length ?? 0) > 0).length;
+  return `Ran ${n} quer${n === 1 ? 'y' : 'ies'}${failed ? `, ${failed} with errors` : ''}${run.skipped?.length ? `, ${run.skipped.length} skipped` : ''}.`;
 }
 
 export function summarizeRun(spec: SpecInfo, run: RunOutput): string {
@@ -67,6 +95,8 @@ export function errorText(
       return `fluid is not reachable at ${ctx.baseUrl}: start it with \`npx @badetitou/fluid\``;
     case 'auth-required':
       return `Sign in to ${ctx.sourceName ?? 'the source'} from fluid's settings (Settings → Connection)`;
+    case 'timeout':
+      return `fluid at ${ctx.baseUrl} did not answer in time`;
     case 'not-found':
       return `Not found: ${ctx.detail ?? 'unknown view or source'}. Use list_views and list_sources for valid ids.`;
     default:

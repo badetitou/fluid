@@ -81,7 +81,7 @@ export async function main(argv: string[], env: Env, entryUrl: string): Promise<
   if (parsed.kind === 'mcp') {
     const fromEnv = env.FLUID_URL ? parseFluidUrl(env.FLUID_URL) : null;
     if (env.FLUID_URL && !fromEnv && !parsed.url) {
-      console.error(`fluid: invalid FLUID_URL "${env.FLUID_URL}": expected an http(s) URL`);
+      console.error('fluid: invalid FLUID_URL: expected an http(s) URL without credentials, query or hash');
       return 2;
     }
     return runMcp(parsed.url ?? fromEnv ?? DEFAULT_FLUID_URL, readVersion(layout));

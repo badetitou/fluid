@@ -82,9 +82,10 @@ async function httpChecks(url) {
   check(nope.status === 404 && nope.type.includes('json'), '/api/nope is a JSON 404');
 }
 
-/** `fluid mcp` over stdio against a dead URL: initialize, tools/list and one tool error; stdout must be protocol only. */
-async function mcpChecks(bin, cwd, env) {
-  const child = spawn(bin, ['mcp', '--url', 'http://127.0.0.1:1'], { cwd, env: { PATH: process.env.PATH, ...env }, stdio: ['pipe', 'pipe', 'pipe'] });
+/** `fluid mcp` over stdio against a dead URL (or a live fluid): initialize, tools/list and one tool error; stdout must be protocol only. */
+async function mcpChecks(bin, cwd, env, url = 'http://127.0.0.1:1') {
+  const live = url !== 'http://127.0.0.1:1';
+  const child = spawn(bin, ['mcp', '--url', url], { cwd, env: { PATH: process.env.PATH, ...env }, stdio: ['pipe', 'pipe', 'pipe'] });
   const lines = [];
   let buffer = '';
   child.stdout.on('data', (c) => {
@@ -108,9 +109,16 @@ async function mcpChecks(bin, cwd, env) {
   send({ id: 2, method: 'tools/list' });
   const names = (await reply(2)).result.tools.map((t) => t.name).sort().join();
   check(names === 'list_sources,list_views,run_queries,show_view', `fluid mcp lists its tools (${names})`);
-  send({ id: 3, method: 'tools/call', params: { name: 'list_sources', arguments: {} } });
-  const call = (await reply(3)).result;
-  check(call.isError === true && call.content[0].text.includes('is not reachable'), 'unreachable fluid is a tool error');
+  if (live) {
+    send({ id: 3, method: 'tools/call', params: { name: 'list_views', arguments: {} } });
+    const views = (await reply(3)).result;
+    check(!views.isError && views.structuredContent.items.some((v) => v.title === 'Smoke view'), 'list_views over the live fluid returns the smoke view');
+  } else {
+    send({ id: 3, method: 'tools/call', params: { name: 'list_sources', arguments: {} } });
+    const call = (await reply(3)).result;
+    check(call.isError === true && call.content[0].text.includes('is not reachable'), 'unreachable fluid is a tool error');
+  }
+  check(lines.every((l) => JSON.parse(l).jsonrpc === '2.0'), 'every stdout line of fluid mcp is JSON-RPC');
   child.stdin.end();
   const exit = await Promise.race([new Promise((r) => child.on('exit', (code) => r(code))), sleep(10_000).then(() => null)]);
   check(exit === 0, 'fluid mcp exits 0 when stdin closes');
@@ -167,6 +175,7 @@ async function main() {
   const again = await startFluid(bin, args, { cwd: project, env });
   if (!again.url) fail(`restart failed:\n${again.output()}`);
   check(await hasView(again.url), 'the view persisted across a restart');
+  await mcpChecks(bin, project, env, again.url);
   await stop(again);
 
   chmodSync(FAKE_CLAUDE, 0o755);
