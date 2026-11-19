@@ -24,7 +24,12 @@ const sourceSchema = z.looseObject({
 });
 export type SourceInfo = z.infer<typeof sourceSchema>;
 
-const viewRowSchema = z.looseObject({ id: z.string(), title: z.string(), concept: z.string() });
+const viewRowSchema = z.looseObject({
+  id: z.string(),
+  title: z.string(),
+  concept: z.string(),
+  spec: z.looseObject({ scope: z.string().optional().catch(undefined) }).optional().catch(undefined),
+});
 export type ViewRow = z.infer<typeof viewRowSchema>;
 
 /** Only what summaries need is checked; the full spec travels to the viewer unchanged. */
@@ -35,7 +40,7 @@ const specSchema = z.looseObject({
 });
 export type SpecInfo = z.infer<typeof specSchema>;
 
-const storedViewSchema = viewRowSchema.extend({ spec: z.unknown() });
+const storedViewSchema = viewRowSchema.omit({ spec: true }).extend({ spec: z.unknown() });
 
 /** The summary fields of a spec, or null when it does not have them. */
 export function parseSpecInfo(raw: unknown): SpecInfo | null {
@@ -94,7 +99,7 @@ export interface RunParams {
 export interface FluidApi {
   listSources(): Promise<SourceInfo[]>;
   listViews(concept?: string): Promise<ViewRow[]>;
-  getView(id: string): Promise<{ row: ViewRow; spec: SpecInfo; rawSpec: unknown }>;
+  getView(id: string): Promise<{ row: Omit<ViewRow, 'spec'>; spec: SpecInfo; rawSpec: unknown }>;
   runView(id: string, params: RunParams): Promise<RunOutput>;
   sourceSchema(sourceId: string): Promise<{ sdl: string; truncated: boolean }>;
   draftView(params: DraftParams & { take?: number }): Promise<DraftOutput>;

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { viewSpecSchema, type ViewSpec } from '@fluid/shared';
+import { injectItemId } from '../../entities/view/model';
 
 /** What one query of the BFF run answered (the `results` map of `show_view` / `run_queries`). */
 export const queryResultSchema = z.object({
@@ -16,6 +17,10 @@ const showViewSchema = z.object({
   take: z.number().int().positive().optional(),
   spec: z.unknown(),
   data: z.record(z.string(), queryResultSchema),
+  /** The variables the view ran with (the item id of a detail view). */
+  variables: z.record(z.string(), z.unknown()).optional(),
+  /** Where fluid runs, to open an item there. */
+  fluidUrl: z.string().url().optional().catch(undefined),
 });
 
 /** `draft_view`: a view the assistant wrote, not saved yet. */
@@ -49,6 +54,8 @@ export interface ViewPayload {
   take?: number;
   spec: ViewSpec;
   data: Record<string, QueryResult>;
+  variables?: Record<string, unknown>;
+  fluidUrl?: string;
 }
 
 export type ParsedToolResult = { kind: 'view'; payload: ViewPayload } | { kind: 'error'; message: string };
@@ -67,12 +74,16 @@ export function parseToolResult(params: unknown): ParsedToolResult {
   if (!shown.success) return { kind: 'error', message: 'This result is not a fluid view.' };
   const spec = viewSpecSchema.safeParse(shown.data.spec);
   if (!spec.success) return { kind: 'error', message: 'The view spec is not valid.' };
-  const { sourceId, take, data } = shown.data;
+  const { sourceId, take, data, variables, fluidUrl } = shown.data;
+  const common = { sourceId, take, data, ...(variables ? { variables } : {}), ...(fluidUrl ? { fluidUrl } : {}) };
+  // The item id of a detail view goes into the queries that read it, as in the app's columns.
+  const itemId = typeof variables?.id === 'string' || typeof variables?.id === 'number' ? String(variables.id) : undefined;
+  const shownSpec = injectItemId(spec.data, undefined, itemId);
   if (drafted.success) {
     const { concept, request, issues } = drafted.data;
-    return { kind: 'view', payload: { sourceId, take, spec: spec.data, data, draft: { concept, request, issues } } };
+    return { kind: 'view', payload: { ...common, spec: shownSpec, draft: { concept, request, issues } } };
   }
-  return { kind: 'view', payload: { viewId: (shown.data as { viewId: string }).viewId, sourceId, take, spec: spec.data, data } };
+  return { kind: 'view', payload: { ...common, viewId: (shown.data as { viewId: string }).viewId, spec: shownSpec } };
 }
 
 /** The results of a `run_queries` call; throws with the error text it carried. */
@@ -93,4 +104,18 @@ export function parseSaveResult(params: unknown): { viewId: string; title: strin
   const saved = z.object({ viewId: z.string().min(1), title: z.string() }).safeParse(result.data.structuredContent);
   if (!saved.success) throw new Error('save_view answered something unexpected.');
   return saved.data;
+}
+
+const viewRowsSchema = z.object({
+  items: z.array(z.object({ id: z.string(), title: z.string(), concept: z.string(), scope: z.string().optional() })),
+});
+
+/** The rows of a `list_views` call; throws with the error text it carried. */
+export function parseViewRows(params: unknown): z.infer<typeof viewRowsSchema>['items'] {
+  const result = toolResultSchema.safeParse(params);
+  if (!result.success) throw new Error('The host sent an unreadable answer.');
+  if (result.data.isError) throw new Error(textOf(result.data.content) || 'list_views failed.');
+  const rows = viewRowsSchema.safeParse(result.data.structuredContent);
+  if (!rows.success) throw new Error('list_views answered something unexpected.');
+  return rows.data.items;
 }

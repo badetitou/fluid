@@ -15,7 +15,7 @@ const draftInput = {
   view: z.record(z.string(), z.unknown()).describe('The view draft (shape in the tool description)'),
 };
 
-export function registerDraftTools(server: McpServer, api: FluidApi, guarded: Guarded): void {
+export function registerDraftTools(server: McpServer, api: FluidApi, guarded: Guarded, fluidUrl: string): void {
   server.registerTool(
     'get_source_schema',
     {
@@ -53,6 +53,7 @@ export function registerDraftTools(server: McpServer, api: FluidApi, guarded: Gu
             spec: out.spec,
             data: out.results,
             issues: out.issues,
+            fluidUrl,
           },
         };
       }),

@@ -45,7 +45,7 @@ export function summarizeSources(sources: SourceInfo[]) {
 }
 
 export function summarizeViews(views: ViewRow[]) {
-  return views.map((v) => ({ id: v.id, title: v.title, concept: v.concept }));
+  return views.map((v) => ({ id: v.id, title: v.title, concept: v.concept, ...(v.spec?.scope ? { scope: v.spec.scope } : {}) }));
 }
 
 /** Rows of a GraphQL `data`: the first array found within 3 levels, or null when there is none. */

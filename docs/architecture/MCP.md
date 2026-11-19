@@ -70,6 +70,23 @@ Le viewer ne fournit pas d'`offsetArg` : la pagination se fait par un `take` plu
   « charger plus » passe par `run_queries` comme pour `show_view`. Avant, un brouillon ne sert que
   les lignes déjà reçues.
 
+## Le viewer dans la conversation
+
+- **Sélection** : `ViewRenderer` accepte un store de sorties (`outputs`) ; le viewer en crée un par
+  vue et le lit (`useSelectionContext`). Les sorties `selected` des widgets, compactées
+  (`selectionModel.ts` : 20 clés, 10 éléments, chaînes de 200 caractères, profondeur 3, 4 000
+  caractères au plus), partent en `ui/update-model-context` 400 ms après le dernier changement,
+  avec une phrase qui les présente comme des données de la source, pas des instructions.
+- **Ask about this** : poste la sélection comme message de l'utilisateur (`ui/message`).
+- **Liens** : les widgets naviguent dans le `MemoryRouter` du viewer ; `LinkWatcher` lit le
+  chemin (`/<Concept>@<id>`), revient à `/`, puis le viewer cherche une vue enregistrée du concept
+  (`list_views`, visible par l'app ; une vue `detail` pour un élément) et l'affiche sur place avec
+  `show_view` (`variables: { id }`, injecté dans les requêtes qui déclarent `$id` comme dans les
+  colonnes de l'app). Un bouton « Back » revient aux vues précédentes (20 au plus). Sans vue,
+  `ui/open-link` ouvre l'élément dans fluid (`fluidUrl` du résultat, l'URL donnée à `fluid mcp`).
+- **Plein écran** : `ui/request-display-mode` ; le bouton n'apparaît pas si l'hôte annonce des
+  `availableDisplayModes` sans `fullscreen`. En plein écran, la grille passe à 3 colonnes.
+
 ## Thème
 
 Le thème du contexte hôte (`light` / `dark`) choisit la variante du thème intégré

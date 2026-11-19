@@ -64,7 +64,7 @@ describe('draft tools', () => {
     expect(posted['/api/views/draft']).toEqual({ ...args, take: 100 });
     expect(r.structuredContent).toEqual({
       draft: true, sourceId: 's1', concept: 'Character', request: 'who is there?', take: 100,
-      spec: SPEC, data: { list: { data: { characters: [{ name: 'Rick' }] } } }, issues: [],
+      spec: SPEC, data: { list: { data: { characters: [{ name: 'Rick' }] } } }, issues: [], fluidUrl: baseUrl,
     });
     expect(textOf(r)).toContain('- list: 1 row');
     expect(textOf(r)).toContain('Save in fluid');

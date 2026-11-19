@@ -1,14 +1,10 @@
 import { useEffect, useMemo } from 'react';
 import { Alert, ConfigProvider, Empty } from 'antd';
-import { MemoryRouter } from 'react-router-dom';
-import { Provider as UrqlProvider } from 'urql';
 import { buildAntdTheme, themeCssVariables } from '../../shared/theme';
-import { ViewRenderer } from '../../views/ViewRenderer';
 import { builtinWidgetCatalog } from '../../views/widgets/catalog';
 import { WidgetCatalogContext, WidgetThemeContext } from '../../views/plugin-api';
-import { createViewerClient } from './viewerClient';
-import { DraftBar } from './DraftBar';
 import { DraftPreview } from './DraftPreview';
+import { ShownView } from './ShownView';
 import { useMcpHost } from './useMcpHost';
 import { useReportSize } from './useReportSize';
 import { viewerTheme } from './viewerTheme';
@@ -22,11 +18,7 @@ export function McpViewer() {
   const sizeRef = useReportSize(host.reportSize);
   const theme = useMemo(() => viewerTheme(host.hostTheme), [host.hostTheme]);
   const antdTheme = useMemo(() => buildAntdTheme(theme.tokens, theme.mode), [theme]);
-  const { view, error, preview, savedTitle, runQueries, saveDraft } = host;
-  const client = useMemo(
-    () => (view ? createViewerClient(view, runQueries) : null),
-    [view, runQueries],
-  );
+  const { view, error, preview } = host;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -46,15 +38,7 @@ export function McpViewer() {
             {error && <Alert type="error" showIcon title={error} style={{ marginBottom: 8 }} />}
             {preview && <DraftPreview preview={preview} />}
             {!view && !error && !preview && <Empty description="Waiting for the view…" />}
-            {view && !preview && <DraftBar draft={view.draft} savedTitle={savedTitle} onSave={saveDraft} />}
-            {client && view && !preview && (
-              <UrqlProvider value={client}>
-                {/* Widgets link to other items with router hooks; nothing navigates inside the host frame. */}
-                <MemoryRouter>
-                  <ViewRenderer spec={view.spec} maxColumns={2} />
-                </MemoryRouter>
-              </UrqlProvider>
-            )}
+            {!preview && <ShownView host={host} />}
           </div>
         </ConfigProvider>
       </WidgetThemeContext.Provider>

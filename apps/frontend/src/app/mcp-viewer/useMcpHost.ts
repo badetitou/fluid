@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import type { ThemeMode } from '../../shared/theme';
-import { HostBridge } from './bridge';
+import { HostBridge, type HostContext } from './bridge';
 import { draftOf, previewFromInput } from './draftModel';
 import { parseRunResult, parseSaveResult, parseToolResult } from './toolResult';
 import { viewerReducer, type ViewerState } from './viewerState';
@@ -8,6 +8,14 @@ import { viewerReducer, type ViewerState } from './viewerState';
 export interface McpHost extends ViewerState {
   /** The host's light or dark context, once known. */
   hostTheme?: ThemeMode;
+  /** The rest of the host context (display modes), as last sent. */
+  hostContext: HostContext;
+  /** The connection to the host, once the handshake is done. */
+  bridge?: HostBridge;
+  /** Shows a `show_view` result in place of the current view, which goes to the history. */
+  showInPlace: (toolResult: unknown) => void;
+  /** Back to the view shown before the last link. */
+  back: () => void;
   /** Runs `run_queries` on the host for the shown view; rejects with the tool's error. */
   runQueries: (args: { take?: number; variables?: Record<string, unknown> }) => Promise<ReturnType<typeof parseRunResult>>;
   /** Saves the shown draft in fluid (`save_view`); rejects with the tool's error. */
@@ -21,7 +29,7 @@ const APP_INFO = { name: 'fluid-mcp-app-viewer', version: '1.0.0' };
 /** Connects to the host frame (MCP Apps handshake) and exposes what it sends. */
 export function useMcpHost(): McpHost {
   const [state, dispatch] = useReducer(viewerReducer, {});
-  const [hostTheme, setHostTheme] = useState<ThemeMode>();
+  const [hostContext, setHostContext] = useState<HostContext>({});
   // Set once `ui/notifications/initialized` is sent: nothing else is posted before.
   const [bridge, setBridge] = useState<HostBridge>();
 
@@ -32,7 +40,7 @@ export function useMcpHost(): McpHost {
         const preview = previewFromInput(params);
         if (preview) dispatch({ type: 'input', preview });
       },
-      onHostContext: (context) => context.theme && setHostTheme(context.theme),
+      onHostContext: (context) => setHostContext((prev) => ({ ...prev, ...context })),
     });
     const listener = (event: MessageEvent) => next.handle(event);
     window.addEventListener('message', listener);
@@ -67,9 +75,11 @@ export function useMcpHost(): McpHost {
   }, [bridge, view]);
 
   const reportSize = useCallback<McpHost['reportSize']>((size) => bridge?.reportSize(size), [bridge]);
+  const showInPlace = useCallback((result: unknown) => dispatch({ type: 'navigated', parsed: parseToolResult(result) }), []);
+  const back = useCallback(() => dispatch({ type: 'back' }), []);
 
   return useMemo(
-    () => ({ ...state, hostTheme, runQueries, saveDraft, reportSize }),
-    [state, hostTheme, runQueries, saveDraft, reportSize],
+    () => ({ ...state, hostTheme: hostContext.theme, hostContext, bridge, runQueries, saveDraft, reportSize, showInPlace, back }),
+    [state, hostContext, bridge, runQueries, saveDraft, reportSize, showInPlace, back],
   );
 }

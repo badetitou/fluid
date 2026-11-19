@@ -13,7 +13,13 @@ const messageSchema = z.object({
 });
 type Message = z.infer<typeof messageSchema>;
 
-const hostContextSchema = z.object({ theme: z.enum(['light', 'dark']).optional() });
+const displayMode = z.enum(['inline', 'fullscreen', 'pip']);
+export type DisplayMode = z.infer<typeof displayMode>;
+const hostContextSchema = z.object({
+  theme: z.enum(['light', 'dark']).optional().catch(undefined),
+  displayMode: displayMode.optional().catch(undefined),
+  availableDisplayModes: z.array(z.string()).optional().catch(undefined),
+});
 export type HostContext = z.infer<typeof hostContextSchema>;
 
 export interface BridgeHandlers {
@@ -92,7 +98,10 @@ export class HostBridge {
 
   private context(raw: unknown): void {
     const parsed = hostContextSchema.safeParse(raw);
-    if (parsed.success) this.handlers.onHostContext(parsed.data);
+    if (!parsed.success) return;
+    // A field the host got wrong is dropped; a context with nothing usable is not passed on.
+    const known = Object.fromEntries(Object.entries(parsed.data).filter(([, v]) => v !== undefined)) as HostContext;
+    if (Object.keys(known).length > 0) this.handlers.onHostContext(known);
   }
 
   private send(message: Record<string, unknown>): void {
@@ -143,6 +152,27 @@ export class HostBridge {
   /** `tools/call` on the host, which forwards it to the MCP server. */
   callTool(name: string, args: Record<string, unknown>): Promise<unknown> {
     return this.request('tools/call', { name, arguments: args });
+  }
+
+  /** `ui/update-model-context`: what the model should know of the view at its next turn. */
+  updateModelContext(params: { content: Array<{ type: 'text'; text: string }> }): Promise<unknown> {
+    return this.request('ui/update-model-context', params);
+  }
+
+  /** `ui/message`: a message in the conversation, as the user. */
+  sendMessage(params: { role: 'user'; content: Array<{ type: 'text'; text: string }> }): Promise<unknown> {
+    return this.request('ui/message', params);
+  }
+
+  /** `ui/open-link`: the host opens the url (a new tab), after asking the user if it wants. */
+  openLink(url: string): Promise<unknown> {
+    return this.request('ui/open-link', { url });
+  }
+
+  /** `ui/request-display-mode`: answers the mode the host actually set. */
+  async requestDisplayMode(mode: DisplayMode): Promise<DisplayMode | undefined> {
+    const answer = z.object({ mode: displayMode }).safeParse(await this.request('ui/request-display-mode', { mode }));
+    return answer.success ? answer.data.mode : undefined;
   }
 
   reportSize(size: { width: number; height: number }): void {
