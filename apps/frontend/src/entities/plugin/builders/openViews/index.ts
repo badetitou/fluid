@@ -1,7 +1,8 @@
 import type { ViewBuilder } from '../../viewBuilder';
+import type { ViewResponse } from '@fluid/shared';
 import type { DataSource } from '../../../../views/plugin-api';
 import { discoverProvider, fetchItems, fetchObjectViews, fetchView, runAction } from './api';
-import { ENDPOINTS_SETTING, isOpenViewsQuery, mergeByPriority, parseEndpoints, queryVariables, viewPerspective } from './model';
+import { ENDPOINTS_SETTING, LEGACY_TAB_QUERY, isOpenViewsQuery, mergeByPriority, resolveQuery, parseEndpoints, queryVariables, viewPerspective } from './model';
 
 export { ENDPOINTS_SETTING } from './model';
 export { evaluateOn, forgetProviders } from './api';
@@ -29,21 +30,25 @@ export function createOpenViewsBuilder({ id, label, endpoints, legacy = false }:
     fetchPerspectives: async ({ concept, itemId, columnKind, settings }, signal) => {
       const bases = endpoints(settings);
       if (bases.length === 0 || columnKind !== 'detail' || !itemId) return [];
-      const lists = await Promise.all(
+      // Each endpoint on its own: a failing or silent one (requests time out) proposes nothing.
+      const settled = await Promise.allSettled(
         bases.map(async (endpoint) => {
-          try {
-            const provider = await discoverProvider(endpoint, legacy);
-            return { endpoint, views: (await fetchObjectViews(provider, itemId, signal)).views };
-          } catch {
-            return { endpoint, views: [] };
-          }
+          const provider = await discoverProvider(endpoint, legacy);
+          return { endpoint, views: (await fetchObjectViews(provider, itemId, signal)).views };
         }),
       );
+      const lists = settled.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
       return mergeByPriority(lists).map(({ endpoint, view }) => viewPerspective(id, concept, itemId, endpoint, view));
     },
     dataSource: (settings) => ({
       id,
-      run: (query, variables, signal) => runQuery(endpoints(settings), legacy, label, query, variables, signal),
+      run: async (query, variables, signal) => {
+        const bases = endpoints(settings);
+        const resolved = resolveQuery(query, variables, bases);
+        const answer = await runQuery(bases, legacy, label, resolved.query, resolved.variables, signal);
+        // A view saved before Open Views binds its widget to the tab's `root`.
+        return query === LEGACY_TAB_QUERY && answer && typeof answer === 'object' ? { ...answer, root: (answer as ViewResponse).view } : answer;
+      },
     }),
   };
 }

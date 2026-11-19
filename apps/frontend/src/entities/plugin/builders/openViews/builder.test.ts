@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { REQUEST_TIMEOUT_MS } from './api';
 import type { Concept } from '../../../../graphql/introspection';
 import type { ViewBuilderContext } from '../../viewBuilder';
 import { specFluidViewBuilder } from '../specFluid';
@@ -11,11 +12,12 @@ const SF = 'http://pharo.test/spec-fluid';
 /** A fake network: JSON bodies by URL; anything else is a network failure. */
 type Route = { status?: number; body: unknown };
 let routes: Record<string, Route>;
-const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+const network = async (url: string, init?: RequestInit) => {
   const route = routes[`${init?.method ?? 'GET'} ${url}`];
   if (!route) throw new TypeError('Failed to fetch');
   return new Response(JSON.stringify(route.body), { status: route.status ?? 200 });
-});
+};
+const fetchMock = vi.fn(network);
 
 const discovery = (name: string, capabilities = {}) => ({ body: { protocol: 'fluid-views', version: 1, name, capabilities } });
 const context = (settings: Record<string, string>): ViewBuilderContext => ({
@@ -33,6 +35,7 @@ const signal = new AbortController().signal;
 beforeEach(() => {
   routes = {};
   forgetProviders();
+  fetchMock.mockImplementation(network);
   vi.stubGlobal('fetch', fetchMock);
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -58,7 +61,7 @@ describe('Open Views builder', () => {
       items: [{ cells: [{ text: 'a' }] }],
       total: 11,
     });
-    await expect(source.run('tab', {})).rejects.toThrow(/not "tab"/);
+    await expect(source.run('nope', {})).rejects.toThrow(/not "nope"/);
   });
 
   it('answers views and action queries, actions only with the capability', async () => {
@@ -85,6 +88,28 @@ describe('Open Views builder', () => {
     const view = await specFluidViewBuilder.dataSource!(settings).run('view', perspective.spec.queries.view.variables ?? {});
     expect(view).toMatchObject({ view: { kind: 'columnedList', items: [{ cells: [{ text: 'a' }] }] } });
     expect(await evaluateOn(SF, '7', 'self')).toEqual({ display: '42' });
+    // A view saved before Open Views: `tab` query, no endpoint, widget bound to `root`.
+    const saved = await specFluidViewBuilder.dataSource!(settings).run('tab', { id: '7', tab: 'fame:' });
+    expect(saved).toMatchObject({ key: 'fame:', root: { kind: 'columnedList' }, view: { kind: 'columnedList' } });
+  });
+
+  it('gives up on an endpoint that never answers, without holding back the others', async () => {
+    vi.useFakeTimers();
+    try {
+      routes[`GET ${A}/.well-known/fluid-views`] = discovery('A');
+      routes[`GET ${A}/objects/7/views`] = { body: { object: { id: '7' }, views: [{ key: 'x', title: 'X', priority: 1 }] } };
+      fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+        if (url.startsWith(B)) {
+          return new Promise<Response>((_, reject) => init?.signal?.addEventListener('abort', () => reject(init.signal?.reason)));
+        }
+        return network(url, init);
+      });
+      const pending = builder.fetchPerspectives!(context({ endpoints: `${A} ${B}` }), signal);
+      await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+      expect((await pending).map((p) => p.key)).toEqual([`ov:${A}:x`]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('evaluates through the evaluate capability only', async () => {

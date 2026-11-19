@@ -88,6 +88,22 @@ const NEEDS: Record<OpenViewsQuery, string> = {
   action: '"endpoint", "id", "view" and "action"',
 };
 
+/** The query of views saved before Open Views: one Spec-Fluid tab, `{ id, tab }`, read at path `root`. */
+export const LEGACY_TAB_QUERY = 'tab';
+
+/**
+ * A query as the data source runs it: the old `tab` query becomes `view`, and a
+ * query without `endpoint` (saved before there could be several) takes the
+ * only one configured.
+ */
+export function resolveQuery(query: string, variables: Record<string, unknown>, endpoints: string[]): { query: string; variables: Record<string, unknown> } {
+  const legacy = query === LEGACY_TAB_QUERY;
+  const { tab, ...rest } = variables;
+  const resolved = legacy ? { ...rest, view: tab } : variables;
+  const withEndpoint = resolved.endpoint === undefined && endpoints.length === 1 ? { ...resolved, endpoint: endpoints[0] } : resolved;
+  return { query: legacy ? OPEN_VIEWS_QUERIES.view : query, variables: withEndpoint };
+}
+
 /**
  * The variables of a query, checked (they come from a saved view, the LLM or a
  * widget): the endpoint must be one the user configured, so a view cannot make
@@ -120,7 +136,7 @@ export function mergeByPriority(lists: EndpointViews[]): { endpoint: string; vie
 export function viewPerspective(source: string, concept: Concept, itemId: string, endpoint: string, view: ViewDeclaration): Perspective {
   const spec: ViewSpec = {
     version: 1,
-    id: `${source}-${concept.name}-${view.key}`.replace(/[^A-Za-z0-9-]/g, '-'),
+    id: `${source}-${endpoint}-${concept.name}-${view.key}`.replace(/[^A-Za-z0-9-]/g, '-'),
     concept: concept.name,
     scope: 'detail',
     title: view.title,

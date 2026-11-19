@@ -37,9 +37,27 @@ export class OpenViewsHttpError extends Error {
   }
 }
 
+/** How long a provider has to answer a request. */
+export const REQUEST_TIMEOUT_MS = 10_000;
+
+/** A signal aborted by the caller's, or after `ms`; `done` clears the timer. */
+function withTimeout(signal: AbortSignal | undefined, ms: number): { signal: AbortSignal; done: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new Error(`Open Views: no answer within ${ms / 1000} s.`)), ms);
+  const forward = () => controller.abort(signal?.reason);
+  if (signal?.aborted) forward();
+  else signal?.addEventListener('abort', forward, { once: true });
+  const done = () => {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', forward);
+  };
+  return { signal: controller.signal, done };
+}
+
 /**
- * Calls a provider route (GET unless `init` says otherwise) and validates its
- * JSON, once `prepare` has adjusted it; an error body becomes the message.
+ * Calls a provider route (GET unless `init` says otherwise), giving up after
+ * `REQUEST_TIMEOUT_MS`, and validates its JSON once `prepare` has adjusted it;
+ * an error body becomes the message.
  */
 async function getJson<T>(
   url: string,
@@ -48,8 +66,15 @@ async function getJson<T>(
   init?: RequestInit,
   prepare: (body: unknown) => unknown = (body) => body,
 ): Promise<T> {
-  const res = await fetch(url, { ...init, signal, credentials: 'omit' });
-  const body: unknown = await res.json().catch(() => null);
+  const timed = withTimeout(signal, REQUEST_TIMEOUT_MS);
+  let res: Response;
+  let body: unknown;
+  try {
+    res = await fetch(url, { ...init, signal: timed.signal, credentials: 'omit' });
+    body = await res.json().catch(() => null);
+  } finally {
+    timed.done();
+  }
   if (!res.ok) {
     const message = body && typeof body === 'object' && 'error' in body ? String(body.error) : `HTTP ${res.status}`;
     throw new OpenViewsHttpError(res.status, `Open Views: ${message}`);
@@ -74,7 +99,7 @@ const providers = new Map<string, Promise<ViewProvider>>();
 /**
  * The provider at `endpoint`, from its discovery document (asked once per
  * session). With `legacy`, an endpoint answering 404 there is an old
- * Spec-Fluid server. A failed discovery is asked again next time.
+ * Spec-Fluid server. A failed or timed-out discovery is asked again next time.
  */
 export function discoverProvider(endpoint: string, legacy: boolean): Promise<ViewProvider> {
   const base = trimEndpoint(endpoint);

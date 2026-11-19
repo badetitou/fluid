@@ -9,6 +9,7 @@ import {
   openViewsUrl,
   parseEndpoints,
   queryVariables,
+  resolveQuery,
   viewPerspective,
 } from './model';
 
@@ -61,6 +62,8 @@ describe('Open Views builder model', () => {
   it('makes a valid detail view reading the view from the data source', () => {
     const p = viewPerspective('open-views', concept, '1:42', A, { key: 'fame:', title: 'Fame', priority: 3 });
     expect(p).toMatchObject({ key: `open-views:${A}:fame:`, title: 'Fame', origin: 'remote' });
+    const other = viewPerspective('open-views', concept, '1:42', B, { key: 'fame:', title: 'Fame', priority: 3 });
+    expect(other.spec.id).not.toBe(p.spec.id);
     expect(viewSpecSchema.safeParse(p.spec).error?.issues ?? []).toEqual([]);
     expect(p.spec.scope).toBe('detail');
     expect(p.spec.queries.view).toEqual({
@@ -79,5 +82,11 @@ describe('Open Views builder model', () => {
     expect(() => queryVariables('items', { endpoint: A, id: '1', view: 'k', path: 'x' }, [A])).toThrow(/"path"/);
     expect(queryVariables('views', { endpoint: A, id: '1', view: 'ignored' }, [A])).toEqual({ endpoint: A, id: '1' });
     expect(() => queryVariables('action', { endpoint: A, id: '1', view: 'k' }, [A])).toThrow(/"action"/);
+  });
+
+  it('reads the tab query of views saved before Open Views, on the only endpoint', () => {
+    expect(resolveQuery('tab', { id: '1', tab: 'fame:' }, [A])).toEqual({ query: 'view', variables: { id: '1', view: 'fame:', endpoint: A } });
+    expect(resolveQuery('items', { id: '1', view: 'k', path: '0' }, [A, B]).variables).not.toHaveProperty('endpoint');
+    expect(resolveQuery('view', { endpoint: B, id: '1', view: 'k' }, [A])).toEqual({ query: 'view', variables: { endpoint: B, id: '1', view: 'k' } });
   });
 });
