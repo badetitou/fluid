@@ -14,6 +14,9 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
  */
 const STUBBED = (process.env.FLUID_VIEWER_STUB ?? 'network,model3d').split(',').filter(Boolean);
 const STUB = fileURLToPath(new URL('./src/app/mcp-viewer/UnavailableWidget.tsx', import.meta.url));
+const VIRTUAL = '\0fluid-viewer-unavailable';
+// Every name the `lazy` modules of the widgets export, all drawn by the one placeholder component.
+const LAZY_NAMES = ['LazyNetworkWidget', 'LazyModel3dWidget', 'LazyScene3dWidget', 'LazyRichTextWidget', 'LazyCodeWidget', 'LazyMarkdown', 'LazyCodeBlock'];
 
 function stubWidgets(folders: string[]): Plugin {
   const pattern = new RegExp(`/widgets/(${folders.join('|')})/lazy$`);
@@ -23,8 +26,12 @@ function stubWidgets(folders: string[]): Plugin {
     async resolveId(source, importer, options) {
       if (folders.length === 0 || !importer || !source.startsWith('.')) return null;
       const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
-      return resolved && pattern.test(resolved.id.replace(/\.tsx?$/, '')) ? STUB : null;
+      return resolved && pattern.test(resolved.id.replace(/\.tsx?$/, '')) ? VIRTUAL : null;
     },
+    load: (id) =>
+      id === VIRTUAL
+        ? `export { ${LAZY_NAMES.map((n) => `UnavailableWidget as ${n}`).join(', ')} } from ${JSON.stringify(STUB)};`
+        : null,
   };
 }
 

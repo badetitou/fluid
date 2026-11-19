@@ -26,13 +26,25 @@ réponse donne le thème) puis `ui/notifications/initialized`. L'hôte envoie
 `window.parent` sont lus, tous validés par zod ; le `structuredContent` de `show_view`
 (`{ viewId, sourceId, take, spec, data }`) aussi.
 
+Les messages sortants utilisent `targetOrigin: '*'` : l'hôte passe par un proxy de bac à sable
+dont l'origine est opaque pour la vue. Seules des données non secrètes sont postées (noms
+d'outils, ids de vue et de source, `take`, variables de la vue, tailles). Chaque requête a un
+délai (10 s pour `ui/initialize`, 30 s pour `tools/call`), et `dispose()` (démontage ou
+`ui/resource-teardown`) rejette les requêtes en attente. Rien n'est envoyé avant la fin de la
+poignée de main. Un résultat d'outil en erreur s'affiche en bandeau sans remplacer la dernière
+vue valide. Le viewer n'utilise pas `StrictMode` (une seule poignée de main).
+
 ## Données sans réseau
 
 Le moteur (`ViewRenderer`) tourne inchangé. Son client urql n'a qu'un échange terminal
 (`viewerExchange.ts`) : chaque requête est retrouvée par son texte dans `spec.queries`, puis
 `ViewerData` (pur, testé) répond depuis les résultats de `show_view`. Ce qui n'y est pas
 (plus de lignes que `take`, d'autres variables : « charger plus ») passe par
-`tools/call run_queries` et met à jour le cache. Requête inconnue ou mutation : résultat d'erreur.
+`tools/call run_queries` et met à jour le cache. Requête inconnue ou mutation : résultat d'erreur. Le cache est indexé par requête et variables
+(hors `take`) ; le serveur applique toujours son `take` (100 par défaut) aux requêtes qui le
+déclarent, c'est donc celui du premier run. Un `take` plus petit est servi depuis le cache en
+coupant les listes paginées ; un plus grand relance `run_queries`. Les relances identiques en
+cours sont fusionnées, et sans variables la réponse alimente le cache de toutes les requêtes.
 Le viewer ne fournit pas d'`offsetArg` : la pagination se fait par un `take` plus grand
 (chaque `run_queries` relance toutes les requêtes de la vue, la réponse est limitée à 256 Ko).
 

@@ -29,7 +29,12 @@ export interface HostPort {
 interface Pending {
   resolve: (value: unknown) => void;
   reject: (error: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
 }
+
+/** How long the host has to answer a request before it is given up. */
+export const INITIALIZE_TIMEOUT_MS = 10_000;
+export const TOOL_TIMEOUT_MS = 30_000;
 
 /**
  * Minimal MCP Apps client (JSON-RPC over postMessage): handshake, host notifications, and requests
@@ -37,6 +42,7 @@ interface Pending {
  */
 export class HostBridge {
   private nextId = 1;
+  private disposed = false;
   private readonly pending = new Map<string | number, Pending>();
 
   constructor(
@@ -46,7 +52,7 @@ export class HostBridge {
 
   /** Feed with every `message` event of the window. */
   handle(event: { source: unknown; data: unknown }): void {
-    if (event.source !== this.host) return;
+    if (this.disposed || event.source !== this.host) return;
     const parsed = messageSchema.safeParse(event.data);
     if (!parsed.success) return;
     const msg = parsed.data;
@@ -56,17 +62,22 @@ export class HostBridge {
   }
 
   private settle(msg: Message): void {
-    if (msg.id === undefined) return;
+    // A response carries a result or an error; an answer to an unknown or settled id is not ours.
+    if (msg.id === undefined || (msg.error === undefined && !('result' in msg))) return;
     const waiting = this.pending.get(msg.id);
     if (!waiting) return;
     this.pending.delete(msg.id);
+    clearTimeout(waiting.timer);
     if (msg.error) waiting.reject(new Error(msg.error.message ?? 'The host refused the request.'));
     else waiting.resolve(msg.result);
   }
 
   private answerRequest(id: string | number, method: string): void {
     // `ping` and the teardown have nothing to give back; anything else is unknown to this view.
-    if (method === 'ping' || method === 'ui/resource-teardown') this.send({ id, result: {} });
+    if (method === 'ui/resource-teardown') {
+      this.send({ id, result: {} });
+      this.dispose();
+    } else if (method === 'ping') this.send({ id, result: {} });
     else this.send({ id, error: { code: -32601, message: `Method not found: ${method}` } });
   }
 
@@ -81,15 +92,32 @@ export class HostBridge {
   }
 
   private send(message: Record<string, unknown>): void {
+    // Target origin '*': the host sits behind a sandbox proxy whose origin is opaque to the view, and
+    // only the view's own requests (tool names, ids, row counts) are posted, never a secret.
     this.host.postMessage({ jsonrpc: '2.0', ...message }, '*');
   }
 
-  request(method: string, params?: unknown): Promise<unknown> {
+  request(method: string, params?: unknown, timeoutMs = TOOL_TIMEOUT_MS): Promise<unknown> {
+    if (this.disposed) return Promise.reject(new Error('The host connection is closed.'));
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
+      const timer = setTimeout(() => {
+        this.pending.delete(id);
+        reject(new Error(`The host did not answer ${method} in time.`));
+      }, timeoutMs);
+      this.pending.set(id, { resolve, reject, timer });
       this.send({ id, method, params });
     });
+  }
+
+  /** Stops listening and rejects every request still waiting (teardown, unmount). */
+  dispose(): void {
+    this.disposed = true;
+    for (const { reject, timer } of this.pending.values()) {
+      clearTimeout(timer);
+      reject(new Error('The host connection is closed.'));
+    }
+    this.pending.clear();
   }
 
   notify(method: string, params?: unknown): void {
@@ -98,11 +126,11 @@ export class HostBridge {
 
   /** `ui/initialize` then `ui/notifications/initialized`; the host context of the answer is applied. */
   async connect(appInfo: { name: string; version: string }): Promise<void> {
-    const result = await this.request('ui/initialize', {
-      appInfo,
-      appCapabilities: {},
-      protocolVersion: PROTOCOL_VERSION,
-    });
+    const result = await this.request(
+      'ui/initialize',
+      { appInfo, appCapabilities: {}, protocolVersion: PROTOCOL_VERSION },
+      INITIALIZE_TIMEOUT_MS,
+    );
     const answer = z.object({ hostContext: z.unknown().optional() }).safeParse(result);
     if (answer.success) this.context(answer.data.hostContext);
     this.notify('ui/notifications/initialized');

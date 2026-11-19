@@ -8,9 +8,9 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSyn
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { VIEWER_MARKER } from './guards.mjs';
 
-// Marker of the real viewer (absent from the placeholder) and the size its single HTML file must stay under.
-const VIEWER_MARKER = 'fluid-mcp-app-viewer';
+// The size the single HTML file of the viewer must stay under.
 const VIEWER_MAX_BYTES = 4_000_000;
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FAKE_CLAUDE = join(HERE, '..', 'test', 'fixtures', 'fake-claude.mjs');

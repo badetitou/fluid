@@ -20,10 +20,10 @@ export function McpViewer() {
   const sizeRef = useReportSize(host.reportSize);
   const theme = useMemo(() => viewerTheme(host.hostTheme), [host.hostTheme]);
   const antdTheme = useMemo(() => buildAntdTheme(theme.tokens, theme.mode), [theme]);
-  const { shown, runQueries } = host;
+  const { view, error, runQueries } = host;
   const client = useMemo(
-    () => (shown?.kind === 'view' ? createViewerClient(shown.payload, runQueries) : null),
-    [shown, runQueries],
+    () => (view ? createViewerClient(view, runQueries) : null),
+    [view, runQueries],
   );
 
   useEffect(() => {
@@ -41,13 +41,13 @@ export function McpViewer() {
       <WidgetThemeContext.Provider value={theme}>
         <ConfigProvider theme={antdTheme}>
           <div ref={sizeRef} style={{ padding: 8 }}>
-            {shown?.kind === 'error' && <Alert type="error" showIcon title={shown.message} />}
-            {!shown && <Empty description="Waiting for the view…" />}
-            {client && shown?.kind === 'view' && (
+            {error && <Alert type="error" showIcon title={error} style={{ marginBottom: 8 }} />}
+            {!view && !error && <Empty description="Waiting for the view…" />}
+            {client && view && (
               <UrqlProvider value={client}>
                 {/* Widgets link to other items with router hooks; nothing navigates inside the host frame. */}
                 <MemoryRouter>
-                  <ViewRenderer spec={shown.payload.spec} maxColumns={2} />
+                  <ViewRenderer spec={view.spec} maxColumns={2} />
                 </MemoryRouter>
               </UrqlProvider>
             )}

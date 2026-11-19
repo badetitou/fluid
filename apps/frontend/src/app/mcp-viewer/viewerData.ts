@@ -1,16 +1,27 @@
 import { parse, print } from 'graphql';
 import type { ViewSpec } from '@fluid/shared';
+import { isPaged, pagedPaths } from '../../views/paging/model';
 import type { QueryResult } from './toolResult';
+import { trimRows } from './trimRows';
 
 /** Fetches the stored queries again, with this `take` and these variables. */
 export type RunQueriesFn = (args: { take?: number; variables?: Record<string, unknown> }) => Promise<Record<string, QueryResult>>;
 
+/** The `take` the server applies when none is given (DEFAULT_TAKE of `fluid mcp`). */
+export const SERVER_DEFAULT_TAKE = 100;
+
 interface Entry {
   result: QueryResult;
-  /** Rows it was fetched with; unknown for the first run when the server did not say. */
-  take?: number;
-  /** The variables other than `take` it was fetched with. */
+  /** Rows its query was fetched with (the server overrides a query's own `take`, so this is what ran). */
+  take: number;
+}
+
+interface Candidate {
+  name: string;
+  /** The variables other than `take` the stored query declares. */
   varsKey: string;
+  paged: boolean;
+  paths: string[][];
 }
 
 /** A query text as the urql request prints it, so spec text and request text compare equal. */
@@ -35,18 +46,15 @@ const takeOf = (variables: Record<string, unknown> | undefined): number | undefi
   return typeof take === 'number' && take > 0 ? take : undefined;
 };
 
-export type Decision =
-  | { kind: 'hit'; result: QueryResult }
-  | { kind: 'fetch'; name: string; take?: number; variables: Record<string, unknown> }
-  | { kind: 'unknown' };
-
 /**
- * Answers the engine's queries from what `show_view` already ran (by query text -> stored query name),
- * and goes back to the server (`run_queries`) for what it does not hold: more rows, other variables.
+ * Answers the engine's queries from what `show_view` already ran (by query text and variables -> stored
+ * query name), and goes back to the server (`run_queries`) for what it does not hold: more rows than
+ * stored, other variables. A stored answer is cut to the rows asked when fewer are wanted.
  */
 export class ViewerData {
-  private readonly names = new Map<string, string>();
+  private readonly byText = new Map<string, Candidate[]>();
   private readonly entries = new Map<string, Entry>();
+  private readonly inFlight = new Map<string, Promise<Record<string, QueryResult>>>();
 
   constructor(
     spec: ViewSpec,
@@ -55,35 +63,59 @@ export class ViewerData {
     private readonly run: RunQueriesFn,
   ) {
     for (const [name, q] of Object.entries(spec.queries)) {
-      this.names.set(normalizeQuery(q.query), name);
+      const candidate: Candidate = { name, varsKey: varsKey(q.variables), paged: isPaged(q.query), paths: pagedPaths(q.query) };
+      const key = normalizeQuery(q.query);
+      this.byText.set(key, [...(this.byText.get(key) ?? []), candidate]);
       const result = initial[name];
-      if (result) this.entries.set(name, { result, take, varsKey: varsKey(q.variables) });
+      if (result) this.entries.set(this.entryKey(name, candidate.varsKey), { result, take: take ?? SERVER_DEFAULT_TAKE });
     }
   }
 
-  decide(queryText: string, variables: Record<string, unknown> | undefined): Decision {
-    const name = this.names.get(normalizeQuery(queryText));
-    if (name === undefined) return { kind: 'unknown' };
-    const entry = this.entries.get(name);
-    const take = takeOf(variables);
-    const enough =
-      entry !== undefined &&
-      entry.varsKey === varsKey(variables) &&
-      (take === undefined || entry.take === undefined || take <= entry.take);
-    if (entry && enough) return { kind: 'hit', result: entry.result };
-    const others = Object.fromEntries(Object.entries(variables ?? {}).filter(([k]) => k !== 'take'));
-    return { kind: 'fetch', name, take, variables: others };
+  private entryKey = (name: string, vars: string) => `${name}|${vars}`;
+
+  private candidate(queryText: string, vars: string): Candidate | undefined {
+    const candidates = this.byText.get(normalizeQuery(queryText));
+    return candidates?.find((c) => c.varsKey === vars) ?? candidates?.[0];
+  }
+
+  private store(name: string, vars: string, take: number, result: QueryResult): void {
+    this.entries.set(this.entryKey(name, vars), { result, take });
+  }
+
+  private fetch(name: string, take: number | undefined, variables: Record<string, unknown>): Promise<Record<string, QueryResult>> {
+    const key = `${name}|${take}|${varsKey(variables)}`;
+    const running = this.inFlight.get(key);
+    if (running) return running;
+    const hasVariables = Object.keys(variables).length > 0;
+    const promise = this.run({ take, ...(hasVariables ? { variables } : {}) }).finally(() => this.inFlight.delete(key));
+    this.inFlight.set(key, promise);
+    return promise;
   }
 
   async answer(queryText: string, variables: Record<string, unknown> | undefined): Promise<QueryResult> {
-    const decision = this.decide(queryText, variables);
-    if (decision.kind === 'hit') return decision.result;
-    if (decision.kind === 'unknown') return { errors: [{ message: 'This query is not part of the view shown here.' }] };
-    const hasVariables = Object.keys(decision.variables).length > 0;
-    const results = await this.run({ take: decision.take, ...(hasVariables ? { variables: decision.variables } : {}) });
-    const result = results[decision.name];
-    if (!result) return { errors: [{ message: `The server did not answer “${decision.name}”.` }] };
-    this.entries.set(decision.name, { result, take: decision.take, varsKey: varsKey(variables) });
+    const vars = varsKey(variables);
+    const found = this.candidate(queryText, vars);
+    if (!found) return { errors: [{ message: 'This query is not part of the view shown here.' }] };
+    const take = takeOf(variables);
+    const entry = this.entries.get(this.entryKey(found.name, vars));
+    if (entry && (!found.paged || take === undefined || take <= entry.take)) {
+      if (!found.paged || take === undefined || take === entry.take || entry.result.data === undefined) return entry.result;
+      return { ...entry.result, data: trimRows(entry.result.data, found.paths, take) };
+    }
+    const others = Object.fromEntries(Object.entries(variables ?? {}).filter(([k]) => k !== 'take'));
+    const results = await this.fetch(found.name, take, others);
+    const result = results[found.name];
+    if (!result) return { errors: [{ message: `The server did not answer “${found.name}”.` }] };
+    const stored = take ?? SERVER_DEFAULT_TAKE;
+    this.store(found.name, vars, stored, result);
+    // Without variables every query ran with its own: all of the answers are worth keeping.
+    if (Object.keys(others).length === 0) this.keepAll(results, found.name, stored);
     return result;
+  }
+
+  private keepAll(results: Record<string, QueryResult>, except: string, take: number): void {
+    for (const candidates of this.byText.values()) {
+      for (const c of candidates) if (c.name !== except && results[c.name]) this.store(c.name, c.varsKey, take, results[c.name]);
+    }
   }
 }

@@ -84,4 +84,34 @@ describe('McpViewer', () => {
     fromHost({ method: 'ui/notifications/tool-result', params: { isError: true, content: [{ type: 'text', text: 'Sign in to Rick first' }] } });
     expect(await screen.findByText('Sign in to Rick first')).toBeTruthy();
   });
+
+  it('posts nothing but the handshake request before it is connected', async () => {
+    render(<McpViewer />);
+    await act(async () => {});
+    expect(sent.map((m) => m.method)).toEqual(['ui/initialize']);
+    const init = sent[0];
+    fromHost({ id: init.id, result: {} });
+    await waitFor(() => expect(sent.some((m) => m.method === 'ui/notifications/size-changed')).toBe(true));
+    const order = sent.map((m) => m.method);
+    expect(order.indexOf('ui/notifications/initialized')).toBeLessThan(order.indexOf('ui/notifications/size-changed'));
+  });
+
+  it('keeps the last good view when a later tool result fails', async () => {
+    render(<McpViewer />);
+    fromHost(toolResult);
+    expect(await screen.findByText('Rick Sanchez')).toBeTruthy();
+    fromHost({ method: 'ui/notifications/tool-result', params: { isError: true, content: [{ type: 'text', text: 'Source down' }] } });
+    expect(await screen.findByText('Source down')).toBeTruthy();
+    expect(screen.getByText('Rick Sanchez')).toBeTruthy();
+  });
+
+  it('shows an error when the host does not answer the handshake', async () => {
+    vi.useFakeTimers();
+    render(<McpViewer />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(screen.getByText(/Could not reach the host/)).toBeTruthy();
+    vi.useRealTimers();
+  });
 });

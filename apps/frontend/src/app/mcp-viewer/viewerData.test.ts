@@ -5,10 +5,12 @@ import { normalizeQuery, varsKey, ViewerData } from './viewerData';
 
 const spec = parseViewSpec(SPEC);
 const QUERY = spec.queries.list.query;
-const initial = { list: { data: { characters: [{ id: '1' }] } } };
+const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ id: String(i + 1) }));
+const result = (n: number) => ({ data: { characters: rows(n) } });
+const initial = { list: result(3) };
 
 function make(take: number | undefined = 100) {
-  const run = vi.fn(async () => ({ list: { data: { characters: [{ id: '1' }, { id: '2' }] } } }));
+  const run = vi.fn(async ({ take: t }: { take?: number }) => ({ list: result(t ?? 100) }));
   return { run, data: new ViewerData(spec, initial, take, run) };
 }
 
@@ -18,10 +20,27 @@ describe('ViewerData', () => {
     expect(varsKey({ take: 5, b: 1, a: 2 })).toBe(varsKey({ a: 2, b: 1 }));
   });
 
-  it('answers a known query from the stored results, without a call', async () => {
+  it('answers the first request from the stored results, without a call', async () => {
     const { data, run } = make();
-    expect(await data.answer(QUERY, { take: 20 })).toBe(initial.list);
+    expect(await data.answer(QUERY, { take: 100 })).toBe(initial.list);
     expect(run).not.toHaveBeenCalled();
+  });
+
+  it('cuts a stored answer to a smaller take, without a call', async () => {
+    const stored = { list: result(100) };
+    const run = vi.fn();
+    const data = new ViewerData(spec, stored, 100, run);
+    const r = await data.answer(QUERY, { take: 20 });
+    expect((r.data as { characters: unknown[] }).characters).toHaveLength(20);
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('counts the server default as the stored take when the first run did not say', async () => {
+    const { data, run } = make(undefined);
+    await data.answer(QUERY, { take: 100 });
+    expect(run).not.toHaveBeenCalled();
+    await data.answer(QUERY, { take: 101 });
+    expect(run).toHaveBeenCalledWith({ take: 101 });
   });
 
   it('answers an unknown query with an error result', async () => {
@@ -41,8 +60,9 @@ describe('ViewerData', () => {
     const { data, run } = make(100);
     const more = await data.answer(QUERY, { take: 150 });
     expect(run).toHaveBeenCalledWith({ take: 150 });
-    expect(more.data).toEqual({ characters: [{ id: '1' }, { id: '2' }] });
+    expect((more.data as { characters: unknown[] }).characters).toHaveLength(150);
     await data.answer(QUERY, { take: 150 });
+    await data.answer(QUERY, { take: 120 });
     expect(run).toHaveBeenCalledTimes(1);
   });
 
@@ -52,14 +72,61 @@ describe('ViewerData', () => {
     expect(run).toHaveBeenCalledWith({ take: 20, variables: { name: 'rick' } });
   });
 
+  it('merges identical refetches in flight into one run', async () => {
+    const { data, run } = make();
+    const [a, b] = await Promise.all([data.answer(QUERY, { take: 200 }), data.answer(QUERY, { take: 200 })]);
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(a).toEqual(b);
+  });
+
+  it('lets a failed refetch reject, then tries again', async () => {
+    const run = vi.fn().mockRejectedValueOnce(new Error('too large')).mockResolvedValueOnce({ list: result(9) });
+    const data = new ViewerData(spec, initial, 100, run);
+    await expect(data.answer(QUERY, { take: 500 })).rejects.toThrow('too large');
+    await expect(data.answer(QUERY, { take: 500 })).resolves.toMatchObject({ data: expect.anything() });
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+
   it('answers an error result when the server does not answer the query', async () => {
     const data = new ViewerData(spec, initial, 100, vi.fn(async () => ({})));
     const r = await data.answer(QUERY, { take: 500 });
     expect(r.errors?.[0]).toMatchObject({ message: expect.stringContaining('did not answer') });
   });
+});
 
-  it('lets a failed refetch reject', async () => {
-    const data = new ViewerData(spec, initial, 100, vi.fn(async () => Promise.reject(new Error('too large'))));
-    await expect(data.answer(QUERY, { take: 500 })).rejects.toThrow('too large');
+describe('ViewerData with several queries', () => {
+  const two = parseViewSpec({
+    ...SPEC,
+    queries: {
+      one: { query: 'query($take: Int, $id: ID){ c(take: $take, id: $id){ id } }', variables: { id: 'a' } },
+      two: { query: 'query($take: Int, $id: ID){ c(take: $take, id: $id){ id } }', variables: { id: 'b' } },
+      other: { query: 'query($take: Int){ d(take: $take){ id } }', variables: {} },
+    },
+    widgets: [],
+  });
+  const stored = {
+    one: { data: { c: [{ id: 'one' }] } },
+    two: { data: { c: [{ id: 'two' }] } },
+    other: { data: { d: [{ id: 'd' }] } },
+  };
+
+  it('tells two queries with the same text apart by their variables', async () => {
+    const data = new ViewerData(two, stored, 100, vi.fn());
+    const text = two.queries.one.query;
+    expect(await data.answer(text, { take: 100, id: 'a' })).toBe(stored.one);
+    expect(await data.answer(text, { take: 100, id: 'b' })).toBe(stored.two);
+  });
+
+  it('keeps every answer of one run for all the queries (no run per query)', async () => {
+    const run = vi.fn(async () => ({
+      one: { data: { c: [{ id: 'one' }, { id: 'x' }] } },
+      two: { data: { c: [{ id: 'two' }, { id: 'y' }] } },
+      other: { data: { d: [{ id: 'd' }, { id: 'z' }] } },
+    }));
+    const data = new ViewerData(two, stored, 100, run);
+    await data.answer(two.queries.other.query, { take: 300 });
+    await data.answer(two.queries.one.query, { take: 300, id: 'a' });
+    await data.answer(two.queries.two.query, { take: 300, id: 'b' });
+    expect(run).toHaveBeenCalledTimes(1);
   });
 });
