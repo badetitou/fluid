@@ -62,6 +62,9 @@ export type PublicOAuth = ReturnType<typeof toPublicOAuth>;
 
 export type AuthReason = 'signin' | 'expired' | 'insufficient_scope';
 
+/** The `extensions.code` of the GraphQL error that asks the user to sign in. */
+export const AUTH_REQUIRED_CODE = 'FLUID_AUTH_REQUIRED';
+
 /** GraphQL error the UI keys on to offer "Sign in" / "Reconnect". */
 export function authRequiredResult(reason: AuthReason, scope?: string) {
   const messages: Record<AuthReason, string> = {
@@ -75,7 +78,7 @@ export function authRequiredResult(reason: AuthReason, scope?: string) {
       errors: [
         {
           message: messages[reason],
-          extensions: { code: 'FLUID_AUTH_REQUIRED', reason, ...(scope ? { scope } : {}) },
+          extensions: { code: AUTH_REQUIRED_CODE, reason, ...(scope ? { scope } : {}) },
         },
       ],
     },

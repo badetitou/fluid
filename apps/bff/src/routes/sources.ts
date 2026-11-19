@@ -1,8 +1,8 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { SecretKeyError } from '../sources/crypto';
 import { createSourceBody, graphqlBody, updateSourceBody } from '../sources/model';
 import type { SourceService } from '../sources/service';
+import { secretAwareErrorHandler } from './error-handler';
 
 // Source configs (CRUD, secret write-only) and the GraphQL proxy for a configured source.
 // Everything goes through the service; the only reachable URLs are the configured ones.
@@ -17,14 +17,7 @@ export interface SourceRoutesOptions {
 }
 
 export async function sourceRoutes(app: FastifyInstance, { service }: SourceRoutesOptions) {
-  // Key problems (missing/invalid FLUID_SECRET_KEY, undecryptable secret) are server config errors.
-  // Their messages never contain a secret.
-  app.setErrorHandler((err: Error & { statusCode?: number }, req, reply) => {
-    if (err instanceof SecretKeyError) return reply.code(500).send({ error: err.message });
-    req.log.error({ err: { name: err.name, message: err.message } }, 'source route failed');
-    const status = err.statusCode && err.statusCode < 500 ? err.statusCode : 500;
-    return reply.code(status).send({ error: status < 500 ? err.message : 'Internal error' });
-  });
+  app.setErrorHandler(secretAwareErrorHandler);
 
   app.get('/api/sources', () => service.list());
 
