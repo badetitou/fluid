@@ -6,12 +6,14 @@ import { curatedViewBuilder } from './builders/curatedViews';
 import { chatAction } from './actions/chat';
 import { fireworksAction } from './actions/fireworks';
 import { ENDPOINTS_SETTING, openViewsBuilder } from './builders/openViews';
+import { modelViewsBuilder } from './builders/modelViews';
 import { HIGH_CONTRAST_THEME, SOLARIZED_THEME } from './builtinThemes';
 import { CATPPUCCIN_THEMES } from './catppuccin';
 import type { PluginManifest } from './manifest';
 import type { PageAction } from './pageAction';
 import { staticSourceProvider } from './sourceProvider';
 import { DEMO_SOURCES } from './sources/demoSources';
+import { githubSourceProvider } from './sources/github/provider';
 import type { FluidPlugin, PageActionPlugin, SourceProviderPlugin, ThemePlugin, ViewBuilderPlugin, WidgetPlugin } from './types';
 import type { ViewBuilder } from './viewBuilder';
 
@@ -77,6 +79,16 @@ const viewBuilderPlugins: ViewBuilderPlugin[] = [
   ),
   viewBuilderPlugin(
     {
+      id: 'fluid-model-views',
+      name: 'Model views',
+      description:
+        'Code-model perspectives for sources serving badetitou/Model (recognised from their schema): the code tree, the members and inheritance of a type, the callers and callees of a method.',
+    },
+    modelViewsBuilder,
+    '#722ed1',
+  ),
+  viewBuilderPlugin(
+    {
       id: 'fluid-auto-views',
       name: 'Automatic views',
       description: 'An overview of every concept, a detail of every item and a tree of hierarchies, built from the GraphQL schema.',
@@ -127,6 +139,25 @@ const demoSourcesPlugin: SourceProviderPlugin = {
   providers: [staticSourceProvider(demoSourcesContract)],
 };
 
+const githubProvider = githubSourceProvider();
+
+/** The public GitHub repositories the BFF analyses with Model; hidden when the BFF does not offer them. */
+const githubSourcesPlugin: SourceProviderPlugin = {
+  ...BUILTIN,
+  kind: 'sourceProvider',
+  manifest: {
+    id: 'fluid-github-sources',
+    name: 'GitHub repositories',
+    version: VERSION,
+    kind: 'sourceProvider',
+    description:
+      'Public GitHub repositories downloaded and analysed with Model by the BFF, explored like any GraphQL source. Shown when the BFF has the GitHub source on.',
+    author: 'fluid',
+    contributes: { sourceProviders: [{ id: githubProvider.id, label: githubProvider.label }] },
+  },
+  providers: [githubProvider],
+};
+
 type ActionManifest = Pick<PluginManifest, 'id' | 'name' | 'description' | 'settings'>;
 
 const pageActionPlugin = (manifest: ActionManifest, actions: PageAction[]): PageActionPlugin => ({
@@ -162,6 +193,7 @@ export const BUILTIN_PLUGINS: FluidPlugin[] = [
   ...widgetPlugins,
   ...viewBuilderPlugins,
   demoSourcesPlugin,
+  githubSourcesPlugin,
   ...pageActionPlugins,
   themePlugin(BADETITOU_THEME, true),
   themePlugin(SOLARIZED_THEME),

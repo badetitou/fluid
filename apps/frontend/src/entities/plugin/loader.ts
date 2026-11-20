@@ -4,7 +4,7 @@ import type { DataSource, WidgetProps } from '../../views/plugin-api';
 import { pluginManifestSchema, type PluginManifest } from './manifest';
 import type { ModuleProvided } from './model';
 import { modulePageAction, type PageAction } from './pageAction';
-import { checkedSourceProvider, type SourceProvider } from './sourceProvider';
+import { checkedSourceProvider, type SourceProvider, type SourceProviderEntry } from './sourceProvider';
 import type { ViewBuilder } from './viewBuilder';
 
 /**
@@ -79,9 +79,10 @@ function moduleBuilders(manifest: PluginManifest, builders: ModuleEntries | unde
 /** The source providers the module lists; those with sources in the manifest may be left out. */
 function moduleProviders(manifest: PluginManifest, providers: ModuleEntries | undefined): SourceProvider[] {
   return (manifest.contributes.sourceProviders ?? []).flatMap((contract) => {
-    const listSources = providers?.[contract.id]?.listSources;
+    const entry = providers?.[contract.id];
+    const listSources = entry?.listSources;
     if (typeof listSources === 'function')
-      return [checkedSourceProvider(contract, listSources as (s: Readonly<Record<string, string>>, signal: AbortSignal) => unknown)];
+      return [checkedSourceProvider(contract, { ...entry, listSources } as SourceProviderEntry)];
     if (contract.sources) return [];
     throw new Error(`The plugin module does not list the sources of “${contract.id}”.`);
   });

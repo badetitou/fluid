@@ -6,7 +6,7 @@ import { useSavedSources } from './store';
 
 /**
  * The connected source, the ones the user kept and those the source provider
- * plugins offer, and how to switch, name or forget them.
+ * plugins offer (and their add forms), and how to switch, name or forget them.
  */
 export function useSources() {
   const current = useConnection((s) => s.graphqlUrl);
@@ -24,6 +24,12 @@ export function useSources() {
     [current, saved, pluginGroups],
   );
 
+  /** The add forms of the providers that have one, in plugin order. */
+  const adders = useMemo(
+    () => pluginGroups.flatMap((g) => (g.addSource ? [{ providerId: g.providerId, ...g.addSource }] : [])),
+    [pluginGroups],
+  );
+
   const currentAuth = useMemo(
     () => (current ? sourceAuth(current, pluginGroups) : undefined),
     [current, pluginGroups],
@@ -39,5 +45,5 @@ export function useSources() {
     [current, remember, connect],
   );
 
-  return { current, currentName, currentAuth, groups, saved: kept, switchTo, rename, forget };
+  return { current, currentName, currentAuth, groups, adders, saved: kept, switchTo, rename, forget };
 }
