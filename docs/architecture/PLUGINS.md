@@ -299,7 +299,15 @@ Un fournisseur qui écrit ses `sources` dans le manifeste n'a pas besoin de modu
 thème). Sinon le module exporte `{ sourceProviders: { "<id>": { listSources(settings, signal), addSource?, pollMs? } } }`
 (ex. un serveur qui liste ses images Moose) ; la réponse est validée, seules les URL `http(s)` passent.
 Intégré : `fluid-demo-sources` (« Demo APIs » : Rick and Morty, Countries, GraphQLZero, la liste
-de l'écran de connexion). Exemple installable : `/plugins/local-sources/manifest.json`.
+de l'écran de connexion) et `fluid-github-sources` (« GitHub repositories », `entities/plugin/sources/github`) :
+les dépôts publics que le BFF a téléchargés et analysés avec Model (`GET /api/github-repos`, validé par
+`githubRepoListSchema`), chacun servi en GraphQL par le BFF (`<base BFF><graphqlPath>`), « pending » tant
+qu'il est en file, téléchargé ou analysé (relisté toutes les 3 s), avec son erreur s'il a échoué ; son
+formulaire prend `owner/name` ou `https://github.com/owner/name[.git]` (normalisé, `model.ts`) et le poste
+(`POST /api/github-repos`). Si le BFF répond 404 (source GitHub désactivée), ou ne répond pas avant le
+premier listage, `listSources` lève `SourceProviderUnavailable` et le fournisseur disparaît du sélecteur,
+formulaire compris ; une fois affiché, une coupure réseau reste une erreur ordinaire (le groupe reste).
+Exemple installable : `/plugins/local-sources/manifest.json`.
 
 ## 4 quater. Actions de page
 

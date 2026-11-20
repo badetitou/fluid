@@ -61,10 +61,11 @@ describe('source provider plugins', () => {
 
   it('include the demo APIs, unless disabled', async () => {
     const active = activeSourceProviders(BUILTIN_PLUGINS, [], {});
-    expect(active.map((a) => a.provider.id)).toEqual(['demo-apis']);
+    expect(active.map((a) => a.provider.id)).toEqual(['demo-apis', 'github']);
     const sources = await active[0].provider.listSources({}, signal);
     expect(sources.map((s) => s.name)).toContain('Rick and Morty');
-    expect(activeSourceProviders(BUILTIN_PLUGINS, ['fluid-demo-sources'], {})).toEqual([]);
+    const left = activeSourceProviders(BUILTIN_PLUGINS, ['fluid-demo-sources'], {});
+    expect(left.map((a) => a.provider.id)).toEqual(['github']);
   });
 
   it('check what a module lists', async () => {

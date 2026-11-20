@@ -13,6 +13,7 @@ import type { PluginManifest } from './manifest';
 import type { PageAction } from './pageAction';
 import { staticSourceProvider } from './sourceProvider';
 import { DEMO_SOURCES } from './sources/demoSources';
+import { githubSourceProvider } from './sources/github/provider';
 import type { FluidPlugin, PageActionPlugin, SourceProviderPlugin, ThemePlugin, ViewBuilderPlugin, WidgetPlugin } from './types';
 import type { ViewBuilder } from './viewBuilder';
 
@@ -138,6 +139,25 @@ const demoSourcesPlugin: SourceProviderPlugin = {
   providers: [staticSourceProvider(demoSourcesContract)],
 };
 
+const githubProvider = githubSourceProvider();
+
+/** The public GitHub repositories the BFF analyses with Model; hidden when the BFF does not offer them. */
+const githubSourcesPlugin: SourceProviderPlugin = {
+  ...BUILTIN,
+  kind: 'sourceProvider',
+  manifest: {
+    id: 'fluid-github-sources',
+    name: 'GitHub repositories',
+    version: VERSION,
+    kind: 'sourceProvider',
+    description:
+      'Public GitHub repositories downloaded and analysed with Model by the BFF, explored like any GraphQL source. Shown when the BFF has the GitHub source on.',
+    author: 'fluid',
+    contributes: { sourceProviders: [{ id: githubProvider.id, label: githubProvider.label }] },
+  },
+  providers: [githubProvider],
+};
+
 type ActionManifest = Pick<PluginManifest, 'id' | 'name' | 'description' | 'settings'>;
 
 const pageActionPlugin = (manifest: ActionManifest, actions: PageAction[]): PageActionPlugin => ({
@@ -173,6 +193,7 @@ export const BUILTIN_PLUGINS: FluidPlugin[] = [
   ...widgetPlugins,
   ...viewBuilderPlugins,
   demoSourcesPlugin,
+  githubSourcesPlugin,
   ...pageActionPlugins,
   themePlugin(BADETITOU_THEME, true),
   themePlugin(SOLARIZED_THEME),
