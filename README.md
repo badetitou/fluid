@@ -116,8 +116,8 @@ Widgets ship in built-in collections that you can turn on or off in *Settings â†
 | **Software maps** | polymetric boxes, class blueprint, overview pyramid (Moose) |
 | **Inspectors** | Spec presenters served by Pharo / Moose backends |
 
-> Exploring a **Moose** model? See [Exploring a Moose model with fluid](docs/guides/moose-spec-fluid.md):
-> GraphQL from Moose-REST-API, Pharo inspector tabs and scripts from Spec-Fluid.
+> Exploring a **Moose** model? See [The Pharo image as an Open Views provider](docs/guides/moose-open-views.md):
+> GraphQL from Moose-REST-API, Pharo inspector tabs from Spec-Fluid (an Open Views provider).
 
 Each widget type is a **contract** (zod schema, LLM documentation, input/output ports) plus a renderer,
 so the prompt only ever describes widgets the frontend can actually render.
