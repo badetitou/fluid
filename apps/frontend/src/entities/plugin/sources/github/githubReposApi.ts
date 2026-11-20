@@ -6,8 +6,16 @@ import { BffHttpError, request } from '../../../../bff/http';
 
 const PATH = '/api/github-repos';
 
+/** The BFF could not be reached at all (no answer, as opposed to an error status). */
+export class BffUnreachable extends Error {
+  constructor() {
+    super('The BFF cannot be reached.');
+    this.name = 'BffUnreachable';
+  }
+}
+
 export interface GithubReposApi {
-  /** The analysed repositories, or `null` when the BFF has the GitHub source off or is unreachable. */
+  /** The analysed repositories, or `null` when the BFF has the GitHub source off (404); `BffUnreachable` when it does not answer. */
   list: (signal: AbortSignal) => Promise<GithubRepo[] | null>;
   /** Asks the BFF to download and analyse `owner/name`; rejects with a readable message. */
   add: (repo: string, signal: AbortSignal) => Promise<GithubRepo>;
@@ -21,8 +29,8 @@ export const githubReposApi: GithubReposApi = {
     try {
       return githubRepoListSchema.parse(await request<unknown>(PATH, { signal }));
     } catch (err) {
-      if ((err instanceof BffHttpError && err.status === 404) || unreachable(err)) return null;
-      throw err;
+      if (err instanceof BffHttpError && err.status === 404) return null;
+      throw unreachable(err) ? new BffUnreachable() : err;
     }
   },
   add: async (repo, signal) => {
@@ -31,7 +39,7 @@ export const githubReposApi: GithubReposApi = {
       return githubRepoSchema.parse(await request<unknown>(PATH, { method: 'POST', body, signal }));
     } catch (err) {
       if (err instanceof BffHttpError) throw new Error(`The BFF could not add ${repo} (HTTP ${err.status}).`);
-      if (unreachable(err)) throw new Error('The BFF cannot be reached.');
+      if (unreachable(err)) throw new BffUnreachable();
       throw err;
     }
   },

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { githubReposApi } from './githubReposApi';
+import { BffUnreachable, githubReposApi } from './githubReposApi';
 
 const signal = new AbortController().signal;
 const repo = {
@@ -22,11 +22,18 @@ describe('githubReposApi', () => {
     expect(String(fetch.mock.calls[0][0])).toMatch(/\/api\/github-repos$/);
   });
 
-  it('answers null when the GitHub source is off (404) or the BFF is unreachable', async () => {
+  it('answers null when the GitHub source is off (404)', async () => {
     answer(404, { message: 'Not Found' });
     await expect(githubReposApi.list(signal)).resolves.toBeNull();
+  });
+
+  it('tells an unreachable BFF apart from other errors', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
-    await expect(githubReposApi.list(signal)).resolves.toBeNull();
+    await expect(githubReposApi.list(signal)).rejects.toBeInstanceOf(BffUnreachable);
+    answer(500, { error: 'boom' });
+    const err = await githubReposApi.list(signal).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err).not.toBeInstanceOf(BffUnreachable);
   });
 
   it('rejects an answer that is not a list of repositories', async () => {

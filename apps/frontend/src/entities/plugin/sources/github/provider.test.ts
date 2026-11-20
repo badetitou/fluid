@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { GithubRepo } from '@fluid/shared';
 import { SourceProviderUnavailable } from '../../sourceProvider';
-import type { GithubReposApi } from './githubReposApi';
+import { BffUnreachable, type GithubReposApi } from './githubReposApi';
 import { GITHUB_POLL_MS, githubSourceProvider } from './provider';
 
 const signal = new AbortController().signal;
@@ -47,5 +47,28 @@ describe('github source provider', () => {
     const provider = githubSourceProvider(backend, 'http://bff');
     await expect(provider.addSource!.submit('not a repo', {}, signal)).rejects.toThrow('Expected owner/name');
     expect(backend.add).not.toHaveBeenCalled();
+  });
+
+  it('joins a BFF base ending in / and the GraphQL path with a single slash', async () => {
+    const [source] = await githubSourceProvider(api([repo('ready')]), 'http://bff/').listSources({}, signal);
+    expect(source.url).toBe('http://bff/api/github-repos/a--b/graphql');
+  });
+
+  it('is unavailable when the BFF does not answer before it was ever listed', async () => {
+    const backend = api([]);
+    vi.mocked(backend.list).mockRejectedValue(new BffUnreachable());
+    await expect(githubSourceProvider(backend, 'http://bff').listSources({}, signal)).rejects.toBeInstanceOf(
+      SourceProviderUnavailable,
+    );
+  });
+
+  it('keeps a network failure an ordinary error once it has been listed (regression)', async () => {
+    const backend = api([repo('analyzing')]);
+    const provider = githubSourceProvider(backend, 'http://bff');
+    await provider.listSources({}, signal);
+    vi.mocked(backend.list).mockRejectedValueOnce(new BffUnreachable());
+    const err = await provider.listSources({}, signal).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(BffUnreachable);
+    expect(err).not.toBeInstanceOf(SourceProviderUnavailable);
   });
 });
