@@ -69,6 +69,14 @@ describe('sources', () => {
     expect(groups[1].options.map((o) => o.name)).toEqual(['Countries']);
   });
 
+  it('offer a pending source as such', () => {
+    const pending: SourceGroup = { providerId: 'gh', label: 'GitHub', sources: [{ name: 'a/b', url: LOCAL, pending: true }] };
+    expect(sourceOptions(null, [], [pending])[0].options).toEqual([
+      { url: LOCAL, name: 'a/b', label: `a/b — ${LOCAL}`, pending: true },
+    ]);
+    expect(sourceOptions(null, [], demos)[0].options[0]).not.toHaveProperty('pending');
+  });
+
   it('leave out empty groups', () => {
     expect(sourceOptions(null, [], [{ providerId: 'p', label: 'P', sources: [], error: 'down' }])).toEqual([]);
   });

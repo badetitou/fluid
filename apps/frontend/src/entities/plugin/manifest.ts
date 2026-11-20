@@ -44,6 +44,8 @@ export const sourceEntrySchema = z.object({
   description: z.string().max(300).optional(),
   limits: sourceLimitsSchema.optional(),
   auth: sourceAuthSchema.optional(),
+  /** Not ready yet (e.g. still being analysed): shown, but cannot be picked. */
+  pending: z.boolean().optional(),
 });
 export type SourceEntry = z.infer<typeof sourceEntrySchema>;
 

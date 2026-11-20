@@ -15,7 +15,7 @@ export {
   type SourceLimits,
 } from './manifest';
 export { DEMO_SOURCES, type DemoSource } from './sources/demoSources';
-export { usePluginSources, type SourceGroup } from './usePluginSources';
+export { usePluginSources, type GroupSourceAdder, type SourceGroup } from './usePluginSources';
 export { activeWidgetCatalog, availableThemes, contractsOf, pickTheme, themesOf, type ActiveViewBuilder } from './model';
 export { PluginsContext } from './PluginsContext';
 export { usePluginRuntime } from './usePluginRuntime';
@@ -43,7 +43,7 @@ export type {
   ViewBuilderPlugin,
   WidgetPlugin,
 } from './types';
-export type { SourceProvider } from './sourceProvider';
+export type { SourceAdder, SourceProvider } from './sourceProvider';
 export { isOffered, type ActivePageAction, type PageAction, type PageActionContext, type PageActionColumn, type PageActionPanelProps } from './pageAction';
 export type {
   BuiltPerspective,

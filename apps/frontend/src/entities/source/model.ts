@@ -14,6 +14,8 @@ export interface SourceOption {
   name?: string;
   /** `<name> — <url>`, or the URL alone. */
   label: string;
+  /** Offered by a provider but not ready yet: shown, not pickable. */
+  pending?: boolean;
 }
 
 /** The switcher's options under one heading: the user's sources, or one provider's. */
@@ -96,7 +98,12 @@ export interface KeptSource extends SavedSource {
 export const keptSources = (saved: SavedSource[], groups: SourceGroup[]): KeptSource[] =>
   saved.map((s) => ({ ...s, providerName: sourceName(s.url, [], groups) }));
 
-const option = (url: string, name?: string): SourceOption => ({ url, name, label: sourceLabel(url, name) });
+const option = (url: string, name?: string, pending?: boolean): SourceOption => ({
+  url,
+  name,
+  label: sourceLabel(url, name),
+  ...(pending ? { pending } : {}),
+});
 
 /**
  * What the switcher offers: the user's sources first (the current one
@@ -113,7 +120,7 @@ export function sourceOptions(
     { key: 'mine', label: 'My sources', options: mine.map((s) => option(s.url, sourceName(s.url, saved, groups))) },
   ];
   for (const group of groups) {
-    const options = group.sources.filter((s) => !listed.has(s.url)).map((s) => option(s.url, s.name));
+    const options = group.sources.filter((s) => !listed.has(s.url)).map((s) => option(s.url, s.name, s.pending));
     options.forEach((o) => listed.add(o.url));
     result.push({ key: `provider:${group.providerId}`, label: group.label, options });
   }

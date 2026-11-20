@@ -262,9 +262,24 @@ premier fournisseur qui la propose.
 ```ts
 interface SourceProvider {
   id: string; label: string;
-  listSources(settings, signal): Promise<{ name; url; description?; limits?; auth? }[]>;  // validé par zod
+  listSources(settings, signal): Promise<{ name; url; description?; limits?; auth?; pending? }[]>;  // validé par zod
+  addSource?: {                                     // un petit formulaire sous le menu du sélecteur
+    label: string; placeholder?: string; hint?: string;
+    submit(input: string, settings, signal): Promise<void>;  // input déjà tronqué, jamais vide
+  };
+  pollMs?: number;                                  // relister tous les pollMs (1000–3600000) tant qu'une source est pending
 }
 ```
+
+Un fournisseur peut **ajouter des sources** (ex. un dépôt GitHub à analyser) : avec `addSource`, le
+sélecteur montre, sous le menu, un champ (`placeholder`, aide `hint`) et un bouton *Add* titrés par
+`label`. `submit` reçoit le texte tapé ; s'il rejette, son message s'affiche sous le champ (le texte
+reste) ; s'il réussit, le champ se vide et les sources du fournisseur sont **relistées**. Une source
+`pending: true` (pas encore prête, ex. en cours d'analyse) est montrée « pending… » mais ne se choisit
+pas ; tant qu'il en a une, un fournisseur qui donne `pollMs` est relisté à ce rythme, puis plus du tout.
+Côté module, `addSource` et `pollMs` sont vérifiés par zod au chargement (formulaire invalide → plugin
+en erreur). Logique : `entities/plugin/sourceProvider.ts` (`checkedSourceProvider`, `nextPollDelay`),
+`usePluginSources` (relance et sondage), `features/source-switcher/ProviderSourceForm`.
 
 Une source peut donner `limits: { rowLimit?, maxPerRequest? }` (entiers positifs) : les valeurs par
 défaut de ses réglages de lignes (Settings → Connection → *Large lists*), que l'utilisateur peut changer.
@@ -280,7 +295,7 @@ puis se connecte avec *Sign in* (popup vers le BFF). Si la source répond `FLUID
 *Reconnect* relance la connexion (avec le scope manquant le cas échéant) et les requêtes sont rejouées.
 
 Un fournisseur qui écrit ses `sources` dans le manifeste n'a pas besoin de module (JSON pur, comme un
-thème). Sinon le module exporte `{ sourceProviders: { "<id>": { listSources(settings, signal) } } }`
+thème). Sinon le module exporte `{ sourceProviders: { "<id>": { listSources(settings, signal), addSource?, pollMs? } } }`
 (ex. un serveur qui liste ses images Moose) ; la réponse est validée, seules les URL `http(s)` passent.
 Intégré : `fluid-demo-sources` (« Demo APIs » : Rick and Morty, Countries, GraphQLZero, la liste
 de l'écran de connexion). Exemple installable : `/plugins/local-sources/manifest.json`.
