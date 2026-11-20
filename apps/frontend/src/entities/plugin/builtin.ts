@@ -6,6 +6,7 @@ import { curatedViewBuilder } from './builders/curatedViews';
 import { chatAction } from './actions/chat';
 import { fireworksAction } from './actions/fireworks';
 import { ENDPOINTS_SETTING, openViewsBuilder } from './builders/openViews';
+import { modelViewsBuilder } from './builders/modelViews';
 import { HIGH_CONTRAST_THEME, SOLARIZED_THEME } from './builtinThemes';
 import { CATPPUCCIN_THEMES } from './catppuccin';
 import type { PluginManifest } from './manifest';
@@ -74,6 +75,16 @@ const viewBuilderPlugins: ViewBuilderPlugin[] = [
     { id: 'fluid-curated-views', name: 'Curated views', description: 'Example perspectives shipped with fluid for well-known concepts.' },
     curatedViewBuilder,
     '#eb2f96',
+  ),
+  viewBuilderPlugin(
+    {
+      id: 'fluid-model-views',
+      name: 'Model views',
+      description:
+        'Code-model perspectives for sources serving badetitou/Model (recognised from their schema): the code tree, the members and inheritance of a type, the callers and callees of a method.',
+    },
+    modelViewsBuilder,
+    '#722ed1',
   ),
   viewBuilderPlugin(
     {

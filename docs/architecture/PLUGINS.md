@@ -193,6 +193,7 @@ que proposent les View Builders actifs, dans l'ordre des plugins. Les intégrés
 | Plugin | View Builder | Perspectives |
 | --- | --- | --- |
 | `fluid-curated-views` | `curated-views` | les exemples livrés (`EXAMPLE_VIEWS`) |
+| `fluid-model-views` | `model-views` | pour une source servant le modèle de code de badetitou/Model (reconnue à son schéma : interface `Entity` et `entityByKey`/`namespaceByKey`/`classByKey`/`methodByKey(key:)`) : arbre du code, membres et héritage d'un type, appelants et appelés d'une méthode avec leurs nombres de sites |
 | `fluid-auto-views` | `auto-views` | vue d'ensemble, détail (+ édition), arbre, tirés de l'introspection |
 | `fluid-open-views` | `open-views` | les vues que tout outil sert au format **fluid Open Views** (`<base>/.well-known/fluid-views`), dont les onglets d'inspecteur Pharo (`SFServer`, projet Spec-Fluid) |
 
