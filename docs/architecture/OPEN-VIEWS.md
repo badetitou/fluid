@@ -72,13 +72,13 @@ A view is a tree of `ViewNode`s, told apart by `kind`:
 | kind | Fields | Notes |
 |---|---|---|
 | `list` | `items`, paging | one cell per item |
-| `columnedList` | `columns: [{title}]`, `items`, paging | one cell per column; old `table` |
+| `columnedList` | `columns: [{title}]`, `items`, paging | one cell per column |
 | `tree` | `columns?`, `roots`, paging | items nest through `children` |
 | `text` | `text`, `language?`, `highlights?: [{start,end}]` | 0-based offsets, `end` exclusive |
 | `svg` | `svg`, `hotspots?: [{ref,x,y,width,height}]` | viewBox coordinates; fluid sanitises the SVG |
 | `label` | `text` | short inline text |
 | `composite` | `direction: row\|column`, `children` | layout of other nodes |
-| `tabs` | `tabs: [{title, node}]`, `selected?` | old `notebook`; `selected` is 0-based |
+| `tabs` | `tabs: [{title, node}]`, `selected?` | `selected` is 0-based |
 | `diff` | `before`, `after`, `beforeLabel?`, `afterLabel?`, `language?` | |
 | `forward` | `ref`, `view?` | shows the views of another object (only the view whose key is `view` when given) |
 | `unsupported` | `type`, `message?` | a provider-side view that cannot be exported; `type` is its name there |
