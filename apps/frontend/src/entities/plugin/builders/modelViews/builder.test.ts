@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { parse } from 'graphql';
+import { buildSchema, parse, validate } from 'graphql';
 import { BUILTIN_WIDGET_CONTRACTS, viewSpecSchema, type ViewSpec } from '@fluid/shared';
 import type { Concept, ConceptQueries } from '../../../../graphql/introspection';
 import type { ViewBuilderContext } from '../../viewBuilder';
 import { MODEL_QUERIES } from './fixtures';
+import MODEL_SCHEMA from './model-schema.graphql?raw';
+import { TREE_PAGE } from './selections';
 import { modelPerspectives } from '.';
 
 const context = (name: string, columnKind: 'list' | 'detail', queriesByType: Map<string, ConceptQueries> = MODEL_QUERIES): ViewBuilderContext => ({
@@ -55,18 +57,29 @@ describe('Model views builder', () => {
     expect(specsOf(context('Function', 'detail'))[0].queries.callable.query).toContain('functionByKey(key: $id)');
   });
 
-  it('builds valid specs, from catalog widgets only, with parseable queries', () => {
+  it('bounds the trees: two levels, a page per level, counts beyond it', () => {
+    const query = specsOf(context('Namespace', 'list'))[0].queries.model.query;
+    expect(query.match(/children\(first: (\d+)\)/g)).toEqual([`children(first: ${TREE_PAGE})`, `children(first: ${TREE_PAGE})`, 'children(first: 0)']);
+    const [contents] = specsOf(context('Namespace', 'detail'));
+    expect(contents.queries.entity.query.match(/children\(first: \d+\)/g)).toHaveLength(3);
+    expect(widget(contents, 'tree')).toMatchObject({ columns: expect.arrayContaining([{ key: 'children.totalCount', title: 'Contains', format: 'number' }]) });
+  });
+
+  it('builds valid specs, from catalog widgets only, with queries valid against the Model schema', () => {
+    const schema = buildSchema(MODEL_SCHEMA);
     const specs = [
       ...specsOf(context('Namespace', 'list')),
       ...specsOf(context('Namespace', 'detail')),
       ...specsOf(context('Class', 'detail')),
       ...specsOf(context('Interface', 'detail')),
       ...specsOf(context('Method', 'detail')),
+      ...specsOf(context('Function', 'detail')),
+      ...specsOf(context('File', 'detail')),
     ];
     for (const spec of specs) {
       expect(viewSpecSchema.safeParse(spec).error).toBeUndefined();
       for (const w of spec.widgets) expect(BUILTIN_WIDGET_CONTRACTS).toHaveProperty(w.type);
-      for (const q of Object.values(spec.queries)) expect(() => parse(q.query)).not.toThrow();
+      for (const q of Object.values(spec.queries)) expect(validate(schema, parse(q.query)).map((e) => e.message)).toEqual([]);
     }
   });
 });
