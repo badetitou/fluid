@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ViewNode } from '@fluid/shared';
-import { looksLegacy, pageableNodes, parseOpenView, unknownKindsAsUnsupported } from './parseView';
-import { fameTab, hierarchySvg, methodsTable, sourceNotebook } from './specPresenterFixture';
+import { pageableNodes, parseOpenView } from './parseView';
+import { fameTab } from './specPresenterFixture';
 
 const list: ViewNode = { kind: 'list', items: [{ cells: [{ text: 'a' }] }], total: 3 };
 
@@ -15,12 +15,8 @@ describe('parseOpenView', () => {
     expect(parseOpenView(list).doc).toEqual({ node: list, actions: [] });
   });
 
-  it('converts an old Spec-Fluid node, or tab with its root', () => {
-    expect(parseOpenView(methodsTable).doc?.node.kind).toBe('columnedList');
-    expect(parseOpenView(sourceNotebook).doc?.node.kind).toBe('tabs');
-    expect(parseOpenView({ key: 't', title: 'T', order: 1, root: fameTab }).doc?.node.kind).toBe('composite');
-    const svg = parseOpenView(hierarchySvg).doc?.node;
-    expect(svg?.kind === 'svg' && svg.hotspots).toEqual([{ ref: { id: 'c2', type: 'Class' }, x: 100, y: 0, width: 80, height: 30 }]);
+  it('reads a whole view, composites and tabs included', () => {
+    expect(parseOpenView(fameTab).doc?.node).toEqual(fameTab);
   });
 
   it('explains a missing or invalid document, with where it breaks', () => {
@@ -34,40 +30,16 @@ describe('parseOpenView', () => {
 });
 
 describe('unknown kinds', () => {
-  it('become unsupported wherever a node can be', () => {
+  it('become unsupported wherever a node can be, the rest of the view kept', () => {
     const raw = { kind: 'tabs', tabs: [{ title: 'A', node: { kind: 'composite', direction: 'row', children: [{ kind: 'chart' }] } }] };
-    expect(unknownKindsAsUnsupported(raw)).toEqual({
+    expect(parseOpenView(raw).doc?.node).toEqual({
       kind: 'tabs',
       tabs: [{ title: 'A', node: { kind: 'composite', direction: 'row', children: [{ kind: 'unsupported', type: 'chart' }] } }],
     });
   });
 
-  it('leave known nodes and non-nodes alone', () => {
-    expect(unknownKindsAsUnsupported(list)).toBe(list);
-    expect(unknownKindsAsUnsupported('x')).toBe('x');
-  });
-});
-
-describe('looksLegacy', () => {
-  it('spots the fields only Spec-Fluid has', () => {
-    expect(looksLegacy(methodsTable)).toBe(true);
-    expect(looksLegacy(hierarchySvg)).toBe(true);
-    expect(looksLegacy({ kind: 'unsupported', presenter: 'X' })).toBe(true);
-    expect(looksLegacy({ kind: 'tree', roots: [{ cells: [], children: [{ cells: [], hasMore: true }] }] })).toBe(true);
-  });
-
-  it('reads an Open Views document whose data looks like Spec-Fluid as Open Views', () => {
-    const items = [{ cells: [{ text: 'hasMore', note: { kind: 'table', hasMore: true } }] }];
-    expect(looksLegacy({ kind: 'list', items })).toBe(false);
-    expect(parseOpenView({ kind: 'list', items }).doc?.node).toEqual({ kind: 'list', items: [{ cells: [{ text: 'hasMore' }] }] });
-    // An unknown `hasMore` on a tree item: not a valid Spec-Fluid tree (no columns), so read as Open Views.
-    const tree = { kind: 'tree', roots: [{ cells: [{ text: 'r' }], hasChildren: true, hasMore: true }] };
-    expect(parseOpenView(tree).doc?.node).toEqual({ kind: 'tree', roots: [{ cells: [{ text: 'r' }], hasChildren: true }] });
-  });
-
-  it('does not take an Open Views document for an old one', () => {
-    expect(looksLegacy(list)).toBe(false);
-    expect(looksLegacy({ kind: 'svg', svg: '<svg/>', hotspots: [] })).toBe(false);
+  it('include the old Spec-Fluid kinds, which are no longer read', () => {
+    expect(parseOpenView({ kind: 'table', columns: [], rows: [] }).doc?.node).toMatchObject({ kind: 'unsupported', type: 'table' });
   });
 });
 

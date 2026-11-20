@@ -143,7 +143,7 @@ export const WIDGET_DEFAULTS: { [T in CoreWidgetType]: Factory<T> } = {
   // The geometry comes from the query (IfcGeometry fragment): nothing to pick among the fields.
   model3d: (s) => ({ type: 'model3d', ...base(s) }),
   scene3d: (s) => ({ type: 'scene3d', ...base(s) }),
-  // A Spec-Fluid tab draws the node Pharo sent: nothing to pick among the fields.
+  // An Open Views view draws the node its provider sent: nothing to pick among the fields.
   specPresenter: (s) => ({ type: 'specPresenter', ...base(s) }),
   // The analyst reads the other widgets of the view: no binding of its own.
   insight: ({ id, title }) => ({ type: 'insight', id, title }),

@@ -17,7 +17,6 @@ import {
   tableRows,
   treeRows,
 } from './model';
-import { specFluidNodeToViewNode } from '@fluid/shared';
 import { commitHeader, methodsTable, packagesTree, methodDiff } from './specPresenterFixture';
 
 describe('openableConcept', () => {
@@ -35,8 +34,8 @@ describe('openableConcept', () => {
 
 describe('rows', () => {
   it('keys table rows and finds their entity, own or of a cell', () => {
-    if (methodsTable.kind !== 'table') throw new Error('fixture');
-    const rows = tableRows(methodsTable.rows);
+    if (methodsTable.kind !== 'columnedList') throw new Error('fixture');
+    const rows = tableRows(methodsTable.items);
     expect(rows.map((r) => r.key)).toEqual(['0', '1', '2']);
     expect(rowRef(rows[0])).toEqual({ id: 'm1', type: 'Method' });
     expect(rowRef(rows[2])).toEqual({ id: 'm3', type: 'Method' });
@@ -44,9 +43,8 @@ describe('rows', () => {
   });
 
   it('nests tree rows by path, leaves without children, roots unfolded', () => {
-    const tree = specFluidNodeToViewNode(packagesTree);
-    if (tree.kind !== 'tree') throw new Error('fixture');
-    const rows = treeRows(tree.roots);
+    if (packagesTree.kind !== 'tree') throw new Error('fixture');
+    const rows = treeRows(packagesTree.roots);
     expect(rows[0].key).toBe('0');
     expect(rows[0].children?.[0]).toMatchObject({ key: '0.0', truncated: true, children: undefined });
     expect(rootKeys(rows)).toEqual(['0']);
@@ -60,8 +58,8 @@ describe('rows', () => {
   });
 
   it('sorts by the text of a cell, numbers as numbers', () => {
-    if (methodsTable.kind !== 'table') throw new Error('fixture');
-    const rows = tableRows(methodsTable.rows);
+    if (methodsTable.kind !== 'columnedList') throw new Error('fixture');
+    const rows = tableRows(methodsTable.items);
     expect([...rows].sort(compareByCell(1)).map((r) => r.cells[1].text)).toEqual(['9', '12', '100']);
     expect([...rows].sort(compareByCell(0)).map((r) => r.cells[0].text)).toEqual(['add:', 'printOn:', 'size']);
   });

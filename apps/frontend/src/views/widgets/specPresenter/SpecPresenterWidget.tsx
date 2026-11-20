@@ -14,9 +14,8 @@ import styles from './SpecPresenter.module.css';
 type SpecPresenterWidgetProps = Pick<WidgetProps<SpecPresenterWidgetSpec>, 'widget' | 'data' | 'emit' | 'fitHeight'>;
 
 /**
- * A view served by a tool in the fluid Open Views format (old Spec-Fluid
- * documents are converted): lists, tables, trees, SVG, text, tabs and their
- * composites, with the view's actions as buttons. Items announced but not sent
+ * A view served by a tool in the fluid Open Views format: lists, tables,
+ * trees, SVG, text, tabs and their composites, with the view's actions as buttons. Items announced but not sent
  * are loaded from the widget's data source. Entities open in the next column
  * and are emitted on `selected` as `{ id, type? }`.
  *

@@ -1,6 +1,6 @@
 import type { ViewTextRange } from '@fluid/shared';
 
-// The pure half of a Spec-Fluid text node: cutting its text around the
+// The pure half of an Open Views text node: cutting its text around the
 // highlighted ranges (an inspector tab selects its entity in a larger source).
 
 /** A run of text, highlighted or not. */

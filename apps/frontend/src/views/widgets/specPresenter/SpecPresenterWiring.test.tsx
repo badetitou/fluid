@@ -6,10 +6,10 @@ import { specPresenterWidgetExample, type ViewSpec } from '@fluid/shared';
 import { ViewRenderer } from '../../ViewRenderer';
 import { methodsTable } from './specPresenterFixture';
 
-// End to end: an inspector tab emitting the clicked entity on `selected`, read
+// End to end: an Open View emitting the clicked entity on `selected`, read
 // by a descriptions widget bound to `@tab`.
 const client = {
-  query: () => ({ toPromise: () => Promise.resolve({ data: { root: methodsTable } }) }),
+  query: () => ({ toPromise: () => Promise.resolve({ data: { key: 'methods', title: 'Methods', priority: 1, view: methodsTable } }) }),
 } as unknown as Client;
 
 const spec: ViewSpec = {
@@ -17,7 +17,7 @@ const spec: ViewSpec = {
   id: 'v',
   concept: 'Class',
   title: 'Fame',
-  queries: { miInspectionFame: { query: 'miInspectionFame:' } },
+  queries: { view: { query: 'view' } },
   widgets: [
     specPresenterWidgetExample,
     {
