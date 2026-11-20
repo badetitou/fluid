@@ -4,6 +4,5 @@ export * from './examples';
 export * from './graph';
 export * from './guards';
 export * from './plugins';
-export * from './specFluid';
 export * from './openViews';
 export * from './chat';
