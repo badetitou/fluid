@@ -48,7 +48,7 @@ describe('widget catalog', () => {
     expect(ALL_EXAMPLE_VIEWS.some((v) => v.widgets.some((w) => w.type === 'history'))).toBe(false);
   });
 
-  // Inspector tabs come from a Spec-Fluid backend, not a public GraphQL API: only a reference config.
+  // Open Views come from a provider, not a public GraphQL API: only a reference config.
   it('has a valid reference config for the spec presenter, which needs its data', () => {
     expect(widgetSchema.safeParse(specPresenterWidgetExample).success).toBe(true);
     const { id: _id, data: _data, ...unbound } = specPresenterWidgetExample;

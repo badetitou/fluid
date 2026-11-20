@@ -1,11 +1,11 @@
-import type { SpecFluidNode, SpecFluidRef } from '@fluid/shared';
+import type { ViewHotspot, ViewRef } from '@fluid/shared';
 
 // The SVG of a Roassal canvas, made safe to inject and clickable: no script,
 // no event handler, no external resource; entities (`data-fluid-ref`, and the
 // hotspots Pharo listed) focusable, and the drawing at its own size, to be
 // zoomed and panned in the widget.
 
-export type SpecHotspot = NonNullable<Extract<SpecFluidNode, { kind: 'svg' }>['refs']>[number];
+export type SpecHotspot = ViewHotspot;
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 /** Elements running code, embedding documents or rewriting attributes over time. */
@@ -111,7 +111,7 @@ export function sanitizeSvg(svg: string, hotspots: SpecHotspot[] = []): Sanitize
 }
 
 /** The entity an element of the drawing (or one of its ancestors) stands for. */
-export function readRef(element: Element | null): SpecFluidRef | undefined {
+export function readRef(element: Element | null): ViewRef | undefined {
   const holder = element?.closest('[data-fluid-ref]');
   const id = holder?.getAttribute('data-fluid-ref');
   if (!holder || !id) return undefined;
