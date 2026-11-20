@@ -7,8 +7,6 @@ import { createContext, useContext } from 'react';
  */
 export interface DataSource {
   id: string;
-  /** Other ids it answers for (e.g. of a builder it replaced), unless a data source has that id. */
-  aliases?: readonly string[];
   run: (query: string, variables: Record<string, unknown>, signal?: AbortSignal) => Promise<unknown>;
 }
 

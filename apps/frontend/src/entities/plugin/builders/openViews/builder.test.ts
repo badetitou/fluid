@@ -1,7 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Concept } from '../../../../graphql/introspection';
-import { activeDataSources, activeViewBuilders } from '../../model';
-import { BUILTIN_PLUGINS } from '../../builtin';
 import type { ViewBuilderContext } from '../../viewBuilder';
 import { REQUEST_TIMEOUT_MS } from './api';
 import { forgetProviders, openViewsBuilder } from '.';
@@ -78,22 +76,19 @@ describe('Open Views builder', () => {
     await expect(source(B).run('action', { endpoint: B, id: '7', view: 'x', action: 'refresh' })).rejects.toThrow(/no "actions" capability/);
   });
 
-  it('answers the views saved for Spec-Fluid on the first endpoint that serves the object', async () => {
+  it('reads a view on the first configured endpoint serving the object, when its endpoint is not configured', async () => {
     routes[`GET ${A}/.well-known/fluid-views`] = discovery('A');
     routes[`GET ${A}/objects/7/views`] = { status: 404, body: { error: 'unknown', code: 'object-not-found' } };
-    routes[`GET ${B}/.well-known/fluid-views`] = discovery('Pharo');
+    routes[`GET ${B}/.well-known/fluid-views`] = discovery('B');
     routes[`GET ${B}/objects/7/views`] = views('7', ['fame:', 2]);
     routes[`GET ${B}/objects/7/views/fame%3A`] = {
       body: { key: 'fame:', title: 'Fame', priority: 2, view: { kind: 'label', text: 'Fame' } },
     };
-    const sources = activeDataSources(activeViewBuilders(BUILTIN_PLUGINS, [], { 'fluid-open-views': { endpoints: `${A} ${B}` } }));
-    const specFluid = sources.get('spec-fluid')!;
-    // Before Open Views: a `tab` query, no endpoint, the widget bound to `root`.
-    expect(await specFluid.run('tab', { id: '7', tab: 'fame:' })).toMatchObject({ root: { kind: 'label' }, view: { kind: 'label' } });
-    // A view saved by an earlier version of this builder, for an address no longer configured.
-    const saved = { endpoint: 'http://localhost:8081/spec-fluid', id: '7', view: 'fame:' };
-    expect(await specFluid.run('view', saved)).toMatchObject({ key: 'fame:', view: { kind: 'label' } });
-    await expect(specFluid.run('view', { id: '9', view: 'k' })).rejects.toThrow(/No Open Views endpoint serves the object 9/);
+    const both = source(`${A} ${B}`);
+    expect(await both.run('view', { id: '7', view: 'fame:' })).toMatchObject({ key: 'fame:', view: { kind: 'label' } });
+    expect(await both.run('view', { endpoint: 'http://elsewhere.test', id: '7', view: 'fame:' })).toMatchObject({ key: 'fame:' });
+    expect(fetchMock.mock.calls.some(([url]) => String(url).startsWith('http://elsewhere.test'))).toBe(false);
+    await expect(both.run('view', { id: '9', view: 'k' })).rejects.toThrow(/No Open Views endpoint serves the object 9/);
   });
 
   it('gives up on an endpoint that never answers, without holding back the others', async () => {

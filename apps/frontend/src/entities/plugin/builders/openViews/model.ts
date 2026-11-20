@@ -88,16 +88,6 @@ const NEEDS: Record<OpenViewsQuery, string> = {
   action: '"id", "view" and "action"',
 };
 
-/** The query of views saved before Open Views: one Spec-Fluid tab, `{ id, tab }`, read at path `root`. */
-export const LEGACY_TAB_QUERY = 'tab';
-
-/** The old `tab` query of a saved view as a `view` query; any other query as it is. */
-export function resolveQuery(query: string, variables: Record<string, unknown>): { query: string; variables: Record<string, unknown> } {
-  if (query !== LEGACY_TAB_QUERY) return { query, variables };
-  const { tab, ...rest } = variables;
-  return { query: OPEN_VIEWS_QUERIES.view, variables: { ...rest, view: tab } };
-}
-
 /** The variables of a query, checked (they come from a saved view, the LLM or a widget). */
 export function queryVariables<Q extends OpenViewsQuery>(query: Q, variables: Record<string, unknown>): QueryVariables<Q> {
   const parsed = VARIABLES[query].safeParse(variables);
@@ -107,7 +97,7 @@ export function queryVariables<Q extends OpenViewsQuery>(query: Q, variables: Re
 
 /**
  * The endpoint a query names, when it is one the user configured. Otherwise
- * (none named, or a view saved for another address, e.g. before Open Views),
+ * (none named, or one no longer configured),
  * fluid looks for the object on the configured ones: it never calls any other URL.
  */
 export function configuredEndpoint(endpoint: string | undefined, endpoints: string[]): string | undefined {

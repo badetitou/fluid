@@ -16,7 +16,7 @@ const spec = (queries: object) => ({ id: 'v1', concept: 'Account', title: 'Accou
 const STORED = {
   accounts: { query: 'query($take: Int, $kind: String) { accounts(take: $take, kind: $kind) { id } }', variables: { kind: 'a' } },
   total: { query: '{ total }' },
-  fromPlugin: { query: 'select 1', source: 'spec-fluid' },
+  fromPlugin: { query: 'select 1', source: 'open-views' },
 };
 
 describe('POST /api/views/:id/run (header source)', () => {
@@ -117,7 +117,7 @@ describe('POST /api/views/:id/run (header source)', () => {
   });
 
   it('answers 200 with skipped names for a view whose queries all target plugin sources', async () => {
-    const id = await saveView({ p: { query: 'select 1', source: 'spec-fluid' } });
+    const id = await saveView({ p: { query: 'select 1', source: 'open-views' } });
     const res = await run(id, { sourceId });
     expect(res.json()).toEqual({ results: {}, skipped: ['p'] });
     expect(seen).toHaveLength(0);

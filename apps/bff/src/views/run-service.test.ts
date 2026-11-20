@@ -51,7 +51,7 @@ describe('view run service', () => {
     const svc = createViewRunService(reader(view(many)), src);
     expect(await svc.run('v', { sourceId: 's' })).toEqual({ kind: 'too-many-queries', max: 20 });
     expect(src.calls).toHaveLength(0);
-    const plugins = Object.fromEntries(Array.from({ length: 25 }, (_, i) => [`p${i}`, { query: 'x', source: 'spec-fluid' }]));
+    const plugins = Object.fromEntries(Array.from({ length: 25 }, (_, i) => [`p${i}`, { query: 'x', source: 'open-views' }]));
     const out = await createViewRunService(reader(view(plugins)), src).run('v', { sourceId: 's' });
     expect(out).toMatchObject({ kind: 'ok', skipped: expect.any(Array) });
   });
@@ -115,7 +115,7 @@ describe('view run service', () => {
 
   it('answers ok with only skipped names when every query targets a plugin source', async () => {
     const src = fakeSources(() => ok({}));
-    const svc = createViewRunService(reader(view({ p: { query: 'x', source: 'spec-fluid' } })), src);
+    const svc = createViewRunService(reader(view({ p: { query: 'x', source: 'open-views' } })), src);
     expect(await svc.run('v', { sourceId: 's' })).toEqual({ kind: 'ok', results: {}, skipped: ['p'] });
   });
 });

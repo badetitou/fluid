@@ -10,7 +10,6 @@ import {
   parseEndpoints,
   configuredEndpoint,
   queryVariables,
-  resolveQuery,
   viewPerspective,
 } from './model';
 
@@ -89,11 +88,5 @@ describe('Open Views builder model', () => {
     expect(configuredEndpoint(`${A}/`, [A, B])).toBe(A);
     expect(configuredEndpoint('http://evil.test', [A])).toBeUndefined();
     expect(configuredEndpoint(undefined, [A])).toBeUndefined();
-  });
-
-  it('reads the tab query of views saved before Open Views as a view query', () => {
-    expect(resolveQuery('tab', { id: '1', tab: 'fame:' })).toEqual({ query: 'view', variables: { id: '1', view: 'fame:' } });
-    const items = { id: '1', view: 'k', path: '0' };
-    expect(resolveQuery('items', items)).toEqual({ query: 'items', variables: items });
   });
 });

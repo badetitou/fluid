@@ -1,16 +1,13 @@
-import type { ViewResponse } from '@fluid/shared';
 import type { DataSource } from '../../../../views/plugin-api';
 import type { ViewBuilder } from '../../viewBuilder';
 import { discoverProvider, fetchItems, fetchObjectViews, fetchView, runAction, type ViewProvider } from './api';
 import {
   ENDPOINTS_SETTING,
-  LEGACY_TAB_QUERY,
   configuredEndpoint,
   isOpenViewsQuery,
   mergeByPriority,
   parseEndpoints,
   queryVariables,
-  resolveQuery,
   viewPerspective,
 } from './model';
 
@@ -19,9 +16,6 @@ export { forgetProviders } from './api';
 
 /** The id of the Open Views builder and of its data source. */
 export const OPEN_VIEWS_SOURCE = 'open-views';
-
-/** Data source ids of views saved before Open Views, answered by the Open Views data source. */
-export const LEGACY_SOURCES = ['spec-fluid'];
 
 /**
  * The provider a query goes to: the configured endpoint it names, else the
@@ -42,27 +36,23 @@ async function providerFor(named: string | undefined, id: string, bases: string[
   throw new Error(`No Open Views endpoint serves the object ${id}.`);
 }
 
-/** Answers one query (`OPEN_VIEWS_QUERIES`, or the old `tab` query) on one of `bases`. */
+/** Answers one query (`OPEN_VIEWS_QUERIES`) on one of `bases`. */
 async function runQuery(bases: string[], query: string, variables: Record<string, unknown>, signal?: AbortSignal): ReturnType<DataSource['run']> {
   if (bases.length === 0) throw new Error('Set the Open Views endpoints in Settings → Plugins.');
-  const resolved = resolveQuery(query, variables);
-  if (!isOpenViewsQuery(resolved.query)) throw new Error(`Open Views answers views, view, items and action queries, not "${query}".`);
-  const { endpoint, id } = queryVariables(resolved.query, resolved.variables);
+  if (!isOpenViewsQuery(query)) throw new Error(`Open Views answers views, view, items and action queries, not "${query}".`);
+  const { endpoint, id } = queryVariables(query, variables);
   const provider = await providerFor(endpoint, id, bases, signal);
-  switch (resolved.query) {
+  switch (query) {
     case 'views':
       return fetchObjectViews(provider, id, signal);
-    case 'view': {
-      const view: ViewResponse = await fetchView(provider, id, queryVariables('view', resolved.variables).view, signal);
-      // A view saved before Open Views binds its widget to the tab's `root`.
-      return query === LEGACY_TAB_QUERY ? { ...view, root: view.view } : view;
-    }
+    case 'view':
+      return fetchView(provider, id, queryVariables('view', variables).view, signal);
     case 'items': {
-      const { view, path, offset, limit } = queryVariables('items', resolved.variables);
+      const { view, path, offset, limit } = queryVariables('items', variables);
       return fetchItems(provider, id, view, { path, offset, limit }, signal);
     }
     case 'action': {
-      const { view, action } = queryVariables('action', resolved.variables);
+      const { view, action } = queryVariables('action', variables);
       return runAction(provider, id, view, action, signal);
     }
   }
@@ -73,7 +63,6 @@ async function runQuery(bases: string[], query: string, variables: Record<string
  * one per line in its settings: every view an endpoint declares for the item
  * of a detail column becomes a perspective, all endpoints merged by priority.
  * Silent until an endpoint is set; an unreachable endpoint proposes nothing.
- * Its data source also answers the views saved for the old Spec-Fluid builder.
  */
 export const openViewsBuilder: ViewBuilder = {
   id: OPEN_VIEWS_SOURCE,
@@ -93,7 +82,6 @@ export const openViewsBuilder: ViewBuilder = {
   },
   dataSource: (settings) => ({
     id: OPEN_VIEWS_SOURCE,
-    aliases: LEGACY_SOURCES,
     run: (query, variables, signal) => runQuery(parseEndpoints(settings[ENDPOINTS_SETTING]), query, variables, signal),
   }),
 };

@@ -198,17 +198,9 @@ describe('view builders', () => {
     });
   });
 
-  it('bring their data sources, Open Views also answering the views saved for Spec-Fluid', () => {
+  it('bring their data sources', () => {
     const sources = activeDataSources(activeViewBuilders(BUILTIN_PLUGINS, [], {}));
-    expect([...sources.keys()]).toEqual(['open-views', 'spec-fluid']);
-    expect(sources.get('spec-fluid')).toBe(sources.get('open-views'));
-  });
-
-  it('never let an alias hide a data source of that id', () => {
-    const own = { id: 'spec-fluid', run: async () => null };
-    const builders = activeViewBuilders(BUILTIN_PLUGINS, [], {});
-    const withOwn = [...builders, { ...builders[0], builder: { ...builders[0].builder, id: 'x', dataSource: () => own } }];
-    expect(activeDataSources(withOwn).get('spec-fluid')).toBe(own);
+    expect([...sources.keys()]).toEqual(['open-views']);
   });
 
   it('bring their column overlays (none built in: the Pharo script is a page action)', () => {
