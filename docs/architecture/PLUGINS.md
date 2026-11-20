@@ -194,8 +194,7 @@ que proposent les View Builders actifs, dans l'ordre des plugins. Les intégrés
 | --- | --- | --- |
 | `fluid-curated-views` | `curated-views` | les exemples livrés (`EXAMPLE_VIEWS`) |
 | `fluid-auto-views` | `auto-views` | vue d'ensemble, détail (+ édition), arbre, tirés de l'introspection |
-| `spec-fluid` | `spec-fluid` | les onglets d'inspecteur Pharo d'une entité Moose (projet **Spec-Fluid** de l'image) : le builder Open Views sur un seul endpoint |
-| `fluid-open-views` | `open-views` | les vues que tout outil sert au format **fluid Open Views** (`<base>/.well-known/fluid-views`) |
+| `fluid-open-views` | `open-views` | les vues que tout outil sert au format **fluid Open Views** (`<base>/.well-known/fluid-views`), dont les onglets d'inspecteur Pharo (Spec-Fluid) ; répond aussi aux vues enregistrées pour `spec-fluid` (alias de source) |
 
 ```ts
 interface ViewBuilder {
@@ -208,11 +207,12 @@ interface ViewBuilder {
 interface ColumnOverlayProps { concept; columnKind; itemId?; settings }
 interface ViewBuilderContext { concept; columnKind; itemId?; conceptByName; queriesByType; writable; settings }
 interface Perspective { key; title; origin: 'curated' | 'auto' | 'remote'; spec: ViewSpec; defaultFor?: 'list' | 'detail' }
-interface DataSource { id; run(query, variables, signal?): Promise<unknown> }
+interface DataSource { id; aliases?: readonly string[]; run(query, variables, signal?): Promise<unknown> }
 ```
 
 Une requête de vue qui porte `source: "<id>"` n'est pas envoyée à urql : `useViewData` la confie à
-la `DataSource` de ce nom (contexte `DataSourcesContext` du moteur, rempli par l'app). La `ViewSpec`
+la `DataSource` de ce nom (contexte `DataSourcesContext` du moteur, rempli par l'app) ; une source
+répond aussi aux ids de ses `aliases`, qui ne masquent jamais une source portant vraiment cet id. La `ViewSpec`
 reste déclarative : on peut l'enregistrer, l'éditer ou la faire modifier par le LLM.
 
 **Open Views.** Un outil (Pharo, Python, Node, un service métier) décrit les vues de ses objets
@@ -226,18 +226,19 @@ générique `open-views` (`builders/openViews/`, réglage `endpoints`, une URL p
 désignent un objet portent `ref: { id, type }` : le widget en fait des liens vers la colonne suivante
 et les émet sur `selected`.
 
-**Spec-Fluid** est le builder Open Views générique appliqué à un seul endpoint, le serveur
-`SFServer` du projet Pharo `Spec-Fluid` (port 8081) : les onglets d'inspecteur d'une entité (id
-GraphQL `<modelId>:<mooseID>`, pragma `<inspectorPresentationOrder:title:>`) sont ses vues. Il garde
-une seule différence : quand la découverte répond 404, il lit les anciennes routes Spec-Fluid
-(`entities/<id>/tabs`, format déprécié `packages/shared/src/specFluid.ts`, converti par
-`openViews/legacy.ts`). Renseigner l'URL dans *Settings → Plugins → Spec-Fluid* (vide = désactivé).
+**Spec-Fluid.** Le serveur `SFServer` du projet Pharo `Spec-Fluid` (port 8081) est un fournisseur
+Open Views dont les vues sont les onglets d'inspecteur d'une entité (id GraphQL
+`<modelId>:<mooseID>`, pragma `<inspectorPresentationOrder:title:>`). Ajouter son URL
+(`http://localhost:8081/spec-fluid`) dans *Settings → Plugins → Open Views*. Les vues enregistrées
+pour l'ancien builder `spec-fluid` restent lues : la source Open Views répond à l'alias `spec-fluid` et
+lit l'ancienne requête `tab` comme `view`. Le widget sait encore dessiner un ancien document
+Spec-Fluid (`packages/shared/src/specFluid.ts`, converti par `openViews/legacy.ts`).
 
 **Overlays de colonne.** Le cœur ne fait que réserver la place (`ColumnStage` de `pages/miller`) :
 le corps de la colonne dans une colonne flex positionnée, suivi du `ColumnOverlay` de chaque view
 builder actif, qui décide seul où il s'applique (`null` sinon). Il laisse libre le bas de la colonne
 sur `var(--column-overlay-inset, 0px)` : le pager du Miller y flotte. Aucun builder intégré n'en
-dessine plus : le script Pharo est devenu une action de page (§4 quater).
+dessine.
 
 **Couleurs.** Chaque view builder a sa couleur, marquée sur le point des pastilles de ses
 perspectives : `color` (`#rrggbb`) de son contrat dans le manifeste, sinon la suivante d'une palette
@@ -316,7 +317,6 @@ Intégrés :
 
 | Plugin | Action | Ce qu'elle fait |
 | --- | --- | --- |
-| `fluid-pharo-script` | `pharo-script` | sur une colonne de détail, ouvre sous la colonne le panneau Smalltalk (Spec-Fluid) : le code, qui commence par `self`, est évalué par l'image (`POST <endpoint>/objects/<id>/evaluate`, `{ code }`, capacité Open Views `evaluate` ; `entities/<id>/evaluate` sur un ancien serveur) avec l'entité de la colonne comme receveur ; un résultat qui est une entité s'ouvre dans la colonne suivante, une collection liste ses éléments. Son propre réglage `endpoint` (vide = désactivé). Côté image, l'évaluation est **désactivée par défaut** : `SFServer enableEvaluation` |
 | `fluid-fireworks` | `fireworks` | easter egg, depuis n'importe quelle colonne : un feu d'artifice sur toute la page, aux couleurs du thème, icône SVG maison au style des icônes antd (canvas qui laisse passer les clics et se retire à la fin ; simulation pure dans `actions/fireworks/model.ts`) |
 | `fluid-chat` | `chat` | sur toute colonne, ouvre un tiroir (Drawer à droite, ~520 px) : chat classique avec le LLM (`POST /api/llm/chat`, réponse validée par `chatResponseSchema`). Deux portées : « Graph » (l'API GraphQL connectée) ou « This view » (la vue de la colonne, `column.view`, désactivée sans vue). La réponse est du markdown, plus éventuellement une vue rendue en ligne par `ViewRenderer` (« Open larger » l'ouvre en modale) ; `suggestView` affiche seulement un indice. « Build a view » (en-tête dès qu'il y a une réponse, et bouton sur une réponse qui a `suggestView`) génère une vue à partir de toute la conversation : `buildViewSeed` (`entities/llm/viewSeed.ts`, pur) compose l'instruction (+ un complément facultatif de l'utilisateur) et l'historique (les vues montrées y figurent avec leurs requêtes et widgets, pour que le générateur réutilise celles qui ont marché ; budget ~12 000 caractères : on garde le premier message et les plus récents, le milieu devient « (n earlier messages omitted) »). Le tiroir appelle `column.openViewAssistant(seed)` et se ferme : la page (`pages/miller`, `useColumnDialogs.openSeeded`) ouvre `ViewAssistantModal` avec `seed`, qui envoie le premier prompt aussitôt (même aperçu, affinage et enregistrement que d'habitude, l'historique du chat précède chaque prompt) ; la vue enregistrée devient une perspective de la colonne, sélectionnée. Choix « As a new dashboard » (concept non-graphe) : la vue est enregistrée puis ajoutée aux dashboards (`useColumnDashboards.saveAsDashboard`) ; sur le graphe entier, une vue est déjà un dashboard. Ce passage par un callback de la page évite qu'une entité importe une feature. Conversation gardée en mémoire par concept pour la session du navigateur (`entities/llm/chatStore.ts`) ; logique pure dans `entities/llm/chatModel.ts` |
 
@@ -361,8 +361,8 @@ Installer `/plugins/tagcloud/manifest.json` depuis *Settings → Plugins* pour e
 | Thèmes intégrés, schéma de manifeste | `apps/frontend/src/entities/plugin/` |
 | API de rendu (`WidgetProps`, `useWidgetRenderer`, `useWidgetTheme`, sorties) | `apps/frontend/src/views/plugin-api/` (moteur) |
 | Plugins intégrés, store, chargeur, hooks, runtime | `apps/frontend/src/entities/plugin/` |
-| View Builders intégrés (curated, auto, Open Views, Spec-Fluid) | `apps/frontend/src/entities/plugin/builders/` |
-| Actions de page intégrées (feu d'artifice ; script Pharo dans `builders/specFluid/script/`) ; bouton flottant | `apps/frontend/src/entities/plugin/actions/` ; `apps/frontend/src/features/page-actions/` |
+| View Builders intégrés (curated, auto, Open Views) | `apps/frontend/src/entities/plugin/builders/` |
+| Actions de page intégrées (feu d'artifice, chat) ; bouton flottant | `apps/frontend/src/entities/plugin/actions/` ; `apps/frontend/src/features/page-actions/` |
 | Perspectives d'une colonne (vues enregistrées + View Builders) | `apps/frontend/src/entities/view/` |
 | `DataSource`, `DataSourcesContext` | `apps/frontend/src/views/plugin-api/dataSources.ts` (moteur) |
 | Documents Open Views (zod) ; ancien format Spec-Fluid | `packages/shared/src/openViews/` ; `packages/shared/src/specFluid.ts` |
