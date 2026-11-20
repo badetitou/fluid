@@ -23,7 +23,7 @@ to turn the feature off. The `fluid-bff` image used by the Helm chart does not s
 `model-graphql` has no prebuilt binary; install it with Cargo (Rust 1.100 or later):
 
 ```bash
-cargo install model-graphql --version 0.3.0 --locked
+cargo install model-graphql --version 0.4.0 --locked
 ```
 
 Then enable the feature for the BFF (in `apps/bff/.env`, or with `--env-file` for `npx`):
