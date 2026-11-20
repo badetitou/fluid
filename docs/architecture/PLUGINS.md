@@ -194,7 +194,7 @@ que proposent les View Builders actifs, dans l'ordre des plugins. Les intégrés
 | --- | --- | --- |
 | `fluid-curated-views` | `curated-views` | les exemples livrés (`EXAMPLE_VIEWS`) |
 | `fluid-auto-views` | `auto-views` | vue d'ensemble, détail (+ édition), arbre, tirés de l'introspection |
-| `fluid-open-views` | `open-views` | les vues que tout outil sert au format **fluid Open Views** (`<base>/.well-known/fluid-views`), dont les onglets d'inspecteur Pharo (Spec-Fluid) ; répond aussi aux vues enregistrées pour `spec-fluid` (alias de source) |
+| `fluid-open-views` | `open-views` | les vues que tout outil sert au format **fluid Open Views** (`<base>/.well-known/fluid-views`), dont les onglets d'inspecteur Pharo (`SFServer`, projet Spec-Fluid) |
 
 ```ts
 interface ViewBuilder {
@@ -207,12 +207,11 @@ interface ViewBuilder {
 interface ColumnOverlayProps { concept; columnKind; itemId?; settings }
 interface ViewBuilderContext { concept; columnKind; itemId?; conceptByName; queriesByType; writable; settings }
 interface Perspective { key; title; origin: 'curated' | 'auto' | 'remote'; spec: ViewSpec; defaultFor?: 'list' | 'detail' }
-interface DataSource { id; aliases?: readonly string[]; run(query, variables, signal?): Promise<unknown> }
+interface DataSource { id; run(query, variables, signal?): Promise<unknown> }
 ```
 
 Une requête de vue qui porte `source: "<id>"` n'est pas envoyée à urql : `useViewData` la confie à
-la `DataSource` de ce nom (contexte `DataSourcesContext` du moteur, rempli par l'app) ; une source
-répond aussi aux ids de ses `aliases`, qui ne masquent jamais une source portant vraiment cet id. La `ViewSpec`
+la `DataSource` de ce nom (contexte `DataSourcesContext` du moteur, rempli par l'app). La `ViewSpec`
 reste déclarative : on peut l'enregistrer, l'éditer ou la faire modifier par le LLM.
 
 **Open Views.** Un outil (Pharo, Python, Node, un service métier) décrit les vues de ses objets
@@ -229,10 +228,8 @@ et les émet sur `selected`.
 **Spec-Fluid.** Le serveur `SFServer` du projet Pharo `Spec-Fluid` (port 8081) est un fournisseur
 Open Views dont les vues sont les onglets d'inspecteur d'une entité (id GraphQL
 `<modelId>:<mooseID>`, pragma `<inspectorPresentationOrder:title:>`). Ajouter son URL
-(`http://localhost:8081/spec-fluid`) dans *Settings → Plugins → Open Views*. Les vues enregistrées
-pour l'ancien builder `spec-fluid` restent lues : la source Open Views répond à l'alias `spec-fluid` et
-lit l'ancienne requête `tab` comme `view`. Le widget sait encore dessiner un ancien document
-Spec-Fluid (`packages/shared/src/specFluid.ts`, converti par `openViews/legacy.ts`).
+(`http://localhost:8081/spec-fluid`) dans *Settings → Plugins → Open Views*. Guide :
+[`moose-open-views.md`](../guides/moose-open-views.md).
 
 **Overlays de colonne.** Le cœur ne fait que réserver la place (`ColumnStage` de `pages/miller`) :
 le corps de la colonne dans une colonne flex positionnée, suivi du `ColumnOverlay` de chaque view
@@ -365,7 +362,7 @@ Installer `/plugins/tagcloud/manifest.json` depuis *Settings → Plugins* pour e
 | Actions de page intégrées (feu d'artifice, chat) ; bouton flottant | `apps/frontend/src/entities/plugin/actions/` ; `apps/frontend/src/features/page-actions/` |
 | Perspectives d'une colonne (vues enregistrées + View Builders) | `apps/frontend/src/entities/view/` |
 | `DataSource`, `DataSourcesContext` | `apps/frontend/src/views/plugin-api/dataSources.ts` (moteur) |
-| Documents Open Views (zod) ; ancien format Spec-Fluid | `packages/shared/src/openViews/` ; `packages/shared/src/specFluid.ts` |
+| Documents Open Views (zod) | `packages/shared/src/openViews/` |
 | Écran *Settings → Plugins* | `apps/frontend/src/features/plugin-manager/` |
 | Sources gardées (store, modèle) ; sélecteur de la barre du haut | `apps/frontend/src/entities/source/` ; `apps/frontend/src/features/source-switcher/` |
 | Prompts | `apps/bff/src/llm/` (consomment `renderWidgetDocs`) |

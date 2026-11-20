@@ -12,7 +12,7 @@ Spec-Fluid (Pharo) is the first provider. Epic: badetitou/fluid#44.
 - The old Spec-Fluid format (`packages/shared/src/specFluid.ts`, deprecated) is read through
   `packages/shared/src/openViews/legacy.ts`.
 - A minimal provider (plain Node, no dependency): [`docs/examples/open-views-provider/`](../examples/open-views-provider/).
-  Spec-Fluid's side is described in [Exploring a Moose model with fluid](../guides/moose-spec-fluid.md).
+  Spec-Fluid's side is described in [The Pharo image as an Open Views provider](../guides/moose-open-views.md).
 
 ## Routes
 
@@ -163,9 +163,8 @@ Providers do not need this section; it says how fluid reads them.
 
 - **View Builders.** The `open-views` builder (plugin *Open Views*, setting `endpoints`: base URLs, one per
   line) asks every endpoint for the views of the item of a detail column, and merges them by priority into
-  perspectives. A Pharo image running Spec-Fluid is one of these endpoints. Its data source also answers
-  for the id `spec-fluid` (`aliases`), so views saved for the old Spec-Fluid builder still load: it reads
-  their `tab` query as `view`. Code: `apps/frontend/src/entities/plugin/builders/openViews/`.
+  perspectives. A Pharo image running `SFServer` is one of these endpoints. Code:
+  `apps/frontend/src/entities/plugin/builders/openViews/`.
 - **Perspectives.** Each view becomes a `ViewSpec` with one `specPresenter` widget bound to a query
   `{ source: <builder id>, query: 'view', variables: { endpoint, id, view } }`, with no path: the widget
   receives the whole `ViewResponse`.

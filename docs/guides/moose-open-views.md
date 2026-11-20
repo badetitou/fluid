@@ -1,11 +1,11 @@
-# Exploring a Moose model with fluid
+# The Pharo image as an Open Views provider
 
 This guide connects fluid to a **Moose** image: you browse a software model (classes, methods,
 packages…) as fluid concepts, open the **Pharo inspector tabs** of each entity (Navigation, Fame,
 Blueprint, source…) right in fluid, and generate dashboards with the assistant.
 
-It is also the reference example of **[fluid Open Views](../architecture/OPEN-VIEWS.md)**, the open
-protocol through which any tool serves the views of its own objects: Pharo's Spec-Fluid is one
+The image is a **[fluid Open Views](../architecture/OPEN-VIEWS.md)** provider, the open protocol
+through which any tool serves the views of its own objects: its `SFServer` (project Spec-Fluid) is one
 provider among others, and fluid reads it with no Pharo-specific code. To write a provider for
 another tool, start from the [plain Node example](../examples/open-views-provider/).
 
@@ -142,8 +142,7 @@ type the URL on the connection screen. To generate views, configure an LLM provi
 
 In **Settings → Plugins → Open Views**, add `http://localhost:8081/spec-fluid` to the endpoints (one
 per line, next to any other provider). The Pharo image is one Open Views provider among others: the
-views of all endpoints are merged by priority in the same detail columns. An image too old to serve
-the discovery route (`/.well-known/fluid-views`) is not read: update Spec-Fluid.
+views of all endpoints are merged by priority in the same detail columns.
 
 The plugin stays silent while its endpoints are empty, and when the image does not answer. The
 **Inspectors** widget collection (the `specPresenter` widget that draws a view) must stay enabled, as
@@ -158,7 +157,7 @@ well as **Software maps** if you want the Moose visualizations below.
 - **Concepts.** The concepts are the entity types of the model. Open
   `Class`, then a class: its detail column opens.
 - **Inspector tabs.** The perspective selector of the detail column lists the saved views of the
-  concept, then the views Spec-Fluid declares for the entity (Navigation, SourceText, Fame,
+  concept, then the views the image declares for the entity (Navigation, SourceText, Fame,
   Blueprint, Tree…), by priority. They are drawn as Pharo built them: tables, trees, Roassal
   canvases (SVG), source code with its selection highlighted, diffs and notebooks. Long lists show
   *Load more*, and tree nodes load their children when you unfold them.
@@ -207,7 +206,7 @@ for these entity ids adds its views next to Pharo's (see the
 | No Pharo tabs in the perspective selector | Open Views endpoint not set, or `SFServer isRunning` is false. Open `http://localhost:8081/spec-fluid/.well-known/fluid-views` in the browser to check. |
 | A tab says *sent an unexpected answer* | The image sends a view that does not match the [schema](../architecture/open-views.schema.json): update Spec-Fluid, and report the tab if it persists. |
 | *Origin not allowed* (403) | fluid is served from another origin than `localhost`/`127.0.0.1`: run `SFServer allowOrigin: 'http://<host>:<port>'` with the origin in the address bar. |
-| `curl …/spec-fluid` answers `"model": null`, or every object is unknown | No model to serve: start `MGServer` in model mode, or `SFServer startOn: 8081 model: model`. |
+| Every object answers 404 `object-not-found` | No model to serve: start `MGServer` in model mode, or `SFServer startOn: 8081 model: model`. |
 | A tab says *Unknown entity* | The ids changed: mooseIDs differ from one image (or import) to another. Reload the concept in fluid. |
 | Clicking an entity in a tab opens nothing | Its GraphQL type is unknown (generic mode, or a type with no instances): use model mode. |
 | A part of a tab is *unsupported* | That Spec presenter has no Spec-Fluid export yet; the rest of the tab is still shown. |
