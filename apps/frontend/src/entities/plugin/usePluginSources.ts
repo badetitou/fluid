@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SourceEntry } from './manifest';
 import type { ActiveSourceProvider } from './model';
 import { nextPollDelay, SourceProviderUnavailable } from './sourceProvider';
@@ -21,7 +21,16 @@ export interface SourceGroup {
   addSource?: GroupSourceAdder;
 }
 
-function listGroup({ provider, settings }: ActiveSourceProvider, signal: AbortSignal, refresh: () => void) {
+/**
+ * Lists one provider's sources. A failed listing keeps the sources listed before
+ * (so pending ones stay pending, and keep being polled, through a network blip).
+ */
+function listGroup(
+  { provider, settings }: ActiveSourceProvider,
+  signal: AbortSignal,
+  refresh: () => void,
+  previous: SourceEntry[] = [],
+) {
   const adder = provider.addSource;
   const base = {
     providerId: provider.id,
@@ -41,24 +50,30 @@ function listGroup({ provider, settings }: ActiveSourceProvider, signal: AbortSi
     (err: unknown): SourceGroup | null =>
       err instanceof SourceProviderUnavailable
         ? null
-        : { ...base, sources: [], error: err instanceof Error ? err.message : String(err) },
+        : { ...base, sources: previous, error: err instanceof Error ? err.message : String(err) },
   );
 }
 
 /**
  * The sources the enabled source provider plugins offer, one group per
- * provider, in plugin order (a provider that is unavailable is left out). Listed again when the providers or their settings
- * change, after a source is added, and every `pollMs` while some are pending.
+ * provider, in plugin order (a provider that is unavailable is left out). Listed again when the
+ * providers or their settings change, after a source is added, and every `pollMs` while some are
+ * pending (a failed listing keeps the previous sources, so polling goes on).
  */
 export function usePluginSources(): SourceGroup[] {
   const providers = useActiveSourceProviders();
   const [groups, setGroups] = useState<SourceGroup[]>([]);
   const [round, setRound] = useState(0);
   const refresh = useCallback(() => setRound((r) => r + 1), []);
+  const last = useRef(groups);
+  useEffect(() => {
+    last.current = groups;
+  }, [groups]);
 
   useEffect(() => {
     const controller = new AbortController();
-    Promise.all(providers.map((p) => listGroup(p, controller.signal, refresh))).then((listed) => {
+    const before = (id: string) => last.current.find((g) => g.providerId === id)?.sources;
+    Promise.all(providers.map((p) => listGroup(p, controller.signal, refresh, before(p.provider.id)))).then((listed) => {
       if (!controller.signal.aborted) setGroups(listed.filter((g): g is SourceGroup => g !== null));
     });
     return () => controller.abort();

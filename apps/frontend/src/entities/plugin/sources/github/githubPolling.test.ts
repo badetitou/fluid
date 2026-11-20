@@ -20,7 +20,7 @@ const repo = (status: GithubRepo['status']): GithubRepo => ({
 afterEach(() => vi.useRealTimers());
 
 describe('github provider in the switcher', () => {
-  it('lists again every pollMs while a repository is pending, and keeps its group through a network blip', async () => {
+  it('lists again every pollMs while a repository is pending, and keeps its group and polling through a network blip', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const list = vi
       .fn<GithubReposApi['list']>()
@@ -36,5 +36,10 @@ describe('github provider in the switcher', () => {
     expect(list).toHaveBeenCalledTimes(2);
     await waitFor(() => expect(result.current[0]?.error).toBe('The BFF cannot be reached.'));
     expect(result.current[0].addSource).toBeDefined();
+    expect(result.current[0].sources[0].pending).toBe(true);
+
+    await act(() => vi.advanceTimersByTimeAsync(GITHUB_POLL_MS));
+    await waitFor(() => expect(result.current[0].sources[0].pending).toBeUndefined());
+    expect(result.current[0].error).toBeUndefined();
   });
 });

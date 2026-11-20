@@ -61,4 +61,38 @@ describe('usePluginSources', () => {
     const { result } = renderHook(() => usePluginSources());
     await waitFor(() => expect(result.current.map((g) => [g.providerId, g.error])).toEqual([['x', 'boom']]));
   });
+
+  it('keeps polling a pending source through a failed listing', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let call = 0;
+    const listSources = vi.fn(async () => {
+      call += 1;
+      if (call === 2) throw new Error('network down');
+      return [repo(call < 3)];
+    });
+    active = [{ provider: { id: 'gh', label: 'GitHub', listSources, pollMs: 1000 }, settings: {} }];
+    const { result } = renderHook(() => usePluginSources());
+    await waitFor(() => expect(result.current[0]?.sources[0].pending).toBe(true));
+
+    await act(() => vi.advanceTimersByTimeAsync(1000));
+    await waitFor(() => expect(result.current[0].error).toBe('network down'));
+    expect(result.current[0].sources).toEqual([repo(true)]);
+
+    await act(() => vi.advanceTimersByTimeAsync(1000));
+    await waitFor(() => expect(result.current[0].sources).toEqual([repo(false)]));
+    expect(result.current[0].error).toBeUndefined();
+  });
+
+  it('does not list again when a submit is refused', async () => {
+    const listSources = vi.fn(async () => []);
+    const submit = vi.fn(async () => {
+      throw new Error('Expected owner/name');
+    });
+    active = [{ provider: { id: 'gh', label: 'GitHub', listSources, addSource: { label: 'Add', submit } }, settings: {} }];
+    const { result } = renderHook(() => usePluginSources());
+    await waitFor(() => expect(result.current[0]?.addSource).toBeDefined());
+    await expect(result.current[0].addSource!.submit('x', new AbortController().signal)).rejects.toThrow('Expected');
+    await new Promise((r) => setTimeout(r, 20));
+    expect(listSources).toHaveBeenCalledTimes(1);
+  });
 });
