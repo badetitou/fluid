@@ -7,41 +7,41 @@
 // Cells and rows naming a Moose entity carry a `ref`: the entity's id in the
 // GraphQL source and, when known, its GraphQL type, so fluid can open it.
 //
-// Deprecated: Spec-Fluid is now one provider of fluid Open Views
-// (`./openViews`, `docs/architecture/OPEN-VIEWS.md`). This format stays
-// readable during the migration; `specFluidNodeToViewNode` and friends convert it.
+// Deprecated: fluid speaks only fluid Open Views (`./openViews`,
+// `docs/architecture/OPEN-VIEWS.md`); Spec-Fluid is one provider of it. This
+// file stays only until the old builder goes: badetitou/fluid#51 deletes it.
 
 import { z } from 'zod';
 
 /**
  * An entity of the GraphQL source: its id and, when known, its concrete type.
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export const specFluidRefSchema = z.object({
   id: z.string().min(1),
   type: z.string().min(1).optional(),
 });
 /**
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export type SpecFluidRef = z.infer<typeof specFluidRefSchema>;
 
 /**
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export const specFluidCellSchema = z.object({
   text: z.string(),
   ref: specFluidRefSchema.optional(),
 });
 /**
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export type SpecFluidCell = z.infer<typeof specFluidCellSchema>;
 
 const columnSchema = z.object({ title: z.string() });
 
 /**
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export interface SpecFluidTreeNode {
   cells: SpecFluidCell[];
@@ -51,7 +51,7 @@ export interface SpecFluidTreeNode {
   hasMore?: boolean;
 }
 /**
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export const specFluidTreeNodeSchema: z.ZodType<SpecFluidTreeNode> = z.lazy(() =>
   z.object({
@@ -64,20 +64,20 @@ export const specFluidTreeNodeSchema: z.ZodType<SpecFluidTreeNode> = z.lazy(() =
 
 /**
  * A highlighted part of a text node: 0-based offsets, `end` exclusive (the selection of a Pharo code presenter).
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export const specFluidTextRangeSchema = z.object({
   start: z.number().int().min(0),
   end: z.number().int().min(0),
 });
 /**
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export type SpecFluidTextRange = z.infer<typeof specFluidTextRangeSchema>;
 
 /**
  * Where an entity is drawn in an SVG node (viewBox coordinates).
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export const specFluidHotspotSchema = z.object({
   ref: specFluidRefSchema,
@@ -88,7 +88,7 @@ export const specFluidHotspotSchema = z.object({
 });
 
 /**
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export type SpecFluidNode =
   | {
@@ -110,7 +110,7 @@ export type SpecFluidNode =
   | { kind: 'unsupported'; presenter: string; message?: string };
 
 /**
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export const specFluidNodeSchema: z.ZodType<SpecFluidNode> = z.lazy(() =>
   z.discriminatedUnion('kind', [
@@ -158,7 +158,7 @@ export const specFluidNodeSchema: z.ZodType<SpecFluidNode> = z.lazy(() =>
 
 /**
  * One inspector tab of an entity, in Pharo's order.
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export const specFluidTabSchema = z.object({
   /** The Pharo method building the tab, e.g. `miInspectionFame:`. */
@@ -167,30 +167,30 @@ export const specFluidTabSchema = z.object({
   order: z.number(),
 });
 /**
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export type SpecFluidTab = z.infer<typeof specFluidTabSchema>;
 
 /**
  * `GET <endpoint>/entities/<id>/tabs`
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export const specFluidTabsResponseSchema = z.object({
   entity: z.object({ id: z.string(), type: z.string().optional(), name: z.string().optional() }),
   tabs: z.array(specFluidTabSchema),
 });
 /**
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export type SpecFluidTabsResponse = z.infer<typeof specFluidTabsResponseSchema>;
 
 /**
  * `GET <endpoint>/entities/<id>/tabs/<key>`
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export const specFluidTabResponseSchema = specFluidTabSchema.extend({ root: specFluidNodeSchema });
 /**
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export type SpecFluidTabResponse = z.infer<typeof specFluidTabResponseSchema>;
 
@@ -198,7 +198,7 @@ export type SpecFluidTabResponse = z.infer<typeof specFluidTabResponseSchema>;
  * `POST <endpoint>/entities/<id>/evaluate` with `{ code }`: the code ran with the
  * entity as `self`. `ref` when the result is an entity of the model, `items`
  * (the first ones) when it is a collection. Errors answer `{ error }` (422).
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export const specFluidEvaluationSchema = z.object({
   display: z.string(),
@@ -207,6 +207,6 @@ export const specFluidEvaluationSchema = z.object({
   truncated: z.boolean().optional(),
 });
 /**
- * @deprecated Use fluid Open Views (`./openViews`); convert with `./openViews/legacy`.
+ * @deprecated Use fluid Open Views (`./openViews`). Deleted by badetitou/fluid#51.
  */
 export type SpecFluidEvaluation = z.infer<typeof specFluidEvaluationSchema>;
