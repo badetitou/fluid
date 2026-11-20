@@ -65,7 +65,7 @@ export const WIDGET_INFO: { [T in CoreWidgetType]: WidgetInfo } = {
   scene3d: { label: '3D scene', description: 'A whole building (IFC), some elements highlighted.', icon: <HomeOutlined />, group: '3D' },
   pyramid: { label: 'Overview pyramid', description: 'A system or package in one figure: size, coupling, inheritance.', icon: <GoldOutlined />, group: 'Charts' },
   insight: { label: 'AI analysis', description: 'An AI analyst reading the other widgets: what stands out, and what to ask next.', icon: <BulbOutlined />, group: 'AI' },
-  specPresenter: { label: 'Inspector tab', description: 'A Pharo inspector tab served by Spec-Fluid.', icon: <FileSearchOutlined />, group: 'Content' },
+  specPresenter: { label: 'Open view', description: 'A view served by a tool in the fluid Open Views format (Pharo inspector tabs included).', icon: <FileSearchOutlined />, group: 'Content' },
 };
 
 export const WIDGET_GROUPS: WidgetGroup[] = ['Data', 'Charts', 'Content', '3D', 'AI'];

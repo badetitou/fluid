@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { specPresenterWidgetExample, type SpecFluidNode } from '@fluid/shared';
+import { specPresenterWidgetExample } from '@fluid/shared';
 import { OpenableConceptsContext } from '../../../navigation/columnPath';
 import { SpecPresenterWidget } from './SpecPresenterWidget';
 import { commitHeader, fameTab, hierarchySvg, methodDiff, methodsTable, sourceNotebook } from './specPresenterFixture';
@@ -55,12 +55,12 @@ beforeAll(() => {
 afterEach(cleanup);
 
 describe('SpecPresenterWidget', () => {
-  it('draws every kind of node of a tab: table, tree, svg, text, unsupported', () => {
+  it('draws every kind of node of a view: columned list, tree, svg, text, unsupported', () => {
     const { container } = renderWidget(fameTab);
     expect(screen.getAllByText('Method').length).toBeGreaterThan(0);
-    expect(screen.getByText('Pharo sent only the first rows.')).toBeTruthy();
+    expect(screen.getByText('The provider sent only the first rows.')).toBeTruthy();
     expect(screen.getByText('Collections-Abstract')).toBeTruthy();
-    expect(screen.getByTitle('Pharo has more children than it sent')).toBeTruthy();
+    expect(screen.getByTitle('The provider has more children than it sent')).toBeTruthy();
     expect(container.querySelector('pre')?.textContent).toContain('aStream << self name');
     expect(screen.getByText('SpRoassalInspectorPresenter')).toBeTruthy();
     expect(container.querySelector('svg script')).toBeNull();
@@ -102,8 +102,14 @@ describe('SpecPresenterWidget', () => {
     renderWidget(undefined);
     expect(screen.getByText(/returned nothing/)).toBeTruthy();
     cleanup();
-    renderWidget({ kind: 'chart' } as unknown as SpecFluidNode);
-    expect(screen.getByText(/Not a Spec-Fluid document/)).toBeTruthy();
+    renderWidget({ kind: 'text' });
+    expect(screen.getByText(/Not an Open Views document \(at text\)/)).toBeTruthy();
+  });
+
+  it('shows a kind of view it does not know as unsupported, the rest of the view drawn', () => {
+    renderWidget({ kind: 'composite', direction: 'column', children: [{ kind: 'chart' }, { kind: 'label', text: 'kept' }] });
+    expect(screen.getByText('chart')).toBeTruthy();
+    expect(screen.getByText('kept')).toBeTruthy();
   });
 
   it('marks the highlighted part of a text, as Pharo selects an entity in its source', () => {
@@ -114,7 +120,7 @@ describe('SpecPresenterWidget', () => {
     expect(container.querySelector('pre')?.textContent).toBe(text);
   });
 
-  it('draws a notebook as tabs, open on the page Pharo selected', () => {
+  it('draws tabs, open on the selected one', () => {
     const { container } = renderWidget(sourceNotebook);
     expect(screen.getByRole('tab', { name: 'Source', selected: true })).toBeTruthy();
     expect(container.querySelector('pre')?.textContent).toBe('size\n\t^ tally');

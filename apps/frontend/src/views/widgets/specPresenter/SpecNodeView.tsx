@@ -1,32 +1,31 @@
-import { useMemo } from 'react';
-import type { SpecFluidNode } from '@fluid/shared';
-import { labelLine, tableRows, treeRows } from './model';
-import { SpecRowsTable } from './SpecRowsTable';
+import type { ViewNode } from '@fluid/shared';
+import { labelLine } from './model';
+import type { SpecEnv } from './specEnv';
 import { SpecDiff } from './SpecDiff';
+import { SpecForward } from './SpecForward';
+import { SpecItems } from './SpecItems';
 import { SpecNotebook } from './SpecNotebook';
 import { SpecSvg } from './SpecSvg';
 import { SpecText } from './SpecText';
-import type { SpecInteraction } from './useSpecInteraction';
 import styles from './SpecPresenter.module.css';
 
 interface SpecNodeViewProps {
-  node: SpecFluidNode;
-  interaction: SpecInteraction;
+  node: ViewNode;
+  env: SpecEnv;
 }
 
-/** One node of a Spec-Fluid tab, drawn by kind; composites draw their children in a row or column,
- * notebooks their pages as tabs, diffs go to the code widget. */
-export function SpecNodeView({ node, interaction }: SpecNodeViewProps) {
-  const rows = useMemo(
-    () => (node.kind === 'table' ? tableRows(node.rows) : node.kind === 'tree' ? treeRows(node.roots) : []),
-    [node],
-  );
+const renderNode = (node: ViewNode, env: SpecEnv) => <SpecNodeView node={node} env={env} />;
+
+/** One node of an Open Views view, drawn by kind; composites draw their children in a row or column,
+ * tabs as antd tabs, diffs with the code widget, forwards the views of another object. */
+export function SpecNodeView({ node, env }: SpecNodeViewProps) {
   switch (node.kind) {
-    case 'table':
+    case 'list':
+    case 'columnedList':
     case 'tree':
-      return <SpecRowsTable columns={node.columns} rows={rows} truncated={node.truncated} interaction={interaction} />;
+      return <SpecItems node={node} env={env} />;
     case 'svg':
-      return <SpecSvg svg={node.svg} hotspots={node.refs} interaction={interaction} />;
+      return <SpecSvg svg={node.svg} hotspots={node.hotspots} interaction={env.interaction} />;
     case 'text':
       return <SpecText text={node.text} language={node.language} highlights={node.highlights} />;
     case 'label':
@@ -38,7 +37,7 @@ export function SpecNodeView({ node, interaction }: SpecNodeViewProps) {
         <div className={node.direction === 'row' ? styles.row : styles.column}>
           {node.children.map((child, index) => (
             <div key={index} className={child.kind === 'label' ? styles.inline : styles.part}>
-              <SpecNodeView node={child} interaction={interaction} />
+              <SpecNodeView node={child} env={env} />
             </div>
           ))}
         </div>
@@ -46,18 +45,14 @@ export function SpecNodeView({ node, interaction }: SpecNodeViewProps) {
     }
     case 'diff':
       return <SpecDiff node={node} />;
-    case 'notebook':
-      return (
-        <SpecNotebook
-          pages={node.pages}
-          selected={node.selected}
-          renderPage={(page) => <SpecNodeView node={page} interaction={interaction} />}
-        />
-      );
+    case 'tabs':
+      return <SpecNotebook tabs={node.tabs} selected={node.selected} renderTab={(tab) => renderNode(tab, env)} />;
+    case 'forward':
+      return <SpecForward node={node} env={env} renderNode={renderNode} />;
     case 'unsupported':
       return (
         <div className={styles.notice}>
-          fluid cannot draw the Pharo presenter <code>{node.presenter}</code> yet
+          fluid cannot draw the view <code>{node.type}</code> yet
           {node.message ? `: ${node.message}` : '.'}
         </div>
       );

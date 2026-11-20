@@ -63,7 +63,7 @@ export const BUILTIN_WIDGET_COLLECTIONS: BuiltinWidgetCollection[] = [
   {
     id: 'fluid-inspectors',
     name: 'Inspectors',
-    description: 'Inspector tabs served by a backend such as Spec-Fluid (Pharo / Moose): tables, trees, Roassal views and text, as Pharo builds them.',
+    description: 'Views served by any Open Views provider (Pharo / Moose, a Python or Node service…): lists, tables, trees, SVG, text and tabs, with their actions.',
     types: ['specPresenter'],
   },
   {
