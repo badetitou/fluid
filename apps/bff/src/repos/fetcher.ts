@@ -32,12 +32,12 @@ export function codeloadUrl(repo: string, ref?: string): string {
 const TOO_LARGE = 'Repository archive is larger than the download limit';
 
 /** Passes chunks through, failing as soon as more than `maxBytes` went by. */
-function limitBytes(maxBytes: number) {
+function limitBytes(maxBytes: number, message: string) {
   return async function* (source: AsyncIterable<Buffer>): AsyncGenerator<Buffer> {
     let seen = 0;
     for await (const chunk of source) {
       seen += chunk.length;
-      if (seen > maxBytes) throw new RepoFetchError(TOO_LARGE);
+      if (seen > maxBytes) throw new RepoFetchError(message);
       yield chunk;
     }
   };
@@ -59,8 +59,14 @@ async function download(
     if (signal?.aborted) throw error;
     throw new RepoFetchError('Could not reach GitHub', { cause: error });
   }
-  if (res.status === 404) throw new RepoFetchError('Repository not found or not public');
-  if (!res.ok || !res.body) throw new RepoFetchError(`Download failed (HTTP ${res.status})`);
+  if (res.status === 404) {
+    await res.body?.cancel().catch(() => undefined);
+    throw new RepoFetchError('Repository not found or not public');
+  }
+  if (!res.ok || !res.body) {
+    await res.body?.cancel().catch(() => undefined);
+    throw new RepoFetchError(`Download failed (HTTP ${res.status})`);
+  }
   const length = Number(res.headers.get('content-length'));
   if (Number.isFinite(length) && length > maxBytes) {
     await res.body.cancel().catch(() => undefined);
@@ -95,8 +101,10 @@ export function createRepoFetcher(deps: RepoFetcherDeps = {}): RepoFetcher {
         const body = Readable.fromWeb(res.body as NodeReadableStream<Uint8Array>);
         await pipeline(
           body,
-          limitBytes(maxBytes),
+          limitBytes(maxBytes, TOO_LARGE),
           createGunzip(),
+          // Counts every decompressed byte, including entries the extractor skips.
+          limitBytes(maxBytes * EXTRACTED_SIZE_FACTOR, 'Repository is too large'),
           (source: AsyncIterable<Buffer>) =>
             extractTar(source, dir, { maxBytes: maxBytes * EXTRACTED_SIZE_FACTOR, signal }),
           { signal },

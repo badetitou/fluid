@@ -36,7 +36,8 @@ interface ExtractState {
   root: string;
   maxBytes: number;
   written: number;
-  files: Set<string>;
+  /** Regular files written so far, with their size (hardlink sources). */
+  files: Map<string, number>;
   symlinks: Set<string>;
 }
 
@@ -53,13 +54,26 @@ async function clear(target: string): Promise<void> {
   if (stat && !stat.isDirectory()) await unlink(target);
 }
 
+function charge(state: ExtractState, size: number): void {
+  if (state.written + size > state.maxBytes) throw new RepoFetchError('Repository is too large');
+  state.written += size;
+}
+
 async function writeFile(state: ExtractState, entry: TarEntry, target: string): Promise<void> {
-  if (state.written + entry.size > state.maxBytes) throw new RepoFetchError('Repository is too large');
-  state.written += entry.size;
+  charge(state, entry.size);
   await mkdir(path.dirname(target), { recursive: true });
   await clear(target);
   const mode = entry.mode & 0o111 ? 0o755 : 0o644;
   await pipeline(Readable.from(entry.body), createWriteStream(target, { mode, flags: 'wx' }));
+}
+
+/** The archive path `rel` is still a regular file, reached without leaving the root. */
+async function isRegularFileInside(state: ExtractState, rel: string): Promise<boolean> {
+  const source = path.join(state.root, rel);
+  const stat = await lstat(source).catch(() => null);
+  if (!stat?.isFile()) return false;
+  const resolved = await realpath(source).catch(() => null);
+  return resolved !== null && isInside(await realpath(state.root), resolved);
 }
 
 async function writeEntry(state: ExtractState, entry: TarEntry): Promise<void> {
@@ -73,10 +87,11 @@ async function writeEntry(state: ExtractState, entry: TarEntry): Promise<void> {
       return;
     case 'file':
       await writeFile(state, entry, target);
-      state.files.add(rel);
+      state.files.set(rel, entry.size);
       return;
     case 'symlink':
       // Links leaving the repository are skipped (a repository may legitimately hold some).
+      state.files.delete(rel);
       if (!symlinkStaysInside(state.root, rel, entry.linkPath)) return;
       await mkdir(path.dirname(target), { recursive: true });
       await clear(target);
@@ -92,11 +107,13 @@ async function writeEntry(state: ExtractState, entry: TarEntry): Promise<void> {
           return null;
         }
       })();
-      if (source === null || !state.files.has(source)) return;
+      const size = source === null ? undefined : state.files.get(source);
+      if (source === null || size === undefined || !(await isRegularFileInside(state, source))) return;
+      charge(state, size);
       await mkdir(path.dirname(target), { recursive: true });
       await clear(target);
       await copyFile(path.join(state.root, source), target);
-      state.files.add(rel);
+      state.files.set(rel, size);
       return;
     }
     default:
@@ -127,7 +144,7 @@ export async function extractTar(
     root: path.resolve(root),
     maxBytes: options.maxBytes,
     written: 0,
-    files: new Set(),
+    files: new Map(),
     symlinks: new Set(),
   };
   for await (const entry of readTar(source)) {

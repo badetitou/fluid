@@ -1,9 +1,9 @@
-import { lstat, mkdtemp, readFile, readlink, readdir, rm, stat } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, readlink, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { extractTar, repoRelativePath, symlinkStaysInside } from './extract';
-import { type FixtureEntry, makeTar } from './tar-fixture';
+import { type FixtureEntry, makeTar } from '../test-support/tar-fixture';
 
 let root: string;
 beforeEach(async () => {
@@ -81,6 +81,38 @@ describe('extractTar', () => {
     expect((await lstat(path.join(root, 'copy.st'))).isSymbolicLink()).toBe(false);
     expect(await exists('passwd')).toBe(false);
     expect(await exists('up')).toBe(false);
+  });
+
+  it('never copies a hardlink through a link that replaced its source', async () => {
+    // `root` sits next to `secret`: `s2` is lexically inside but resolves outside through `s1`.
+    const work = await mkdtemp(path.join(tmpdir(), 'fluid-extract-'));
+    await writeFile(path.join(work, 'secret'), 'top secret');
+    const inner = path.join(work, 'root');
+    await mkdir(inner);
+    const entries: FixtureEntry[] = [
+      { path: 'repo-sha/', type: 'directory' },
+      { path: 'repo-sha/s1', type: 'symlink', linkPath: '.' },
+      { path: 'repo-sha/s2', type: 'symlink', linkPath: 's1/../secret' },
+      { path: 'repo-sha/f', content: 'x' },
+      { path: 'repo-sha/f', type: 'symlink', linkPath: 's2' },
+      { path: 'repo-sha/h', type: 'hardlink', linkPath: 'repo-sha/f' },
+    ];
+    try {
+      await extractTar(once(makeTar(entries)), inner, { maxBytes: 1_000_000 });
+      await expect(lstat(path.join(inner, 'h'))).rejects.toThrow();
+    } finally {
+      await rm(work, { recursive: true, force: true });
+    }
+  });
+
+  it('charges hardlink copies to the size cap', async () => {
+    const big = { path: 'repo-sha/big', content: Buffer.alloc(1_000_000, 1) };
+    const links = Array.from({ length: 5 }, (_, i): FixtureEntry => ({
+      path: `repo-sha/h${i}`,
+      type: 'hardlink',
+      linkPath: 'repo-sha/big',
+    }));
+    await expect(extract([big, ...links], 2_000_000)).rejects.toThrow('too large');
   });
 
   it.each([

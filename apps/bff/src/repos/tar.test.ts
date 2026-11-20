@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parsePax, readTar, type TarEntry } from './tar';
-import { makeTar, paxRecord } from './tar-fixture';
+import { makeTar, paxRecord } from '../test-support/tar-fixture';
 
 async function* chunked(data: Buffer, size: number): AsyncGenerator<Buffer> {
   for (let i = 0; i < data.length; i += size) yield data.subarray(i, i + size);

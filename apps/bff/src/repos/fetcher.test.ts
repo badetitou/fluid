@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { codeloadUrl, createRepoFetcher, RepoFetchError } from './fetcher';
-import { makeTarGz } from './tar-fixture';
+import { makeTarGz } from '../test-support/tar-fixture';
 
 let work: string;
 let destDir: string;
@@ -113,6 +113,15 @@ describe('createRepoFetcher', () => {
     const big = () => new Response(archive, { headers: { 'content-length': String(archive.length) } });
     const fetcher = createRepoFetcher({ fetch: fakeFetch(big), env: {} });
     await expect(fetcher.fetch({ repo: 'a/b', destDir }, { maxBytes: 10 })).rejects.toThrow('download limit');
+  });
+
+  it('caps decompressed bytes, including entries the extractor skips', async () => {
+    const bomb = makeTarGz([
+      { path: 'repo-sha/', type: 'directory' },
+      { path: 'repo-sha/fifo', type: 'fifo', content: Buffer.alloc(200_000) },
+    ]);
+    const fetcher = createRepoFetcher({ fetch: fakeFetch(() => streamed(bomb)), env: {} });
+    await expect(fetcher.fetch({ repo: 'a/b', destDir }, { maxBytes: 2_000 })).rejects.toThrow('too large');
   });
 
   it('reports an archive that is not a tar.gz', async () => {
