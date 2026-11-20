@@ -339,6 +339,10 @@ docker run -p 127.0.0.1:4001:4001 -v fluid-data:/data ghcr.io/badetitou/fluid:la
 It stores data with embedded PGlite in the `/data` volume. The API has no authentication, so only
 expose it on networks you trust.
 
+The image also ships `model-graphql` and enables the **GitHub source** (explore a public repository's
+code model by typing `owner/name`). To use it outside the image, see the
+[GitHub source guide](docs/guides/github-source.md) (`cargo install`, env vars, limits).
+
 For a PostgreSQL-backed deployment, use the **Helm chart** ([`charts/fluid`](charts/fluid)), which
 runs the frontend, the BFF and PostgreSQL and migrates the database.
 
