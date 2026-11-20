@@ -67,7 +67,7 @@ export function normalizeUnknownKinds(node: unknown): unknown {
 export const normalizeViewResponse = (body: unknown): unknown =>
   isRecord(body) && 'view' in body ? { ...body, view: normalizeUnknownKinds(body.view) } : body;
 
-const objectVariables = z.object({ endpoint: z.string().min(1), id: z.string().min(1) });
+const objectVariables = z.object({ endpoint: z.string().min(1).optional(), id: z.string().min(1) });
 const viewVariables = objectVariables.extend({ view: z.string().min(1) });
 const VARIABLES = {
   views: objectVariables,
@@ -82,39 +82,37 @@ const VARIABLES = {
 export type QueryVariables<Q extends OpenViewsQuery> = z.infer<(typeof VARIABLES)[Q]>;
 
 const NEEDS: Record<OpenViewsQuery, string> = {
-  views: '"endpoint" and "id"',
-  view: '"endpoint", "id" and "view"',
-  items: '"endpoint", "id", "view" and "path"',
-  action: '"endpoint", "id", "view" and "action"',
+  views: '"id"',
+  view: '"id" and "view"',
+  items: '"id", "view" and "path"',
+  action: '"id", "view" and "action"',
 };
 
 /** The query of views saved before Open Views: one Spec-Fluid tab, `{ id, tab }`, read at path `root`. */
 export const LEGACY_TAB_QUERY = 'tab';
 
-/**
- * A query as the data source runs it: the old `tab` query becomes `view`, and a
- * query without `endpoint` (saved before there could be several) takes the
- * only one configured.
- */
-export function resolveQuery(query: string, variables: Record<string, unknown>, endpoints: string[]): { query: string; variables: Record<string, unknown> } {
-  const legacy = query === LEGACY_TAB_QUERY;
+/** The old `tab` query of a saved view as a `view` query; any other query as it is. */
+export function resolveQuery(query: string, variables: Record<string, unknown>): { query: string; variables: Record<string, unknown> } {
+  if (query !== LEGACY_TAB_QUERY) return { query, variables };
   const { tab, ...rest } = variables;
-  const resolved = legacy ? { ...rest, view: tab } : variables;
-  const withEndpoint = resolved.endpoint === undefined && endpoints.length === 1 ? { ...resolved, endpoint: endpoints[0] } : resolved;
-  return { query: legacy ? OPEN_VIEWS_QUERIES.view : query, variables: withEndpoint };
+  return { query: OPEN_VIEWS_QUERIES.view, variables: { ...rest, view: tab } };
+}
+
+/** The variables of a query, checked (they come from a saved view, the LLM or a widget). */
+export function queryVariables<Q extends OpenViewsQuery>(query: Q, variables: Record<string, unknown>): QueryVariables<Q> {
+  const parsed = VARIABLES[query].safeParse(variables);
+  if (!parsed.success) throw new Error(`An Open Views "${query}" query needs ${NEEDS[query]}.`);
+  return parsed.data as QueryVariables<Q>;
 }
 
 /**
- * The variables of a query, checked (they come from a saved view, the LLM or a
- * widget): the endpoint must be one the user configured, so a view cannot make
- * fluid call any other URL.
+ * The endpoint a query names, when it is one the user configured. Otherwise
+ * (none named, or a view saved for another address, e.g. before Open Views),
+ * fluid looks for the object on the configured ones: it never calls any other URL.
  */
-export function queryVariables<Q extends OpenViewsQuery>(query: Q, variables: Record<string, unknown>, endpoints: string[]): QueryVariables<Q> {
-  const parsed = VARIABLES[query].safeParse(variables);
-  if (!parsed.success) throw new Error(`An Open Views "${query}" query needs ${NEEDS[query]}.`);
-  const endpoint = trimEndpoint(parsed.data.endpoint);
-  if (!endpoints.includes(endpoint)) throw new Error(`${endpoint} is not one of the Open Views endpoints set in Settings → Plugins.`);
-  return { ...parsed.data, endpoint } as QueryVariables<Q>;
+export function configuredEndpoint(endpoint: string | undefined, endpoints: string[]): string | undefined {
+  const base = endpoint === undefined ? undefined : trimEndpoint(endpoint);
+  return base !== undefined && endpoints.includes(base) ? base : undefined;
 }
 
 /** The views every endpoint declared for an object. */

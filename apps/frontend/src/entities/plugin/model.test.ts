@@ -178,37 +178,44 @@ describe('pluginManifestSchema', () => {
 });
 
 describe('view builders', () => {
-  const specFluid = BUILTIN_PLUGINS.find((p) => p.manifest.id === 'spec-fluid')!;
+  const openViews = BUILTIN_PLUGINS.find((p) => p.manifest.id === 'fluid-open-views')!;
 
-  it('are built in, curated before auto, then Spec-Fluid and Open Views', () => {
+  it('are built in, curated before auto, then Open Views', () => {
     expect(activeViewBuilders(BUILTIN_PLUGINS, [], {}).map((b) => b.builder.id)).toEqual([
       'curated-views',
       'auto-views',
-      'spec-fluid',
       'open-views',
     ]);
-    expect(activeViewBuilders(BUILTIN_PLUGINS, ['spec-fluid'], {}).map((b) => b.builder.id)).not.toContain(
-      'spec-fluid',
+    expect(activeViewBuilders(BUILTIN_PLUGINS, ['fluid-open-views'], {}).map((b) => b.builder.id)).not.toContain(
+      'open-views',
     );
   });
 
   it('get their plugin settings, filled or empty', () => {
-    expect(settingsOf(specFluid, {})).toEqual({ endpoint: '' });
-    expect(settingsOf(specFluid, { 'spec-fluid': { endpoint: ' http://h/sf ', other: 'x' } })).toEqual({
-      endpoint: 'http://h/sf',
+    expect(settingsOf(openViews, {})).toEqual({ endpoints: '' });
+    expect(settingsOf(openViews, { 'fluid-open-views': { endpoints: ' http://h/sf ', other: 'x' } })).toEqual({
+      endpoints: 'http://h/sf',
     });
   });
 
-  it('bring their data sources', () => {
+  it('bring their data sources, Open Views also answering the views saved for Spec-Fluid', () => {
     const sources = activeDataSources(activeViewBuilders(BUILTIN_PLUGINS, [], {}));
-    expect([...sources.keys()]).toEqual(['spec-fluid', 'open-views']);
+    expect([...sources.keys()]).toEqual(['open-views', 'spec-fluid']);
+    expect(sources.get('spec-fluid')).toBe(sources.get('open-views'));
+  });
+
+  it('never let an alias hide a data source of that id', () => {
+    const own = { id: 'spec-fluid', run: async () => null };
+    const builders = activeViewBuilders(BUILTIN_PLUGINS, [], {});
+    const withOwn = [...builders, { ...builders[0], builder: { ...builders[0].builder, id: 'x', dataSource: () => own } }];
+    expect(activeDataSources(withOwn).get('spec-fluid')).toBe(own);
   });
 
   it('bring their column overlays (none built in: the Pharo script is a page action)', () => {
-    const builders = activeViewBuilders(BUILTIN_PLUGINS, [], { 'spec-fluid': { endpoint: 'http://h/sf' } });
+    const builders = activeViewBuilders(BUILTIN_PLUGINS, [], { 'fluid-open-views': { endpoints: 'http://h/sf' } });
     expect(activeColumnOverlays(builders)).toEqual([]);
     const Overlay = () => null;
-    const withOverlay = builders.map((b) => (b.builder.id === 'spec-fluid' ? { ...b, builder: { ...b.builder, ColumnOverlay: Overlay } } : b));
-    expect(activeColumnOverlays(withOverlay).map((o) => [o.id, o.settings])).toEqual([['spec-fluid', { endpoint: 'http://h/sf' }]]);
+    const withOverlay = builders.map((b) => (b.builder.id === 'open-views' ? { ...b, builder: { ...b.builder, ColumnOverlay: Overlay } } : b));
+    expect(activeColumnOverlays(withOverlay).map((o) => [o.id, o.settings])).toEqual([['open-views', { endpoints: 'http://h/sf' }]]);
   });
 });

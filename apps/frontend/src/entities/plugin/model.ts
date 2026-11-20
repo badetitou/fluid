@@ -192,9 +192,10 @@ export function activeViewBuilders(
 /** The data sources the active view builders bring, by builder id. */
 export function activeDataSources(builders: ActiveViewBuilder[]): Map<string, DataSource> {
   const sources = new Map<string, DataSource>();
-  for (const { builder, settings } of builders) {
-    const source = builder.dataSource?.(settings);
-    if (source) sources.set(source.id, source);
+  const active = builders.flatMap(({ builder, settings }) => builder.dataSource?.(settings) ?? []);
+  for (const source of active) sources.set(source.id, source);
+  for (const source of active) {
+    for (const alias of source.aliases ?? []) if (!sources.has(alias)) sources.set(alias, source);
   }
   return sources;
 }

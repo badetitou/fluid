@@ -4,28 +4,23 @@ import {
   objectViewsResponseSchema,
   openViewsDiscoverySchema,
   OPEN_VIEWS_DISCOVERY_PATH,
-  specFluidEvaluationSchema,
-  specFluidTabResponseSchema,
-  specFluidTabsResponseSchema,
-  specFluidTabToView,
-  specFluidTabsToViews,
   viewActionResultSchema,
-  viewEvaluationSchema,
   viewItemsResponseSchema,
   viewResponseSchema,
   type ObjectViewsResponse,
   type OpenViewsCapabilities,
   type ViewActionResult,
-  type ViewEvaluation,
   type ViewItemsResponse,
   type ViewResponse,
 } from '@fluid/shared';
 import { itemsSearch, normalizeViewResponse, openViewsUrl, trimEndpoint } from './model';
 
-/** A provider of views: an Open Views endpoint, or an old Spec-Fluid one read through `legacy.ts`. */
-export type ViewProvider =
-  | { endpoint: string; protocol: 'open-views'; name: string; capabilities: OpenViewsCapabilities }
-  | { endpoint: string; protocol: 'spec-fluid' };
+/** An Open Views provider, as its discovery document describes it. */
+export interface ViewProvider {
+  endpoint: string;
+  name: string;
+  capabilities: OpenViewsCapabilities;
+}
 
 /** An HTTP answer other than 2xx, with the provider's error message. */
 export class OpenViewsHttpError extends Error {
@@ -84,31 +79,24 @@ async function getJson<T>(
   return parsed.data;
 }
 
-async function discover(endpoint: string, legacy: boolean): Promise<ViewProvider> {
-  try {
-    const { name, capabilities } = await getJson(endpoint + OPEN_VIEWS_DISCOVERY_PATH, openViewsDiscoverySchema);
-    return { endpoint, protocol: 'open-views', name, capabilities };
-  } catch (error) {
-    if (legacy && error instanceof OpenViewsHttpError && error.status === 404) return { endpoint, protocol: 'spec-fluid' };
-    throw error;
-  }
+async function discover(endpoint: string): Promise<ViewProvider> {
+  const { name, capabilities } = await getJson(endpoint + OPEN_VIEWS_DISCOVERY_PATH, openViewsDiscoverySchema);
+  return { endpoint, name, capabilities };
 }
 
 const providers = new Map<string, Promise<ViewProvider>>();
 
 /**
  * The provider at `endpoint`, from its discovery document (asked once per
- * session). With `legacy`, an endpoint answering 404 there is an old
- * Spec-Fluid server. A failed or timed-out discovery is asked again next time.
+ * session). A failed or timed-out discovery is asked again next time.
  */
-export function discoverProvider(endpoint: string, legacy: boolean): Promise<ViewProvider> {
+export function discoverProvider(endpoint: string): Promise<ViewProvider> {
   const base = trimEndpoint(endpoint);
-  const key = `${legacy ? 'legacy' : 'open'}|${base}`;
-  let provider = providers.get(key);
+  let provider = providers.get(base);
   if (!provider) {
-    provider = discover(base, legacy);
-    providers.set(key, provider);
-    provider.catch(() => providers.delete(key));
+    provider = discover(base);
+    providers.set(base, provider);
+    provider.catch(() => providers.delete(base));
   }
   return provider;
 }
@@ -117,23 +105,12 @@ export function discoverProvider(endpoint: string, legacy: boolean): Promise<Vie
 export const forgetProviders = (): void => providers.clear();
 
 /** The views an object declares. */
-export async function fetchObjectViews(provider: ViewProvider, id: string, signal?: AbortSignal): Promise<ObjectViewsResponse> {
-  if (provider.protocol === 'spec-fluid') {
-    const tabs = await getJson(openViewsUrl(provider.endpoint, 'entities', id, 'tabs'), specFluidTabsResponseSchema, signal);
-    return specFluidTabsToViews(tabs);
-  }
-  return getJson(openViewsUrl(provider.endpoint, 'objects', id, 'views'), objectViewsResponseSchema, signal);
-}
+export const fetchObjectViews = (provider: ViewProvider, id: string, signal?: AbortSignal): Promise<ObjectViewsResponse> =>
+  getJson(openViewsUrl(provider.endpoint, 'objects', id, 'views'), objectViewsResponseSchema, signal);
 
 /** One view of an object, its unknown node kinds shown as `unsupported`. */
-export async function fetchView(provider: ViewProvider, id: string, key: string, signal?: AbortSignal): Promise<ViewResponse> {
-  if (provider.protocol === 'spec-fluid') {
-    const tab = await getJson(openViewsUrl(provider.endpoint, 'entities', id, 'tabs', key), specFluidTabResponseSchema, signal);
-    return specFluidTabToView(tab);
-  }
-  const url = openViewsUrl(provider.endpoint, 'objects', id, 'views', key);
-  return getJson(url, viewResponseSchema, signal, undefined, normalizeViewResponse);
-}
+export const fetchView = (provider: ViewProvider, id: string, key: string, signal?: AbortSignal): Promise<ViewResponse> =>
+  getJson(openViewsUrl(provider.endpoint, 'objects', id, 'views', key), viewResponseSchema, signal, undefined, normalizeViewResponse);
 
 /** A page of the items of a list, columned list or tree of a view (`path`: see the spec). */
 export function fetchItems(
@@ -143,37 +120,16 @@ export function fetchItems(
   query: { path: string; offset?: number; limit?: number },
   signal?: AbortSignal,
 ): Promise<ViewItemsResponse> {
-  if (provider.protocol === 'spec-fluid') {
-    return Promise.reject(new Error('Spec-Fluid servers send every item with the view: they cannot page them.'));
-  }
   const url = openViewsUrl(provider.endpoint, 'objects', id, 'views', key, 'items') + itemsSearch(query);
   return getJson(url, viewItemsResponseSchema, signal);
 }
 
-const postJson = (body: unknown): RequestInit => ({
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(body),
-});
-
-/** Runs an action of a view (capability `actions`). */
-export async function runAction(provider: ViewProvider, id: string, key: string, action: string, signal?: AbortSignal): Promise<ViewActionResult> {
-  if (provider.protocol === 'spec-fluid' || !provider.capabilities.actions) {
-    throw new Error(`${provider.protocol === 'spec-fluid' ? 'Spec-Fluid' : provider.name} does not run view actions (no "actions" capability).`);
-  }
-  const url = openViewsUrl(provider.endpoint, 'objects', id, 'views', key, 'actions', action);
-  return getJson(url, viewActionResultSchema, signal, postJson({}));
-}
-
 /**
- * Evaluates code with an object as receiver, through the `evaluate` capability
- * of an Open Views endpoint, or the evaluate route of an old Spec-Fluid one.
+ * Runs an action of a view (capability `actions`): a POST with no body, as
+ * the spec allows, so the browser sends it without a CORS preflight.
  */
-export async function evaluateOn(endpoint: string, id: string, code: string, signal?: AbortSignal): Promise<ViewEvaluation> {
-  const provider = await discoverProvider(endpoint, true);
-  if (provider.protocol === 'spec-fluid') {
-    return getJson(openViewsUrl(provider.endpoint, 'entities', id, 'evaluate'), specFluidEvaluationSchema, signal, postJson({ code }));
-  }
-  if (!provider.capabilities.evaluate) throw new Error(`${provider.name} does not evaluate code (no "evaluate" capability).`);
-  return getJson(openViewsUrl(provider.endpoint, 'objects', id, 'evaluate'), viewEvaluationSchema, signal, postJson({ code }));
+export async function runAction(provider: ViewProvider, id: string, key: string, action: string, signal?: AbortSignal): Promise<ViewActionResult> {
+  if (!provider.capabilities.actions) throw new Error(`${provider.name} does not run view actions (no "actions" capability).`);
+  const url = openViewsUrl(provider.endpoint, 'objects', id, 'views', key, 'actions', action);
+  return getJson(url, viewActionResultSchema, signal, { method: 'POST' });
 }

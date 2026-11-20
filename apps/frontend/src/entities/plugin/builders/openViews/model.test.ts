@@ -8,6 +8,7 @@ import {
   normalizeViewResponse,
   openViewsUrl,
   parseEndpoints,
+  configuredEndpoint,
   queryVariables,
   resolveQuery,
   viewPerspective,
@@ -74,19 +75,25 @@ describe('Open Views builder model', () => {
     expect(p.spec.widgets[0]).toMatchObject({ type: 'specPresenter', data: { query: 'view' } });
   });
 
-  it('checks the variables of a query, and that its endpoint is a configured one', () => {
-    expect(queryVariables('view', { endpoint: `${A}/`, id: '1', view: 'k' }, [A])).toEqual({ endpoint: A, id: '1', view: 'k' });
-    expect(queryVariables('items', { endpoint: A, id: '1', view: 'k', path: '0.2', offset: 5 }, [A])).toMatchObject({ path: '0.2', offset: 5 });
-    expect(() => queryVariables('view', { endpoint: 'http://evil.test', id: '1', view: 'k' }, [A])).toThrow(/not one of/);
-    expect(() => queryVariables('view', { id: 3 }, [A])).toThrow(/needs "endpoint"/);
-    expect(() => queryVariables('items', { endpoint: A, id: '1', view: 'k', path: 'x' }, [A])).toThrow(/"path"/);
-    expect(queryVariables('views', { endpoint: A, id: '1', view: 'ignored' }, [A])).toEqual({ endpoint: A, id: '1' });
-    expect(() => queryVariables('action', { endpoint: A, id: '1', view: 'k' }, [A])).toThrow(/"action"/);
+  it('checks the variables of a query', () => {
+    expect(queryVariables('view', { endpoint: A, id: '1', view: 'k' })).toEqual({ endpoint: A, id: '1', view: 'k' });
+    expect(queryVariables('view', { id: '1', view: 'k' })).toEqual({ id: '1', view: 'k' });
+    expect(queryVariables('items', { id: '1', view: 'k', path: '0.2', offset: 5 })).toMatchObject({ path: '0.2', offset: 5 });
+    expect(() => queryVariables('view', { id: 3 })).toThrow(/needs "id" and "view"/);
+    expect(() => queryVariables('items', { id: '1', view: 'k', path: 'x' })).toThrow(/"path"/);
+    expect(queryVariables('views', { id: '1', view: 'ignored' })).toEqual({ id: '1' });
+    expect(() => queryVariables('action', { id: '1', view: 'k' })).toThrow(/"action"/);
   });
 
-  it('reads the tab query of views saved before Open Views, on the only endpoint', () => {
-    expect(resolveQuery('tab', { id: '1', tab: 'fame:' }, [A])).toEqual({ query: 'view', variables: { id: '1', view: 'fame:', endpoint: A } });
-    expect(resolveQuery('items', { id: '1', view: 'k', path: '0' }, [A, B]).variables).not.toHaveProperty('endpoint');
-    expect(resolveQuery('view', { endpoint: B, id: '1', view: 'k' }, [A])).toEqual({ query: 'view', variables: { endpoint: B, id: '1', view: 'k' } });
+  it('keeps a named endpoint only when it is a configured one', () => {
+    expect(configuredEndpoint(`${A}/`, [A, B])).toBe(A);
+    expect(configuredEndpoint('http://evil.test', [A])).toBeUndefined();
+    expect(configuredEndpoint(undefined, [A])).toBeUndefined();
+  });
+
+  it('reads the tab query of views saved before Open Views as a view query', () => {
+    expect(resolveQuery('tab', { id: '1', tab: 'fame:' })).toEqual({ query: 'view', variables: { id: '1', view: 'fame:' } });
+    const items = { id: '1', view: 'k', path: '0' };
+    expect(resolveQuery('items', items)).toEqual({ query: 'items', variables: items });
   });
 });

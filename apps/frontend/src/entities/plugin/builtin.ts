@@ -6,7 +6,6 @@ import { curatedViewBuilder } from './builders/curatedViews';
 import { chatAction } from './actions/chat';
 import { fireworksAction } from './actions/fireworks';
 import { ENDPOINTS_SETTING, openViewsBuilder } from './builders/openViews';
-import { ENDPOINT_SETTING, pharoScriptAction, specFluidViewBuilder } from './builders/specFluid';
 import { HIGH_CONTRAST_THEME, SOLARIZED_THEME } from './builtinThemes';
 import { CATPPUCCIN_THEMES } from './catppuccin';
 import type { PluginManifest } from './manifest';
@@ -70,13 +69,6 @@ const viewBuilderPlugin = (manifest: BuilderManifest, builder: ViewBuilder, colo
 });
 
 /** The built-in view builders, in the order their perspectives are listed (after the saved ones). */
-const specFluidEndpoint = (description: string) => ({
-  key: ENDPOINT_SETTING,
-  label: 'Spec-Fluid endpoint',
-  description,
-  placeholder: 'http://localhost:8081/spec-fluid',
-});
-
 const viewBuilderPlugins: ViewBuilderPlugin[] = [
   viewBuilderPlugin(
     { id: 'fluid-curated-views', name: 'Curated views', description: 'Example perspectives shipped with fluid for well-known concepts.' },
@@ -94,17 +86,6 @@ const viewBuilderPlugins: ViewBuilderPlugin[] = [
   ),
   viewBuilderPlugin(
     {
-      id: 'spec-fluid',
-      name: 'Spec-Fluid (Pharo inspectors)',
-      description:
-        'The inspector tabs Pharo defines for a Moose entity (Navigation, Fame, Blueprint, UML…), served by the Spec-Fluid project of the image, as perspectives of its detail column.',
-      settings: [specFluidEndpoint('Where the image serves Spec-Fluid (SFServer start). Leave empty to turn it off.')],
-    },
-    specFluidViewBuilder,
-    '#722ed1',
-  ),
-  viewBuilderPlugin(
-    {
       id: 'fluid-open-views',
       name: 'Open Views',
       description:
@@ -113,8 +94,9 @@ const viewBuilderPlugins: ViewBuilderPlugin[] = [
         {
           key: ENDPOINTS_SETTING,
           label: 'Open Views endpoints',
-          description: 'Base URLs of Open Views providers, one per line (or separated by commas). Leave empty to turn it off.',
-          placeholder: 'http://localhost:8081/spec-fluid',
+          description:
+            'Base URLs of Open Views providers, one per line (or separated by commas), e.g. http://localhost:8081/spec-fluid for the Pharo image (SFServer start). Leave empty to turn it off.',
+          placeholder: 'https://tool.example.org/views',
         },
       ],
     },
@@ -162,15 +144,6 @@ const pageActionPlugin = (manifest: ActionManifest, actions: PageAction[]): Page
 
 /** The built-in commands of the floating button of the columns. */
 const pageActionPlugins: PageActionPlugin[] = [
-  pageActionPlugin(
-    {
-      id: 'fluid-pharo-script',
-      name: 'Pharo script',
-      description: 'Run Smalltalk in the Pharo image on the entity of a detail column (self), served by Spec-Fluid.',
-      settings: [specFluidEndpoint('Where the image serves Spec-Fluid; it evaluates scripts once SFServer enableEvaluation. Leave empty to turn it off.')],
-    },
-    [pharoScriptAction],
-  ),
   pageActionPlugin(
     { id: 'fluid-fireworks', name: 'Fireworks', description: 'An easter egg: fireworks over the page, from the floating button of any column.' },
     [fireworksAction],

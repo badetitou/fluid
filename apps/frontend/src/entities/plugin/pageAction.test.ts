@@ -17,6 +17,7 @@ const MANIFEST = {
   name: 'Confetti',
   version: '1.0.0',
   module: './index.js',
+  settings: [{ key: 'color', label: 'Colour' }],
   contributes: { pageActions: [{ id: 'throw', label: 'Throw confetti', icon: '🎉' }] },
 };
 
@@ -56,29 +57,22 @@ describe('page action plugins', () => {
     );
     const plugins = [...BUILTIN_PLUGINS, installed];
     const keys = activePageActions(plugins, [], {}).map((a) => a.key);
-    expect(keys).toEqual(['fluid-pharo-script/pharo-script', 'fluid-fireworks/fireworks', 'fluid-chat/chat', 'confetti/throw']);
+    expect(keys).toEqual(['fluid-fireworks/fireworks', 'fluid-chat/chat', 'confetti/throw']);
     expect(activePageActions(plugins, ['fluid-fireworks'], {}).map((a) => a.key)).not.toContain(
       'fluid-fireworks/fireworks',
     );
-    const pharo = activePageActions(plugins, [], {
-      'fluid-pharo-script': { endpoint: 'http://localhost:8081/spec-fluid' },
-    })[0];
-    expect(pharo.settings).toEqual({ endpoint: 'http://localhost:8081/spec-fluid' });
+    const confetti = activePageActions(plugins, [], { confetti: { color: ' red ' } }).at(-1)!;
+    expect(confetti.settings).toEqual({ color: 'red' });
   });
 
-  it('offer the fireworks on any column, the Pharo script only on an entity', () => {
-    const [pharo, fireworks] = activePageActions(BUILTIN_PLUGINS, [], {
-      'fluid-pharo-script': { endpoint: 'http://x' },
-    });
+  it('offer the fireworks on any column, an action asking for an entity only there', () => {
+    const [fireworks] = activePageActions(BUILTIN_PLUGINS, [], {});
     expect(isOffered(fireworks.action, CONTEXT)).toBe(true);
-    const settings = pharo.settings;
-    expect(isOffered(pharo.action, { ...CONTEXT, settings })).toBe(false);
-    expect(
-      isOffered(pharo.action, {
-        ...CONTEXT,
-        settings,
-        column: DETAIL,
-      }),
-    ).toBe(true);
+    const onEntity = modulePageAction(MANIFEST.contributes.pageActions[0], {
+      run: () => {},
+      available: (context: PageActionContext) => context.column.columnKind === 'detail',
+    });
+    expect(isOffered(onEntity, CONTEXT)).toBe(false);
+    expect(isOffered(onEntity, { ...CONTEXT, column: DETAIL })).toBe(true);
   });
 });
