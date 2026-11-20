@@ -27,15 +27,21 @@ export interface ModelProcessOptions {
   killGraceMs?: number;
 }
 
+/** One server, registered as soon as `start` is called so it can be evicted or stopped at once. */
 interface Entry {
-  child: ChildProcess;
-  graphqlUrl: string;
+  /** Aborted by `stop`, eviction or the caller's signal; the reason is the rejection of `ready`. */
+  controller: AbortController;
+  ready: Promise<{ graphqlUrl: string }>;
+  child?: ChildProcess;
+  graphqlUrl?: string;
   isReady: boolean;
   lastUsed: number;
 }
 
 const DEFAULT_ARGS = ['--no-scip'];
 const STDERR_LINES = 5;
+const cancelled = () => new ModelProcessError('The Model server start was cancelled.');
+const stopped = () => new ModelProcessError('The Model server was stopped.');
 
 /** Message for a binary that could not be spawned (missing, not executable). */
 function spawnFailure(error: NodeJS.ErrnoException): ModelProcessError {
@@ -55,61 +61,54 @@ export function createModelProcessManager(
   const pollIntervalMs = options.pollIntervalMs ?? 200;
   const killGraceMs = options.killGraceMs ?? 5_000;
   const entries = new Map<string, Entry>();
-  /** Starts in progress, so concurrent `start` calls on one id share a single process. */
-  const starting = new Map<string, Promise<{ graphqlUrl: string }>>();
   let clock = 0;
   const touch = (entry: Entry) => (entry.lastUsed = ++clock);
+  const forget = (id: string, entry: Entry) => {
+    if (entries.get(id) === entry) entries.delete(id);
+  };
 
+  /** Removes the entry at once (synchronously), then aborts its start and kills its process. */
   async function stop(id: string): Promise<void> {
     const entry = entries.get(id);
     if (!entry) return;
     entries.delete(id);
-    await killProcess(entry.child, killGraceMs);
+    entry.controller.abort(stopped());
+    await entry.ready.catch(() => undefined);
+    if (entry.child) await killProcess(entry.child, killGraceMs);
   }
 
-  /** Stops the least recently used servers until there is room for one more. */
-  async function makeRoom(keep: string): Promise<void> {
+  /** Stops the least recently used servers (running or starting) so `keep` fits in `maxRunning`. */
+  function makeRoom(keep: string): Promise<unknown> {
     const others = [...entries.entries()].filter(([id]) => id !== keep);
-    const pendingOthers = [...starting.keys()].filter(
-      (id) => id !== keep && !entries.has(id),
-    ).length;
-    const excess = others.length + pendingOthers - Math.max(config.maxRunning, 1) + 1;
-    if (excess <= 0) return;
+    const excess = others.length - Math.max(config.maxRunning, 1) + 1;
+    if (excess <= 0) return Promise.resolve();
     others.sort(([, a], [, b]) => a.lastUsed - b.lastUsed);
-    await Promise.all(others.slice(0, excess).map(([id]) => stop(id)));
+    return Promise.all(others.slice(0, excess).map(([id]) => stop(id)));
   }
 
-  async function launch(
-    id: string,
-    dir: string,
-    signal: AbortSignal | undefined,
-  ): Promise<{ graphqlUrl: string }> {
+  async function launch(id: string, dir: string, entry: Entry): Promise<{ graphqlUrl: string }> {
+    const { signal } = entry.controller;
     const port = await freePort();
-    if (signal?.aborted) throw new ModelProcessError('The Model server start was cancelled.');
+    signal.throwIfAborted();
     const graphqlUrl = `http://127.0.0.1:${port}/graphql`;
     const child = spawn(
       config.modelGraphqlBin,
       [dir, '--host', '127.0.0.1', '--port', String(port), ...args],
-      {
-        stdio: ['ignore', 'ignore', 'pipe'],
-        shell: false,
-      },
+      { stdio: ['ignore', 'ignore', 'pipe'], shell: false },
     );
+    entry.child = child;
     const stderr = new LineTail(50);
     child.stderr?.setEncoding('utf8');
     child.stderr?.on('data', (chunk: string) => stderr.push(chunk));
 
     let failure: ModelProcessError | undefined;
-    let aborted = false;
-    const forget = () => {
-      if (entries.get(id)?.child === child) entries.delete(id);
-    };
     // `error` (spawn failure) may come without `exit`; `close` comes once stderr is drained.
+    // Either way a dead server is forgotten, so the next `start` restarts it.
     child.once('error', (error: NodeJS.ErrnoException) => {
       failure ??= spawnFailure(error);
-      forget();
+      forget(id, entry);
     });
-    const exit = new Promise<void>((resolve) =>
+    const closed = new Promise<void>((resolve) =>
       child.once('close', (code, sig) => {
         const tail = redactPaths(stderr.last(STDERR_LINES).join('\n'), [
           dir,
@@ -119,59 +118,63 @@ export function createModelProcessManager(
         failure ??= new ModelProcessError(
           `The Model server stopped (${how})${tail ? `:\n${tail}` : '.'}`,
         );
-        forget();
+        forget(id, entry);
         resolve();
       }),
     );
 
-    const onAbort = () => {
-      aborted = true;
-      void stop(id);
-    };
-    signal?.addEventListener('abort', onAbort, { once: true });
-
-    const entry: Entry = { child, graphqlUrl, isReady: false, lastUsed: 0 };
-    entries.set(id, entry);
-    touch(entry);
     try {
-      const ok = await waitUntilReady(graphqlUrl, () => aborted || failure !== undefined, {
+      const ok = await waitUntilReady(graphqlUrl, () => signal.aborted || failure !== undefined, {
         timeoutMs: readyTimeoutMs,
         intervalMs: pollIntervalMs,
       });
-      if (aborted) throw new ModelProcessError('The Model server start was cancelled.');
+      signal.throwIfAborted();
       if (!ok) {
         // Give `close` a moment so the message carries the last stderr lines.
-        await Promise.race([exit, new Promise((r) => setTimeout(r, 500))]);
+        await Promise.race([closed, new Promise((r) => setTimeout(r, 500))]);
         throw failure ?? new ModelProcessError('The Model server stopped.');
       }
+      entry.graphqlUrl = graphqlUrl;
       entry.isReady = true;
       return { graphqlUrl };
     } catch (error) {
-      if (entries.get(id) === entry) entries.delete(id);
       await killProcess(child, killGraceMs);
       throw error;
-    } finally {
-      signal?.removeEventListener('abort', onAbort);
     }
   }
 
   return {
-    async start(id, dir, startOptions) {
+    start(id, dir, startOptions) {
       const signal = startOptions?.signal;
-      if (signal?.aborted) throw new ModelProcessError('The Model server start was cancelled.');
-      const pending = starting.get(id);
-      if (pending) return pending;
+      if (signal?.aborted) return Promise.reject(cancelled());
       const existing = entries.get(id);
-      if (existing?.isReady) {
+      if (existing) {
         touch(existing);
-        return { graphqlUrl: existing.graphqlUrl };
+        return existing.ready;
       }
-      const ready = (async () => {
-        await makeRoom(id);
-        return launch(id, dir, signal);
-      })().finally(() => starting.delete(id));
-      starting.set(id, ready);
-      return ready;
+      // Registered before any `await`: concurrent starts see it, evict it or stop it.
+      const controller = new AbortController();
+      const entry: Entry = {
+        controller,
+        ready: Promise.resolve({ graphqlUrl: '' }),
+        isReady: false,
+        lastUsed: 0,
+      };
+      entries.set(id, entry);
+      touch(entry);
+      const onAbort = () => controller.abort(cancelled());
+      signal?.addEventListener('abort', onAbort, { once: true });
+      const room = makeRoom(id);
+      entry.ready = (async () => {
+        await room;
+        return launch(id, dir, entry);
+      })()
+        .catch((error: unknown) => {
+          forget(id, entry);
+          throw error;
+        })
+        .finally(() => signal?.removeEventListener('abort', onAbort));
+      return entry.ready;
     },
 
     url(id) {

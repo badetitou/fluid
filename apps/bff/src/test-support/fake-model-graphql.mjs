@@ -6,9 +6,11 @@
 //   crash-*    writes to stderr (with the root path) and exits with code 3
 //   never-*    stays alive without ever listening
 //   stubborn-* serves, but ignores SIGTERM (only SIGKILL stops it)
+// It writes its pid to `<root>/fake.pid` on start-up.
 // Every answer carries `argv` so tests can check the arguments it was given.
 import { createServer } from 'node:http';
-import { basename } from 'node:path';
+import { writeFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
 
 const argv = process.argv.slice(2);
 const root = argv[0] ?? '';
@@ -19,6 +21,8 @@ const option = (name) => {
 const mode = basename(root).split('-')[0];
 const host = option('--host') ?? '127.0.0.1';
 const port = Number(option('--port') ?? 8080);
+
+writeFileSync(join(root, 'fake.pid'), String(process.pid));
 
 if (mode === 'crash') {
   process.stderr.write(

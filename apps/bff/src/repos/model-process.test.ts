@@ -1,54 +1,15 @@
-import { chmodSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { createModelProcessManager, type ModelProcessOptions } from './model-process';
+import { describe, expect, it } from 'vitest';
 import { LineTail, redactPaths } from './model-process-support';
-import type { ModelProcessManager } from './types';
+import {
+  alive,
+  query,
+  spawnedPid,
+  until,
+  useModelProcessHarness,
+} from '../test-support/model-process-harness';
 
-const FAKE_BIN = fileURLToPath(new URL('../test-support/fake-model-graphql.mjs', import.meta.url));
-let root: string;
-const managers: ModelProcessManager[] = [];
-
-beforeAll(() => {
-  chmodSync(FAKE_BIN, 0o755);
-  root = mkdtempSync(join(tmpdir(), 'fluid-model-process-'));
-});
-afterEach(async () => {
-  await Promise.all(managers.splice(0).map((m) => m.stopAll()));
-});
-afterAll(() => rmSync(root, { recursive: true, force: true }));
-
-function repoDir(name: string): string {
-  const dir = join(root, name);
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-function manager(maxRunning = 3, options: ModelProcessOptions = {}, bin = FAKE_BIN) {
-  const m = createModelProcessManager(
-    { modelGraphqlBin: bin, maxRunning },
-    { pollIntervalMs: 50, readyTimeoutMs: 5_000, killGraceMs: 300, ...options },
-  );
-  managers.push(m);
-  return m;
-}
-
-async function query(url: string): Promise<{ argv: string[]; pid: number }> {
-  const response = await fetch(url, { method: 'POST', body: '{"query":"{ __typename }"}' });
-  const body = (await response.json()) as { data: { argv: string[]; pid: number } };
-  return body.data;
-}
-
-const alive = (pid: number) => {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-};
+const { manager, repoDir, root } = useModelProcessHarness();
 
 describe('ModelProcessManager', () => {
   it('spawns the binary on 127.0.0.1 and a free port, with --no-scip, and waits for /graphql', async () => {
@@ -81,14 +42,16 @@ describe('ModelProcessManager', () => {
   it('stops the least recently used server beyond maxRunning', async () => {
     const m = manager(2);
     const a = await m.start('a', repoDir('ok-lru-a'));
-    await m.start('b', repoDir('ok-lru-b'));
+    const b = await m.start('b', repoDir('ok-lru-b'));
     const pidA = (await query(a.graphqlUrl)).pid;
+    const pidB = (await query(b.graphqlUrl)).pid;
     m.url('a'); // a is now more recent than b
     await m.start('c', repoDir('ok-lru-c'));
     expect(m.url('b')).toBeUndefined();
     expect(m.url('a')).toBe(a.graphqlUrl);
     expect(m.url('c')).toBeDefined();
     expect(alive(pidA)).toBe(true);
+    expect(alive(pidB)).toBe(false);
   });
 
   it('stop kills the process, with SIGKILL when SIGTERM is ignored', async () => {
@@ -120,30 +83,37 @@ describe('ModelProcessManager', () => {
     expect(message).toContain('exit code 3');
     expect(message).toContain('fatal: giving up');
     expect(message).toContain('<repo>/Cargo.toml');
-    expect(message).not.toContain(root);
+    expect(message).not.toContain(root());
     expect(m.url('c')).toBeUndefined();
   });
 
   it('says to set FLUID_MODEL_GRAPHQL_BIN when the binary is missing', async () => {
-    const m = manager(3, {}, join(root, 'no-such-model-graphql'));
+    const m = manager(3, {}, join(root(), 'no-such-model-graphql'));
     const error = await m.start('m', repoDir('ok-m')).catch((e: unknown) => e);
     expect((error as Error).message).toMatch(/not found.*FLUID_MODEL_GRAPHQL_BIN/);
-    expect((error as Error).message).not.toContain(root);
+    expect((error as Error).message).not.toContain(root());
   });
 
   it('rejects after the timeout and kills a server that never answers', async () => {
-    const m = manager(3, { readyTimeoutMs: 300 });
-    await expect(m.start('n', repoDir('never-n'))).rejects.toThrow(/did not answer/);
+    const m = manager(3, { readyTimeoutMs: 1_500 });
+    const dir = repoDir('never-n');
+    await expect(m.start('n', dir)).rejects.toThrow(/did not answer/);
     expect(m.url('n')).toBeUndefined();
+    expect(spawnedPid(dir)).toBeDefined();
+    expect(alive(spawnedPid(dir))).toBe(false);
   });
 
   it('cancels a start when the signal aborts', async () => {
     const m = manager();
     const controller = new AbortController();
-    const started = m.start('n', repoDir('never-abort'), { signal: controller.signal });
-    setTimeout(() => controller.abort(), 100);
+    const dir = repoDir('never-abort');
+    const started = m.start('n', dir, { signal: controller.signal });
+    await until(() => spawnedPid(dir) !== undefined);
+    controller.abort();
     await expect(started).rejects.toThrow(/cancelled/);
     expect(m.url('n')).toBeUndefined();
+    expect(spawnedPid(dir)).toBeDefined();
+    expect(alive(spawnedPid(dir))).toBe(false);
   });
 });
 
