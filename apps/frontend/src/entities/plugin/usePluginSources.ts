@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { SourceEntry } from './manifest';
 import type { ActiveSourceProvider } from './model';
-import { nextPollDelay } from './sourceProvider';
+import { nextPollDelay, SourceProviderUnavailable } from './sourceProvider';
 import { useActiveSourceProviders } from './usePlugins';
 
 /** A provider's add form, its settings already bound; the sources are listed again once it resolves. */
@@ -38,13 +38,16 @@ function listGroup({ provider, settings }: ActiveSourceProvider, signal: AbortSi
   };
   return provider.listSources(settings, signal).then(
     (sources): SourceGroup => ({ ...base, sources }),
-    (err: unknown): SourceGroup => ({ ...base, sources: [], error: err instanceof Error ? err.message : String(err) }),
+    (err: unknown): SourceGroup | null =>
+      err instanceof SourceProviderUnavailable
+        ? null
+        : { ...base, sources: [], error: err instanceof Error ? err.message : String(err) },
   );
 }
 
 /**
  * The sources the enabled source provider plugins offer, one group per
- * provider, in plugin order. Listed again when the providers or their settings
+ * provider, in plugin order (a provider that is unavailable is left out). Listed again when the providers or their settings
  * change, after a source is added, and every `pollMs` while some are pending.
  */
 export function usePluginSources(): SourceGroup[] {
@@ -56,7 +59,7 @@ export function usePluginSources(): SourceGroup[] {
   useEffect(() => {
     const controller = new AbortController();
     Promise.all(providers.map((p) => listGroup(p, controller.signal, refresh))).then((listed) => {
-      if (!controller.signal.aborted) setGroups(listed);
+      if (!controller.signal.aborted) setGroups(listed.filter((g): g is SourceGroup => g !== null));
     });
     return () => controller.abort();
   }, [providers, round, refresh]);

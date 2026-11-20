@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ActiveSourceProvider } from './model';
 import type { SourceEntry } from './manifest';
+import { SourceProviderUnavailable } from './sourceProvider';
 import { usePluginSources } from './usePluginSources';
 
 let active: ActiveSourceProvider[] = [];
@@ -46,5 +47,18 @@ describe('usePluginSources', () => {
     await waitFor(() => expect(result.current[0].sources[0].pending).toBe(false));
     await act(() => vi.advanceTimersByTimeAsync(5000));
     expect(listSources).toHaveBeenCalledTimes(3);
+  });
+
+  it('leaves out a provider that is unavailable, but shows the error of one that failed', async () => {
+    const add = { label: 'Add', submit: async () => {} };
+    active = [
+      {
+        provider: { id: 'gh', label: 'GitHub', listSources: () => Promise.reject(new SourceProviderUnavailable('off')), addSource: add },
+        settings: {},
+      },
+      { provider: { id: 'x', label: 'X', listSources: () => Promise.reject(new Error('boom')) }, settings: {} },
+    ];
+    const { result } = renderHook(() => usePluginSources());
+    await waitFor(() => expect(result.current.map((g) => [g.providerId, g.error])).toEqual([['x', 'boom']]));
   });
 });

@@ -31,6 +31,18 @@ export interface SourceProvider {
   pollMs?: number;
 }
 
+/**
+ * Thrown by `listSources` when the provider's backend does not offer it at all (e.g. a feature
+ * turned off): the provider is then left out of the switcher, add form included, instead of
+ * showing an error.
+ */
+export class SourceProviderUnavailable extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SourceProviderUnavailable';
+  }
+}
+
 /** A provider whose sources are written in its manifest. */
 export function staticSourceProvider(contract: SourceProviderContract): SourceProvider {
   const sources = contract.sources ?? [];
