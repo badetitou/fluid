@@ -44,7 +44,7 @@ describe('GitHub source service', () => {
       status: 'queued',
       graphqlPath: '/api/github-repos/owner--name/graphql',
     });
-    await Promise.resolve();
+    await new Promise((r) => setTimeout(r, 0));
     expect(service.get('owner--name')?.status).toBe('downloading');
     download.open();
     await new Promise((r) => setTimeout(r, 0));
@@ -130,6 +130,51 @@ describe('GitHub source service', () => {
     expect(existsSync(join(dir, 'o--n'))).toBe(false);
     expect(service.get('o--n')).toBeUndefined();
     expect(await service.remove('o--n')).toBe(false);
+  });
+
+  it('a re-add right after a delete waits for the cleanup and keeps its process and files', async () => {
+    service.add({ repo: 'o/n' });
+    await service.settled('o--n');
+    const stopHold = gate();
+    const realStop = processes.stop.bind(processes);
+    processes.stop = async (id) => {
+      await stopHold.promise;
+      await realStop(id);
+    };
+    const removal = service.remove('o--n');
+    const readded = service.add({ repo: 'o/n' });
+    expect(readded.status).toBe('queued');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(service.get('o--n')?.status).toBe('queued');
+    expect(fetcher.calls).toHaveLength(1);
+    stopHold.open();
+    await removal;
+    await service.settled('o--n');
+    expect(service.get('o--n')?.status).toBe('ready');
+    expect(fetcher.calls).toHaveLength(2);
+    expect(processes.url('o--n')).toBeDefined();
+    expect(processes.stopped).toEqual(['o--n']);
+  });
+
+  it('remove during analysis aborts processes.start', async () => {
+    processes.hold = gate().promise;
+    service.add({ repo: 'o/n' });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(service.get('o--n')?.status).toBe('analyzing');
+    expect(await service.remove('o--n')).toBe(true);
+    expect(processes.url('o--n')).toBeUndefined();
+    expect(processes.stopped).toEqual(['o--n']);
+    expect(service.get('o--n')).toBeUndefined();
+  });
+
+  it('answers 409 for a failed repository without forwarding', async () => {
+    fetcher.failWith = new Error('boom');
+    service.add({ repo: 'o/n' });
+    await service.settled('o--n');
+    const res = await service.runGraphql('o--n', { query: '{ x }' });
+    expect(res?.status).toBe(409);
+    expect(res?.body.errors?.[0].message).toContain('status: failed');
+    expect(forwarded).toEqual([]);
   });
 
   it('stopAll aborts running jobs and stops every process', async () => {

@@ -63,6 +63,8 @@ const conflict = (status: GithubRepoStatus): ProxyResult => ({
 export function createGithubSource(config: GithubSourceConfig, deps: GithubSourceDeps): GithubSource {
   const { fetcher, processes, forward = defaultForward, now = () => new Date() } = deps;
   const entries = new Map<string, Entry>();
+  /** Cleanup of removed ids still running: a new analysis of the same id waits for it. */
+  const removals = new Map<string, Promise<void>>();
 
   const setStatus = (entry: Entry, status: GithubRepoStatus, error?: string) => {
     const { error: _previous, ...rest } = entry.repo;
@@ -73,6 +75,8 @@ export function createGithubSource(config: GithubSourceConfig, deps: GithubSourc
     const { signal } = entry.abort;
     const { repo, ref } = entry.repo;
     try {
+      await removals.get(entry.repo.id);
+      if (signal.aborted) return;
       setStatus(entry, 'downloading');
       const { dir } = await fetcher.fetch(
         { repo, ...(ref ? { ref } : {}), destDir: entry.dir },
@@ -135,9 +139,15 @@ export function createGithubSource(config: GithubSourceConfig, deps: GithubSourc
       if (!entry) return false;
       entries.delete(id);
       entry.abort.abort();
-      await entry.job;
-      await processes.stop(id);
-      await rm(join(config.reposDir, id), { recursive: true, force: true });
+      const cleanup = (async () => {
+        await entry.job;
+        await processes.stop(id);
+        await rm(join(config.reposDir, id), { recursive: true, force: true });
+      })().finally(() => {
+        if (removals.get(id) === cleanup) removals.delete(id);
+      });
+      removals.set(id, cleanup);
+      await cleanup;
       return true;
     },
 
