@@ -39,6 +39,12 @@
   text-overflow: ellipsis;
 }
 
+.pending {
+  flex-shrink: 0;
+  font-style: italic;
+  color: var(--ant-color-text-tertiary);
+}
+
 .divider {
   margin: 6px 0;
 }
