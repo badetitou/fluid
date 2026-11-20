@@ -183,6 +183,7 @@ describe('view builders', () => {
   it('are built in, curated before auto, then Open Views', () => {
     expect(activeViewBuilders(BUILTIN_PLUGINS, [], {}).map((b) => b.builder.id)).toEqual([
       'curated-views',
+      'model-views',
       'auto-views',
       'open-views',
     ]);
