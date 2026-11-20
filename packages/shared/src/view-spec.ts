@@ -87,7 +87,7 @@ export const querySpecSchema = z.object({
   variables: z.record(z.string(), z.unknown()).optional(),
   /**
    * The data source answering the query: absent for the GraphQL source, else
-   * the id of a data source a view builder plugin provides (e.g. `spec-fluid`).
+   * the id of a data source a view builder plugin provides (e.g. an Open Views provider).
    */
   source: z.string().min(1).optional(),
 });
