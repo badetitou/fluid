@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-20
+
+### Added
+- **fluid Open Views, an open protocol for tools to serve their own views** (#44, #49, #50): a Phlow-shaped JSON format over HTTP, discovered at `<base>/.well-known/fluid-views`. Node kinds `list`, `columnedList`, `tree`, `text`, `svg`, `label`, `composite`, `tabs`, `diff`, `forward`; paged and lazy items; references to entities of the GraphQL source; priority; view actions. Specified in `docs/architecture/OPEN-VIEWS.md`, with zod schemas in `@fluid/shared` and a generated JSON Schema (`docs/architecture/open-views.schema.json`). Unknown node kinds are read as `unsupported`.
+- **"Open Views" plugin** (#45, #51): a generic View Builder that reads every configured endpoint (`endpoints` setting) and turns each view into a perspective of the detail column, sorted by priority. Silent, unreachable or slow providers are timed out and never block the other endpoints.
+- **`specPresenter` renders Open Views** (#46, #52): the new kinds, "Load more" for paged lists, lazy tree children, view actions as buttons, and `forward` with a loop and depth guard.
+- **Provider examples** (#48, #53, #54, #55): a plain Node provider (`docs/examples/open-views-provider/`) and a Python provider that serves the `@gtView` views of Glamorous Toolkit's `gtoolkit_bridge` unchanged (`docs/examples/open-views-python/`).
+
+### Changed
+- **Pharo / Moose as an Open Views provider** (#47): Spec-Fluid's `SFServer` now serves the Open Views routes; add `http://localhost:8081/spec-fluid` to the Open Views plugin's endpoints. Guide: `docs/guides/moose-open-views.md`.
+
+### Removed
+- **The built-in "Spec-Fluid (Pharo inspectors)" plugin, the Spec-Fluid document format and the Pharo script page action** (#45, #46, #49). Views saved on the `spec-fluid` source no longer load: recreate them from the Open Views perspectives.
+
 ## [0.2.0] - 2026-11-19
 
 ### Added
