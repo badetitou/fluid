@@ -24,7 +24,7 @@ export function ProviderSourceForm({ adder }: { adder: GroupSourceAdder }) {
           aria-label={adder.label}
           status={error ? 'error' : undefined}
           value={value}
-          disabled={busy}
+          readOnly={busy}
           onChange={(e) => change(e.target.value)}
           onKeyDown={keepKeys}
           onPressEnter={() => void send()}
