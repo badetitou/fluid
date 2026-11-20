@@ -7,6 +7,10 @@ import { llmRoutes } from './routes/llm';
 import { staticRoutes } from './routes/static';
 import { sourceRoutes } from './routes/sources';
 import { oauthRoutes } from './routes/oauth';
+import { githubRepoRoutes } from './routes/github-repos';
+import { readGithubSourceConfig } from './repos/config';
+import { createGithubSource } from './repos/service';
+import { githubSourceDeps } from './repos/wiring';
 import { prisma, storageMode } from './db';
 import { createKeyProvider } from './sources/crypto';
 import { createCredentialRepository } from './sources/oauth/credentials';
@@ -65,6 +69,10 @@ export function buildApp(options: BuildAppOptions = {}) {
   });
   app.register(viewActionRoutes, { service: actions });
   app.register(oauthRoutes, { oauth, publicUrl: process.env.FLUID_PUBLIC_URL });
+  const github = readGithubSourceConfig(process.env);
+  if (github.enabled) {
+    app.register(githubRepoRoutes, { service: createGithubSource(github, githubSourceDeps(github)) });
+  }
 
   const staticDir = options.staticDir ?? process.env.FLUID_STATIC_DIR;
   if (staticDir) app.register(staticRoutes, { dir: staticDir });
