@@ -15,14 +15,14 @@ const installed = (id: string, color?: string) =>
 describe('builderColors', () => {
   it('gives each built-in view builder a colour of its own', () => {
     const colors = builderColors(BUILTIN_PLUGINS, {});
-    expect([...colors.keys()]).toEqual(['curated-views', 'auto-views', 'spec-fluid']);
+    expect([...colors.keys()]).toEqual(['curated-views', 'auto-views', 'open-views']);
     expect(new Set(colors.values()).size).toBe(3);
   });
 
   it('prefers the colour the user chose, when it is one', () => {
-    const colors = builderColors(BUILTIN_PLUGINS, { 'auto-views': '#123456', 'spec-fluid': 'red' });
+    const colors = builderColors(BUILTIN_PLUGINS, { 'auto-views': '#123456', 'open-views': 'red' });
     expect(colors.get('auto-views')).toBe('#123456');
-    expect(colors.get('spec-fluid')).toBe(builderColors(BUILTIN_PLUGINS, {}).get('spec-fluid'));
+    expect(colors.get('open-views')).toBe(builderColors(BUILTIN_PLUGINS, {}).get('open-views'));
   });
 
   it('gives the palette in turn to builders that declare no colour', () => {

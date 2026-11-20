@@ -15,7 +15,7 @@ describe('checkQueries', () => {
       ok: { query: '{ characters(take: 3) { id name } }' },
       wrong: { query: '{ characters { id species } }' },
       broken: { query: '{ characters {' },
-      plugin: { query: 'select 1', source: 'spec-fluid' },
+      plugin: { query: 'select 1', source: 'open-views' },
       write: { query: 'mutation { renameCharacter(id: "1", name: "x") { id } }' },
     });
     expect(issues).toHaveLength(3);
