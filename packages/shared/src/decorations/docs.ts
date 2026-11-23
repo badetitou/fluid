@@ -22,7 +22,7 @@ Constraints give findings, each with "id", "message" ({source}, {target} are nod
   { "check": "node", "match" } every matching node is a finding;
   { "check": "forbidden", "from", "to", "reachable"? } no edge (or no path) from a "from" node to a "to" node;
   { "check": "required", "from", "to" } every "from" node has an edge to a "to" node;
-  { "check": "unreferenced", "match" } every matching node with no incoming edge (of the "via" kinds) is a finding;
+  { "check": "unreferenced", "match" } every matching node with no incoming edge (of the "via" kinds; a self-loop does not count) is a finding;
   { "check": "noCycle", "among"? } no cycle among the matching nodes.`;
 
 function describeConstraint(c: Constraint): string {
