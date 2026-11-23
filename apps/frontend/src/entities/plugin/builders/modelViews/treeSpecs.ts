@@ -90,7 +90,7 @@ export function containerSpec(concept: string, lookup: string): ViewSpec {
         title: concept,
         span: 24,
         data: { query: 'entity', path: lookup },
-        columns: 2,
+        columns: 1,
         items: [
           { label: 'Name', key: 'name' },
           { label: 'Language', key: 'language', format: 'tag' },

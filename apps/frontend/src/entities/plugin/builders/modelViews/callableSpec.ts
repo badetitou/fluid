@@ -60,7 +60,7 @@ export function callableSpec(concept: string, lookup: string): ViewSpec {
         title: concept,
         span: 24,
         data: { query: 'callable', path: lookup },
-        columns: 2,
+        columns: 1,
         items: [
           { label: 'Name', key: 'name' },
           { label: 'In', key: 'parent.name', linkTo: entityLink('parent') },

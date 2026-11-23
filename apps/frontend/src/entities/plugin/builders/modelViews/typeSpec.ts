@@ -66,7 +66,7 @@ export function typeSpec(concept: string, lookup: string): ViewSpec {
         title: concept,
         span: 24,
         data: { query: 'type', path: lookup },
-        columns: 2,
+        columns: 1,
         items: [
           { label: 'Name', key: 'name' },
           { label: 'In', key: 'parent.name', linkTo: entityLink('parent') },
