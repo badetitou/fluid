@@ -20,6 +20,25 @@ describe('decorationModel', () => {
     expect(worstSeverity([finding('info'), finding('warning')])).toBe('warning');
   });
 
+  it('handles a single finding', () => {
+    expect(worstSeverity([finding('warning')])).toBe('warning');
+    expect(severityCounts([finding('warning')])).toEqual({ error: 0, warning: 1, info: 0 });
+  });
+
+  it('spreads different tags over the palette', () => {
+    const palette = ['#1', '#2', '#3', '#4'];
+    const used = new Set(['domain', 'api', 'ui', 'db', 'core', 'infra', 'test', 'util'].map((t) => tagColor(t, palette)));
+    expect(used.size).toBeGreaterThan(1);
+  });
+
+  it('indexes node and edge decorations apart, even with the same key', () => {
+    const node: Decoration = { target: { type: 'node', key: 'k' }, tags: [], findings: [] };
+    const edge: Decoration = { target: { type: 'edge', key: 'k' }, tags: [], findings: [] };
+    const index = indexDecorations({ decorations: [node, edge], derivedEdges: [] });
+    expect(index.nodes.get('k')).toBe(node);
+    expect(index.edges.get('k')).toBe(edge);
+  });
+
   it('counts findings per severity', () => {
     expect(severityCounts([finding('info'), finding('error'), finding('info')])).toEqual({ error: 1, warning: 0, info: 2 });
   });
