@@ -23,13 +23,14 @@ describe('plugin manager model', () => {
         { id: 'domain', tag: 'domain' },
         { id: 'pkg', tagFrom: { field: 'file', pattern: 'src/(\\w+)', prefix: 'pkg:' } },
       ],
+      imports: [{ id: 'lint', format: 'sarif', url: 'lint.sarif.json' }],
       constraints: [{ id: 'big', check: 'forbidden', severity: 'error', message: 'm', from: {}, to: {} }],
     });
     const plugin: FluidPlugin = {
       ...(byId('fluid-dependency-cycles') as GraphDecoratorPlugin),
       manifest: { ...byId('fluid-dependency-cycles').manifest, contributes: { graphDecorators: [decorator] } },
     };
-    expect(pluginContents(plugin)).toEqual(['Layers', 'tags: ui, domain, pkg:<file>', 'rule: big (error)']);
+    expect(pluginContents(plugin)).toEqual(['Layers', 'tags: ui, domain, pkg:<file>', 'rule: big (error)', 'import: lint (sarif)']);
   });
 
   it('filters on name, description and contents, every word', () => {

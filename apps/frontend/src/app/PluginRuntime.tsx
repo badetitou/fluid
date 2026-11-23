@@ -4,7 +4,8 @@ import {
   activeWidgetCatalog,
   PluginsContext,
   useActiveDataSources,
-  useActiveGraphDecorators,
+  useActiveDecoratorEntries,
+  useImportedLogs,
   usePluginRuntime,
   usePlugins,
   useThemeChoice,
@@ -37,7 +38,9 @@ function ActivePlugins({ children }: { children: ReactNode }) {
   const entries = usePlugins();
   const { active } = useThemeChoice();
   const dataSources = useActiveDataSources();
-  const decorators = useActiveGraphDecorators();
+  const decoratorEntries = useActiveDecoratorEntries();
+  const decorators = useMemo(() => decoratorEntries.map((e) => e.spec), [decoratorEntries]);
+  const { imported } = useImportedLogs(decoratorEntries);
   const preferredMode = usePreferences((s) => s.themeMode);
 
   const catalog = useMemo(() => {
@@ -64,7 +67,7 @@ function ActivePlugins({ children }: { children: ReactNode }) {
     <WidgetCatalogContext.Provider value={catalog}>
       <DataSourcesContext.Provider value={dataSources}>
         <WidgetThemeContext.Provider value={theme}>
-          <DecorationsProvider decorators={decorators}>
+          <DecorationsProvider decorators={decorators} imported={imported}>
             <ConfigProvider theme={antdTheme}>{children}</ConfigProvider>
           </DecorationsProvider>
         </WidgetThemeContext.Provider>

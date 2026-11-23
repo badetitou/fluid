@@ -165,12 +165,16 @@ export const constraintSchema = z.discriminatedUnion('check', [
   z
     .object({ check: z.literal('required'), ...ruleBase, from: selectorSchema, to: selectorSchema })
     .strict(),
+  /** Every matching node has no incoming edge (of the `via` kinds): unused, never called. */
+  z.object({ check: z.literal('unreferenced'), ...ruleBase, match: selectorSchema }).strict(),
   /** No cycle among the matching nodes. */
   z
     .object({ check: z.literal('noCycle'), ...ruleBase, among: selectorSchema.default({}) })
     .strict(),
 ]);
 export type Constraint = z.infer<typeof constraintSchema>;
+
+const joinFieldSchema = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
 
 /** Adds an edge between nodes whose two fields agree (e.g. a call URL and an endpoint path). */
 export const derivedEdgeSchema = z
@@ -182,15 +186,36 @@ export const derivedEdgeSchema = z
     to: selectorSchema,
     join: z
       .object({
-        from: z.string().min(1),
-        to: z.string().min(1),
+        /** One field, or several that must all agree (a composite key). */
+        from: joinFieldSchema,
+        to: joinFieldSchema,
         /** `url`: ignore host, query, trailing slash and path parameters. */
         normalize: z.enum(['exact', 'url']).default('exact'),
       })
-      .strict(),
+      .strict()
+      .refine((j) => [j.from].flat().length === [j.to].flat().length, {
+        message: '"join.from" and "join.to" must list the same number of fields',
+      }),
   })
   .strict();
 export type DerivedEdge = z.infer<typeof derivedEdgeSchema>;
+
+/** Findings read from an analyser's log file (SARIF), placed on nodes by file and line. */
+export const importSchema = z
+  .object({
+    id: idSchema,
+    format: z.literal('sarif'),
+    /** Absolute, or relative to the plugin manifest (page when not installed from a URL). */
+    url: z.string().min(1),
+    /** Prefix(es) cut from the log's file paths so they match the graph's `file`. */
+    stripPrefix: z.union([z.string(), z.array(z.string())]).optional(),
+    addPrefix: z.string().optional(),
+    /** Only nodes of these kinds receive findings. */
+    kinds: z.array(z.string()).optional(),
+    description: z.string().optional(),
+  })
+  .strict();
+export type DecoratorImport = z.infer<typeof importSchema>;
 
 export const decoratorSpecSchema = z
   .object({
@@ -200,6 +225,13 @@ export const decoratorSpecSchema = z
     derived: z.array(derivedEdgeSchema).default([]),
     concepts: z.array(conceptSchema).default([]),
     constraints: z.array(constraintSchema).default([]),
+    imports: z
+      .array(importSchema)
+      .default([])
+      .refine(
+        (list) => new Set(list.map((i) => i.id)).size === list.length,
+        'import ids must be unique',
+      ),
   })
   .strict();
 export type DecoratorSpec = z.infer<typeof decoratorSpecSchema>;

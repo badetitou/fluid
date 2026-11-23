@@ -33,8 +33,8 @@ describe('decorator docs', () => {
     }
   });
 
-  it('mentions all four checks in the language doc', () => {
-    for (const check of ['node', 'forbidden', 'required', 'noCycle']) {
+  it('mentions all five checks in the language doc', () => {
+    for (const check of ['node', 'forbidden', 'required', 'unreferenced', 'noCycle']) {
       expect(DECORATOR_LANGUAGE_DOC).toContain(`"check": "${check}"`);
     }
   });

@@ -20,7 +20,9 @@ function decoratorContents(d: DecoratorSpec): string[] {
       d.concepts.flatMap((c) => (c.tag ? [c.tag] : c.tagFrom ? [`${c.tagFrom.prefix ?? ''}<${c.tagFrom.field}>`] : [])),
     ),
   ];
-  return [d.label, ...(tags.length ? [`tags: ${tags.join(', ')}`] : []), ...d.constraints.map((c) => `rule: ${c.id} (${c.severity})`)];
+  return [d.label, ...(tags.length ? [`tags: ${tags.join(', ')}`] : []), ...d.constraints.map((c) => `rule: ${c.id} (${c.severity})`),
+    ...d.imports.map((i) => `import: ${i.id} (${i.format})`),
+  ];
 }
 
 /** Whether a plugin matches a filter text (name, description, id or contents; case-insensitive). */

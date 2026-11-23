@@ -1,7 +1,7 @@
 import { noCyclesDecorator } from '@fluid/shared';
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_PLUGINS } from './builtin';
-import { activeGraphDecorators } from './graphDecorator';
+import { activeDecoratorEntries, activeGraphDecorators } from './graphDecorator';
 import { contributionLabel, pluginKind, pluginManifestSchema } from './manifest';
 import { installedPlugin } from './model';
 
@@ -63,6 +63,17 @@ describe('graph decorator plugins', () => {
     expect(found.map((d) => d.id)).toEqual(['dependency-cycles', 'no-loops']);
     expect(found[0].label).toBe('Dependency cycles');
     expect(found[1].label).toBe('Other');
+  });
+
+  it('give each entry the manifest URL of a URL plugin, none for a built-in', () => {
+    const entries = activeDecoratorEntries([...BUILTIN_PLUGINS, install()]);
+    expect(entries.map((e) => [e.spec.id, e.baseUrl])).toEqual([
+      ['dependency-cycles', undefined],
+      ['no-loops', 'https://example.org/loops/manifest.json'],
+    ]);
+    expect(activeDecoratorEntries([...BUILTIN_PLUGINS, install()], ['loops']).map((e) => e.spec.id)).toEqual([
+      'dependency-cycles',
+    ]);
   });
 
   it('ship the dependency cycles decorator as a built-in plugin', () => {
