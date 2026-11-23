@@ -84,6 +84,15 @@ export function checkConstraint(rule: Constraint, ctx: ConstraintContext): Place
       return placed;
     }
 
+    case 'unreferenced': {
+      const kinds = rule.via && rule.via.length > 0 ? new Set(rule.via) : null;
+      const referenced = (key: string) =>
+        (ctx.match.in.get(key) ?? []).some((e) => !kinds || kinds.has(e.kind ?? ''));
+      return [...matching(rule.match)]
+        .filter((key) => !referenced(key))
+        .map((key) => ({ type: 'node', key, finding: finding(message(ctx, rule.message, key)) }));
+    }
+
     case 'noCycle':
       return cycles(matching(rule.among), adj).flatMap((cycle) => {
         // Each node's finding names that node; edges name the cycle's first node.

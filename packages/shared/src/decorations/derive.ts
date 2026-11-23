@@ -19,7 +19,7 @@ export function normalizeUrl(value: string): string {
   return `/${segments.join('/')}`;
 }
 
-function joinValues(node: DecoratedNode, field: string, normalize: 'exact' | 'url'): string[] {
+function fieldValues(node: DecoratedNode, field: string, normalize: 'exact' | 'url'): string[] {
   const raw = nodeField(node, field);
   const values = Array.isArray(raw) ? raw : [raw];
   return values
@@ -29,6 +29,33 @@ function joinValues(node: DecoratedNode, field: string, normalize: 'exact' | 'ur
     .map((v) => (normalize === 'url' ? { raw: v, value: normalizeUrl(v) } : { raw: v, value: v }))
     .filter((v) => normalize !== 'url' || v.value !== '/' || v.raw.trim() === '/')
     .map((v) => v.value);
+}
+
+/** A list-valued field gives a cross product; at most this many keys per node. */
+export const MAX_JOIN_KEYS_PER_NODE = 100;
+
+/**
+ * The join keys of a node: the values of each field, combined and joined with
+ * `\u0000`. A node missing one of the fields has no key (it is skipped). When
+ * fields hold lists, the cross product is taken but capped at
+ * MAX_JOIN_KEYS_PER_NODE keys, so a loose join cannot blow up.
+ */
+function joinKeys(node: DecoratedNode, fields: string | string[], normalize: 'exact' | 'url') {
+  let keys: string[] = [''];
+  const names = Array.isArray(fields) ? fields : [fields];
+  for (const [i, field] of names.entries()) {
+    const values = fieldValues(node, field, normalize);
+    if (values.length === 0) return [];
+    const next: string[] = [];
+    for (const key of keys) {
+      for (const value of values) {
+        if (next.length >= MAX_JOIN_KEYS_PER_NODE) break;
+        next.push(i === 0 ? value : `${key}\u0000${value}`);
+      }
+    }
+    keys = next;
+  }
+  return keys;
 }
 
 /** At most this many edges derived by one rule, so a loose join cannot blow up the graph. */
@@ -43,7 +70,7 @@ export function deriveEdges(
   const targets = new Map<string, string[]>();
   for (const node of nodes) {
     if (!matchSelector(node, ctx, rule.to)) continue;
-    for (const value of joinValues(node, rule.join.to, normalize)) {
+    for (const value of joinKeys(node, rule.join.to, normalize)) {
       const list = targets.get(value);
       if (list) list.push(node.key);
       else targets.set(value, [node.key]);
@@ -53,7 +80,7 @@ export function deriveEdges(
   const seen = new Set<string>();
   for (const node of nodes) {
     if (!matchSelector(node, ctx, rule.from)) continue;
-    for (const value of joinValues(node, rule.join.from, normalize)) {
+    for (const value of joinKeys(node, rule.join.from, normalize)) {
       for (const to of targets.get(value) ?? []) {
         if (edges.length >= MAX_DERIVED_PER_RULE) return edges;
         const key = `${node.key}->${to}:${rule.kind}`;
