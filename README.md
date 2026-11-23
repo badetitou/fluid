@@ -221,6 +221,8 @@ It starts fluid on http://localhost:4001 (embedded PGlite storage, offline mock 
 | `--data-dir DIR` | PGlite data directory (default `~/.fluid/data`, or `FLUID_DATA_DIR`) |
 | `--env-file F` | Load variables from a file (a `.env` in the current directory is never read) |
 | `--no-open` | Do not open the browser |
+| `--no-github` | Do not offer the [GitHub source](docs/guides/github-source.md) (on when `model-graphql` is found on `PATH` or in `~/.cargo/bin`) |
+| `--model-graphql P` | Path of Model's `model-graphql`, for the GitHub source (or `FLUID_MODEL_GRAPHQL_BIN`) |
 | `--verbose` | Request logs and stack traces |
 
 Build and check the package locally with `pnpm pack:cli && pnpm test:pack` (tarball in `out/`). See `apps/cli/README.md`.
@@ -338,6 +340,10 @@ docker run -p 127.0.0.1:4001:4001 -v fluid-data:/data ghcr.io/badetitou/fluid:la
 
 It stores data with embedded PGlite in the `/data` volume. The API has no authentication, so only
 expose it on networks you trust.
+
+The image also ships `model-graphql` and enables the **GitHub source** (explore a public repository's
+code model by typing `owner/name`). To use it outside the image, see the
+[GitHub source guide](docs/guides/github-source.md) (`cargo install`, env vars, limits).
 
 For a PostgreSQL-backed deployment, use the **Helm chart** ([`charts/fluid`](charts/fluid)), which
 runs the frontend, the BFF and PostgreSQL and migrates the database.

@@ -17,11 +17,21 @@ COPY . .
 RUN pnpm install --frozen-lockfile --config.dangerously-allow-all-builds=true
 RUN pnpm pack:cli && mv out/badetitou-fluid-*.tgz /fluid.tgz
 
+# --- model-graphql: badetitou/Model's GraphQL server, used by the GitHub source (no prebuilt binary) ---
+# Same Debian release as the runtime so the glibc matches. Rust 1.100 is Model's minimum.
+FROM rust:1.100-bookworm AS model-graphql
+ARG MODEL_GRAPHQL_VERSION=0.4.0
+RUN cargo install model-graphql --version "$MODEL_GRAPHQL_VERSION" --locked --root /opt/model \
+  && strip /opt/model/bin/model-graphql
+
 # --- runtime: install the tarball like npm users do ---
 FROM node:22-bookworm-slim AS runtime
 ENV NODE_ENV=production \
     FLUID_DATA_DIR=/data \
-    BROWSER=none
+    BROWSER=none \
+    FLUID_REPOS_ENABLED=true \
+    FLUID_MODEL_GRAPHQL_BIN=/usr/local/bin/model-graphql
+COPY --from=model-graphql /opt/model/bin/model-graphql /usr/local/bin/model-graphql
 COPY --from=build /fluid.tgz /tmp/fluid.tgz
 RUN npm install --global /tmp/fluid.tgz && rm /tmp/fluid.tgz && npm cache clean --force \
   && mkdir -p /data && chown node:node /data

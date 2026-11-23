@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { ViewSpec } from '@fluid/shared';
 import type { Concept, ConceptQueries } from '../../graphql/introspection';
+import type { RootFields } from '../plugin';
 import { useSourceWrites } from '../preferences/useSourceWrites';
 import type { ColumnKind } from '../../views/viewScope';
 import { columnEntries, injectItemId, perspectiveEntries, resolveActiveKey } from './model';
@@ -38,6 +39,8 @@ interface Options {
   /** Introspected related concepts, used to link relations in the detail perspective. */
   conceptByName: Map<string, Concept>;
   queriesByType: Map<string, ConceptQueries>;
+  /** The source's root query fields, once introspected (see `ViewBuilderContext.rootFields`). */
+  rootFields?: RootFields;
 }
 
 /**
@@ -48,7 +51,7 @@ interface Options {
  */
 export function useColumnPerspectives(
   concept: Concept,
-  { itemId, slot, initialKey, conceptByName, queriesByType }: Options,
+  { itemId, slot, initialKey, conceptByName, queriesByType, rootFields }: Options,
 ): ColumnPerspectives {
   const views = useViews(concept);
   const remember = usePerspectiveMemory((s) => s.remember);
@@ -63,7 +66,7 @@ export function useColumnPerspectives(
   // Where the source accepts writes, the auto detail also edits the item.
   const { writable } = useSourceWrites();
 
-  const proposed = useBuilderPerspectives({ concept, columnKind, itemId, conceptByName, queriesByType, writable });
+  const proposed = useBuilderPerspectives({ concept, columnKind, itemId, conceptByName, queriesByType, writable, rootFields });
   const built = useMemo(() => perspectiveEntries(proposed, columnKind), [proposed, columnKind]);
 
   const all = useMemo(

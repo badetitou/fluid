@@ -11,14 +11,14 @@ type ColumnContext = Omit<ViewBuilderContext, 'settings'>;
  */
 export function useBuilderPerspectives(context: ColumnContext): BuiltPerspective[] {
   const builders = useActiveViewBuilders();
-  const { concept, columnKind, itemId, conceptByName, queriesByType, writable } = context;
+  const { concept, columnKind, itemId, conceptByName, queriesByType, writable, rootFields } = context;
 
   const built = useMemo(
     () =>
       builders.map(({ builder, settings }) =>
-        builder.perspectives?.({ concept, columnKind, itemId, conceptByName, queriesByType, writable, settings }) ?? [],
+        builder.perspectives?.({ concept, columnKind, itemId, conceptByName, queriesByType, writable, settings, rootFields }) ?? [],
       ),
-    [builders, concept, columnKind, itemId, conceptByName, queriesByType, writable],
+    [builders, concept, columnKind, itemId, conceptByName, queriesByType, writable, rootFields],
   );
 
   // Fetched perspectives, by builder id, for the column they were fetched for.
@@ -30,7 +30,7 @@ export function useBuilderPerspectives(context: ColumnContext): BuiltPerspective
     for (const { builder, settings } of builders) {
       if (!builder.fetchPerspectives) continue;
       builder
-        .fetchPerspectives({ concept, columnKind, itemId, conceptByName, queriesByType, writable, settings }, controller.signal)
+        .fetchPerspectives({ concept, columnKind, itemId, conceptByName, queriesByType, writable, settings, rootFields }, controller.signal)
         .then((list) => {
           if (controller.signal.aborted) return;
           setFetched((f) => ({ for: columnKey, byBuilder: { ...(f.for === columnKey ? f.byBuilder : {}), [builder.id]: list } }));
@@ -38,7 +38,7 @@ export function useBuilderPerspectives(context: ColumnContext): BuiltPerspective
         .catch(() => undefined);
     }
     return () => controller.abort();
-  }, [columnKey, builders, concept, columnKind, itemId, conceptByName, queriesByType, writable]);
+  }, [columnKey, builders, concept, columnKind, itemId, conceptByName, queriesByType, writable, rootFields]);
 
   return useMemo(() => {
     const byBuilder = fetched.for === columnKey ? fetched.byBuilder : {};

@@ -13,12 +13,16 @@ Options:
   --env-file F      load variables from F (never overrides the shell)
   --url URL         (mcp) base URL of the running fluid
   --no-open         do not open the browser
+  --no-github       do not offer the GitHub source (on when model-graphql is found)
+  --model-graphql P path of badetitou/Model's model-graphql (default: PATH, ~/.cargo/bin)
   --verbose         log requests and show stack traces
   -h, --help        show this help
   -v, --version     show the version
 
 Environment variables honoured:
   FLUID_DATA_DIR            same as --data-dir
+  FLUID_MODEL_GRAPHQL_BIN   same as --model-graphql
+  FLUID_REPOS_ENABLED       false = same as --no-github
   DATABASE_URL              use an already migrated Postgres instead of PGlite
   LLM_PROVIDER              openai | ollama | claude-code | mock
   OPENAI_API_KEY            key for the openai provider

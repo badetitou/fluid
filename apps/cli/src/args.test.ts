@@ -16,7 +16,14 @@ describe('parseCliArgs', () => {
       envFile: undefined,
       open: true,
       verbose: false,
+      github: true,
+      modelGraphql: undefined,
     });
+  });
+  it('handles --no-github and --model-graphql', () => {
+    expect(run(['--no-github']).github).toBe(false);
+    expect(run(['--model-graphql', '/x/model-graphql']).modelGraphql).toBe('/x/model-graphql');
+    expect(parseCliArgs(['mcp', '--no-github']).kind).toBe('error');
   });
   it('accepts ports 0 and 65535', () => {
     expect(run(['--port', '0']).port).toBe(0);

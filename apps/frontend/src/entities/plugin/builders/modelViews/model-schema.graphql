@@ -1,0 +1,2617 @@
+# Test fixture: the GraphQL schema of badetitou/Model 0.4.0, printed by `model-graphql <google/gson> --no-scip --schema`
+# (since 0.4.0 the schema is built from the model; a Java model has the most concept types).
+# The Model views tests validate their queries against it; refresh it when Model changes its schema.
+
+"""
+Entities of the kind `annotation`, a refinement of `Variable`.
+"""
+type Annotation implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type AnnotationConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [AnnotationEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Annotation!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type AnnotationEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Annotation!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+Entities of the kind `annotation_type`, a refinement of `Interface`.
+"""
+type AnnotationType implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Methods contained in this entity.
+	"""
+	methods(first: Int): [Method!]!
+}
+
+type AnnotationTypeConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [AnnotationTypeEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [AnnotationType!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type AnnotationTypeEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: AnnotationType!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+A class declaration.
+"""
+type Class implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Methods contained in this entity.
+	"""
+	methods(first: Int): [Method!]!
+}
+
+type ClassConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [ClassEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Class!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type ClassEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Class!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+Entities of the kind `comment`, a refinement of `Variable`.
+"""
+type Comment implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type CommentConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [CommentEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Comment!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type CommentEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Comment!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+A constant.
+"""
+type Constant implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type ConstantConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [ConstantEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Constant!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type ConstantEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Constant!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+A constructor.
+"""
+type Constructor implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type ConstructorConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [ConstructorEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Constructor!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type ConstructorEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Constructor!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+The common interface implemented by every entity type: the archetype types and the concept types of the model. Navigation fields return `Entity` so queries written against the common fields work on any model; `__typename` reveals the concrete type.
+"""
+interface Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type EntityConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [EntityEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Entity!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type EntityEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Entity!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+enum EntityKind {
+	NAMESPACE
+	FILE
+	CLASS
+	INTERFACE
+	TRAIT
+	ENUM
+	STRUCT
+	TYPE_ALIAS
+	METHOD
+	CONSTRUCTOR
+	FUNCTION
+	FIELD
+	PROPERTY
+	CONSTANT
+	VARIABLE
+}
+
+"""
+An enumeration declaration.
+"""
+type Enum implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Methods contained in this entity.
+	"""
+	methods(first: Int): [Method!]!
+}
+
+type EnumConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [EnumEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Enum!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+Entities of the kind `enum_constant`, a refinement of `Constant`.
+"""
+type EnumConstant implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type EnumConstantConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [EnumConstantEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [EnumConstant!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type EnumConstantEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: EnumConstant!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+An edge in a connection.
+"""
+type EnumEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Enum!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+A field inside a type.
+"""
+type Field implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type FieldConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [FieldEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Field!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type FieldEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Field!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+A source file.
+"""
+type File implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Methods contained in this entity.
+	"""
+	methods(first: Int): [Method!]!
+}
+
+type FileConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [FileEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [File!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type FileEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: File!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+A free function.
+"""
+type Function implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type FunctionConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [FunctionEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Function!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type FunctionEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Function!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+An interface declaration.
+"""
+type Interface implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Methods contained in this entity.
+	"""
+	methods(first: Int): [Method!]!
+}
+
+type InterfaceConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [InterfaceEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Interface!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type InterfaceEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Interface!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+A scalar that can represent any JSON value.
+"""
+scalar JSON
+
+"""
+Entities of the kind `local_variable`, a refinement of `Variable`.
+"""
+type LocalVariable implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type LocalVariableConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [LocalVariableEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [LocalVariable!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type LocalVariableEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: LocalVariable!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+A method inside a type.
+"""
+type Method implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type MethodConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [MethodEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Method!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type MethodEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Method!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+A namespace, package or module.
+"""
+type Namespace implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Methods contained in this entity.
+	"""
+	methods(first: Int): [Method!]!
+}
+
+type NamespaceConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [NamespaceEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Namespace!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type NamespaceEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Namespace!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+type PageInfo {
+	"""
+	When paginating backwards, are there more items?
+	"""
+	hasPreviousPage: Boolean!
+	"""
+	When paginating forwards, are there more items?
+	"""
+	hasNextPage: Boolean!
+	"""
+	When paginating backwards, the cursor to continue.
+	"""
+	startCursor: String
+	"""
+	When paginating forwards, the cursor to continue.
+	"""
+	endCursor: String
+}
+
+"""
+Entities of the kind `parameter`, a refinement of `Variable`.
+"""
+type Parameter implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type ParameterConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [ParameterEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Parameter!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type ParameterEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Parameter!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+A property inside a type.
+"""
+type Property implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type PropertyConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [PropertyEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Property!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type PropertyEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Property!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+enum Provenance {
+	"""
+	Syntax only (tree-sitter); names may be unresolved.
+	"""
+	TREE_SITTER
+	"""
+	Resolved by a SCIP indexer.
+	"""
+	SCIP
+	"""
+	A language-specific frontend.
+	"""
+	FRONTEND
+	"""
+	Computed by an analysis.
+	"""
+	DERIVED
+}
+
+type Query {
+	"""
+	Languages present.
+	"""
+	languages: [String!]!
+	stats: Stats!
+	"""
+	An entity by `key` (stable) or `id` (this model only).
+	"""
+	entity(key: String, id: Int): Entity
+	"""
+	The `File` entity of a path relative to the analysed root.
+	"""
+	file(path: String!): Entity
+	"""
+	An entity by its stable key, whatever its kind.
+	
+	Introspection-driven clients recognise a concept's by-key lookup when
+	the root field returns that concrete concept and takes one required
+	scalar argument; the `…ByKey` fields below provide exactly that.
+	"""
+	entityByKey(key: String!): Entity
+	"""
+	The `Namespace` with this key.
+	"""
+	namespaceByKey(key: String!): Namespace
+	"""
+	The `File` with this key.
+	"""
+	fileByKey(key: String!): File
+	"""
+	The `Class` with this key.
+	"""
+	classByKey(key: String!): Class
+	"""
+	The `Interface` with this key.
+	"""
+	interfaceByKey(key: String!): Interface
+	"""
+	The `Trait` with this key.
+	"""
+	traitByKey(key: String!): Trait
+	"""
+	The `Enum` with this key.
+	"""
+	enumByKey(key: String!): Enum
+	"""
+	The `Struct` with this key.
+	"""
+	structByKey(key: String!): Struct
+	"""
+	The `TypeAlias` with this key.
+	"""
+	typeAliasByKey(key: String!): TypeAlias
+	"""
+	The `Method` with this key.
+	"""
+	methodByKey(key: String!): Method
+	"""
+	The `Constructor` with this key.
+	"""
+	constructorByKey(key: String!): Constructor
+	"""
+	The `Function` with this key.
+	"""
+	functionByKey(key: String!): Function
+	"""
+	The `Field` with this key.
+	"""
+	fieldByKey(key: String!): Field
+	"""
+	The `Property` with this key.
+	"""
+	propertyByKey(key: String!): Property
+	"""
+	The `Constant` with this key.
+	"""
+	constantByKey(key: String!): Constant
+	"""
+	The `Variable` with this key.
+	"""
+	variableByKey(key: String!): Variable
+	"""
+	Entities matching every given filter, in model order.
+	"""
+	entities(		kind: EntityKind,		language: String,
+		"""
+		Exact simple name.
+		"""
+		name: String,
+		"""
+		Case-insensitive part of the simple name.
+		"""
+		nameContains: String,		external: Boolean,
+		"""
+		Path prefix, relative to the analysed root.
+		"""
+		filePrefix: String,
+		"""
+		Only entities without parent.
+		"""
+		roots: Boolean,
+		"""
+		Exact fine kind name, as returned by `fineKind`.
+		"""
+		fineKind: String,
+		"""
+		Only entities whose kind has this trait, by name (`Invocation`, `Annotations`...).
+		"""
+		trait: String,		first: Int,		after: String
+	): EntityConnection!
+	"""
+	Relations matching every given filter, sorted by source entity.
+	"""
+	relations(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	All namespaces, packages and modules.
+	"""
+	namespaces(first: Int, after: String): NamespaceConnection!
+	"""
+	All source files.
+	"""
+	files(first: Int, after: String): FileConnection!
+	"""
+	All classes.
+	"""
+	classes(first: Int, after: String): ClassConnection!
+	"""
+	All interfaces.
+	"""
+	interfaces(first: Int, after: String): InterfaceConnection!
+	"""
+	All traits and mixins.
+	"""
+	traits(first: Int, after: String): TraitConnection!
+	"""
+	All enumerations.
+	"""
+	enums(first: Int, after: String): EnumConnection!
+	"""
+	All structs.
+	"""
+	structs(first: Int, after: String): StructConnection!
+	"""
+	All type aliases.
+	"""
+	typeAliases(first: Int, after: String): TypeAliasConnection!
+	"""
+	All methods.
+	"""
+	methods(first: Int, after: String): MethodConnection!
+	"""
+	All constructors.
+	"""
+	constructors(first: Int, after: String): ConstructorConnection!
+	"""
+	All free functions.
+	"""
+	functions(first: Int, after: String): FunctionConnection!
+	"""
+	All fields.
+	"""
+	fields(first: Int, after: String): FieldConnection!
+	"""
+	All properties.
+	"""
+	properties(first: Int, after: String): PropertyConnection!
+	"""
+	All constants.
+	"""
+	constants(first: Int, after: String): ConstantConnection!
+	"""
+	All local and global variables.
+	"""
+	variables(first: Int, after: String): VariableConnection!
+	"""
+	The `Comment` with this key.
+	"""
+	commentByKey(key: String!): Comment
+	"""
+	All entities of the kind `comment`.
+	"""
+	comments(first: Int, after: String): CommentConnection!
+	"""
+	The `Annotation` with this key.
+	"""
+	annotationByKey(key: String!): Annotation
+	"""
+	All entities of the kind `annotation`.
+	"""
+	annotations(first: Int, after: String): AnnotationConnection!
+	"""
+	The `Parameter` with this key.
+	"""
+	parameterByKey(key: String!): Parameter
+	"""
+	All entities of the kind `parameter`.
+	"""
+	parameters(first: Int, after: String): ParameterConnection!
+	"""
+	The `LocalVariable` with this key.
+	"""
+	localVariableByKey(key: String!): LocalVariable
+	"""
+	All entities of the kind `local_variable`.
+	"""
+	localVariables(first: Int, after: String): LocalVariableConnection!
+	"""
+	The `AnnotationType` with this key.
+	"""
+	annotationTypeByKey(key: String!): AnnotationType
+	"""
+	All entities of the kind `annotation_type`.
+	"""
+	annotationTypes(first: Int, after: String): AnnotationTypeConnection!
+	"""
+	The `TypeParameter` with this key.
+	"""
+	typeParameterByKey(key: String!): TypeParameter
+	"""
+	All entities of the kind `type_parameter`.
+	"""
+	typeParameters(first: Int, after: String): TypeParameterConnection!
+	"""
+	The `EnumConstant` with this key.
+	"""
+	enumConstantByKey(key: String!): EnumConstant
+	"""
+	All entities of the kind `enum_constant`.
+	"""
+	enumConstants(first: Int, after: String): EnumConstantConnection!
+	"""
+	The `Record` with this key.
+	"""
+	recordByKey(key: String!): Record
+	"""
+	All entities of the kind `record`.
+	"""
+	records(first: Int, after: String): RecordConnection!
+}
+
+"""
+0-based, end exclusive.
+"""
+type Range {
+	startLine: Int!
+	startCol: Int!
+	endLine: Int!
+	endCol: Int!
+}
+
+type RangeConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [RangeEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Range!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type RangeEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Range!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+Entities of the kind `record`, a refinement of `Class`.
+"""
+type Record implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Methods contained in this entity.
+	"""
+	methods(first: Int): [Method!]!
+}
+
+type RecordConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [RecordEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Record!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type RecordEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Record!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+type Relation {
+	id: Int!
+	"""
+	`calls`, `references`, `inherits`, `implements`, `imports`, or custom.
+	"""
+	kind: String!
+	from: Entity!
+	to: Entity!
+	provenance: Provenance!
+	"""
+	Number of occurrences: the weight of the dependency.
+	"""
+	siteCount: Int!
+	"""
+	Occurrences, in the file of `from`.
+	"""
+	sites(first: Int, after: String): RangeConnection!
+	"""
+	Occurrences with their read/write/receiver flags.
+	"""
+	flaggedSites(first: Int, after: String): SiteConnection!
+}
+
+type RelationConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [RelationEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Relation!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type RelationEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Relation!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+An occurrence with its flags (a relation's `sites` without them).
+"""
+type Site {
+	range: Range!
+	"""
+	`read` / `write` (accesses), `receiver`.
+	"""
+	flags: [String!]!
+	read: Boolean!
+	write: Boolean!
+	"""
+	The target is the receiver (`x` in `x.f()`).
+	"""
+	receiver: Boolean!
+}
+
+type SiteConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [SiteEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Site!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type SiteEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Site!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+type Stats {
+	entities: Int!
+	relations: Int!
+	sites: Int!
+	heapBytes: Int!
+}
+
+"""
+A struct declaration.
+"""
+type Struct implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Methods contained in this entity.
+	"""
+	methods(first: Int): [Method!]!
+}
+
+type StructConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [StructEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Struct!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type StructEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Struct!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+A trait or mixin declaration.
+"""
+type Trait implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Methods contained in this entity.
+	"""
+	methods(first: Int): [Method!]!
+}
+
+type TraitConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [TraitEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Trait!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type TraitEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Trait!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+A type alias.
+"""
+type TypeAlias implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type TypeAliasConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [TypeAliasEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [TypeAlias!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type TypeAliasEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: TypeAlias!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+Entities of the kind `type_parameter`, a refinement of `Variable`.
+"""
+type TypeParameter implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type TypeParameterConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [TypeParameterEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [TypeParameter!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type TypeParameterEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: TypeParameter!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+A local or global variable.
+"""
+type Variable implements Entity {
+	"""
+	Position in this model; stable only while the model is served.
+	"""
+	id: Int!
+	"""
+	Stable across builds: the SCIP symbol, or a SCIP-like frontend key.
+	"""
+	key: String!
+	"""
+	Archetype; see `fineKind` for the finer kind.
+	"""
+	kind: EntityKind!
+	fineKind: String!
+	"""
+	Names of the traits of this entity's kind.
+	"""
+	traits: [String!]!
+	fm3Class: String
+	name: String!
+	language: String
+	"""
+	Referenced, not defined in the analysed sources (libraries).
+	"""
+	external: Boolean!
+	"""
+	Path relative to the analysed root.
+	"""
+	file: String
+	range: Range
+	nameRange: Range
+	"""
+	Language-specific facts (annotations, decorators...).
+	"""
+	props: JSON!
+	parent: Entity
+	"""
+	Enclosing entities, innermost first.
+	"""
+	ancestors: [Entity!]!
+	children(kind: EntityKind, first: Int, after: String): EntityConnection!
+	"""
+	Relations from this entity. `kind`: `calls`, `references`,
+	`inherits`, `implements`, `imports`, or a custom kind.
+	"""
+	outgoing(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+	"""
+	Relations to this entity.
+	"""
+	incoming(kind: String, provenance: Provenance, first: Int, after: String): RelationConnection!
+}
+
+type VariableConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [VariableEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Variable!]!
+	"""
+	Items matching the query, over all pages.
+	"""
+	totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type VariableEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Variable!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+"""
+Directs the executor to include this field or fragment only when the `if` argument is true.
+"""
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+"""
+Directs the executor to skip this field or fragment when the `if` argument is true.
+"""
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+schema {
+	query: Query
+}

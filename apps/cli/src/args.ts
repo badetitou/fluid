@@ -8,6 +8,9 @@ export interface CliOptions {
   envFile?: string;
   open: boolean;
   verbose: boolean;
+  /** Offer the GitHub source when model-graphql is found (`--no-github` turns it off). */
+  github: boolean;
+  modelGraphql?: string;
 }
 
 export type ParsedArgs =
@@ -38,7 +41,7 @@ export function parseFluidUrl(raw: string): string | null {
 }
 
 const INVALID_URL = 'invalid --url: expected an http(s) URL without credentials, query or hash';
-const RUN_ONLY = ['port', 'host', 'data-dir', 'env-file', 'no-open', 'verbose'] as const;
+const RUN_ONLY = ['port', 'host', 'data-dir', 'env-file', 'no-open', 'verbose', 'no-github', 'model-graphql'] as const;
 
 export function parseCliArgs(argv: string[]): ParsedArgs {
   let values;
@@ -55,6 +58,8 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         'data-dir': { type: 'string' },
         'env-file': { type: 'string' },
         'no-open': { type: 'boolean' },
+        'no-github': { type: 'boolean' },
+        'model-graphql': { type: 'string' },
         verbose: { type: 'boolean' },
         help: { type: 'boolean', short: 'h' },
         version: { type: 'boolean', short: 'v' },
@@ -95,6 +100,8 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
       envFile: values['env-file'],
       open: !values['no-open'],
       verbose: values.verbose === true,
+      github: !values['no-github'],
+      modelGraphql: values['model-graphql'],
     },
   };
 }

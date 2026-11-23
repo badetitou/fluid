@@ -3,6 +3,7 @@ import { App as AntdApp } from 'antd';
 import type { ViewSpec, Widget } from '@fluid/shared';
 import { useConceptSchema, useRootConcepts, type Concept } from '../../entities/concept';
 import { useColumnPreselect } from '../../entities/dashboard';
+import { rootFieldsOf } from '../../entities/plugin';
 import {
   newViewDraft,
   newViewId,
@@ -45,9 +46,10 @@ interface Options {
 export function useColumnController(concept: Concept, { path, slot, itemId, perspective, isFullscreen, onToggleFullscreen }: Options) {
   const { modal } = AntdApp.useApp();
   const { relatedNames, conceptByName, schema } = useConceptSchema(concept);
-  const { queriesByType } = useRootConcepts();
+  const { queriesByType, rootType } = useRootConcepts();
+  const rootFields = useMemo(() => rootFieldsOf(rootType), [rootType]);
   const newView = useNewView(
-    useColumnPerspectives(concept, { itemId, slot, initialKey: perspective, conceptByName, queriesByType }),
+    useColumnPerspectives(concept, { itemId, slot, initialKey: perspective, conceptByName, queriesByType, rootFields }),
     { concept: concept.name, itemId, byIdField: concept.queries.byId?.field },
   );
   const { perspectives } = newView;

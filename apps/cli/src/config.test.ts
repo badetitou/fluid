@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { CliOptions } from './args';
 import { resolveRunConfig } from './config';
 
-const opts: CliOptions = { port: 4001, host: '127.0.0.1', open: true, verbose: false };
+const opts: CliOptions = { port: 4001, host: '127.0.0.1', open: true, verbose: false, github: false };
 
 describe('resolveRunConfig', () => {
   it('prefers the flag, then FLUID_DATA_DIR, then the default', () => {
@@ -13,7 +13,7 @@ describe('resolveRunConfig', () => {
     expect(resolveRunConfig(opts, env).envOverrides.FLUID_DATA_DIR).toBe('/env');
     expect(resolveRunConfig(opts, {}).envOverrides.FLUID_DATA_DIR).toBe(join(homedir(), '.fluid', 'data'));
   });
-  it('ignores PORT and only overrides FLUID_DATA_DIR', () => {
+  it('ignores PORT and, with the GitHub source off, only overrides FLUID_DATA_DIR', () => {
     const cfg = resolveRunConfig(opts, { PORT: '9999', HOST: 'x' });
     expect(cfg.port).toBe(4001);
     expect(Object.keys(cfg.envOverrides)).toEqual(['FLUID_DATA_DIR']);
