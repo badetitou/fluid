@@ -8,6 +8,7 @@ export {
   sourceLimitsSchema,
   type PluginKind,
   type PluginManifest,
+  type NavSectionContract,
   type PageActionContract,
   type PluginSetting,
   type SourceAuth,
@@ -27,6 +28,7 @@ export {
   useActiveColumnOverlays,
   useActiveDataSources,
   useActiveGraphDecorators,
+  useActiveNavSections,
   useActivePageActions,
   useActiveViewBuilders,
   useBuilderColors,
@@ -39,6 +41,7 @@ export type {
   FluidPlugin,
   GraphDecoratorPlugin,
   InstalledPlugin,
+  NavSectionPlugin,
   PageActionPlugin,
   PluginLoadState,
   PluginSource,
@@ -57,3 +60,14 @@ export type {
   ViewBuilder,
   ViewBuilderContext,
 } from './viewBuilder';
+export {
+  navPagePath,
+  NAV_PAGE_PREFIX,
+  selectedNavKeys,
+  shownNavSections,
+  type ActiveNavSection,
+  type NavContext,
+  type NavItem,
+  type NavPageProps,
+  type NavSection,
+} from './navSection';

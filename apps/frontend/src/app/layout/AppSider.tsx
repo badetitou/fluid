@@ -1,25 +1,20 @@
-import { useLocation } from 'react-router-dom';
-import { ConfigProvider, Layout, Menu, Typography } from 'antd';
-import { selectedBarKey } from '../../entities/dashboard';
+import { ConfigProvider, Layout, Typography } from 'antd';
+import { useShownNavSections } from './useShownNavSections';
 import { FluidLogo } from '../../shared/ui';
 import { usePreferences } from '../../store';
 import { getChrome } from '../../theme';
-import { useBarItems } from './useBarItems';
-import { useNavbarSections } from './useNavbarSections';
+import { SiderMenu } from './SiderMenu';
 import { SiderResizeHandle } from './SiderResizeHandle';
 import styles from './AppLayout.module.css';
 
 /** The navigation sider: logo (over the brand gradient bar) and the dashboard bar. */
 export function AppSider() {
-  const location = useLocation();
   const collapsed = usePreferences((s) => s.navbarCollapsed);
   const setCollapsed = usePreferences((s) => s.setNavbarCollapsed);
   const density = usePreferences((s) => s.density);
   const compact = density === 'compact';
   const chrome = getChrome(density);
-  const items = useBarItems();
-  const selectedKey = selectedBarKey(location.pathname);
-  const sections = useNavbarSections(collapsed);
+  const { sections, queriesByType } = useShownNavSections();
   const navbarSide = usePreferences((s) => s.navbarSide);
   const width = usePreferences((s) => s.navbarWidth) ?? chrome.siderWidth;
 
@@ -59,7 +54,12 @@ export function AppSider() {
           },
         }}
       >
-        <Menu theme="light" mode="inline" selectedKeys={[selectedKey]} items={items} {...sections} />
+        <SiderMenu
+          key={sections.map((s) => s.key).join()}
+          sections={sections}
+          queriesByType={queriesByType}
+          collapsed={collapsed}
+        />
       </ConfigProvider>
       {!collapsed && <SiderResizeHandle width={width} side={navbarSide} />}
     </Layout.Sider>
