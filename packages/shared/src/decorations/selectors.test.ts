@@ -11,14 +11,14 @@ const CHILD = ['child'];
 const anyChild = (match: Selector = {}, bounds: { min?: number; max?: number } = {}) => ({
   has: { via: CHILD, match, ...bounds },
 });
-const noChild = (match: Selector = {}) => anyChild(match, { min: 0, max: 0 });
+const noChild = (match: Selector = {}) => anyChild(match, { max: 0 });
 const noElse = noChild({ kind: 'Else' });
 
 const rules: Record<string, Selector> = {
   'java-notify-all': {
     kind: 'MethodInvocation',
     name: '^notify$',
-    has: { via: CHILD, match: { kind: 'Expression' }, min: 0, max: 0 },
+    has: { via: CHILD, match: { kind: 'Expression' }, max: 0 },
   },
   'empty-catch': { kind: 'CatchClause', ...anyChild({ kind: 'Block', ...noChild() }) },
   'collapsible-if': {
@@ -169,6 +169,20 @@ describe('structural selectors', () => {
     expect(matchSelector(g.nodes[1], c, { in: { via: ['calls'], match: {} } })).toBe(false);
   });
 
+  it('min defaults to 0 when max is 0, and an explicit min 1 with max 0 never matches', () => {
+    const g = { nodes: [{ key: 'x' }, { key: 'y' }], edges: [{ from: 'x', to: 'y', kind: 'k' }] };
+    const c = createMatchContext(g.nodes, g.edges, () => new Set(), true);
+    expect(matchSelector(g.nodes[1], c, { has: { match: {}, max: 0 } })).toBe(true);
+    expect(matchSelector(g.nodes[0], c, { has: { match: {}, max: 0 } })).toBe(false);
+    expect(matchSelector(g.nodes[1], c, { has: { match: {}, min: 1, max: 0 } })).toBe(false);
+    expect(matchSelector(g.nodes[0], c, { has: { match: {}, min: 1, max: 0 } })).toBe(false);
+  });
+
+  it('rejects min above max', () => {
+    expect(selectorSchema.safeParse({ has: { match: {}, min: 2, max: 1 } }).success).toBe(false);
+    expect(selectorSchema.safeParse({ in: { match: {}, min: 1, max: 1 } }).success).toBe(true);
+  });
+
   it('validates the new fields with the schema', () => {
     expect(
       selectorSchema.safeParse({ has: { match: {}, max: 0 }, ancestor: { in: { match: {} } } })
@@ -181,10 +195,7 @@ describe('structural selectors', () => {
 describe('structural selectors as Cypher', () => {
   it('translates has and in into COUNT bounds', () => {
     expect(
-      selectorToCypher(
-        { has: { via: ['child'], match: { kind: 'Expression' }, min: 0, max: 0 } },
-        'n',
-      ),
+      selectorToCypher({ has: { via: ['child'], match: { kind: 'Expression' }, max: 0 } }, 'n'),
     ).toBe(
       "COUNT { (n)-[:`child`]->(n_1) WHERE n_1.kind = 'Expression' } >= 0 AND COUNT { (n)-[:`child`]->(n_1) WHERE n_1.kind = 'Expression' } <= 0",
     );
@@ -198,13 +209,31 @@ describe('structural selectors as Cypher', () => {
       "EXISTS { MATCH (n_1)-[:child]->(n) WHERE n_1.kind = 'Method' }",
     );
     expect(selectorToCypher({ ancestor: { kind: 'Finally' } }, 'n')).toBe(
-      "EXISTS { MATCH (n_1)-[:child*1..]->(n) WHERE n_1.kind = 'Finally' }",
+      "EXISTS { MATCH (n_1)-[:child*1..1000]->(n) WHERE n_1.kind = 'Finally' }",
     );
   });
 
   it('uses fresh variables when nested', () => {
     expect(selectorToCypher({ parent: { ancestor: { kind: 'A' } } }, 'n')).toBe(
-      "EXISTS { MATCH (n_1)-[:child]->(n) WHERE EXISTS { MATCH (n_1_1)-[:child*1..]->(n_1) WHERE n_1_1.kind = 'A' } }",
+      "EXISTS { MATCH (n_1)-[:child]->(n) WHERE EXISTS { MATCH (n_1_1)-[:child*1..1000]->(n_1) WHERE n_1_1.kind = 'A' } }",
     );
+  });
+});
+
+describe('concept pass', () => {
+  it('does not memoize: a selector is re-evaluated after another concept adds a tag', () => {
+    // The same selector object is used before and after tag "a" appears.
+    const needsA: Selector = { tag: 'a' };
+    const spec = decoratorSpecSchema.parse({ id: 'd', label: 'D' });
+    const tagged = {
+      ...spec,
+      concepts: [
+        { id: 'early', match: needsA, tag: 'early' },
+        { id: 'give-a', match: {}, tag: 'a' },
+        { id: 'late', match: needsA, tag: 'late' },
+      ],
+    };
+    const result = evaluateDecorators([tagged], { nodes: [{ key: 'n' }], edges: [] });
+    expect(result.decorations[0].tags).toEqual(['a', 'late']);
   });
 });

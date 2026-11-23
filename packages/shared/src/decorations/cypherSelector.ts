@@ -1,5 +1,6 @@
 import type { Neighbours, PropMatcher, Selector } from './schema';
 import { globToRegex } from './selector';
+import { MAX_ANCESTOR_DEPTH } from './selectorStructure';
 
 // A selector as a Cypher WHERE condition. Neighbour conditions become subqueries
 // whose variables derive from the parent's (`n`, `n_1`, `n_1_1`…), so nested
@@ -46,7 +47,7 @@ function neighboursToCypher(n: Neighbours, v: string, direction: 'out' | 'in'): 
   const pattern = direction === 'out' ? `(${v})-[${rel}]->(${w})` : `(${w})-[${rel}]->(${v})`;
   const count = `COUNT { ${pattern} WHERE ${selectorToCypher(n.match, w)} }`;
   return and([
-    `${count} >= ${n.min ?? 1}`,
+    `${count} >= ${n.min ?? Math.min(1, n.max ?? 1)}`,
     ...(n.max !== undefined ? [`${count} <= ${n.max}`] : []),
   ]);
 }
@@ -81,7 +82,7 @@ export function selectorToCypher(s: Selector, v: string): string {
     );
   if (s.ancestor)
     parts.push(
-      `EXISTS { MATCH (${v}_1)-[:child*1..]->(${v}) WHERE ${selectorToCypher(s.ancestor, `${v}_1`)} }`,
+      `EXISTS { MATCH (${v}_1)-[:child*1..${MAX_ANCESTOR_DEPTH}]->(${v}) WHERE ${selectorToCypher(s.ancestor, `${v}_1`)} }`,
     );
   return and(parts);
 }
