@@ -1,4 +1,5 @@
 import type { SarifLog } from '@fluid/shared';
+import { fetchJson } from './fetchJson';
 import { parseSarifLog } from './importsModel';
 
 const cache = new Map<string, Promise<SarifLog>>();
@@ -7,17 +8,7 @@ const cache = new Map<string, Promise<SarifLog>>();
 export function fetchSarifLog(url: string): Promise<SarifLog> {
   const cached = cache.get(url);
   if (cached) return cached;
-  const pending = (async () => {
-    const res = await fetch(url, { credentials: 'omit' });
-    if (!res.ok) throw new Error(`The log could not be fetched (HTTP ${res.status}).`);
-    let json: unknown;
-    try {
-      json = await res.json();
-    } catch {
-      throw new Error('The log is not valid JSON.');
-    }
-    return parseSarifLog(json);
-  })();
+  const pending = fetchJson(url, 'log').then(parseSarifLog);
   cache.set(url, pending);
   pending.catch(() => cache.delete(url));
   return pending;

@@ -51,6 +51,8 @@ describe('decorator imports', () => {
     expect(bad({ id: 'a', format: 'csv', url: 'u' })).toBe(false);
     expect(bad({ id: 'a', format: 'sarif', url: '' })).toBe(false);
     expect(bad({ id: 'a', format: 'sarif', url: 'u', extra: 1 })).toBe(false);
+    const dup = { id: 'x', label: 'x', imports: [1, 2].map(() => ({ id: 'a', format: 'sarif', url: 'u' })) };
+    expect(decoratorSpecSchema.safeParse(dup).success).toBe(false);
     expect(bad({ id: 'a', format: 'sarif', url: 'u', stripPrefix: ['/a'], addPrefix: 'p', kinds: ['CLASS'] })).toBe(true);
   });
 

@@ -219,7 +219,10 @@ export const decoratorSpecSchema = z
     derived: z.array(derivedEdgeSchema).default([]),
     concepts: z.array(conceptSchema).default([]),
     constraints: z.array(constraintSchema).default([]),
-    imports: z.array(importSchema).default([]),
+    imports: z
+      .array(importSchema)
+      .default([])
+      .refine((list) => new Set(list.map((i) => i.id)).size === list.length, 'import ids must be unique'),
   })
   .strict();
 export type DecoratorSpec = z.infer<typeof decoratorSpecSchema>;

@@ -11,41 +11,45 @@ export interface ImportedLogs {
   errors: Readonly<Record<string, string>>;
 }
 
-const NONE: ImportedLogs = { imported: new Map(), errors: {} };
+interface Outcome {
+  url: string;
+  log?: SarifLog;
+  error?: string;
+}
 
 /** Fetches the SARIF logs the decorators import; each is cached by URL for the session. */
 export function useImportedLogs(entries: DecoratorEntry[]): ImportedLogs {
   const { requests, errors: invalid } = useMemo(() => importRequests(entries, window.location.origin), [entries]);
-  const [state, setState] = useState<ImportedLogs>(NONE);
+  const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
 
   useEffect(() => {
-    if (requests.length === 0) {
-      setState(NONE);
-      return;
-    }
     let live = true;
     void Promise.all(
-      requests.map(async ({ key, url }) => {
+      requests.map(async ({ key, url }): Promise<[string, Outcome]> => {
         try {
-          return { key, log: await fetchSarifLog(url), error: undefined };
+          return [key, { url, log: await fetchSarifLog(url) }];
         } catch (e) {
-          return { key, log: undefined, error: e instanceof Error ? e.message : String(e) };
+          return [key, { url, error: e instanceof Error ? e.message : String(e) }];
         }
       }),
-    ).then((results) => {
-      if (!live) return;
-      const imported = new Map<string, SarifLog>();
-      const errors: Record<string, string> = {};
-      for (const r of results) {
-        if (r.log) imported.set(r.key, r.log);
-        else errors[r.key] = r.error ?? 'failed';
-      }
-      setState({ imported, errors });
+    ).then((settled) => {
+      if (live) setOutcomes(Object.fromEntries(settled));
     });
     return () => {
       live = false;
     };
   }, [requests]);
 
-  return useMemo(() => ({ imported: state.imported, errors: { ...invalid, ...state.errors } }), [state, invalid]);
+  // Only what is requested now: an import that was dropped (or whose URL changed) vanishes at once.
+  return useMemo(() => {
+    const imported = new Map<string, SarifLog>();
+    const errors: Record<string, string> = { ...invalid };
+    for (const { key, url } of requests) {
+      const outcome = outcomes[key];
+      if (outcome?.url !== url) continue;
+      if (outcome.log) imported.set(key, outcome.log);
+      else if (outcome.error) errors[key] = outcome.error;
+    }
+    return { imported, errors };
+  }, [requests, outcomes, invalid]);
 }

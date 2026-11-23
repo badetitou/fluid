@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { describeIssues } from '@fluid/shared';
 import type { DataSource, WidgetProps } from '../../views/plugin-api';
+import { fetchJson } from './fetchJson';
 import { pluginManifestSchema, type PluginManifest } from './manifest';
 import type { ModuleProvided } from './model';
 import { modulePageAction, type PageAction } from './pageAction';
@@ -29,14 +30,7 @@ export function resolveManifestUrl(input: string, origin: string): URL {
 
 /** Fetches and validates a plugin manifest. */
 export async function fetchManifest(url: URL): Promise<PluginManifest> {
-  const res = await fetch(url, { credentials: 'omit' });
-  if (!res.ok) throw new Error(`The manifest could not be fetched (HTTP ${res.status}).`);
-  let json: unknown;
-  try {
-    json = await res.json();
-  } catch {
-    throw new Error('The manifest is not valid JSON.');
-  }
+  const json = await fetchJson(url, 'manifest');
   const parsed = pluginManifestSchema.safeParse(json);
   if (!parsed.success) throw new Error(`Invalid manifest:\n${describeIssues(parsed.error)}`);
   return parsed.data;

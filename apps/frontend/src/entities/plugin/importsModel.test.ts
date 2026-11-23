@@ -13,6 +13,11 @@ describe('import URLs', () => {
     expect(resolveImportUrl('https://other.example/a.sarif', manifest, ORIGIN)).toBe('https://other.example/a.sarif');
   });
 
+  it('resolve against a loopback base, and refuse an invalid URL', () => {
+    expect(resolveImportUrl('a.sarif', 'http://localhost:5174/p/manifest.json', ORIGIN)).toBe('http://localhost:5174/p/a.sarif');
+    expect(() => resolveImportUrl('http://', undefined, ORIGIN)).toThrow('not a valid URL');
+  });
+
   it('refuse what a manifest could not be read from', () => {
     expect(() => resolveImportUrl('http://example.com/a.sarif', undefined, ORIGIN)).toThrow('Imports are read');
   });

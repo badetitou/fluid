@@ -5,7 +5,6 @@ import {
   PluginsContext,
   useActiveDataSources,
   useActiveDecoratorEntries,
-  useActiveGraphDecorators,
   useImportedLogs,
   usePluginRuntime,
   usePlugins,
@@ -38,8 +37,9 @@ function ActivePlugins({ children }: { children: ReactNode }) {
   const entries = usePlugins();
   const { active } = useThemeChoice();
   const dataSources = useActiveDataSources();
-  const decorators = useActiveGraphDecorators();
-  const { imported } = useImportedLogs(useActiveDecoratorEntries());
+  const decoratorEntries = useActiveDecoratorEntries();
+  const decorators = useMemo(() => decoratorEntries.map((e) => e.spec), [decoratorEntries]);
+  const { imported } = useImportedLogs(decoratorEntries);
   const preferredMode = usePreferences((s) => s.themeMode);
 
   const catalog = useMemo(() => {
