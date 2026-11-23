@@ -11,6 +11,7 @@ An LLM writes the view, you keep it, and it runs again without the LLM.
 
 [**Live demo**](https://fluid.badetitou.fr) ·
 [Quick start](#-quick-start) ·
+[Analyse a repo](#-analyse-a-github-repository-in-your-browser) ·
 [Getting started](#-getting-started) ·
 [AI assistants (MCP)](#-use-fluid-from-an-ai-assistant-mcp) ·
 [Plugins](#-plugins) ·
@@ -35,6 +36,17 @@ An LLM writes the view, you keep it, and it runs again without the LLM.
 
 ## ⚡ Quick start
 
+**One click, nothing to install:** see the code model of a public GitHub repository, built in your browser.
+
+> [**fluid.badetitou.fr/analyse/google/gson**](https://fluid.badetitou.fr/analyse/google/gson) (Java) ·
+> [badetitou/fluid](https://fluid.badetitou.fr/analyse/badetitou/fluid) (TypeScript) ·
+> or any `https://fluid.badetitou.fr/analyse/<owner>/<repo>`
+
+Open **Code analysis → Dashboard** in the sidebar for big classes, dead code, dependency cycles and
+the most connected entities. [More in the guide](docs/guides/browser-analysis.md).
+
+Or run fluid yourself:
+
 ```bash
 npx @badetitou/fluid                            # fluid on http://localhost:4001, no clone needed
 LLM_PROVIDER=claude-code npx @badetitou/fluid   # generate views with your Claude Code login
@@ -51,6 +63,19 @@ claude mcp add fluid -- npx -y @badetitou/fluid@latest mcp
 ```
 
 See [Use fluid from an AI assistant (MCP)](#-use-fluid-from-an-ai-assistant-mcp).
+
+## 🔍 Analyse a GitHub repository in your browser
+
+`https://fluid.badetitou.fr/analyse/<owner>/<repo>` opens fluid on the code model of a **public GitHub
+repository**. There is no server and no account: the page reads the repository's Java, TypeScript,
+Python and Pharo files from GitHub, builds the model with [Model](https://github.com/badetitou/Model)
+compiled to WebAssembly, and everything stays in your browser. Explore the concepts (classes, methods,
+files…) and open the **Code analysis** dashboard. (Describing views with an assistant needs a BFF and an LLM: run fluid yourself for that.)
+
+- Share the URL: it is the whole state. Add `?ref=<branch|tag|sha>` for something other than the default branch.
+- A few seconds for a small project, about a minute for a thousand files; limits and details in the
+  [guide](docs/guides/browser-analysis.md).
+- On your own machine, `npx @badetitou/fluid` does the same with the [GitHub source](docs/guides/github-source.md) (server side, bigger repositories).
 
 ## ✨ What is fluid?
 
