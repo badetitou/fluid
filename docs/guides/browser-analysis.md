@@ -22,7 +22,8 @@ only (no SCIP).
 
 It is the `model-wasm` crate of [Model](https://github.com/badetitou/Model) (`crates/model-wasm`: the
 tree-sitter extractors, the language enrichers and `model-graphql`'s schema, without the server).
-Build it with Model's script (needs the `wasm32-unknown-unknown` target, `wasm-pack` and an LLVM
+The Pages workflow builds it from the Model release named by `MODEL_VERSION` in `pages.yml` (0.7.0 or later: it carries the analysis fields the code dashboard reads).
+To build it yourself, use Model's script (needs the `wasm32-unknown-unknown` target, `wasm-pack` and an LLVM
 `clang`, `brew install llvm`) and copy the output next to the frontend; it is git-ignored:
 
 ```bash

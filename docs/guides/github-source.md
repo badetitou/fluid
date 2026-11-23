@@ -23,7 +23,7 @@ to turn the feature off. The `fluid-bff` image used by the Helm chart does not s
 `model-graphql` has no prebuilt binary; install it with Cargo (Rust 1.100 or later):
 
 ```bash
-cargo install model-graphql --version 0.5.0 --locked
+cargo install model-graphql --version 0.7.0 --locked
 ```
 
 With `npx @badetitou/fluid`, that is all: the CLI finds `model-graphql` (on `PATH` or in
