@@ -192,7 +192,10 @@ export const derivedEdgeSchema = z
         /** `url`: ignore host, query, trailing slash and path parameters. */
         normalize: z.enum(['exact', 'url']).default('exact'),
       })
-      .strict(),
+      .strict()
+      .refine((j) => [j.from].flat().length === [j.to].flat().length, {
+        message: '"join.from" and "join.to" must list the same number of fields',
+      }),
   })
   .strict();
 export type DerivedEdge = z.infer<typeof derivedEdgeSchema>;

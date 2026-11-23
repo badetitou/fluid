@@ -85,9 +85,12 @@ export function checkConstraint(rule: Constraint, ctx: ConstraintContext): Place
     }
 
     case 'unreferenced': {
+      // A self-loop (a recursive call) is not a reference.
       const kinds = rule.via && rule.via.length > 0 ? new Set(rule.via) : null;
       const referenced = (key: string) =>
-        (ctx.match.in.get(key) ?? []).some((e) => !kinds || kinds.has(e.kind ?? ''));
+        (ctx.match.in.get(key) ?? []).some(
+          (e) => e.from !== key && (!kinds || kinds.has(e.kind ?? '')),
+        );
       return [...matching(rule.match)]
         .filter((key) => !referenced(key))
         .map((key) => ({ type: 'node', key, finding: finding(message(ctx, rule.message, key)) }));
