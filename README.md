@@ -303,6 +303,7 @@ one `kind`:
 | `viewBuilder` | Perspectives (ViewSpecs) for a column, optionally with a non-GraphQL data source |
 | `sourceProvider` | GraphQL sources offered in the top-bar source switcher |
 | `pageAction` | Commands in each column's floating action button |
+| `graphDecorator` | Declarative rules over the connected graph: tags, derived edges, constraints (pure JSON) |
 
 Built-in themes include badetitou, Solarized, High contrast and Catppuccin (Latte, Frappé, Macchiato,
 Mocha, Matcha). Examples of installable plugins live in

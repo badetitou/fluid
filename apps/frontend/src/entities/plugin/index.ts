@@ -16,6 +16,7 @@ export {
 } from './manifest';
 export { DEMO_SOURCES, type DemoSource } from './sources/demoSources';
 export { usePluginSources, type GroupSourceAdder, type SourceGroup } from './usePluginSources';
+export { activeGraphDecorators } from './graphDecorator';
 export { activeWidgetCatalog, availableThemes, contractsOf, pickTheme, themesOf, type ActiveViewBuilder } from './model';
 export { PluginsContext } from './PluginsContext';
 export { fitsSource, rootFieldsOf, type RootFields } from './builders/sourceFit';
@@ -46,7 +47,6 @@ export type {
   ViewBuilderPlugin,
   WidgetPlugin,
 } from './types';
-export { activeGraphDecorators } from './graphDecorator';
 export type { SourceAdder, SourceProvider } from './sourceProvider';
 export { isOffered, type ActivePageAction, type PageAction, type PageActionContext, type PageActionColumn, type PageActionPanelProps } from './pageAction';
 export type {
