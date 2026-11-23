@@ -5,6 +5,7 @@ import { diffRows, diffStats, foldRows, plainRows, type CodeRow, type RowItem } 
 import { annotationsByLine, readAnnotations, severityCounts, type Annotation, type Severity } from './annotationModel';
 import { rowMarks, type Mark, type Match } from './markModel';
 import { useCodeSearch, type CodeSearch } from './useCodeSearch';
+import { useRuleAnnotations } from './useRuleAnnotations';
 
 export interface CodeView {
   source: string;
@@ -33,11 +34,16 @@ export function useCodeView(widget: CodeWidget, data: unknown, resolve: (b: Data
   const search = useCodeSearch(texts);
   const [unfolded, setUnfolded] = useState<ReadonlySet<number>>(new Set());
 
-  const annotations = useMemo(
+  const dataAnnotations = useMemo(
     () => (widget.annotations ? readAnnotations(annotationRows, widget.annotations, source) : []),
     // The rows are a fresh array on every render: compare their content.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(annotationRows), widget.annotations, source],
+  );
+  const ruleAnnotations = useRuleAnnotations(widget.rules, resolve, source);
+  const annotations = useMemo(
+    () => (ruleAnnotations.length === 0 ? dataAnnotations : [...dataAnnotations, ...ruleAnnotations]),
+    [dataAnnotations, ruleAnnotations],
   );
   const messages = useMemo(() => annotationsByLine(annotations), [annotations]);
 

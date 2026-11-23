@@ -2,20 +2,8 @@ import { z } from 'zod';
 import type { ViewSpec } from '../view-spec';
 import { dataBindingSchema, widgetBase } from './common';
 
-/**
- * Source code shown in full, with line numbers and a search box. On top of the
- * highlighted text it can:
- * - show the diff against another version (`compare`), from the same object or
- *   another query: unchanged runs are folded around the changes;
- * - mark static terms (`highlight`, e.g. halt);
- * - annotate lines and ranges with messages coming from the data
- *   (`annotations`): linter results, critiques, failing tests, coverage…
- */
-export const codeAnnotationsSchema = z.object({
-  /** Where the annotations come from; omit to read `field` in the bound object. */
-  data: dataBindingSchema.optional(),
-  /** Dot path of the annotation list in the bound object (when `data` is omitted). */
-  field: z.string().min(1).optional(),
+/** Where an annotation or a rule finding sits in the source: line/column, or character offsets. */
+const codePositionFields = {
   /** Dot path of the line (1-based) an annotation starts at. */
   lineField: z.string().min(1).optional(),
   /** Dot path of the last line (inclusive) it covers. */
@@ -30,6 +18,23 @@ export const codeAnnotationsSchema = z.object({
   endOffsetField: z.string().min(1).optional(),
   /** 0: offsets from 0, end exclusive (default). 1: from 1, end inclusive (Smalltalk intervals). */
   offsetBase: z.union([z.literal(0), z.literal(1)]).optional(),
+};
+
+/**
+ * Source code shown in full, with line numbers and a search box. On top of the
+ * highlighted text it can:
+ * - show the diff against another version (`compare`), from the same object or
+ *   another query: unchanged runs are folded around the changes;
+ * - mark static terms (`highlight`, e.g. halt);
+ * - annotate lines and ranges with messages coming from the data
+ *   (`annotations`): linter results, critiques, failing tests, coverage…
+ */
+export const codeAnnotationsSchema = z.object({
+  /** Where the annotations come from; omit to read `field` in the bound object. */
+  data: dataBindingSchema.optional(),
+  /** Dot path of the annotation list in the bound object (when `data` is omitted). */
+  field: z.string().min(1).optional(),
+  ...codePositionFields,
   messageField: z.string().min(1),
   /** Dot path of the severity: error/warning/info, or words like high, major, hint. */
   severityField: z.string().min(1).optional(),
@@ -37,6 +42,30 @@ export const codeAnnotationsSchema = z.object({
   ruleField: z.string().min(1).optional(),
 });
 export type CodeAnnotations = z.infer<typeof codeAnnotationsSchema>;
+
+/**
+ * The syntax tree of the shown source, as rows: the active graph decorators run
+ * on it and their findings are shown as annotations. Position fields have the
+ * same meaning as in `annotations`.
+ */
+export const codeRulesSchema = z
+  .object({
+    /** The AST rows (one per syntax node). */
+    data: dataBindingSchema,
+    /** Dot path of the row id (default "id"). */
+    idField: z.string().min(1).optional(),
+    /** Dot path of the parent's id; a parent may be an object holding the id. */
+    parentField: z.string().min(1),
+    /** Dot path of the node kind (default "kind"). */
+    kindField: z.string().min(1).optional(),
+    /** Dot path of the node name (default "name"). */
+    nameField: z.string().min(1).optional(),
+    ...codePositionFields,
+  })
+  .refine((r) => r.lineField !== undefined || r.startOffsetField !== undefined, {
+    message: 'rules needs a position: set "lineField" or "startOffsetField"',
+  });
+export type CodeRules = z.infer<typeof codeRulesSchema>;
 
 export const codeCompareSchema = z.object({
   /** Where the other version comes from; omit to read `field` in the bound object. */
@@ -64,6 +93,8 @@ export const codeWidgetSchema = z.object({
   /** Terms always highlighted (case-insensitive), e.g. ["halt", "flag:"]. */
   highlight: z.array(z.string().min(1)).optional(),
   annotations: codeAnnotationsSchema.optional(),
+  /** Syntax tree the active graph decorators run on. */
+  rules: codeRulesSchema.optional(),
   /** Show the search box (default true). */
   search: z.boolean().optional(),
   /** Wrap long lines instead of scrolling (default false). */
@@ -78,7 +109,10 @@ export const codeWidgetDoc = `- { "id": string, "type": "code", "title"?: string
     "highlight"?: [string, ...], "search"?: boolean, "wrap"?: boolean,
     "annotations"?: { "data"?: DataBinding, "field"?: string, "lineField"?: string, "endLineField"?: string,
       "columnField"?: string, "endColumnField"?: string, "startOffsetField"?: string, "endOffsetField"?: string,
-      "offsetBase"?: 0|1, "messageField": string, "severityField"?: string, "ruleField"?: string } }
+      "offsetBase"?: 0|1, "messageField": string, "severityField"?: string, "ruleField"?: string },
+    "rules"?: { "data": DataBinding, "parentField": string, "idField"?: string, "kindField"?: string,
+      "nameField"?: string, "lineField"?: string, "endLineField"?: string, "columnField"?: string,
+      "endColumnField"?: string, "startOffsetField"?: string, "endOffsetField"?: string, "offsetBase"?: 0|1 } }
     Use it for SOURCE CODE (files, methods, functions, scripts, queries): line numbers and a search box.
     - DIFF: when the API exposes another version of the same source (previous version, base of a change,
       original/refactored…), set "compare" to it; "field" is read in the bound object, or in "compare.data".
@@ -87,6 +121,8 @@ export const codeWidgetDoc = `- { "id": string, "type": "code", "title"?: string
       "data" for another query. Map their position (line[/column], or character offsets with
       "startOffsetField"/"endOffsetField"; "offsetBase": 1 for 1-based inclusive intervals as in Pharo),
       "messageField", "severityField" (error/warning/info…) and "ruleField".
+    - RULES: when the API exposes the syntax tree (AST nodes with kind, parent and position) of the source,
+      set "rules" to those rows: the active graph decorators run on them and their findings are shown as annotations.
     Prefer it over "richtext" for code; keep "richtext" for Markdown.`;
 
 /**
@@ -148,6 +184,53 @@ export const methodSourceExample: ViewSpec = {
       field: 'sourceCode',
       language: 'smalltalk',
       compare: { field: 'previousVersion.sourceCode', label: 'previous version' },
+    },
+  ],
+};
+
+/**
+ * A source shown with the syntax tree of its file: the active graph decorators run on
+ * the tree rows and their findings are annotations. Not registered as a curated view: it
+ * needs an API that exposes syntax nodes (id, kind, name, parent, line), none of the
+ * built-in sources does.
+ */
+export const methodRulesExample: ViewSpec = {
+  version: 1,
+  id: 'builtin:method-rules',
+  concept: 'Method',
+  scope: 'detail',
+  title: 'Method source with rules',
+  description: 'The source of a method, flagged by the active graph decorators run on its syntax tree.',
+  queries: {
+    method: {
+      query: /* GraphQL */ `
+        query FluidMethodRules($id: ID!) {
+          method(id: $id) {
+            id
+            sourceCode
+            syntaxNodes {
+              id
+              kind
+              name
+              line
+              parent {
+                id
+              }
+            }
+          }
+        }
+      `,
+    },
+  },
+  widgets: [
+    {
+      id: 'source',
+      type: 'code',
+      title: 'Source',
+      data: { query: 'method', path: 'method' },
+      field: 'sourceCode',
+      language: 'java',
+      rules: { data: { query: 'method', path: 'method.syntaxNodes' }, parentField: 'parent', lineField: 'line' },
     },
   ],
 };

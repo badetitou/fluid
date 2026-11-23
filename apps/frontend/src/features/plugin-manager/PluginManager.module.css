@@ -19,6 +19,10 @@
   --kind-accent: var(--fluid-series-5, var(--ant-red-6));
 }
 
+.accentNavSection {
+  --kind-accent: var(--fluid-series-6, var(--ant-cyan-6));
+}
+
 .accentTheme {
   --kind-accent: var(--fluid-series-1, var(--ant-magenta-6));
 }

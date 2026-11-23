@@ -345,6 +345,24 @@ Intégrés :
 
 Un module de plugin `pageAction` exporte `{ pageActions: { "<id>": { run | Panel, available?, Icon? } } }`.
 
+## 4 quinquies. Sections de la barre latérale
+
+Un plugin `navSection` contribue des **groupes d'entrées de la barre de gauche**. Les groupes
+« Concepts » et « My dashboards » sont eux-mêmes des plugins intégrés (`fluid-nav-concepts`,
+`fluid-nav-dashboards`, dans `app/layout/builtinNavPlugins.tsx` : ils utilisent des features, donc
+l'app les ajoute au runtime via `usePluginRuntime(extra)`). Manifeste : `contributes.navSections:
+[{ id, label, description?, icon? }]`. Module : `{ navSections: { "<id>": { useItems, available?,
+Icon?, Page? } } }`.
+
+- `useItems(context)` est un **hook React** qui retourne des `NavItem` (`key` préfixée par l'id du
+  plugin, `label`, `icon?`, `to?` : le chemin ouvert, l'entrée est surlignée dessous). La barre
+  l'appelle une fois par section affichée (le menu est remonté quand la liste change).
+- `available(context)` dit si la section s'affiche pour la source connectée ; `context` donne
+  `settings` et `queriesByType` (les concepts racine), d'où `looksLikeModel(queriesByType)` pour
+  une section réservée aux sources Model/Moose (exemple : `fluid-nav-code-analysis`).
+- `Page` (facultatif) est une page rendue à `/p/<plugin>/<section>/…` (`pages/plugin`), qui reçoit
+  le reste du chemin ; une entrée peut aussi pointer vers n'importe quel chemin de l'app.
+
 ## 5. Le LLM et l'agent de création de widgets
 
 - Les prompts ne décrivent plus les widgets à la main : `renderWidgetDocs(catalogue)` concatène les
@@ -411,7 +429,7 @@ Le moteur (`views/`) ne dépend pas des plugins : il expose des contextes que l'
 
 ## 9. Autres types de plugins envisageables
 
-À discuter : sections de la barre latérale, actions sur une perspective (export CSV… — une action de
+À discuter : actions sur une perspective (export CSV… — une action de
 page peut déjà le faire sur sa `column`), formats de
 cellule (`format`), fournisseurs LLM. Les sources de données et les gabarits de vues sont couverts
 par les View Builders (§4 bis).

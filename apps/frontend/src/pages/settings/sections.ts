@@ -7,6 +7,7 @@ export const SETTINGS_SECTIONS = [
   { id: 'widgets', group: 'Plugins', label: 'Widgets', kind: 'widget' },
   { id: 'view-builders', group: 'Plugins', label: 'View builders', kind: 'viewBuilder' },
   { id: 'sources', group: 'Plugins', label: 'Sources', kind: 'sourceProvider' },
+  { id: 'nav-sections', group: 'Plugins', label: 'Sidebar sections', kind: 'navSection' },
   { id: 'page-actions', group: 'Plugins', label: 'Page actions', kind: 'pageAction' },
   { id: 'graph-decorators', group: 'Plugins', label: 'Graph decorators', kind: 'graphDecorator' },
   { id: 'themes', group: 'Plugins', label: 'Themes', kind: 'theme' },

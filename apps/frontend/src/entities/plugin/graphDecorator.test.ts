@@ -37,7 +37,7 @@ describe('graph decorator plugins', () => {
     const mixed = { ...MANIFEST, contributes: { ...MANIFEST.contributes, pageActions: [{ id: 'x', label: 'X' }] }, module: './i.js' };
     const mixedResult = pluginManifestSchema.safeParse(mixed);
     expect(mixedResult.error!.issues.map((i) => i.message)).toContain(
-      'A plugin contributes themes, widgets, viewBuilders, sourceProviders, pageActions or graphDecorators (one kind only)',
+      'A plugin contributes themes, widgets, viewBuilders, sourceProviders, pageActions, graphDecorators or navSections (one kind only)',
     );
   });
 

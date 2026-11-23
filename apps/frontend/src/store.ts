@@ -125,7 +125,7 @@ export const usePreferences = create<PreferencesState>()(
       setNavbarWidth: (width) => set({ navbarWidth: width }),
       millerVisibleColumns: 2,
       setMillerVisibleColumns: (count) => set({ millerVisibleColumns: count }),
-      navbarOpenSections: ['group:concepts', 'group:dashboards'],
+      navbarOpenSections: ['group:fluid-nav-concepts/concepts', 'group:fluid-nav-dashboards/dashboards'],
       setNavbarOpenSections: (keys) => set({ navbarOpenSections: keys }),
       themeMode:
         typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches

@@ -1,25 +1,35 @@
-import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { AppstoreOutlined, DashboardOutlined } from '@ant-design/icons';
+import { AppstoreOutlined } from '@ant-design/icons';
+import { selectedBarKey } from '../../entities/dashboard';
+import { selectedNavKeys, type ActiveNavSection, type NavContext, type NavItem } from '../../entities/plugin';
 import { FluidLogo } from '../../shared/ui';
-import { useConceptMenuItems } from './useConceptMenuItems';
-import { useDashboardMenuItems } from './useDashboardMenuItems';
+
+type Queries = NavContext['queriesByType'];
 
 /**
- * The bar is a list of dashboards: one per concept (its work list), then the
- * user's own — promoted columns and whole-graph dashboards. Both sections fold.
+ * The bar: the home link, then one foldable group per shown nav section, whose
+ * entries the plugins list (concepts and dashboards are plugins like any other).
+ *
+ * Each section's `useItems` is a hook, called in a loop over `sections`: the
+ * caller (`SiderMenu`) is remounted whenever that list changes, so the hooks
+ * run in the same order for as long as it lives.
  */
-export function useBarItems() {
-  const concepts = useConceptMenuItems();
-  const dashboards = useDashboardMenuItems();
-
-  return useMemo(
-    () => [
-      { key: 'home', icon: <FluidLogo />, label: <Link to="/">Concepts</Link> },
-      { type: 'divider' as const },
-      { key: 'group:concepts', icon: <AppstoreOutlined />, label: 'Concepts', children: concepts },
-      { key: 'group:dashboards', icon: <DashboardOutlined />, label: 'My dashboards', children: dashboards },
-    ],
-    [concepts, dashboards],
+export function useBarItems(sections: ActiveNavSection[], queriesByType: Queries, pathname: string) {
+  const lists: NavItem[][] = sections.map(({ section, settings }) =>
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    section.useItems({ settings, queriesByType }),
   );
+
+  const items = [
+    { key: 'home', icon: <FluidLogo />, label: <Link to="/">Concepts</Link> },
+    { type: 'divider' as const },
+    ...sections.map(({ key, section }, i) => ({
+      key: `group:${key}`,
+      icon: section.Icon ? <section.Icon /> : (section.icon ?? <AppstoreOutlined />),
+      label: section.label,
+      children: lists[i],
+    })),
+  ];
+  const selectedKeys = [selectedBarKey(pathname), ...selectedNavKeys(pathname, lists.flat())].filter(Boolean);
+  return { items, selectedKeys };
 }

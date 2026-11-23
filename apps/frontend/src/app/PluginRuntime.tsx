@@ -10,6 +10,7 @@ import {
   usePlugins,
   useThemeChoice,
 } from '../entities/plugin';
+import { BUILTIN_NAV_PLUGINS } from './layout/builtinNavPlugins';
 import { buildAntdTheme, themeCssVariables, tokensFor } from '../shared/theme';
 import { usePreferences } from '../store';
 import {
@@ -25,7 +26,7 @@ import {
  * the widgets and to the CSS variables, and the graph decorators to the widgets.
  */
 export function PluginRuntime({ children }: { children: ReactNode }) {
-  const plugins = usePluginRuntime();
+  const plugins = usePluginRuntime(BUILTIN_NAV_PLUGINS);
   return (
     <PluginsContext.Provider value={plugins}>
       <ActivePlugins>{children}</ActivePlugins>

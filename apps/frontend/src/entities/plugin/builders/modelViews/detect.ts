@@ -38,7 +38,7 @@ const byKey = (queries: ConceptQueries | undefined, field: string): boolean =>
   queries?.byId?.field === field && queries.byId.idArg === 'key';
 
 /** The source's schema looks like Model's. */
-export function looksLikeModel(queriesByType: Map<string, ConceptQueries>): boolean {
+export function looksLikeModel(queriesByType: ReadonlyMap<string, ConceptQueries>): boolean {
   return Object.entries(SIGNATURE).every(([concept, field]) => byKey(queriesByType.get(concept), field));
 }
 

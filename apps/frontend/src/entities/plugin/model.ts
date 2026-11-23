@@ -11,6 +11,7 @@ import type { WidgetCatalog, WidgetRendererDefinition } from '../../views/plugin
 import type { DataSource } from '../../views/plugin-api';
 import { builderColors } from './builderColors';
 import { pluginKind, type PluginSetting } from './manifest';
+import type { NavSection } from './navSection';
 import type { PageAction } from './pageAction';
 import { staticSourceProvider, type SourceProvider } from './sourceProvider';
 import type { FluidPlugin, InstalledPlugin, PluginLoadState } from './types';
@@ -28,6 +29,8 @@ export const buildersOf = (p: FluidPlugin): ViewBuilder[] => (p.kind === 'viewBu
 export const providersOf = (p: FluidPlugin): SourceProvider[] => (p.kind === 'sourceProvider' ? p.providers : []);
 /** The page actions a plugin provides. */
 export const pageActionsOf = (p: FluidPlugin): PageAction[] => (p.kind === 'pageAction' ? p.actions : []);
+/** The sidebar sections a plugin provides. */
+export const navSectionsOf = (p: FluidPlugin): NavSection[] => (p.kind === 'navSection' ? p.sections : []);
 /** The graph decorators a plugin provides. */
 export const graphDecoratorsOf = (p: FluidPlugin): DecoratorSpec[] => (p.kind === 'graphDecorator' ? p.decorators : []);
 
@@ -41,6 +44,7 @@ export interface ModuleProvided {
   builders?: ViewBuilder[];
   providers?: SourceProvider[];
   actions?: PageAction[];
+  sections?: NavSection[];
 }
 
 /** An installed plugin with what its module provided, or why it did not. */
@@ -73,6 +77,8 @@ export function installedPlugin(
     }
     case 'pageAction':
       return { ...base, kind: 'pageAction', actions: provided.actions ?? [] };
+    case 'navSection':
+      return { ...base, kind: 'navSection', sections: provided.sections ?? [] };
     case 'graphDecorator':
       return { ...base, kind: 'graphDecorator', decorators: manifest.contributes.graphDecorators ?? [] };
   }

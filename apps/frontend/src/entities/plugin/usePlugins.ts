@@ -17,6 +17,7 @@ import {
   settingsOf,
 } from './model';
 import { activeDecoratorEntries, activeGraphDecorators } from './graphDecorator';
+import { activeNavSections } from './navSection';
 import { activePageActions } from './pageAction';
 import { PluginsContext } from './PluginsContext';
 import { usePluginStore } from './store';
@@ -96,6 +97,14 @@ export function useActivePageActions() {
   const disabled = usePluginStore((s) => s.disabled);
   const settings = usePluginStore((s) => s.settings);
   return useMemo(() => activePageActions(plugins, disabled, settings), [plugins, disabled, settings]);
+}
+
+/** The sidebar sections of the enabled plugins, with their settings, in plugin order. */
+export function useActiveNavSections() {
+  const plugins = useContext(PluginsContext);
+  const disabled = usePluginStore((s) => s.disabled);
+  const settings = usePluginStore((s) => s.settings);
+  return useMemo(() => activeNavSections(plugins, disabled, settings), [plugins, disabled, settings]);
 }
 
 /** The graph decorators of the enabled plugins, in plugin order. */
