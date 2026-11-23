@@ -1,11 +1,12 @@
 import { lazy, Suspense, useMemo } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Provider as UrqlProvider } from 'urql';
 import { Skeleton } from 'antd';
 import { AppLayout } from './app/layout/AppLayout';
 import { RowPagingProvider } from './app/RowPagingProvider';
 import { useLlmInsightAnalyzer } from './entities/llm';
 import { useSourceWrites } from './entities/preferences/useSourceWrites';
+import { analysisPath, engineFor, isAnalysisUrl, parseAnalysisUrl } from './entities/analysis';
 import { createGraphQLClient } from './graphql/client';
 import { useGraphqlEndpoint, useSourceAuthClient } from './entities/source';
 import { InsightAnalyzerContext, WriteAccessContext } from './views/plugin-api';
@@ -14,6 +15,7 @@ import { InsightAnalyzerContext, WriteAccessContext } from './views/plugin-api';
 const ConnectPage = lazy(() => import('./pages/connect/ConnectPage').then((m) => ({ default: m.ConnectPage })));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const PluginPage = lazy(() => import('./pages/plugin/PluginPage').then((m) => ({ default: m.PluginPage })));
+const AnalysePage = lazy(() => import('./pages/analyse/AnalysePage').then((m) => ({ default: m.AnalysePage })));
 const MillerListPage = lazy(() => import('./pages/miller/MillerListPage').then((m) => ({ default: m.MillerListPage })));
 
 const page = (element: React.ReactNode) => <Suspense fallback={<Skeleton active />}>{element}</Suspense>;
@@ -30,8 +32,14 @@ export function App() {
   const { writable } = useSourceWrites();
   const analyzeView = useLlmInsightAnalyzer();
 
+  // After a reload the in-page model is gone: rebuild it from the repository the URL names.
+  const onAnalysePage = useLocation().pathname.startsWith('/analyse/');
+  const lost = !onAnalysePage && endpoint && isAnalysisUrl(endpoint) && !engineFor(endpoint) ? parseAnalysisUrl(endpoint) : null;
+  if (lost) return <Navigate to={analysisPath(lost)} replace />;
+
   return (
     <Routes>
+      <Route path="/analyse/:owner/:name" element={page(<AnalysePage />)} />
       <Route path="/connect" element={page(<ConnectPage />)} />
       {client ? (
         <Route

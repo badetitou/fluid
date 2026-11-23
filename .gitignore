@@ -39,3 +39,6 @@ apps/cli/pkg/
 
 # docs media capture scratch
 scripts/docs/.tmp/
+
+# Model WebAssembly build (see docs/guides/browser-analysis.md)
+apps/frontend/public/model-wasm/
