@@ -9,7 +9,7 @@ import { delimiter, join } from 'node:path';
 
 type Env = Record<string, string | undefined>;
 
-export const MODEL_GRAPHQL_INSTALL = 'cargo install model-graphql --version 0.4.0 --locked';
+export const MODEL_GRAPHQL_INSTALL = 'cargo install model-graphql --version 0.5.0 --locked';
 
 export interface GithubSourceOptions {
   github: boolean;
