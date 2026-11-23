@@ -22,6 +22,7 @@ Il est d'**un seul type** (`kind`), qui dit ce qu'il contribue :
 | `viewBuilder` | `viewBuilders` | propose des **perspectives** (des `ViewSpec`) pour une colonne, et peut apporter la **source de données** que lisent leurs requêtes (autre chose que GraphQL) | oui (module ESM) |
 | `sourceProvider` | `sourceProviders` | une liste de **sources GraphQL** (nom + URL) proposées dans le sélecteur de la barre du haut (§4 ter) | non si la liste est dans le manifeste, oui si un backend la donne |
 | `pageAction` | `pageActions` | des **commandes du bouton flottant** de chaque colonne Miller (§4 quater) : un effet sur la page ou un panneau | oui (module ESM) |
+| `graphDecorator` | `graphDecorators` | des **décorateurs de graphe** déclaratifs (`DecoratorSpec` de `@fluid/shared`) : tags, arêtes dérivées, contraintes (ex. cycles de dépendances) | non (JSON pur) |
 
 `kind` peut être omis : il se déduit de la contribution (anciens manifestes). Un manifeste qui
 mélange deux contributions est refusé. Un plugin peut déclarer des **réglages** (`settings` :
@@ -35,12 +36,13 @@ mélange deux contributions est refusé. Un plugin peut déclarer des **réglage
   "name": "Tag cloud",
   "version": "1.0.0",
   "description": "…",
-  "kind": "widget",                     // theme | widget | viewBuilder | sourceProvider | pageAction (déduit si absent)
-  "module": "./index.js",               // relatif au manifeste ; requis sauf pour un thème
+  "kind": "widget",                     // theme | widget | viewBuilder | sourceProvider | pageAction | graphDecorator (déduit si absent)
+  "module": "./index.js",               // relatif au manifeste ; requis sauf pour un thème ou un décorateur de graphe
   "contributes": {
     "widgets": [ WidgetContract, … ]    // ou "themes": [ThemeDefinition] / "viewBuilders": [{ id, label, color? }]
                                         // ou "sourceProviders": [{ id, label, sources?: [{ name, url, description?, limits? }] }]
                                         // ou "pageActions": [{ id, label, description?, icon? }]
+                                        // ou "graphDecorators": [DecoratorSpec, …] (JSON pur, validé par decoratorSpecSchema)
   }
 }
 ```
@@ -404,6 +406,7 @@ Le moteur (`views/`) ne dépend pas des plugins : il expose des contextes que l'
 | 5 | Trois types de plugins (thème, widget, View Builder), sources de données non GraphQL, Spec-Fluid | ✅ |
 | 5 bis | Plugins de sources (`sourceProvider`) et sélecteur de source dans la barre du haut | ✅ |
 | 5 ter | Actions de page (`pageAction`) : un bouton flottant par colonne Miller, le script Pharo et le feu d'artifice en plugins | ✅ |
+| 5 quater | Décorateurs de graphe (`graphDecorator`) : le type de plugin et le décorateur intégré « Dependency cycles » ; le branchement aux widgets est à venir | ✅ |
 | 6 | Bus entre colonnes (suivre / figer / surligner, comme `MiBus` de MooseIDE) | à faire |
 
 ## 9. Autres types de plugins envisageables

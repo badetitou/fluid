@@ -48,7 +48,7 @@ export function InstallPluginForm() {
           description={
             runsCode
               ? 'This plugin runs its own code in fluid: it can read the data you browse and your settings, LLM key included. Only install plugins you trust.'
-              : 'This plugin only contains themes (no code).'
+              : `This plugin only contains ${contributionLabel(pending.manifest)} (no code).`
           }
           action={
             <Space orientation="vertical">

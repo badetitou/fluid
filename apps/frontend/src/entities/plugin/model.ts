@@ -1,5 +1,6 @@
 import {
   isPluginWidgetType,
+  type DecoratorSpec,
   pluginOfWidgetType,
   type ExternalWidgetContract,
   type WidgetCatalogRequest,
@@ -27,6 +28,8 @@ export const buildersOf = (p: FluidPlugin): ViewBuilder[] => (p.kind === 'viewBu
 export const providersOf = (p: FluidPlugin): SourceProvider[] => (p.kind === 'sourceProvider' ? p.providers : []);
 /** The page actions a plugin provides. */
 export const pageActionsOf = (p: FluidPlugin): PageAction[] => (p.kind === 'pageAction' ? p.actions : []);
+/** The graph decorators a plugin provides. */
+export const graphDecoratorsOf = (p: FluidPlugin): DecoratorSpec[] => (p.kind === 'graphDecorator' ? p.decorators : []);
 
 /** Whether a plugin is in use: required ones always are. */
 export const isEnabled = (plugin: FluidPlugin, disabled: readonly string[]): boolean =>
@@ -70,6 +73,8 @@ export function installedPlugin(
     }
     case 'pageAction':
       return { ...base, kind: 'pageAction', actions: provided.actions ?? [] };
+    case 'graphDecorator':
+      return { ...base, kind: 'graphDecorator', decorators: manifest.contributes.graphDecorators ?? [] };
   }
 }
 

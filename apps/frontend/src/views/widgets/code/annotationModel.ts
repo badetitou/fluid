@@ -1,5 +1,6 @@
 import type { CodeAnnotations } from '@fluid/shared';
 import { getPath } from '../../data';
+import { SEVERITY_RANK } from '../../plugin-api/decorationModel';
 
 // Pure logic of the code widget's annotations: rows coming from the data
 // (linter results, critiques…) turned into line/column ranges of the source.
@@ -30,9 +31,8 @@ export function normalizeSeverity(value: unknown): Severity {
   return 'info';
 }
 
-const SEVERITY_RANK: Record<Severity, number> = { error: 0, warning: 1, info: 2 };
-
-/** The most severe of a list (info when empty). */
+// Imported from the file, not the plugin-api barrel: the barrel reaches the widget catalog, hence this file (cycle).
+/** The most severe of a list (info when empty: an annotation without a severity is informative). */
 export function worstSeverity(severities: Severity[]): Severity {
   return severities.reduce<Severity>((worst, s) => (SEVERITY_RANK[s] < SEVERITY_RANK[worst] ? s : worst), 'info');
 }

@@ -41,7 +41,7 @@ export const themeTokensSchema = z.object({
     cardRadius: z.number().int().min(0).max(24),
     pillRadius: z.number().int().min(0).max(999),
   }).optional(),
-  status: z.object({ success: color, warning: color, error: color }).optional(),
+  status: z.object({ success: color, warning: color, error: color, info: color.optional() }).optional(),
   surfaceInset: color.optional(),
   surfaceButton: color.optional(),
   accentHover: color.optional(),

@@ -100,6 +100,8 @@ export interface Highlight {
   hovered?: string;
   neighbours: ReadonlySet<string>;
   selected?: string;
+  /** Nodes carrying the tag picked in the legend: the others are muted. */
+  tagged?: ReadonlySet<string>;
 }
 
 export interface NodeLook {
@@ -122,6 +124,7 @@ export function nodeLook(
   if (key === highlight.selected) {
     return { ...look, color: palette.selection, size: base.size * 1.4, zIndex: 3, highlighted: true, forceLabel: true };
   }
+  if (highlight.tagged && !highlight.tagged.has(key)) return { ...look, label: null, color: palette.nodeMuted, zIndex: 0 };
   if (highlight.hovered === undefined) return look;
   if (key === highlight.hovered) return { ...look, zIndex: 3, forceLabel: true };
   if (highlight.neighbours.has(key)) return { ...look, zIndex: 2, forceLabel: true };
@@ -135,9 +138,15 @@ export interface EdgeLook {
 }
 
 /** An edge as drawn: emphasised when it touches the hovered (or selected) node, muted otherwise while hovering. */
-export function edgeLook(source: string, target: string, highlight: Highlight, palette: NetworkPalette): EdgeLook {
+export function edgeLook(
+  source: string,
+  target: string,
+  highlight: Highlight,
+  palette: NetworkPalette,
+  own?: { color: string; size: number },
+): EdgeLook {
   const touches = (key?: string) => key !== undefined && (source === key || target === key);
   if (touches(highlight.hovered) || touches(highlight.selected)) return { color: palette.edgeActive, size: 2, zIndex: 2 };
   if (highlight.hovered !== undefined) return { color: palette.edgeMuted, size: 1, zIndex: 0 };
-  return { color: palette.edge, size: 1, zIndex: 1 };
+  return own ? { ...own, zIndex: 1 } : { color: palette.edge, size: 1, zIndex: 1 };
 }
