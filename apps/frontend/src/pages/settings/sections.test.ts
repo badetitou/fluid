@@ -11,6 +11,6 @@ describe('settings sections', () => {
   it('groups the sections in menu order, one plugin section per kind', () => {
     expect(sectionGroups().map((g) => g.group)).toEqual(['General', 'Plugins', 'Assistant']);
     const kinds = SETTINGS_SECTIONS.flatMap((s) => ('kind' in s ? [s.kind] : []));
-    expect(kinds.sort()).toEqual(['pageAction', 'sourceProvider', 'theme', 'viewBuilder', 'widget']);
+    expect(kinds.sort()).toEqual(['graphDecorator', 'pageAction', 'sourceProvider', 'theme', 'viewBuilder', 'widget']);
   });
 });

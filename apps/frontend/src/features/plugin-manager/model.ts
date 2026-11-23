@@ -1,6 +1,6 @@
 import { contractsOf, themesOf, type FluidPlugin } from '../../entities/plugin';
 
-/** What a plugin brings, as short labels: its widget types, themes, view builders, sources or page actions. */
+/** What a plugin brings, as short labels: its widget types, themes, view builders, sources, page actions or graph decorators (label, tags, rules with severity). */
 export function pluginContents(plugin: FluidPlugin): string[] {
   return [
     ...contractsOf(plugin).map((c) => c.type),
@@ -8,6 +8,11 @@ export function pluginContents(plugin: FluidPlugin): string[] {
     ...(plugin.manifest.contributes.viewBuilders ?? []).map((b) => b.label),
     ...(plugin.manifest.contributes.sourceProviders ?? []).flatMap((p) => [p.label, ...(p.sources ?? []).map((s) => s.name)]),
     ...(plugin.manifest.contributes.pageActions ?? []).map((a) => a.label),
+    ...(plugin.manifest.contributes.graphDecorators ?? []).flatMap((d) => [
+      d.label,
+      ...d.concepts.flatMap((c) => (c.tag ? [c.tag] : [])),
+      ...d.constraints.map((c) => `${c.id} (${c.severity})`),
+    ]),
   ];
 }
 

@@ -16,6 +16,7 @@ import {
   pickTheme,
   settingsOf,
 } from './model';
+import { activeGraphDecorators } from './graphDecorator';
 import { activePageActions } from './pageAction';
 import { PluginsContext } from './PluginsContext';
 import { usePluginStore } from './store';
@@ -95,6 +96,13 @@ export function useActivePageActions() {
   const disabled = usePluginStore((s) => s.disabled);
   const settings = usePluginStore((s) => s.settings);
   return useMemo(() => activePageActions(plugins, disabled, settings), [plugins, disabled, settings]);
+}
+
+/** The graph decorators of the enabled plugins, in plugin order. */
+export function useActiveGraphDecorators() {
+  const plugins = useContext(PluginsContext);
+  const disabled = usePluginStore((s) => s.disabled);
+  return useMemo(() => activeGraphDecorators(plugins, disabled), [plugins, disabled]);
 }
 
 /** A plugin's settings (filled or default) and the setter. */

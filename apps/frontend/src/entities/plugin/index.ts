@@ -25,6 +25,7 @@ export {
   currentWidgetContracts,
   useActiveColumnOverlays,
   useActiveDataSources,
+  useActiveGraphDecorators,
   useActivePageActions,
   useActiveViewBuilders,
   useBuilderColors,
@@ -35,6 +36,7 @@ export {
 } from './usePlugins';
 export type {
   FluidPlugin,
+  GraphDecoratorPlugin,
   InstalledPlugin,
   PageActionPlugin,
   PluginLoadState,
@@ -44,6 +46,7 @@ export type {
   ViewBuilderPlugin,
   WidgetPlugin,
 } from './types';
+export { activeGraphDecorators } from './graphDecorator';
 export type { SourceAdder, SourceProvider } from './sourceProvider';
 export { isOffered, type ActivePageAction, type PageAction, type PageActionContext, type PageActionColumn, type PageActionPanelProps } from './pageAction';
 export type {

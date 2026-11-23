@@ -8,6 +8,7 @@ export const SETTINGS_SECTIONS = [
   { id: 'view-builders', group: 'Plugins', label: 'View builders', kind: 'viewBuilder' },
   { id: 'sources', group: 'Plugins', label: 'Sources', kind: 'sourceProvider' },
   { id: 'page-actions', group: 'Plugins', label: 'Page actions', kind: 'pageAction' },
+  { id: 'graph-decorators', group: 'Plugins', label: 'Graph decorators', kind: 'graphDecorator' },
   { id: 'themes', group: 'Plugins', label: 'Themes', kind: 'theme' },
   { id: 'add-plugin', group: 'Plugins', label: 'Add a plugin' },
   { id: 'assistant', group: 'Assistant', label: 'LLM provider' },
