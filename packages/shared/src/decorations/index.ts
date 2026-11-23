@@ -6,3 +6,4 @@ export * from './evaluate';
 export * from './presets';
 export * from './cypher';
 export * from './docs';
+export * from './sarif';
