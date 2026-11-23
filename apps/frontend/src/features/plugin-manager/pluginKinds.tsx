@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ApiOutlined, AppstoreOutlined, BgColorsOutlined, ClusterOutlined, LayoutOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { ApiOutlined, AppstoreOutlined, BgColorsOutlined, ClusterOutlined, LayoutOutlined, MenuUnfoldOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import type { PluginKind } from '../../entities/plugin';
 import styles from './PluginManager.module.css';
 
@@ -43,6 +43,12 @@ export const PLUGIN_KIND_META: Record<PluginKind, PluginKindMeta> = {
     help: 'Declarative rules over the connected graph: tags, derived edges and constraints such as dependency cycles. Plain data, no code.',
     icon: <ClusterOutlined />,
     accent: styles.accentGraphDecorator,
+  },
+  navSection: {
+    title: 'Sidebar sections',
+    help: 'Groups of entries of the left sidebar — concepts, dashboards, or a custom page such as a code analysis, shown for the sources they fit.',
+    icon: <MenuUnfoldOutlined />,
+    accent: styles.accentNavSection,
   },
   theme: {
     title: 'Themes',

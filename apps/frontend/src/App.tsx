@@ -13,6 +13,7 @@ import { InsightAnalyzerContext, WriteAccessContext } from './views/plugin-api';
 // Each page is its own chunk: the first paint only loads the screen it shows.
 const ConnectPage = lazy(() => import('./pages/connect/ConnectPage').then((m) => ({ default: m.ConnectPage })));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const PluginPage = lazy(() => import('./pages/plugin/PluginPage').then((m) => ({ default: m.PluginPage })));
 const MillerListPage = lazy(() => import('./pages/miller/MillerListPage').then((m) => ({ default: m.MillerListPage })));
 
 const page = (element: React.ReactNode) => <Suspense fallback={<Skeleton active />}>{element}</Suspense>;
@@ -50,6 +51,7 @@ export function App() {
           {/* Every screen but the settings is a dashboard: `/` the Concepts one. */}
           <Route index element={page(<MillerListPage />)} />
           <Route path="settings" element={page(<SettingsPage />)} />
+          <Route path="p/:pluginId/:sectionId/*" element={page(<PluginPage />)} />
           <Route path="d/*" element={page(<MillerListPage />)} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

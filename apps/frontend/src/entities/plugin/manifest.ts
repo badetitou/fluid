@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { decoratorSpecSchema, externalWidgetContractSchema } from '@fluid/shared';
 import { themeDefinitionSchema } from '../../shared/theme';
 
-/** The six kinds of plugins; a plugin is of exactly one. */
-export const PLUGIN_KINDS = ['theme', 'widget', 'viewBuilder', 'sourceProvider', 'pageAction', 'graphDecorator'] as const;
+/** The seven kinds of plugins; a plugin is of exactly one. */
+export const PLUGIN_KINDS = ['theme', 'widget', 'viewBuilder', 'sourceProvider', 'pageAction', 'graphDecorator', 'navSection'] as const;
 export type PluginKind = (typeof PLUGIN_KINDS)[number];
 
 /** The serializable half of a view builder (its code is in the plugin's module). */
@@ -71,6 +71,16 @@ export const pageActionContractSchema = z.object({
 });
 export type PageActionContract = z.infer<typeof pageActionContractSchema>;
 
+/** The serializable half of a nav section: a group of entries of the left sidebar. */
+export const navSectionContractSchema = z.object({
+  id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
+  label: z.string().min(1).max(60),
+  description: z.string().max(300).optional(),
+  /** A short symbol (an emoji) shown on the section's header; a generic icon otherwise. */
+  icon: z.string().min(1).max(8).optional(),
+});
+export type NavSectionContract = z.infer<typeof navSectionContractSchema>;
+
 /** A setting the user fills in Settings → Plugins (e.g. a backend URL). */
 export const pluginSettingSchema = z.object({
   key: z.string().regex(/^[a-zA-Z][a-zA-Z0-9]*$/),
@@ -88,6 +98,7 @@ const CONTRIBUTION_OF_KIND = {
   sourceProvider: 'sourceProviders',
   pageAction: 'pageActions',
   graphDecorator: 'graphDecorators',
+  navSection: 'navSections',
 } as const;
 
 /** Plain data needs no module: themes, graph decorators, and source providers that list their sources. */
@@ -119,6 +130,7 @@ export const pluginManifestSchema = z
       sourceProviders: z.array(sourceProviderContractSchema).optional(),
       pageActions: z.array(pageActionContractSchema).optional(),
       graphDecorators: z.array(decoratorSpecSchema).optional(),
+      navSections: z.array(navSectionContractSchema).optional(),
     }),
   })
   .superRefine((m, ctx) => {
@@ -131,7 +143,7 @@ export const pluginManifestSchema = z
         path: ['contributes'],
         message: m.kind
           ? `A ${m.kind} plugin contributes ${CONTRIBUTION_OF_KIND[m.kind]}, and nothing else`
-          : 'A plugin contributes themes, widgets, viewBuilders, sourceProviders, pageActions or graphDecorators (one kind only)',
+          : 'A plugin contributes themes, widgets, viewBuilders, sourceProviders, pageActions, graphDecorators or navSections (one kind only)',
       });
     }
     if (given.length === 1 && needsModule(given[0], m.contributes.sourceProviders) && !m.module) {
@@ -156,11 +168,12 @@ export function pluginKind(manifest: PluginManifest): PluginKind {
   if (manifest.contributes.sourceProviders?.length) return 'sourceProvider';
   if (manifest.contributes.pageActions?.length) return 'pageAction';
   if (manifest.contributes.graphDecorators?.length) return 'graphDecorator';
+  if (manifest.contributes.navSections?.length) return 'navSection';
   return manifest.contributes.viewBuilders?.length ? 'viewBuilder' : 'theme';
 }
 
 /** What a plugin contributes, for display. */
 export function contributionLabel(manifest: PluginManifest): string {
-  const labels = { theme: 'themes', widget: 'widgets', viewBuilder: 'view builders', sourceProvider: 'sources', pageAction: 'page actions', graphDecorator: 'graph decorators' };
+  const labels = { theme: 'themes', widget: 'widgets', viewBuilder: 'view builders', sourceProvider: 'sources', pageAction: 'page actions', graphDecorator: 'graph decorators', navSection: 'sidebar sections' };
   return labels[pluginKind(manifest)];
 }

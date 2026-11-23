@@ -5,13 +5,16 @@ import { installedPlugin, type ModuleProvided } from './model';
 import { usePluginStore } from './store';
 import type { FluidPlugin, PluginLoadState } from './types';
 
+const NO_PLUGINS: FluidPlugin[] = [];
+
 type Loaded = { load: PluginLoadState; provided?: ModuleProvided };
 
 /**
  * Loads the modules of the installed plugins (once per manifest URL and
- * version) and returns every plugin, built-in first. Mounted once, by the app.
+ * version) and returns every plugin, built-in first. Mounted once, by the app, which
+ * adds the built-in plugins only it can draw (`extra`, a stable list).
  */
-export function usePluginRuntime(): FluidPlugin[] {
+export function usePluginRuntime(extra: FluidPlugin[] = NO_PLUGINS): FluidPlugin[] {
   const installed = usePluginStore((s) => s.installed);
   const [loaded, setLoaded] = useState<Record<string, Loaded>>({});
 
@@ -34,11 +37,12 @@ export function usePluginRuntime(): FluidPlugin[] {
   return useMemo(
     () => [
       ...BUILTIN_PLUGINS,
+      ...extra,
       ...installed.map((p) => {
         const entry = loaded[`${p.url}@${p.manifest.version}`];
         return installedPlugin(p, entry?.load ?? { status: 'loading' }, entry?.provided);
       }),
     ],
-    [installed, loaded],
+    [installed, loaded, extra],
   );
 }

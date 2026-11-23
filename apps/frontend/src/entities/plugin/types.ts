@@ -2,6 +2,7 @@ import type { DecoratorSpec, WidgetContract } from '@fluid/shared';
 import type { ThemeDefinition } from '../../shared/theme';
 import type { WidgetRendererDefinition } from '../../views/plugin-api';
 import type { PluginKind, PluginManifest } from './manifest';
+import type { NavSection } from './navSection';
 import type { PageAction } from './pageAction';
 import type { SourceProvider } from './sourceProvider';
 import type { ViewBuilder } from './viewBuilder';
@@ -58,8 +59,14 @@ export interface GraphDecoratorPlugin extends PluginBase {
   decorators: DecoratorSpec[];
 }
 
+/** A nav section plugin: groups of entries of the left sidebar, and the pages they open. */
+export interface NavSectionPlugin extends PluginBase {
+  kind: 'navSection';
+  sections: NavSection[];
+}
+
 /** A plugin as the app uses it: its manifest and what it provides once loaded. */
-export type FluidPlugin = ThemePlugin | WidgetPlugin | ViewBuilderPlugin | SourceProviderPlugin | PageActionPlugin | GraphDecoratorPlugin;
+export type FluidPlugin = ThemePlugin | WidgetPlugin | ViewBuilderPlugin | SourceProviderPlugin | PageActionPlugin | GraphDecoratorPlugin | NavSectionPlugin;
 
 export type { PluginKind };
 
