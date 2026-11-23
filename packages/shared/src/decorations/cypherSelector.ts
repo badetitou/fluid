@@ -46,7 +46,7 @@ function neighboursToCypher(n: Neighbours, v: string, direction: 'out' | 'in'): 
   const pattern = direction === 'out' ? `(${v})-[${rel}]->(${w})` : `(${w})-[${rel}]->(${v})`;
   const count = `COUNT { ${pattern} WHERE ${selectorToCypher(n.match, w)} }`;
   return and([
-    `${count} >= ${n.min ?? 1}`,
+    `${count} >= ${n.min ?? Math.min(1, n.max ?? 1)}`,
     ...(n.max !== undefined ? [`${count} <= ${n.max}`] : []),
   ]);
 }

@@ -11,14 +11,14 @@ const CHILD = ['child'];
 const anyChild = (match: Selector = {}, bounds: { min?: number; max?: number } = {}) => ({
   has: { via: CHILD, match, ...bounds },
 });
-const noChild = (match: Selector = {}) => anyChild(match, { min: 0, max: 0 });
+const noChild = (match: Selector = {}) => anyChild(match, { max: 0 });
 const noElse = noChild({ kind: 'Else' });
 
 const rules: Record<string, Selector> = {
   'java-notify-all': {
     kind: 'MethodInvocation',
     name: '^notify$',
-    has: { via: CHILD, match: { kind: 'Expression' }, min: 0, max: 0 },
+    has: { via: CHILD, match: { kind: 'Expression' }, max: 0 },
   },
   'empty-catch': { kind: 'CatchClause', ...anyChild({ kind: 'Block', ...noChild() }) },
   'collapsible-if': {
@@ -169,6 +169,15 @@ describe('structural selectors', () => {
     expect(matchSelector(g.nodes[1], c, { in: { via: ['calls'], match: {} } })).toBe(false);
   });
 
+  it('min defaults to 0 when max is 0, and an explicit min 1 with max 0 never matches', () => {
+    const g = { nodes: [{ key: 'x' }, { key: 'y' }], edges: [{ from: 'x', to: 'y', kind: 'k' }] };
+    const c = createMatchContext(g.nodes, g.edges, () => new Set(), true);
+    expect(matchSelector(g.nodes[1], c, { has: { match: {}, max: 0 } })).toBe(true);
+    expect(matchSelector(g.nodes[0], c, { has: { match: {}, max: 0 } })).toBe(false);
+    expect(matchSelector(g.nodes[1], c, { has: { match: {}, min: 1, max: 0 } })).toBe(false);
+    expect(matchSelector(g.nodes[0], c, { has: { match: {}, min: 1, max: 0 } })).toBe(false);
+  });
+
   it('validates the new fields with the schema', () => {
     expect(
       selectorSchema.safeParse({ has: { match: {}, max: 0 }, ancestor: { in: { match: {} } } })
@@ -181,10 +190,7 @@ describe('structural selectors', () => {
 describe('structural selectors as Cypher', () => {
   it('translates has and in into COUNT bounds', () => {
     expect(
-      selectorToCypher(
-        { has: { via: ['child'], match: { kind: 'Expression' }, min: 0, max: 0 } },
-        'n',
-      ),
+      selectorToCypher({ has: { via: ['child'], match: { kind: 'Expression' }, max: 0 } }, 'n'),
     ).toBe(
       "COUNT { (n)-[:`child`]->(n_1) WHERE n_1.kind = 'Expression' } >= 0 AND COUNT { (n)-[:`child`]->(n_1) WHERE n_1.kind = 'Expression' } <= 0",
     );

@@ -41,7 +41,7 @@ export interface Neighbours {
   /** Edge kinds followed; every kind when omitted. */
   via?: string[];
   match: Selector;
-  /** At least this many neighbours match (default 1). */
+  /** At least this many neighbours match (default `min(1, max)`: 1, or 0 when `max` is 0). */
   min?: number;
   /** At most this many neighbours match (default no limit). */
   max?: number;

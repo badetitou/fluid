@@ -25,7 +25,7 @@ function neighbourCount(
     const other = ctx.byKey.get(direction === 'out' ? edge.to : edge.from);
     if (other && match(other, ctx, n.match)) count++;
   }
-  return count >= (n.min ?? 1) && count <= (n.max ?? Infinity);
+  return count >= (n.min ?? Math.min(1, n.max ?? 1)) && count <= (n.max ?? Infinity);
 }
 
 function parentsOf(node: DecoratedNode, ctx: MatchContext): DecoratedNode[] {
