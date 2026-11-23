@@ -221,6 +221,8 @@ It starts fluid on http://localhost:4001 (embedded PGlite storage, offline mock 
 | `--data-dir DIR` | PGlite data directory (default `~/.fluid/data`, or `FLUID_DATA_DIR`) |
 | `--env-file F` | Load variables from a file (a `.env` in the current directory is never read) |
 | `--no-open` | Do not open the browser |
+| `--no-github` | Do not offer the [GitHub source](docs/guides/github-source.md) (on when `model-graphql` is found on `PATH` or in `~/.cargo/bin`) |
+| `--model-graphql P` | Path of Model's `model-graphql`, for the GitHub source (or `FLUID_MODEL_GRAPHQL_BIN`) |
 | `--verbose` | Request logs and stack traces |
 
 Build and check the package locally with `pnpm pack:cli && pnpm test:pack` (tarball in `out/`). See `apps/cli/README.md`.

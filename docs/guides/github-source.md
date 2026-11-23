@@ -26,7 +26,11 @@ to turn the feature off. The `fluid-bff` image used by the Helm chart does not s
 cargo install model-graphql --version 0.4.0 --locked
 ```
 
-Then enable the feature for the BFF (in `apps/bff/.env`, or with `--env-file` for `npx`):
+With `npx @badetitou/fluid`, that is all: the CLI finds `model-graphql` (on `PATH` or in
+`~/.cargo/bin`) and turns the GitHub source on; its startup log says `GitHub source: on (<path>)`.
+Pass `--model-graphql <path>` for a binary elsewhere, or `--no-github` to turn the source off.
+
+For the BFF in development, enable the feature in `apps/bff/.env`:
 
 ```bash
 FLUID_REPOS_ENABLED=true

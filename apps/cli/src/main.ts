@@ -49,6 +49,7 @@ async function launch(options: CliOptions, env: Env, layout: PackageLayout): Pro
     });
     const url = config.displayUrl(server.port);
     console.log(`fluid running at ${url} · storage: ${server.storageLabel} · Ctrl+C to stop`);
+    console.log(config.githubSource);
     if (config.postgres) {
       console.log('Postgres mode: the database must already be migrated (prisma migrate deploy).');
     }
