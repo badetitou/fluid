@@ -38,6 +38,32 @@ export const codeAnnotationsSchema = z.object({
 });
 export type CodeAnnotations = z.infer<typeof codeAnnotationsSchema>;
 
+/**
+ * The syntax tree of the shown source, as rows: the active graph decorators run
+ * on it and their findings are shown as annotations. Position fields have the
+ * same meaning as in `annotations`.
+ */
+export const codeRulesSchema = z.object({
+  /** The AST rows (one per syntax node). */
+  data: dataBindingSchema,
+  /** Dot path of the row id (default "id"). */
+  idField: z.string().min(1).optional(),
+  /** Dot path of the parent's id; a parent may be an object holding the id. */
+  parentField: z.string().min(1),
+  /** Dot path of the node kind (default "kind"). */
+  kindField: z.string().min(1).optional(),
+  /** Dot path of the node name (default "name"). */
+  nameField: z.string().min(1).optional(),
+  lineField: z.string().min(1).optional(),
+  endLineField: z.string().min(1).optional(),
+  columnField: z.string().min(1).optional(),
+  endColumnField: z.string().min(1).optional(),
+  startOffsetField: z.string().min(1).optional(),
+  endOffsetField: z.string().min(1).optional(),
+  offsetBase: z.union([z.literal(0), z.literal(1)]).optional(),
+});
+export type CodeRules = z.infer<typeof codeRulesSchema>;
+
 export const codeCompareSchema = z.object({
   /** Where the other version comes from; omit to read `field` in the bound object. */
   data: dataBindingSchema.optional(),
@@ -64,6 +90,8 @@ export const codeWidgetSchema = z.object({
   /** Terms always highlighted (case-insensitive), e.g. ["halt", "flag:"]. */
   highlight: z.array(z.string().min(1)).optional(),
   annotations: codeAnnotationsSchema.optional(),
+  /** Syntax tree the active graph decorators run on. */
+  rules: codeRulesSchema.optional(),
   /** Show the search box (default true). */
   search: z.boolean().optional(),
   /** Wrap long lines instead of scrolling (default false). */
@@ -78,7 +106,10 @@ export const codeWidgetDoc = `- { "id": string, "type": "code", "title"?: string
     "highlight"?: [string, ...], "search"?: boolean, "wrap"?: boolean,
     "annotations"?: { "data"?: DataBinding, "field"?: string, "lineField"?: string, "endLineField"?: string,
       "columnField"?: string, "endColumnField"?: string, "startOffsetField"?: string, "endOffsetField"?: string,
-      "offsetBase"?: 0|1, "messageField": string, "severityField"?: string, "ruleField"?: string } }
+      "offsetBase"?: 0|1, "messageField": string, "severityField"?: string, "ruleField"?: string },
+    "rules"?: { "data": DataBinding, "parentField": string, "idField"?: string, "kindField"?: string,
+      "nameField"?: string, "lineField"?: string, "endLineField"?: string, "columnField"?: string,
+      "endColumnField"?: string, "startOffsetField"?: string, "endOffsetField"?: string, "offsetBase"?: 0|1 } }
     Use it for SOURCE CODE (files, methods, functions, scripts, queries): line numbers and a search box.
     - DIFF: when the API exposes another version of the same source (previous version, base of a change,
       original/refactored…), set "compare" to it; "field" is read in the bound object, or in "compare.data".
@@ -87,6 +118,8 @@ export const codeWidgetDoc = `- { "id": string, "type": "code", "title"?: string
       "data" for another query. Map their position (line[/column], or character offsets with
       "startOffsetField"/"endOffsetField"; "offsetBase": 1 for 1-based inclusive intervals as in Pharo),
       "messageField", "severityField" (error/warning/info…) and "ruleField".
+    - RULES: when the API exposes the syntax tree (AST nodes with kind, parent and position) of the source,
+      set "rules" to those rows: the active graph decorators run on them and their findings are shown as annotations.
     Prefer it over "richtext" for code; keep "richtext" for Markdown.`;
 
 /**
