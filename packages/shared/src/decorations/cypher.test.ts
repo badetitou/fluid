@@ -46,7 +46,7 @@ describe('Cypher translation', () => {
       'MATCH (a)-[r:`calls`]->(b) WHERE a:`a` AND b:`b` RETURN a, r, b',
     );
     expect(c({ check: 'forbidden', reachable: true, from: { tag: 'a' }, to: { tag: 'b' } })).toBe(
-      'MATCH (a)-[*1..]->(b) WHERE a:`a` AND b:`b` RETURN DISTINCT a, b',
+      'MATCH (a)-[*1..]->(b) WHERE a:`a` AND b:`b` AND a <> b RETURN DISTINCT a, b',
     );
     expect(c({ check: 'required', from: { tag: 'a' }, to: { tag: 'b' } })).toBe(
       'MATCH (a) WHERE a:`a` AND NOT EXISTS { MATCH (a)-[]->(b) WHERE b:`b` } RETURN a',
@@ -65,7 +65,7 @@ describe('Cypher translation', () => {
       join: { from: 'props.url', to: 'props.route', normalize: 'url' },
     });
     expect(derivedToCypher(d)).toBe(
-      "MATCH (a), (b) WHERE a.language = 'ts' AND b.language = 'java' AND fluid.normalizeUrl(a.`props.url`) = fluid.normalizeUrl(b.`props.route`) MERGE (a)-[:`http`]->(b)",
+      "MATCH (a), (b) WHERE a.language = 'ts' AND b.language = 'java' AND a <> b AND fluid.normalizeUrl(a.`props.url`) = fluid.normalizeUrl(b.`props.route`) MERGE (a)-[:`http`]->(b)",
     );
   });
 
@@ -79,5 +79,14 @@ describe('Cypher translation', () => {
       ],
     });
     expect(decoratorToCypher(spec)).toHaveLength(3);
+  });
+});
+
+describe('Cypher edge cases', () => {
+  it('handles empty lists and external: false', () => {
+    expect(selectorToCypher({ tag: [] }, 'n')).toBe('false');
+    expect(selectorToCypher({ any: [] }, 'n')).toBe('(false)');
+    expect(selectorToCypher({ external: false }, 'n')).toBe('coalesce(n.external, false) = false');
+    expect(selectorToCypher({ external: true }, 'n')).toBe('n.external = true');
   });
 });

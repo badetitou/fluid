@@ -1,6 +1,12 @@
 import { deriveEdges } from './derive';
 import { checkConstraint, type Placed } from './constraints';
-import type { DecoratedEdge, DecoratedGraph, Decoration, DecorationResult } from './graph';
+import {
+  edgeKey,
+  type DecoratedEdge,
+  type DecoratedGraph,
+  type Decoration,
+  type DecorationResult,
+} from './graph';
 import type { Concept, DecoratorSpec } from './schema';
 import { matchSelector, nodeField, safeRegex } from './selector';
 
@@ -36,6 +42,7 @@ export function evaluateDecorators(
         if (!matchSelector(node, own, concept.match)) continue;
         const field = concept.tagFrom ? nodeField(node, concept.tagFrom.field) : undefined;
         for (const tag of conceptTags(concept, field)) {
+          if (own.has(tag)) continue;
           own.add(tag);
           added.set(node.key, (added.get(node.key) ?? new Set()).add(tag));
         }
@@ -43,9 +50,17 @@ export function evaluateDecorators(
     }
   }
 
-  const derivedEdges: DecoratedEdge[] = specs.flatMap((spec) =>
-    spec.derived.flatMap((rule) => deriveEdges(rule, graph.nodes, tagsOf)),
-  );
+  const known = new Set(graph.edges.map(edgeKey));
+  const derivedEdges: DecoratedEdge[] = [];
+  for (const spec of specs) {
+    for (const rule of spec.derived) {
+      for (const edge of deriveEdges(rule, graph.nodes, tagsOf)) {
+        if (known.has(edgeKey(edge))) continue;
+        known.add(edgeKey(edge));
+        derivedEdges.push(edge);
+      }
+    }
+  }
   const edges = [...graph.edges, ...derivedEdges];
   const byKey = new Map(graph.nodes.map((n) => [n.key, n]));
 

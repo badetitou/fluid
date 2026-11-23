@@ -51,22 +51,26 @@ export function cycles(
 
   for (const root of nodes) {
     if (index.has(root)) continue;
-    const work: { node: string; next: number }[] = [{ node: root, next: 0 }];
+    const open = (node: string) => ({
+      node,
+      next: 0,
+      out: (adj.get(node) ?? []).filter(inside),
+    });
+    const work = [open(root)];
     index.set(root, counter);
     low.set(root, counter++);
     stack.push(root);
     onStack.add(root);
     while (work.length > 0) {
       const frame = work[work.length - 1];
-      const out = (adj.get(frame.node) ?? []).filter(inside);
-      if (frame.next < out.length) {
-        const to = out[frame.next++].to;
+      if (frame.next < frame.out.length) {
+        const to = frame.out[frame.next++].to;
         if (!index.has(to)) {
           index.set(to, counter);
           low.set(to, counter++);
           stack.push(to);
           onStack.add(to);
-          work.push({ node: to, next: 0 });
+          work.push(open(to));
         } else if (onStack.has(to)) {
           low.set(frame.node, Math.min(low.get(frame.node)!, index.get(to)!));
         }

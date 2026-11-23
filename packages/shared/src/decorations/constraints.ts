@@ -70,12 +70,15 @@ export function checkConstraint(rule: Constraint, ctx: ConstraintContext): Place
           placed.push({ type: 'node', key: source, finding: finding(text, hits) });
           continue;
         }
-        for (const edge of adj.get(source) ?? []) {
-          if (!to.has(edge.to)) continue;
+        const hits = (adj.get(source) ?? []).filter((e) => to.has(e.to));
+        if (hits.length === 0) continue;
+        for (const edge of hits) {
           const f = finding(message(ctx, rule.message, source, edge.to), [edge.to]);
           placed.push({ type: 'edge', key: edgeKey(edge), finding: f });
-          placed.push({ type: 'node', key: source, finding: f });
         }
+        const targets = [...new Set(hits.map((e) => e.to))];
+        const text = message(ctx, rule.message, source, targets[0]);
+        placed.push({ type: 'node', key: source, finding: finding(text, targets) });
       }
       return placed;
     }

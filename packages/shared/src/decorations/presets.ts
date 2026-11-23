@@ -24,9 +24,9 @@ export function layersDecorator(options: {
     id: options.id,
     label: options.label,
     description: `Layers, top to bottom: ${layers.map((l) => l.tag).join(' → ')}.`,
-    concepts: layers.map((l) => ({ id: `layer-${l.tag}`, tag: l.tag, match: l.match })),
+    concepts: layers.map((l, i) => ({ id: `layer-${i}`, tag: l.tag, match: l.match })),
     constraints: layers.slice(1).map((lower, i) => ({
-      id: `layer-${lower.tag}-upward`,
+      id: `layer-${i + 1}-upward`,
       check: 'forbidden',
       severity,
       message: `{source} (${lower.tag}) depends on {target}, in an upper layer`,
