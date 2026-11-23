@@ -178,6 +178,11 @@ describe('structural selectors', () => {
     expect(matchSelector(g.nodes[0], c, { has: { match: {}, min: 1, max: 0 } })).toBe(false);
   });
 
+  it('rejects min above max', () => {
+    expect(selectorSchema.safeParse({ has: { match: {}, min: 2, max: 1 } }).success).toBe(false);
+    expect(selectorSchema.safeParse({ in: { match: {}, min: 1, max: 1 } }).success).toBe(true);
+  });
+
   it('validates the new fields with the schema', () => {
     expect(
       selectorSchema.safeParse({ has: { match: {}, max: 0 }, ancestor: { in: { match: {} } } })
@@ -204,13 +209,31 @@ describe('structural selectors as Cypher', () => {
       "EXISTS { MATCH (n_1)-[:child]->(n) WHERE n_1.kind = 'Method' }",
     );
     expect(selectorToCypher({ ancestor: { kind: 'Finally' } }, 'n')).toBe(
-      "EXISTS { MATCH (n_1)-[:child*1..]->(n) WHERE n_1.kind = 'Finally' }",
+      "EXISTS { MATCH (n_1)-[:child*1..1000]->(n) WHERE n_1.kind = 'Finally' }",
     );
   });
 
   it('uses fresh variables when nested', () => {
     expect(selectorToCypher({ parent: { ancestor: { kind: 'A' } } }, 'n')).toBe(
-      "EXISTS { MATCH (n_1)-[:child]->(n) WHERE EXISTS { MATCH (n_1_1)-[:child*1..]->(n_1) WHERE n_1_1.kind = 'A' } }",
+      "EXISTS { MATCH (n_1)-[:child]->(n) WHERE EXISTS { MATCH (n_1_1)-[:child*1..1000]->(n_1) WHERE n_1_1.kind = 'A' } }",
     );
+  });
+});
+
+describe('concept pass', () => {
+  it('does not memoize: a selector is re-evaluated after another concept adds a tag', () => {
+    // The same selector object is used before and after tag "a" appears.
+    const needsA: Selector = { tag: 'a' };
+    const spec = decoratorSpecSchema.parse({ id: 'd', label: 'D' });
+    const tagged = {
+      ...spec,
+      concepts: [
+        { id: 'early', match: needsA, tag: 'early' },
+        { id: 'give-a', match: {}, tag: 'a' },
+        { id: 'late', match: needsA, tag: 'late' },
+      ],
+    };
+    const result = evaluateDecorators([tagged], { nodes: [{ key: 'n' }], edges: [] });
+    expect(result.decorations[0].tags).toEqual(['a', 'late']);
   });
 });

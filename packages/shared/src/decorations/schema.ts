@@ -35,7 +35,6 @@ export type PropMatcher = z.infer<typeof propMatcherSchema>;
 
 const oneOrMany = z.union([z.string(), z.array(z.string())]);
 
-/** Which nodes a rule is about. Every field given must hold (AND). */
 /** A condition on the neighbours of a node: how many of them match. */
 export interface Neighbours {
   /** Edge kinds followed; every kind when omitted. */
@@ -47,6 +46,7 @@ export interface Neighbours {
   max?: number;
 }
 
+/** Which nodes a rule is about. Every field given must hold (AND). */
 export interface Selector {
   key?: string | string[];
   kind?: string | string[];
@@ -82,7 +82,10 @@ const neighboursSchema: z.ZodType<Neighbours> = z.lazy(() =>
       min: z.number().int().min(0).optional(),
       max: z.number().int().min(0).optional(),
     })
-    .strict(),
+    .strict()
+    .refine((n) => n.min === undefined || n.max === undefined || n.min <= n.max, {
+      message: '"min" must not exceed "max"',
+    }),
 );
 
 export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
