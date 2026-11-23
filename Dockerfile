@@ -20,7 +20,7 @@ RUN pnpm pack:cli && mv out/badetitou-fluid-*.tgz /fluid.tgz
 # --- model-graphql: badetitou/Model's GraphQL server, used by the GitHub source (no prebuilt binary) ---
 # Same Debian release as the runtime so the glibc matches. Rust 1.100 is Model's minimum.
 FROM rust:1.100-bookworm AS model-graphql
-ARG MODEL_GRAPHQL_VERSION=0.4.0
+ARG MODEL_GRAPHQL_VERSION=0.5.0
 RUN cargo install model-graphql --version "$MODEL_GRAPHQL_VERSION" --locked --root /opt/model \
   && strip /opt/model/bin/model-graphql
 

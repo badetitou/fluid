@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-23
+
+### Added
+- **GitHub source** (#58-#72): explore a public GitHub repository from fluid. The BFF downloads it, runs Model's `model-graphql` on it (one process per repository, least recently used stopped) and proxies its GraphQL API; a built-in `github` source provider adds repositories from the source switcher. Guide: `docs/guides/github-source.md`.
+- **Model views**: curated perspectives for sources served by badetitou/Model, offered only where the source can answer them.
+- The CLI turns the GitHub source on when `model-graphql` is found on `PATH` or in `~/.cargo/bin` (`--no-github`, `--model-graphql`); the Docker image ships it.
+
+### Changed
+- `model-graphql` 0.5.0 (was 0.4.0).
+- Saved plugins this build cannot run are ignored instead of crashing.
+
 ## [0.3.0] - 2026-11-20
 
 ### Added
