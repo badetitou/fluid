@@ -52,7 +52,7 @@ export function constraintToCypher(c: Constraint): string {
   }
 }
 
-/** Every rule of a decorator, in evaluation order. */
+/** Every rule of a decorator, in evaluation order. `imports` (analyser logs) have no Cypher form: skipped. */
 export function decoratorToCypher(spec: DecoratorSpec): string[] {
   return [
     ...spec.concepts.map(conceptToCypher),

@@ -57,6 +57,8 @@ export interface DecorationResult {
   decorations: Decoration[];
   /** Edges the decorators added; they are part of the graph rules ran on. */
   derivedEdges: DecoratedEdge[];
+  /** Imported findings that matched no node, by `${decoratorId}/${importId}` (only when > 0). */
+  unmatched?: Record<string, number>;
 }
 
 export function edgeKey(edge: DecoratedEdge): string {

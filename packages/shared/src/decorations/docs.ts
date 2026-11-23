@@ -4,7 +4,7 @@ import type { Constraint, DecoratorSpec } from './schema';
 // the active decorators (to use their tags and rules in a view). Prompts use
 // these, never a hand-written description (CLAUDE.md, rule 5).
 
-export const DECORATOR_LANGUAGE_DOC = `A graph decorator is JSON: { "id", "label", "description"?, "concepts"?, "derived"?, "constraints"? }.
+export const DECORATOR_LANGUAGE_DOC = `A graph decorator is JSON: { "id", "label", "description"?, "concepts"?, "derived"?, "constraints"?, "imports"? }.
 Selector (all given fields must hold): { "key"?, "kind"?, "fineKind"?, "language"? (string or list), "name"? (regex),
   "file"? (glob, ** across folders), "external"? (boolean), "tag"? (has one of), "props"? ({ "a.b": value or
   { eq, ne, gt, gte, lt, lte, regex, exists } }; gt/lt on a list compare its length), "not"?, "all"?, "any"?,
@@ -23,7 +23,10 @@ Constraints give findings, each with "id", "message" ({source}, {target} are nod
   { "check": "forbidden", "from", "to", "reachable"? } no edge (or no path) from a "from" node to a "to" node;
   { "check": "required", "from", "to" } every "from" node has an edge to a "to" node;
   { "check": "unreferenced", "match" } every matching node with no incoming edge (of the "via" kinds) is a finding;
-  { "check": "noCycle", "among"? } no cycle among the matching nodes.`;
+  { "check": "noCycle", "among"? } no cycle among the matching nodes.
+Imports read findings from an analyser's SARIF log: { "id", "format": "sarif", "url" (absolute, or relative to the
+  plugin manifest), "stripPrefix"? (string or list, cut from the log's file paths), "addPrefix"?, "kinds"? (only
+  nodes of these kinds), "description"? }. Each result lands on the innermost node of its file that contains its line.`;
 
 function describeConstraint(c: Constraint): string {
   return `    - ${c.id} (${c.severity}, ${c.check}): ${c.description ?? c.message}`;
@@ -43,6 +46,7 @@ export function renderDecoratorDocs(specs: DecoratorSpec[]): string {
         ? [`    derived edges: ${spec.derived.map((d) => d.kind).join(', ')}`]
         : []),
       ...spec.constraints.map(describeConstraint),
+      ...spec.imports.map((i) => `    - import ${i.id} (${i.format}): ${i.description ?? i.url}`),
     ].join('\n');
   });
   return [

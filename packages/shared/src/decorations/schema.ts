@@ -194,6 +194,23 @@ export const derivedEdgeSchema = z
   .strict();
 export type DerivedEdge = z.infer<typeof derivedEdgeSchema>;
 
+/** Findings read from an analyser's log file (SARIF), placed on nodes by file and line. */
+export const importSchema = z
+  .object({
+    id: idSchema,
+    format: z.literal('sarif'),
+    /** Absolute, or relative to the plugin manifest (page when not installed from a URL). */
+    url: z.string().min(1),
+    /** Prefix(es) cut from the log's file paths so they match the graph's `file`. */
+    stripPrefix: z.union([z.string(), z.array(z.string())]).optional(),
+    addPrefix: z.string().optional(),
+    /** Only nodes of these kinds receive findings. */
+    kinds: z.array(z.string()).optional(),
+    description: z.string().optional(),
+  })
+  .strict();
+export type DecoratorImport = z.infer<typeof importSchema>;
+
 export const decoratorSpecSchema = z
   .object({
     id: idSchema,
@@ -202,6 +219,7 @@ export const decoratorSpecSchema = z
     derived: z.array(derivedEdgeSchema).default([]),
     concepts: z.array(conceptSchema).default([]),
     constraints: z.array(constraintSchema).default([]),
+    imports: z.array(importSchema).default([]),
   })
   .strict();
 export type DecoratorSpec = z.infer<typeof decoratorSpecSchema>;

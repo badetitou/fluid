@@ -7,6 +7,7 @@ import {
   type Decoration,
   type DecorationResult,
 } from './graph';
+import { sarifToFindings, type SarifLog } from './sarif';
 import type { Concept, DecoratorSpec } from './schema';
 import { createMatchContext, matchSelector, nodeField, safeRegex } from './selector';
 
@@ -26,9 +27,40 @@ function conceptTags(concept: Concept, field: unknown): string[] {
   return value ? [`${from.prefix ?? ''}${value}`] : [];
 }
 
+export interface EvaluateOptions {
+  /** Parsed logs of the imports, keyed `${spec.id}/${import.id}`. An import without a log is ignored. */
+  imported?: ReadonlyMap<string, SarifLog>;
+}
+
+function importedFindings(
+  specs: DecoratorSpec[],
+  graph: DecoratedGraph,
+  imported: ReadonlyMap<string, SarifLog>,
+): { placed: Placed[]; unmatched: Record<string, number> } {
+  const placed: Placed[] = [];
+  const unmatched: Record<string, number> = {};
+  for (const spec of specs) {
+    for (const imp of spec.imports) {
+      const id = `${spec.id}/${imp.id}`;
+      const log = imported.get(id);
+      if (!log) continue;
+      const result = sarifToFindings(log, graph.nodes, {
+        decoratorId: spec.id,
+        stripPrefix: imp.stripPrefix,
+        addPrefix: imp.addPrefix,
+        kinds: imp.kinds,
+      });
+      for (const { key, finding } of result.findings) placed.push({ type: 'node', key, finding });
+      if (result.unmatched > 0) unmatched[id] = result.unmatched;
+    }
+  }
+  return { placed, unmatched };
+}
+
 export function evaluateDecorators(
   specs: DecoratorSpec[],
   graph: DecoratedGraph,
+  options: EvaluateOptions = {},
 ): DecorationResult {
   const tags = new Map<string, Set<string>>();
   for (const node of graph.nodes) tags.set(node.key, new Set(node.tags ?? []));
@@ -67,7 +99,7 @@ export function evaluateDecorators(
   const edges = [...graph.edges, ...derivedEdges];
   const match = createMatchContext(graph.nodes, edges, tagsOf, true);
 
-  const placed: Placed[] = specs.flatMap((spec) =>
+  const constraintPlaced: Placed[] = specs.flatMap((spec) =>
     spec.constraints.flatMap((rule) =>
       checkConstraint(rule, {
         decoratorId: spec.id,
@@ -79,7 +111,10 @@ export function evaluateDecorators(
     ),
   );
 
-  return { decorations: mergeDecorations(added, placed), derivedEdges };
+  const imports = importedFindings(specs, graph, options.imported ?? new Map());
+  const placed = [...constraintPlaced, ...imports.placed];
+  const unmatched = Object.keys(imports.unmatched).length > 0 ? { unmatched: imports.unmatched } : {};
+  return { decorations: mergeDecorations(added, placed), derivedEdges, ...unmatched };
 }
 
 function mergeDecorations(added: Map<string, Set<string>>, placed: Placed[]): Decoration[] {
