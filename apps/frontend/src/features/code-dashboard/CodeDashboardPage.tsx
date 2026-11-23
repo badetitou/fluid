@@ -1,4 +1,5 @@
 import { Alert, Progress, Typography } from 'antd';
+import { ArchitectureSection } from './ArchitectureSection';
 import { RankedCard } from './RankedCard';
 import { KpiRow } from './KpiRow';
 import { SizeDistribution } from './SizeDistribution';
@@ -26,6 +27,7 @@ export function CodeDashboardPage() {
       {d && (
         <>
           <KpiRow dashboard={d} />
+          <ArchitectureSection />
           <RankedCard
             title="Technical debt hotspots"
             hint="size + long and unused methods + isolation"

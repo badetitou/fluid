@@ -1,5 +1,5 @@
 # Publishes the frontend as a static site on GitHub Pages (https://fluid.badetitou.fr) on every
-# push to main.
+# push to main, with Model's WebAssembly build for /analyse/owner/repo (see docs/guides/browser-analysis.md).
 #
 # Repository settings: Settings → Pages → Source: "GitHub Actions"; Custom domain: fluid.badetitou.fr.
 # Optional repository variables (Settings → Secrets and variables → Actions → Variables):
@@ -37,6 +37,19 @@ jobs:
         run: |
           echo "Building with base '$VITE_BASE'"
           pnpm --filter @fluid/frontend build
+      - name: Model WebAssembly (analysis in the browser)
+        env:
+          # Release of badetitou/Model the in-browser analysis is built from.
+          MODEL_VERSION: '0.7.0'
+        run: |
+          git clone --depth 1 --branch "v$MODEL_VERSION" https://github.com/badetitou/Model "$RUNNER_TEMP/model"
+          npm install --global wasm-pack
+          cd "$RUNNER_TEMP/model"
+          rustup target add wasm32-unknown-unknown
+          scripts/build-wasm.sh "$RUNNER_TEMP/model-pkg"
+          mkdir -p "$GITHUB_WORKSPACE/apps/frontend/dist/model-wasm"
+          cp "$RUNNER_TEMP/model-pkg/model_wasm.js" "$RUNNER_TEMP/model-pkg/model_wasm_bg.wasm" \
+            "$GITHUB_WORKSPACE/apps/frontend/dist/model-wasm/"
       - name: Runtime config and SPA fallback
         env:
           FLUID_BFF_URL: ${{ vars.FLUID_BFF_URL }}
@@ -57,6 +70,8 @@ jobs:
 
   deploy:
     needs: build
+    # A manual run on another branch only checks that the site builds.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       pages: write
