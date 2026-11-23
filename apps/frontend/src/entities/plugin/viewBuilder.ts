@@ -3,6 +3,7 @@ import type { ViewSpec } from '@fluid/shared';
 import type { Concept, ConceptQueries } from '../../graphql/introspection';
 import type { DataSource } from '../../views/plugin-api';
 import type { ColumnKind } from '../../views/viewScope';
+import type { RootFields } from './builders/sourceFit';
 
 /** What a view builder knows of the column it proposes perspectives for. */
 export interface ViewBuilderContext {
@@ -16,6 +17,11 @@ export interface ViewBuilderContext {
   writable: boolean;
   /** The plugin's settings, as the user filled them in Settings → Plugins. */
   settings: Readonly<Record<string, string>>;
+  /**
+   * The source's root query fields and their argument names, once introspected: a builder whose views
+   * are written for a given source checks them with `fitsSource` before proposing a view.
+   */
+  rootFields?: RootFields;
 }
 
 /** How a perspective was made, shown on its pill. */
