@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-23
+
+### Added
+- **Analyse a repository in the browser**: `/analyse/<owner>/<name>` (optional `?ref=`) opens fluid on the code model of a public GitHub repository, with no server. The page lists the repository with GitHub's API, reads its Java, TypeScript, Python and Pharo files, builds the model with Model compiled to WebAssembly in a worker and serves it as a `model-wasm://` GraphQL source. The Pages workflow builds the module from Model 0.7.0. Guide: `docs/guides/browser-analysis.md`.
+- **Code dashboard, architecture section**: dependency cycles, most connected entities and isolated classes and methods, read from Model's `Query.analysis` (a notice replaces the section on a source without it).
+- **Graph decorators** (#75-#94): a `graphDecorator` plugin kind with a declarative rule language (structural selectors `has`, `in`, `parent`, `ancestor`; unreferenced checks; composite joins), a built-in "Dependency cycles" decorator, SARIF imports mapped onto graph nodes, and decorations shown in the network and code widgets.
+- Plugins can contribute sidebar sections; the "Code analysis" section holds a code-quality dashboard.
+
+### Changed
+- `model-graphql` 0.7.0 (was 0.5.0): entity facts (`inDegree`, `outDegree`, `isUnused`, `inCycle`) and `Query.analysis`.
+- After a reload on an analysed repository, fluid rebuilds the model and returns to the page the user was on.
+
 ## [0.4.0] - 2026-11-23
 
 ### Added
