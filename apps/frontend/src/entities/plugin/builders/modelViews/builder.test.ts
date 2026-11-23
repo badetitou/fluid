@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildSchema, parse, validate } from 'graphql';
+import { buildSchema, parse, validate, type GraphQLSchema } from 'graphql';
 import { BUILTIN_WIDGET_CONTRACTS, viewSpecSchema, type ViewSpec } from '@fluid/shared';
 import type { Concept, ConceptQueries } from '../../../../graphql/introspection';
 import type { ViewBuilderContext } from '../../viewBuilder';
 import { MODEL_QUERIES } from './fixtures';
 import MODEL_SCHEMA from './model-schema.graphql?raw';
+import PYTHON_SCHEMA from './model-schema-python.graphql?raw';
 import { TREE_PAGE } from './selections';
 import { modelPerspectives } from '.';
 
@@ -76,10 +77,33 @@ describe('Model views builder', () => {
       ...specsOf(context('Function', 'detail')),
       ...specsOf(context('File', 'detail')),
     ];
-    for (const spec of specs) {
-      expect(viewSpecSchema.safeParse(spec).error).toBeUndefined();
-      for (const w of spec.widgets) expect(BUILTIN_WIDGET_CONTRACTS).toHaveProperty(w.type);
-      for (const q of Object.values(spec.queries)) expect(validate(schema, parse(q.query)).map((e) => e.message)).toEqual([]);
+    expectValid(schema, specs);
+  });
+
+  it('treats the finer concepts of Model 0.4.0 by archetype: records and annotation types as types', () => {
+    for (const [concept, lookup] of [['Record', 'recordByKey'], ['AnnotationType', 'annotationTypeByKey']]) {
+      const [overview, contents] = specsOf(context(concept, 'detail'));
+      expect(overview.title).toBe(`${concept} overview`);
+      expect(overview.queries.type.query).toContain(`${lookup}(key: $id)`);
+      expect(contents.title).toBe('Contents');
     }
+    expectValid(buildSchema(MODEL_SCHEMA), [...specsOf(context('Record', 'detail')), ...specsOf(context('AnnotationType', 'detail'))]);
+  });
+
+  it('treats Python modules as containers, valid against a Python model schema', () => {
+    const lists = modelPerspectives(context('PythonModule', 'list'));
+    expect(lists.map((p) => p.title)).toEqual(['Code tree']);
+    const [contents] = specsOf(context('PythonModule', 'detail'));
+    expect(contents.title).toBe('Contents');
+    expect(contents.queries.entity.query).toContain('pythonModuleByKey(key: $id)');
+    expectValid(buildSchema(PYTHON_SCHEMA), [...lists.map((p) => p.spec), contents]);
   });
 });
+
+function expectValid(schema: GraphQLSchema, specs: ViewSpec[]): void {
+  for (const spec of specs) {
+    expect(viewSpecSchema.safeParse(spec).error).toBeUndefined();
+    for (const w of spec.widgets) expect(BUILTIN_WIDGET_CONTRACTS).toHaveProperty(w.type);
+    for (const q of Object.values(spec.queries)) expect(validate(schema, parse(q.query)).map((e) => e.message)).toEqual([]);
+  }
+}

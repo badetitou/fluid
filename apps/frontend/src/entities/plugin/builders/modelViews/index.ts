@@ -1,6 +1,6 @@
 import type { Perspective, ViewBuilder, ViewBuilderContext } from '../../viewBuilder';
 import { callableSpec } from './callableSpec';
-import { MODEL_CALLABLES, MODEL_TYPES, looksLikeModel, modelLookup } from './detect';
+import { MODEL_CALLABLES, MODEL_CONTAINERS, MODEL_TYPES, looksLikeModel, modelLookup } from './detect';
 import { codeTreeSpec, containerSpec } from './treeSpecs';
 import { typeSpec } from './typeSpec';
 
@@ -10,7 +10,7 @@ export { looksLikeModel } from './detect';
 export const MODEL_VIEWS_ID = 'model-views';
 
 /** Concepts whose list column offers the whole code tree. */
-const TREE_CONCEPTS: ReadonlySet<string> = new Set(['Namespace', 'File', 'Entity']);
+const TREE_CONCEPTS: ReadonlySet<string> = new Set([...MODEL_CONTAINERS, 'Entity']);
 
 const perspective = (spec: Perspective['spec'], defaultFor?: Perspective['defaultFor']): Perspective => ({
   key: spec.id,
@@ -24,7 +24,7 @@ const perspective = (spec: Perspective['spec'], defaultFor?: Perspective['defaul
 function detailPerspectives(concept: string, lookup: string): Perspective[] {
   if (MODEL_CALLABLES.has(concept)) return [perspective(callableSpec(concept, lookup), 'detail')];
   if (MODEL_TYPES.has(concept)) return [perspective(typeSpec(concept, lookup), 'detail'), perspective(containerSpec(concept, lookup))];
-  if (concept === 'Namespace' || concept === 'File') return [perspective(containerSpec(concept, lookup), 'detail')];
+  if (MODEL_CONTAINERS.has(concept)) return [perspective(containerSpec(concept, lookup), 'detail')];
   return [];
 }
 

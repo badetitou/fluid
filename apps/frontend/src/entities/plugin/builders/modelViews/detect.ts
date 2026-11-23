@@ -16,9 +16,23 @@ const SIGNATURE: Record<string, string> = {
   Method: 'methodByKey',
 };
 
-/** Concepts shown as types (members, inheritance) and as callables (callers, callees). */
-export const MODEL_TYPES: ReadonlySet<string> = new Set(['Class', 'Interface', 'Trait', 'Enum', 'Struct']);
+/**
+ * Concepts shown as types (members, inheritance), as callables (callers, callees) and as containers
+ * (their contents). Since Model 0.4.0 the schema is built from the model and finer kinds get their own
+ * concept (a Java record is a `Record`); the schema does not say which archetype a concept belongs to,
+ * so the finer concepts are listed here with theirs.
+ */
+export const MODEL_TYPES: ReadonlySet<string> = new Set([
+  'Class',
+  'Interface',
+  'Trait',
+  'Enum',
+  'Struct',
+  'Record',
+  'AnnotationType',
+]);
 export const MODEL_CALLABLES: ReadonlySet<string> = new Set(['Method', 'Constructor', 'Function']);
+export const MODEL_CONTAINERS: ReadonlySet<string> = new Set(['Namespace', 'File', 'PythonModule']);
 
 const byKey = (queries: ConceptQueries | undefined, field: string): boolean =>
   queries?.byId?.field === field && queries.byId.idArg === 'key';
