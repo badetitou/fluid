@@ -8,7 +8,7 @@ import {
   type DecorationResult,
 } from './graph';
 import type { Concept, DecoratorSpec } from './schema';
-import { matchSelector, nodeField, safeRegex } from './selector';
+import { createMatchContext, matchSelector, nodeField, safeRegex } from './selector';
 
 // Runs decorators on a graph, in three passes over all of them, so one
 // decorator can build on another's tags (a rule set on top of a layer tagger):
@@ -34,12 +34,14 @@ export function evaluateDecorators(
   for (const node of graph.nodes) tags.set(node.key, new Set(node.tags ?? []));
   const tagsOf = (key: string): ReadonlySet<string> => tags.get(key) ?? new Set();
   const added = new Map<string, Set<string>>();
+  // Tags change during the concept pass, so its context does not memoize.
+  const conceptCtx = createMatchContext(graph.nodes, graph.edges, tagsOf, false);
 
   for (const spec of specs) {
     for (const concept of spec.concepts) {
       for (const node of graph.nodes) {
         const own = tags.get(node.key) as Set<string>;
-        if (!matchSelector(node, own, concept.match)) continue;
+        if (!matchSelector(node, conceptCtx, concept.match)) continue;
         const field = concept.tagFrom ? nodeField(node, concept.tagFrom.field) : undefined;
         for (const tag of conceptTags(concept, field)) {
           if (own.has(tag)) continue;
@@ -50,11 +52,12 @@ export function evaluateDecorators(
     }
   }
 
+  const deriveCtx = createMatchContext(graph.nodes, graph.edges, tagsOf, true);
   const known = new Set(graph.edges.map(edgeKey));
   const derivedEdges: DecoratedEdge[] = [];
   for (const spec of specs) {
     for (const rule of spec.derived) {
-      for (const edge of deriveEdges(rule, graph.nodes, tagsOf)) {
+      for (const edge of deriveEdges(rule, graph.nodes, deriveCtx)) {
         if (known.has(edgeKey(edge))) continue;
         known.add(edgeKey(edge));
         derivedEdges.push(edge);
@@ -62,11 +65,17 @@ export function evaluateDecorators(
     }
   }
   const edges = [...graph.edges, ...derivedEdges];
-  const byKey = new Map(graph.nodes.map((n) => [n.key, n]));
+  const match = createMatchContext(graph.nodes, edges, tagsOf, true);
 
   const placed: Placed[] = specs.flatMap((spec) =>
     spec.constraints.flatMap((rule) =>
-      checkConstraint(rule, { decoratorId: spec.id, nodes: graph.nodes, byKey, edges, tagsOf }),
+      checkConstraint(rule, {
+        decoratorId: spec.id,
+        nodes: graph.nodes,
+        byKey: match.byKey,
+        edges,
+        match,
+      }),
     ),
   );
 

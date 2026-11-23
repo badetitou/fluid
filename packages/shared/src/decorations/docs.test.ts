@@ -27,6 +27,12 @@ describe('decorator docs', () => {
     expect(text).toContain('- big (info, node): too big');
   });
 
+  it('documents the structural selector fields', () => {
+    for (const field of ['"has"', '"in"', '"parent"', '"ancestor"', '"max": 0', '"child"']) {
+      expect(DECORATOR_LANGUAGE_DOC).toContain(field);
+    }
+  });
+
   it('mentions all four checks in the language doc', () => {
     for (const check of ['node', 'forbidden', 'required', 'noCycle']) {
       expect(DECORATOR_LANGUAGE_DOC).toContain(`"check": "${check}"`);

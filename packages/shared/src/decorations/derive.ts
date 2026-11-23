@@ -1,6 +1,6 @@
 import type { DecoratedEdge, DecoratedNode } from './graph';
 import type { DerivedEdge } from './schema';
-import { matchSelector, nodeField } from './selector';
+import { matchSelector, nodeField, type MatchContext } from './selector';
 
 // Derived edges: link nodes whose fields agree, e.g. a front-end call whose URL
 // is the path of a back-end endpoint. Joined through a map, not pairwise.
@@ -37,12 +37,12 @@ export const MAX_DERIVED_PER_RULE = 10000;
 export function deriveEdges(
   rule: DerivedEdge,
   nodes: DecoratedNode[],
-  tagsOf: (key: string) => ReadonlySet<string>,
+  ctx: MatchContext,
 ): DecoratedEdge[] {
   const { normalize } = rule.join;
   const targets = new Map<string, string[]>();
   for (const node of nodes) {
-    if (!matchSelector(node, tagsOf(node.key), rule.to)) continue;
+    if (!matchSelector(node, ctx, rule.to)) continue;
     for (const value of joinValues(node, rule.join.to, normalize)) {
       const list = targets.get(value);
       if (list) list.push(node.key);
@@ -52,7 +52,7 @@ export function deriveEdges(
   const edges: DecoratedEdge[] = [];
   const seen = new Set<string>();
   for (const node of nodes) {
-    if (!matchSelector(node, tagsOf(node.key), rule.from)) continue;
+    if (!matchSelector(node, ctx, rule.from)) continue;
     for (const value of joinValues(node, rule.join.from, normalize)) {
       for (const to of targets.get(value) ?? []) {
         if (edges.length >= MAX_DERIVED_PER_RULE) return edges;

@@ -36,6 +36,17 @@ export type PropMatcher = z.infer<typeof propMatcherSchema>;
 const oneOrMany = z.union([z.string(), z.array(z.string())]);
 
 /** Which nodes a rule is about. Every field given must hold (AND). */
+/** A condition on the neighbours of a node: how many of them match. */
+export interface Neighbours {
+  /** Edge kinds followed; every kind when omitted. */
+  via?: string[];
+  match: Selector;
+  /** At least this many neighbours match (default 1). */
+  min?: number;
+  /** At most this many neighbours match (default no limit). */
+  max?: number;
+}
+
 export interface Selector {
   key?: string | string[];
   kind?: string | string[];
@@ -53,7 +64,26 @@ export interface Selector {
   not?: Selector;
   all?: Selector[];
   any?: Selector[];
+  /** The number of out-neighbours (over `via` edges) that match lies in [min, max]. */
+  has?: Neighbours;
+  /** The same, over in-neighbours. */
+  in?: Neighbours;
+  /** The source of the incoming `child` edge matches. */
+  parent?: Selector;
+  /** Some node up the `child` chain matches. */
+  ancestor?: Selector;
 }
+
+const neighboursSchema: z.ZodType<Neighbours> = z.lazy(() =>
+  z
+    .object({
+      via: z.array(z.string()).optional(),
+      match: selectorSchema,
+      min: z.number().int().min(0).optional(),
+      max: z.number().int().min(0).optional(),
+    })
+    .strict(),
+);
 
 export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
   z
@@ -70,6 +100,10 @@ export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
       not: selectorSchema.optional(),
       all: z.array(selectorSchema).optional(),
       any: z.array(selectorSchema).optional(),
+      has: neighboursSchema.optional(),
+      in: neighboursSchema.optional(),
+      parent: selectorSchema.optional(),
+      ancestor: selectorSchema.optional(),
     })
     .strict(),
 );
