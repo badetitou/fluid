@@ -17,7 +17,7 @@ Specialists:
 | Agent | Model | Does | Doesn't |
 | --- | --- | --- | --- |
 | widget-creator | sonnet | new or changed widget type, end to end (contract, renderer, example, tests) | other plugin kinds |
-| plugin-creator | sonnet | plugins of the five kinds (theme, widget, viewBuilder, sourceProvider, pageAction) | unrelated features |
+| plugin-creator | sonnet | plugins of the six kinds (theme, widget, viewBuilder, sourceProvider, pageAction, graphDecorator) | unrelated features |
 
 Review team (`review-team` skill), plugin agents as-is: `review-correctness`,
 `review-stability`, `review-style` (haiku), `review-tests`, `review-contract`,

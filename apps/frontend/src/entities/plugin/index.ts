@@ -16,6 +16,7 @@ export {
 } from './manifest';
 export { DEMO_SOURCES, type DemoSource } from './sources/demoSources';
 export { usePluginSources, type GroupSourceAdder, type SourceGroup } from './usePluginSources';
+export { activeGraphDecorators } from './graphDecorator';
 export { activeWidgetCatalog, availableThemes, contractsOf, pickTheme, themesOf, type ActiveViewBuilder } from './model';
 export { PluginsContext } from './PluginsContext';
 export { fitsSource, rootFieldsOf, type RootFields } from './builders/sourceFit';
@@ -25,6 +26,7 @@ export {
   currentWidgetContracts,
   useActiveColumnOverlays,
   useActiveDataSources,
+  useActiveGraphDecorators,
   useActivePageActions,
   useActiveViewBuilders,
   useBuilderColors,
@@ -35,6 +37,7 @@ export {
 } from './usePlugins';
 export type {
   FluidPlugin,
+  GraphDecoratorPlugin,
   InstalledPlugin,
   PageActionPlugin,
   PluginLoadState,

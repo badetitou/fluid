@@ -1,4 +1,4 @@
-import type { WidgetContract } from '@fluid/shared';
+import type { DecoratorSpec, WidgetContract } from '@fluid/shared';
 import type { ThemeDefinition } from '../../shared/theme';
 import type { WidgetRendererDefinition } from '../../views/plugin-api';
 import type { PluginKind, PluginManifest } from './manifest';
@@ -52,8 +52,14 @@ export interface PageActionPlugin extends PluginBase {
   actions: PageAction[];
 }
 
+/** A graph decorator plugin: declarative decorators (tags, derived edges, rules). Plain data, no module. */
+export interface GraphDecoratorPlugin extends PluginBase {
+  kind: 'graphDecorator';
+  decorators: DecoratorSpec[];
+}
+
 /** A plugin as the app uses it: its manifest and what it provides once loaded. */
-export type FluidPlugin = ThemePlugin | WidgetPlugin | ViewBuilderPlugin | SourceProviderPlugin | PageActionPlugin;
+export type FluidPlugin = ThemePlugin | WidgetPlugin | ViewBuilderPlugin | SourceProviderPlugin | PageActionPlugin | GraphDecoratorPlugin;
 
 export type { PluginKind };
 

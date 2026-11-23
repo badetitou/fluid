@@ -1,4 +1,5 @@
-import type { Column } from '@fluid/shared';
+import type { Column, Decoration } from '@fluid/shared';
+import { DecorationBadge } from '../../plugin-api/DecorationBadge';
 import { getPath } from '../../data';
 import { humanize } from '../../fieldHeuristics';
 import { formatValue } from '../../format';
@@ -8,6 +9,8 @@ import styles from './Network.module.css';
 
 interface NetworkTooltipProps {
   node: NetworkNode;
+  /** Tags and findings of the node, when decorated. */
+  decoration?: Decoration;
   /** Where the pointer is, in the canvas. */
   at: Point;
   columns: Column[];
@@ -22,7 +25,7 @@ const OFFSET = 14;
 const titleOf = (col: Column) => col.title ?? humanize(col.key.split('.').pop() ?? col.key);
 
 /** The card shown next to the hovered node: its label, its group, then the configured values. */
-export function NetworkTooltip({ node, at, columns, color, frameWidth }: NetworkTooltipProps) {
+export function NetworkTooltip({ node, at, columns, color, frameWidth, decoration }: NetworkTooltipProps) {
   const position = at.x < frameWidth / 2 ? { left: at.x + OFFSET, top: at.y } : { right: frameWidth - at.x + OFFSET, top: at.y };
   const values = columns.filter((col) => {
     const value = getPath(node.row, col.key);
@@ -39,6 +42,14 @@ export function NetworkTooltip({ node, at, columns, color, frameWidth }: Network
           </span>
         </div>
       )}
+      {decoration && decoration.findings.length > 0 && (
+        <ul className={styles.findings}>
+          {decoration.findings.map((f, i) => (
+            <li key={i}>{f.message}</li>
+          ))}
+        </ul>
+      )}
+      <DecorationBadge decoration={decoration} type="network" />
       {values.map((col) => (
         <div key={col.key} className={styles.tooltipRow}>
           <span>{titleOf(col)}</span>

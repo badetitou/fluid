@@ -28,7 +28,9 @@ export function useNetworkAppearance(
       }),
       edgeReducer: (key, attrs) => {
         const graph = sigma.getGraph();
-        return { ...attrs, ...edgeLook(graph.source(key), graph.target(key), highlight, palette) };
+        // Decorated edges carry their own color and size as graph attributes.
+        const own = typeof attrs.color === 'string' && typeof attrs.size === 'number' ? { color: attrs.color, size: attrs.size } : undefined;
+        return { ...attrs, ...edgeLook(graph.source(key), graph.target(key), highlight, palette, own) };
       },
     });
   }, [sigma, colors, palette, highlight]);
