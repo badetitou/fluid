@@ -70,6 +70,8 @@ jobs:
 
   deploy:
     needs: build
+    # A manual run on another branch only checks that the site builds.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       pages: write
