@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { codeRulesSchema, codeWidgetSchema, methodSourceExample } from './code';
+import { codeRulesSchema, codeWidgetSchema, methodRulesExample } from './code';
 
 const base = { data: { query: 'ast' }, parentField: 'parent' };
 
@@ -16,7 +16,7 @@ describe('codeRulesSchema', () => {
   });
 
   it('is valid in the curated example', () => {
-    const [source] = methodSourceExample.widgets;
+    const [source] = methodRulesExample.widgets;
     expect(codeWidgetSchema.safeParse(source).success).toBe(true);
   });
 });

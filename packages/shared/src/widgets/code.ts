@@ -154,15 +154,6 @@ export const methodSourceExample: ViewSpec = {
             previousVersion {
               sourceCode
             }
-            syntaxNodes {
-              id
-              kind
-              name
-              line
-              parent {
-                id
-              }
-            }
           }
         }
       `,
@@ -184,8 +175,6 @@ export const methodSourceExample: ViewSpec = {
         severityField: 'severity',
         ruleField: 'rule',
       },
-      // The active graph decorators run on the syntax tree of the method.
-      rules: { data: { query: 'method', path: 'method.syntaxNodes' }, parentField: 'parent', lineField: 'line' },
     },
     {
       id: 'changes',
@@ -195,6 +184,53 @@ export const methodSourceExample: ViewSpec = {
       field: 'sourceCode',
       language: 'smalltalk',
       compare: { field: 'previousVersion.sourceCode', label: 'previous version' },
+    },
+  ],
+};
+
+/**
+ * A source shown with the syntax tree of its file: the active graph decorators run on
+ * the tree rows and their findings are annotations. Not registered as a curated view: it
+ * needs an API that exposes syntax nodes (id, kind, name, parent, line), none of the
+ * built-in sources does.
+ */
+export const methodRulesExample: ViewSpec = {
+  version: 1,
+  id: 'builtin:method-rules',
+  concept: 'Method',
+  scope: 'detail',
+  title: 'Method source with rules',
+  description: 'The source of a method, flagged by the active graph decorators run on its syntax tree.',
+  queries: {
+    method: {
+      query: /* GraphQL */ `
+        query FluidMethodRules($id: ID!) {
+          method(id: $id) {
+            id
+            sourceCode
+            syntaxNodes {
+              id
+              kind
+              name
+              line
+              parent {
+                id
+              }
+            }
+          }
+        }
+      `,
+    },
+  },
+  widgets: [
+    {
+      id: 'source',
+      type: 'code',
+      title: 'Source',
+      data: { query: 'method', path: 'method' },
+      field: 'sourceCode',
+      language: 'java',
+      rules: { data: { query: 'method', path: 'method.syntaxNodes' }, parentField: 'parent', lineField: 'line' },
     },
   ],
 };
