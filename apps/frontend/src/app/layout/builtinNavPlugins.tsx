@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom';
 import { looksLikeModel } from '../../entities/plugin/builders/modelViews';
 import { rootPath } from '../../navigation/millerPath';
 import type { FluidPlugin, NavSection, NavSectionPlugin } from '../../entities/plugin';
+import { CodeDashboardPage } from '../../features/code-dashboard';
 import { ConceptIcon } from '../../features/concept-icon';
+import { navPagePath } from '../../entities/plugin';
 import { useConceptMenuItems } from './useConceptMenuItems';
 import { useDashboardMenuItems } from './useDashboardMenuItems';
 
@@ -28,7 +30,7 @@ const ANALYSIS_CONCEPTS = ['Namespace', 'Class', 'Method'];
 
 /**
  * An example of a source-aware section: shown only when the connected source is a Model
- * (Moose) project, it gathers the entry points of a code analysis.
+ * (Moose) project, it offers a code-quality dashboard and the entry points of a code analysis.
  */
 const codeAnalysis: FluidPlugin = navPlugin(
   'fluid-nav-code-analysis',
@@ -39,8 +41,15 @@ const codeAnalysis: FluidPlugin = navPlugin(
     label: 'Code analysis',
     Icon: CodeOutlined,
     available: ({ queriesByType }) => looksLikeModel(queriesByType),
-    useItems: ({ queriesByType }) =>
-      ANALYSIS_CONCEPTS.filter((c) => queriesByType.has(c)).map((concept) => {
+    Page: CodeDashboardPage,
+    useItems: ({ queriesByType }) => [
+      {
+        key: 'code-analysis:dashboard',
+        to: navPagePath('fluid-nav-code-analysis', 'analysis'),
+        icon: <DashboardOutlined />,
+        label: <Link to={navPagePath('fluid-nav-code-analysis', 'analysis')}>Dashboard</Link>,
+      },
+      ...ANALYSIS_CONCEPTS.filter((c) => queriesByType.has(c)).map((concept) => {
         const to = rootPath({ kind: 'column', concept });
         return {
           key: `code-analysis:${concept}`,
@@ -49,6 +58,7 @@ const codeAnalysis: FluidPlugin = navPlugin(
           label: <Link to={to}>{concept}</Link>,
         };
       }),
+    ],
   },
 );
 

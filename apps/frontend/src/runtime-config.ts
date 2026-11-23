@@ -20,6 +20,8 @@ export interface FluidRuntimeConfig {
    * needs a click from the user before it is fetched.
    */
   imageHosts?: string[];
+  /** URL of Model's WebAssembly glue (`model_wasm.js`) for the in-browser analysis. */
+  modelWasmUrl?: string;
 }
 
 const runtime: FluidRuntimeConfig =
@@ -49,3 +51,9 @@ export const IMAGE_HOSTS: string[] = Array.isArray(runtime.imageHosts)
       .split(',')
       .map((h: string) => h.trim().toLowerCase())
       .filter(Boolean);
+
+/** Where the in-browser analysis loads Model's WebAssembly module from (see docs/guides/browser-analysis.md). */
+export const MODEL_WASM_URL = new URL(
+  pick(runtime.modelWasmUrl, import.meta.env.VITE_MODEL_WASM_URL, `${import.meta.env.BASE_URL}model-wasm/model_wasm.js`),
+  typeof window === 'undefined' ? 'http://localhost/' : window.location.href,
+).href;

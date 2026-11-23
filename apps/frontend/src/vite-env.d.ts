@@ -4,6 +4,7 @@ interface ImportMetaEnv {
   readonly VITE_DEFAULT_GRAPHQL_URL?: string;
   readonly VITE_BFF_URL?: string;
   readonly VITE_IMAGE_HOSTS?: string;
+  readonly VITE_MODEL_WASM_URL?: string;
 }
 
 interface ImportMeta {
