@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { Button, Flex, Result, Spin, Typography } from 'antd';
 import { parseAnalysisRepo, useRepoAnalysis } from '../../entities/analysis';
 
@@ -16,9 +16,11 @@ export function AnalysePage() {
     }
   }, [owner, name, ref]);
   const state = useRepoAnalysis(parsed.target);
+  const from = (useLocation().state as { from?: unknown } | null)?.from;
 
   if (parsed.error) return <Result status="404" title="Unknown repository" subTitle={parsed.error} />;
-  if (state.phase === 'ready') return <Navigate to="/" replace />;
+  // Back to where a reload interrupted the user, else the concepts.
+  if (state.phase === 'ready') return <Navigate to={typeof from === 'string' && from.startsWith('/') ? from : '/'} replace />;
   if (state.phase === 'failed') {
     return (
       <Result

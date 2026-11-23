@@ -33,9 +33,11 @@ export function App() {
   const analyzeView = useLlmInsightAnalyzer();
 
   // After a reload the in-page model is gone: rebuild it from the repository the URL names.
-  const onAnalysePage = useLocation().pathname.startsWith('/analyse/');
+  const location = useLocation();
+  const onAnalysePage = location.pathname.startsWith('/analyse/');
   const lost = !onAnalysePage && endpoint && isAnalysisUrl(endpoint) && !engineFor(endpoint) ? parseAnalysisUrl(endpoint) : null;
-  if (lost) return <Navigate to={analysisPath(lost)} replace />;
+  // `from`: where the user was, so the analysis page brings them back there.
+  if (lost) return <Navigate to={analysisPath(lost)} replace state={{ from: location.pathname + location.search }} />;
 
   return (
     <Routes>
