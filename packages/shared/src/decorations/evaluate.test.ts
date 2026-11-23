@@ -8,7 +8,9 @@ import {
   type DecoratorSpec,
   type DecoratorSpecInput,
 } from './schema';
-import { globToRegex, matchProp, matchSelector } from './selector';
+import { createMatchContext, globToRegex, matchProp, matchSelector } from './selector';
+
+const tagCtx = (tags: string[] = []) => createMatchContext([], [], () => new Set(tags), false);
 import { MAX_DERIVED_PER_RULE, normalizeUrl } from './derive';
 
 const spec = (input: Omit<DecoratorSpecInput, 'label'>) =>
@@ -64,15 +66,15 @@ describe('selectors', () => {
 
   it('combines fields, props, not/any and tags', () => {
     const audit = app.nodes[3];
-    expect(matchSelector(audit, new Set(), { kind: 'CLASS', props: { methods: { gt: 2 } } })).toBe(
+    expect(matchSelector(audit, tagCtx(), { kind: 'CLASS', props: { methods: { gt: 2 } } })).toBe(
       true,
     );
-    expect(matchSelector(audit, new Set(), { props: { methods: { gt: 3 } } })).toBe(false);
+    expect(matchSelector(audit, tagCtx(), { props: { methods: { gt: 3 } } })).toBe(false);
     expect(
-      matchSelector(audit, new Set(['infra']), { tag: ['ui', 'infra'], not: { name: '^User' } }),
+      matchSelector(audit, tagCtx(['infra']), { tag: ['ui', 'infra'], not: { name: '^User' } }),
     ).toBe(true);
-    expect(matchSelector(audit, new Set(), { any: [{ name: 'X' }, { name: 'Aud' }] })).toBe(true);
-    expect(matchSelector(audit, new Set(), { name: '(' })).toBe(false);
+    expect(matchSelector(audit, tagCtx(), { any: [{ name: 'X' }, { name: 'Aud' }] })).toBe(true);
+    expect(matchSelector(audit, tagCtx(), { name: '(' })).toBe(false);
   });
 });
 
@@ -464,9 +466,9 @@ describe('matchProp and selectors', () => {
 
   it('handles all and external', () => {
     const n = { key: 'a', kind: 'K', external: true };
-    expect(matchSelector(n, new Set(), { all: [{ kind: 'K' }, { external: true }] })).toBe(true);
-    expect(matchSelector(n, new Set(), { all: [{ kind: 'K' }, { external: false }] })).toBe(false);
-    expect(matchSelector({ key: 'b' }, new Set(), { external: false })).toBe(true);
-    expect(matchSelector(n, new Set(), { external: false })).toBe(false);
+    expect(matchSelector(n, tagCtx(), { all: [{ kind: 'K' }, { external: true }] })).toBe(true);
+    expect(matchSelector(n, tagCtx(), { all: [{ kind: 'K' }, { external: false }] })).toBe(false);
+    expect(matchSelector({ key: 'b' }, tagCtx(), { external: false })).toBe(true);
+    expect(matchSelector(n, tagCtx(), { external: false })).toBe(false);
   });
 });

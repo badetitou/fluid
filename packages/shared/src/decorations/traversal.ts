@@ -17,6 +17,19 @@ export function adjacency(edges: DecoratedEdge[], via?: string[]): Adjacency {
   return out;
 }
 
+/** Edges grouped by their target, so a node's in-neighbours are one lookup. */
+export function inAdjacency(edges: DecoratedEdge[], via?: string[]): Adjacency {
+  const kinds = via && via.length > 0 ? new Set(via) : null;
+  const into: Adjacency = new Map();
+  for (const edge of edges) {
+    if (kinds && !kinds.has(edge.kind ?? '')) continue;
+    const list = into.get(edge.to);
+    if (list) list.push(edge);
+    else into.set(edge.to, [edge]);
+  }
+  return into;
+}
+
 /** The nodes reachable from `start` by one or more edges (not `start` itself, unless on a cycle). */
 export function reachableFrom(start: string, adj: Adjacency): Set<string> {
   const seen = new Set<string>();
