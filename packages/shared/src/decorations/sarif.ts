@@ -5,6 +5,12 @@ import type { Severity } from './schema';
 // -----------------------------------------------------------------------------
 // SARIF 2.1.0 (the subset we read) -> findings attached to graph nodes
 // -----------------------------------------------------------------------------
+// Each result goes to the innermost node of its file whose line range holds its
+// line, else to the file's FILE node (also when the result has no region).
+// Results with no location, or in a file the graph lacks, are counted unmatched.
+// A node's range comes from `rangeOf`, so graphs with another shape can supply
+// their own; the default reads `props.range` with startLine/endLine, or
+// `props.startLine`/`props.endLine`.
 
 const regionSchema = z
   .object({
@@ -82,15 +88,17 @@ function safeDecode(s: string): string {
 export function normalizeArtifactPath(uri: string, options: PathOptions = {}): string {
   let p = safeDecode(uri).replace(/\\/g, '/');
   p = p.replace(/^file:\/\/(?=\/|[A-Za-z]:)/i, '').replace(/^file:\/*/i, '/');
-  p = p.replace(/^\.\//, '');
+  p = p.replace(/^\/(?=[A-Za-z]:\/)/, '').replace(/^\.\//, '');
   const prefixes = Array.isArray(options.stripPrefix)
     ? options.stripPrefix
     : options.stripPrefix
       ? [options.stripPrefix]
       : [];
   for (const raw of prefixes) {
-    const prefix = raw.replace(/\\/g, '/');
-    if (prefix && p.startsWith(prefix)) {
+    // Cut on a path-segment boundary, with or without a trailing slash on the prefix.
+    const prefix = raw.replace(/\\/g, '/').replace(/\/+$/, '');
+    if (!raw) continue;
+    if (p === prefix || p.startsWith(`${prefix}/`)) {
       p = p.slice(prefix.length).replace(/^\/+/, '');
       break;
     }
