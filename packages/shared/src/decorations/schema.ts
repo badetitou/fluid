@@ -162,12 +162,16 @@ export const constraintSchema = z.discriminatedUnion('check', [
   z
     .object({ check: z.literal('required'), ...ruleBase, from: selectorSchema, to: selectorSchema })
     .strict(),
+  /** Every matching node has no incoming edge (of the `via` kinds): unused, never called. */
+  z.object({ check: z.literal('unreferenced'), ...ruleBase, match: selectorSchema }).strict(),
   /** No cycle among the matching nodes. */
   z
     .object({ check: z.literal('noCycle'), ...ruleBase, among: selectorSchema.default({}) })
     .strict(),
 ]);
 export type Constraint = z.infer<typeof constraintSchema>;
+
+const joinFieldSchema = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
 
 /** Adds an edge between nodes whose two fields agree (e.g. a call URL and an endpoint path). */
 export const derivedEdgeSchema = z
@@ -179,8 +183,9 @@ export const derivedEdgeSchema = z
     to: selectorSchema,
     join: z
       .object({
-        from: z.string().min(1),
-        to: z.string().min(1),
+        /** One field, or several that must all agree (a composite key). */
+        from: joinFieldSchema,
+        to: joinFieldSchema,
         /** `url`: ignore host, query, trailing slash and path parameters. */
         normalize: z.enum(['exact', 'url']).default('exact'),
       })
