@@ -1,7 +1,7 @@
 import type { CodeRules, DecoratedEdge, DecoratedGraph, DecoratedNode } from '@fluid/shared';
 import { getPath } from '../../data';
 import type { DecorationIndex } from '../../plugin-api/decorationModel';
-import { readAnnotations, type Annotation } from './annotationModel';
+import { readPosition, type Annotation } from './annotationModel';
 
 // Pure logic of the code widget's rules: the rows of a syntax tree become a graph the
 // graph decorators run on, and their findings come back as annotations of the source.
@@ -19,9 +19,11 @@ export function astRowsToGraph(rows: unknown[], fields: CodeRules): DecoratedGra
   const idField = fields.idField ?? 'id';
   const nodes: DecoratedNode[] = [];
   const edges: DecoratedEdge[] = [];
+  const parents = new Map<string, string>();
   for (const row of rows) {
     const key = text(getPath(row, idField));
-    if (key === undefined || key === '') continue;
+    // Rows without an id are skipped; the first of two rows sharing an id wins.
+    if (key === undefined || key === '' || parents.has(key)) continue;
     const kind = text(getPath(row, fields.kindField ?? 'kind'));
     const name = text(getPath(row, fields.nameField ?? 'name'));
     nodes.push({
@@ -31,7 +33,11 @@ export function astRowsToGraph(rows: unknown[], fields: CodeRules): DecoratedGra
       props: typeof row === 'object' && row !== null ? (row as Record<string, unknown>) : {},
     });
     const parent = parentId(getPath(row, fields.parentField), idField);
-    if (parent !== undefined && parent !== '') edges.push({ from: parent, to: key, kind: 'child' });
+    parents.set(key, parent ?? '');
+  }
+  for (const [key, parent] of parents) {
+    // No edge to a parent that is not among the rows.
+    if (parent !== '' && parents.has(parent)) edges.push({ from: parent, to: key, kind: 'child' });
   }
   return { nodes, edges };
 }
@@ -44,11 +50,15 @@ export function findingsToAnnotations(
   source: string,
 ): Annotation[] {
   const idField = fields.idField ?? 'id';
-  const positions = { ...fields, messageField: '__finding' };
+  const seen = new Set<string>();
   return rows.flatMap((row) => {
-    const findings = index.nodes.get(text(getPath(row, idField)) ?? '')?.findings ?? [];
+    const key = text(getPath(row, idField)) ?? '';
+    // Same rule as the graph: the first row of an id is the node.
+    if (seen.has(key)) return [];
+    seen.add(key);
+    const findings = index.nodes.get(key)?.findings ?? [];
     if (findings.length === 0) return [];
-    const [range] = readAnnotations([row], positions, source);
+    const range = readPosition(row, fields, source);
     if (!range) return [];
     return findings.map((f) => ({ ...range, message: f.message, severity: f.severity, rule: f.ruleId }));
   });

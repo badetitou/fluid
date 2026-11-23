@@ -2,20 +2,8 @@ import { z } from 'zod';
 import type { ViewSpec } from '../view-spec';
 import { dataBindingSchema, widgetBase } from './common';
 
-/**
- * Source code shown in full, with line numbers and a search box. On top of the
- * highlighted text it can:
- * - show the diff against another version (`compare`), from the same object or
- *   another query: unchanged runs are folded around the changes;
- * - mark static terms (`highlight`, e.g. halt);
- * - annotate lines and ranges with messages coming from the data
- *   (`annotations`): linter results, critiques, failing tests, coverage…
- */
-export const codeAnnotationsSchema = z.object({
-  /** Where the annotations come from; omit to read `field` in the bound object. */
-  data: dataBindingSchema.optional(),
-  /** Dot path of the annotation list in the bound object (when `data` is omitted). */
-  field: z.string().min(1).optional(),
+/** Where an annotation or a rule finding sits in the source: line/column, or character offsets. */
+const codePositionFields = {
   /** Dot path of the line (1-based) an annotation starts at. */
   lineField: z.string().min(1).optional(),
   /** Dot path of the last line (inclusive) it covers. */
@@ -30,6 +18,23 @@ export const codeAnnotationsSchema = z.object({
   endOffsetField: z.string().min(1).optional(),
   /** 0: offsets from 0, end exclusive (default). 1: from 1, end inclusive (Smalltalk intervals). */
   offsetBase: z.union([z.literal(0), z.literal(1)]).optional(),
+};
+
+/**
+ * Source code shown in full, with line numbers and a search box. On top of the
+ * highlighted text it can:
+ * - show the diff against another version (`compare`), from the same object or
+ *   another query: unchanged runs are folded around the changes;
+ * - mark static terms (`highlight`, e.g. halt);
+ * - annotate lines and ranges with messages coming from the data
+ *   (`annotations`): linter results, critiques, failing tests, coverage…
+ */
+export const codeAnnotationsSchema = z.object({
+  /** Where the annotations come from; omit to read `field` in the bound object. */
+  data: dataBindingSchema.optional(),
+  /** Dot path of the annotation list in the bound object (when `data` is omitted). */
+  field: z.string().min(1).optional(),
+  ...codePositionFields,
   messageField: z.string().min(1),
   /** Dot path of the severity: error/warning/info, or words like high, major, hint. */
   severityField: z.string().min(1).optional(),
@@ -43,25 +48,23 @@ export type CodeAnnotations = z.infer<typeof codeAnnotationsSchema>;
  * on it and their findings are shown as annotations. Position fields have the
  * same meaning as in `annotations`.
  */
-export const codeRulesSchema = z.object({
-  /** The AST rows (one per syntax node). */
-  data: dataBindingSchema,
-  /** Dot path of the row id (default "id"). */
-  idField: z.string().min(1).optional(),
-  /** Dot path of the parent's id; a parent may be an object holding the id. */
-  parentField: z.string().min(1),
-  /** Dot path of the node kind (default "kind"). */
-  kindField: z.string().min(1).optional(),
-  /** Dot path of the node name (default "name"). */
-  nameField: z.string().min(1).optional(),
-  lineField: z.string().min(1).optional(),
-  endLineField: z.string().min(1).optional(),
-  columnField: z.string().min(1).optional(),
-  endColumnField: z.string().min(1).optional(),
-  startOffsetField: z.string().min(1).optional(),
-  endOffsetField: z.string().min(1).optional(),
-  offsetBase: z.union([z.literal(0), z.literal(1)]).optional(),
-});
+export const codeRulesSchema = z
+  .object({
+    /** The AST rows (one per syntax node). */
+    data: dataBindingSchema,
+    /** Dot path of the row id (default "id"). */
+    idField: z.string().min(1).optional(),
+    /** Dot path of the parent's id; a parent may be an object holding the id. */
+    parentField: z.string().min(1),
+    /** Dot path of the node kind (default "kind"). */
+    kindField: z.string().min(1).optional(),
+    /** Dot path of the node name (default "name"). */
+    nameField: z.string().min(1).optional(),
+    ...codePositionFields,
+  })
+  .refine((r) => r.lineField !== undefined || r.startOffsetField !== undefined, {
+    message: 'rules needs a position: set "lineField" or "startOffsetField"',
+  });
 export type CodeRules = z.infer<typeof codeRulesSchema>;
 
 export const codeCompareSchema = z.object({
@@ -151,6 +154,15 @@ export const methodSourceExample: ViewSpec = {
             previousVersion {
               sourceCode
             }
+            syntaxNodes {
+              id
+              kind
+              name
+              line
+              parent {
+                id
+              }
+            }
           }
         }
       `,
@@ -172,6 +184,8 @@ export const methodSourceExample: ViewSpec = {
         severityField: 'severity',
         ruleField: 'rule',
       },
+      // The active graph decorators run on the syntax tree of the method.
+      rules: { data: { query: 'method', path: 'method.syntaxNodes' }, parentField: 'parent', lineField: 'line' },
     },
     {
       id: 'changes',
