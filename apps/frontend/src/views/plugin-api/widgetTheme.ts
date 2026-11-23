@@ -21,6 +21,8 @@ export const WidgetThemeContext = createContext<ActiveTheme>({
 export interface WidgetTheme extends ThemeTokens {
   mode: ThemeMode;
   series: string[];
+  /** Colors of the four statuses: the theme's `status` tokens, else the antd variables. */
+  status: { error: string; warning: string; info: string; success: string };
   /** The variables the theme defines for this widget type (`tokens.widgets[type]`). */
   vars: Record<string, string>;
 }
@@ -33,6 +35,12 @@ export function useWidgetTheme(type: string): WidgetTheme {
       ...tokens,
       mode,
       series: tokens.series ?? DEFAULT_SERIES,
+      status: {
+        error: tokens.status?.error ?? 'var(--ant-color-error)',
+        warning: tokens.status?.warning ?? 'var(--ant-color-warning)',
+        info: 'var(--ant-color-info)',
+        success: tokens.status?.success ?? 'var(--ant-color-success)',
+      },
       vars: tokens.widgets?.[type] ?? {},
     }),
     [mode, tokens, type],

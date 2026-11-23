@@ -1,5 +1,6 @@
 import type { CodeAnnotations } from '@fluid/shared';
 import { getPath } from '../../data';
+import { SEVERITY_RANK } from '../../plugin-api/decorationModel';
 
 // Pure logic of the code widget's annotations: rows coming from the data
 // (linter results, critiques…) turned into line/column ranges of the source.
@@ -29,8 +30,6 @@ export function normalizeSeverity(value: unknown): Severity {
   if (/^\d+$/.test(word)) return Number(word) >= 2 ? 'error' : Number(word) === 1 ? 'warning' : 'info';
   return 'info';
 }
-
-const SEVERITY_RANK: Record<Severity, number> = { error: 0, warning: 1, info: 2 };
 
 /** The most severe of a list (info when empty). */
 export function worstSeverity(severities: Severity[]): Severity {

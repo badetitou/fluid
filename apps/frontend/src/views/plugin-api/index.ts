@@ -9,3 +9,6 @@ export * from './types';
 export * from './viewContext';
 export * from './widgetTheme';
 export * from './rowPaging';
+export * from './decorationModel';
+export * from './decorations';
+export * from './DecorationBadge';
