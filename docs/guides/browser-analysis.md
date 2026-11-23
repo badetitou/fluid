@@ -1,5 +1,31 @@
 # Analyse a repository in the browser
 
+## Try it
+
+Open `https://fluid.badetitou.fr/analyse/<owner>/<repo>` for any public GitHub repository, for example
+[google/gson](https://fluid.badetitou.fr/analyse/google/gson) (Java) or
+[badetitou/fluid](https://fluid.badetitou.fr/analyse/badetitou/fluid) (TypeScript).
+
+1. A progress page shows the download (`n / N files`), then the build of the model. Small projects take
+   a few seconds, a thousand files about a minute. Nothing leaves your browser.
+2. fluid opens on the model's **concepts** (Class, Method, File…). Click one to browse its entities
+   and their relations. (The assistant that writes views from a prompt needs a BFF and an LLM, which
+   the static site does not have: run fluid yourself for that.)
+3. **Code analysis → Dashboard** in the sidebar shows big classes, long and unused methods, dead code,
+   technical-debt hotspots, and (from Model 0.7.0) dependency cycles, the most connected entities and
+   isolated classes and methods.
+
+Good to know:
+
+- The URL is the whole state: share it. `?ref=<branch|tag|sha>` analyses something other than the
+  default branch.
+- Reloading rebuilds the model and brings you back to the page you were on.
+- It works for public repositories only, in Java, TypeScript/TSX, Python and Pharo; other files are
+  ignored. Relations (calls, references) are best effort, from tree-sitter without a compiler.
+- Too big (see the limits below)? Run fluid yourself with the [GitHub source](github-source.md).
+
+## How it works
+
 `https://fluid.badetitou.fr/analyse/<owner>/<name>` (optionally `?ref=<branch|tag|sha>`) opens fluid on
 the code model of a public GitHub repository, with **no server**: the page lists the repository with
 GitHub's tree API, downloads the Java, TypeScript/TSX, Python and Pharo (Tonel) files from
