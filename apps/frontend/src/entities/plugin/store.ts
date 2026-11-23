@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { DEFAULT_THEME_ID } from './builtin';
+import { validInstalledPlugins } from './installedPlugins';
 import type { InstalledPlugin } from './types';
 
 interface PluginState {
@@ -55,6 +56,13 @@ export const usePluginStore = create<PluginState>()(
         set({ builderColors: color ? { ...others, [builderId]: color } : others });
       },
     }),
-    { name: 'fluid-plugins' },
+    {
+      name: 'fluid-plugins',
+      // Saved by another version of fluid, an installed plugin may no longer be one this build runs.
+      merge: (saved, current) => {
+        const state = (saved ?? {}) as Partial<PluginState>;
+        return { ...current, ...state, installed: validInstalledPlugins(state.installed) };
+      },
+    },
   ),
 );
