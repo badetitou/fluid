@@ -49,9 +49,21 @@ export function positionOf(source: string, offset: number): { line: number; colu
   return { line: before.split('\n').length, column: before.length - lastBreak };
 }
 
-type Range = Pick<Annotation, 'line' | 'endLine' | 'column' | 'endColumn'>;
+export type Range = Pick<Annotation, 'line' | 'endLine' | 'column' | 'endColumn'>;
 
-function rangeFromOffsets(row: unknown, spec: CodeAnnotations, source: string): Range | undefined {
+/** The position fields of an annotation spec or of a rules spec. */
+export type PositionFields = Pick<
+  CodeAnnotations,
+  | 'lineField'
+  | 'endLineField'
+  | 'columnField'
+  | 'endColumnField'
+  | 'startOffsetField'
+  | 'endOffsetField'
+  | 'offsetBase'
+>;
+
+function rangeFromOffsets(row: unknown, spec: PositionFields, source: string): Range | undefined {
   const base = spec.offsetBase ?? 0;
   const start = toNumber(getPath(row, spec.startOffsetField));
   if (start == null) return undefined;
@@ -64,7 +76,7 @@ function rangeFromOffsets(row: unknown, spec: CodeAnnotations, source: string): 
   return { line: a.line, endLine: b.line, column: a.column, endColumn: b.column + 1 };
 }
 
-function rangeFromLines(row: unknown, spec: CodeAnnotations): Range | undefined {
+function rangeFromLines(row: unknown, spec: PositionFields): Range | undefined {
   const line = toNumber(getPath(row, spec.lineField));
   if (line == null) return undefined;
   const endLine = toNumber(getPath(row, spec.endLineField)) ?? line;
@@ -73,10 +85,15 @@ function rangeFromLines(row: unknown, spec: CodeAnnotations): Range | undefined 
   return { line, endLine: Math.max(line, endLine), column, endColumn: column == null ? undefined : endColumn };
 }
 
+/** The range of a row in the source (offsets when `startOffsetField` is set, else lines); undefined without a position. */
+export function readPosition(row: unknown, fields: PositionFields, source: string): Range | undefined {
+  return fields.startOffsetField ? rangeFromOffsets(row, fields, source) : rangeFromLines(row, fields);
+}
+
 /** The annotations of a source, from the rows the spec points at. Rows without a position are dropped. */
 export function readAnnotations(rows: unknown[], spec: CodeAnnotations, source: string): Annotation[] {
   return rows.flatMap((row) => {
-    const range = spec.startOffsetField ? rangeFromOffsets(row, spec, source) : rangeFromLines(row, spec);
+    const range = readPosition(row, spec, source);
     if (!range) return [];
     const rule = spec.ruleField ? getPath(row, spec.ruleField) : undefined;
     return [

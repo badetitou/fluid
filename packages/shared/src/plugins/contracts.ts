@@ -111,6 +111,7 @@ export const BUILTIN_WIDGET_CONTRACTS: { [T in CoreWidgetType]: WidgetContract }
       DATA_INPUT,
       port('annotations', 'Rows annotating lines (critiques, comments).'),
       port('compare', 'Another source to diff against.'),
+      port('rules', 'Syntax-tree rows the active graph decorators run on.'),
     ],
   }),
   history: contract('history', 'History', 'A version graph (commits).', historyWidgetDoc),

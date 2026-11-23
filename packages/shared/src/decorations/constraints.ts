@@ -1,6 +1,6 @@
 import { edgeKey, type DecoratedEdge, type DecoratedNode, type Finding } from './graph';
 import type { Constraint } from './schema';
-import { matchSelector } from './selector';
+import { matchSelector, type MatchContext } from './selector';
 import { adjacency, cycles, reachableFrom } from './traversal';
 
 // Constraints → findings. Each check gives back where its findings go (node or
@@ -15,9 +15,10 @@ export interface Placed {
 export interface ConstraintContext {
   decoratorId: string;
   nodes: DecoratedNode[];
-  byKey: Map<string, DecoratedNode>;
+  byKey: ReadonlyMap<string, DecoratedNode>;
   edges: DecoratedEdge[];
-  tagsOf: (key: string) => ReadonlySet<string>;
+  /** Selector context over the graph plus derived edges. */
+  match: MatchContext;
 }
 
 /** At most this many related keys per finding, so huge graphs stay readable. */
@@ -41,7 +42,7 @@ export function checkConstraint(rule: Constraint, ctx: ConstraintContext): Place
     ...(related && related.length > 0 ? { related: related.slice(0, MAX_RELATED) } : {}),
   });
   const matching = (s: Parameters<typeof matchSelector>[2]) =>
-    new Set(ctx.nodes.filter((n) => matchSelector(n, ctx.tagsOf(n.key), s)).map((n) => n.key));
+    new Set(ctx.nodes.filter((n) => matchSelector(n, ctx.match, s)).map((n) => n.key));
   const adj = adjacency(ctx.edges, rule.via);
 
   switch (rule.check) {

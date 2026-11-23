@@ -7,7 +7,11 @@ import type { Constraint, DecoratorSpec } from './schema';
 export const DECORATOR_LANGUAGE_DOC = `A graph decorator is JSON: { "id", "label", "description"?, "concepts"?, "derived"?, "constraints"? }.
 Selector (all given fields must hold): { "key"?, "kind"?, "fineKind"?, "language"? (string or list), "name"? (regex),
   "file"? (glob, ** across folders), "external"? (boolean), "tag"? (has one of), "props"? ({ "a.b": value or
-  { eq, ne, gt, gte, lt, lte, regex, exists } }; gt/lt on a list compare its length), "not"?, "all"?, "any"? }.
+  { eq, ne, gt, gte, lt, lte, regex, exists } }; gt/lt on a list compare its length), "not"?, "all"?, "any"?,
+  "has"? / "in"? ({ "via"? (edge kinds, default all), "match": Selector, "min"? (default 1, or 0 when max is 0), "max"? }: the number of
+  out-neighbours / in-neighbours matching "match" is between min and max; "max": 0 means none),
+  "parent"? (Selector: the source of the incoming "child" edge matches), "ancestor"? (Selector: a node up the
+  "child" chain matches) }. Syntax trees are graphs: one "child" edge from each parent to each child.
 Concepts tag nodes: { "id", "match": Selector, "tag": "ui" } or { "id", "match", "tagFrom": { "field": "file",
   "pattern": "^services/([^/]+)/", "prefix"?: "service:" } } (first capture group). Later concepts see earlier tags.
 Derived edges join nodes: { "id", "kind": "http", "from": Selector, "to": Selector,

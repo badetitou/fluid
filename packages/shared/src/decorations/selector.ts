@@ -1,5 +1,8 @@
 import type { DecoratedNode } from './graph';
+import type { DecoratedEdge } from './graph';
 import type { PropMatcher, Selector } from './schema';
+import { matchStructure } from './selectorStructure';
+import { adjacency, inAdjacency, type Adjacency } from './traversal';
 
 // Does a node match a selector? Pure, cached regexes; tags are the ones the
 // node has at this point of the evaluation (its own plus the concepts' so far).
@@ -68,11 +71,50 @@ export function matchProp(value: unknown, matcher: PropMatcher): boolean {
   return true;
 }
 
-export function matchSelector(
-  node: DecoratedNode,
-  tags: ReadonlySet<string>,
-  s: Selector,
-): boolean {
+/** What a selector can look at besides the node: its tags and its neighbours. */
+export interface MatchContext {
+  tagsOf: (key: string) => ReadonlySet<string>;
+  /** Outgoing edges by source, every kind. */
+  out: Adjacency;
+  /** Incoming edges by target, every kind. */
+  in: Adjacency;
+  byKey: ReadonlyMap<string, DecoratedNode>;
+  /** Memo per (selector, node key); absent while tags still change (concept pass). */
+  cache?: WeakMap<Selector, Map<string, boolean>>;
+}
+
+export function createMatchContext(
+  nodes: DecoratedNode[],
+  edges: DecoratedEdge[],
+  tagsOf: (key: string) => ReadonlySet<string>,
+  memoize: boolean,
+): MatchContext {
+  return {
+    tagsOf,
+    out: adjacency(edges),
+    in: inAdjacency(edges),
+    byKey: new Map(nodes.map((n) => [n.key, n])),
+    cache: memoize ? new WeakMap() : undefined,
+  };
+}
+
+export function matchSelector(node: DecoratedNode, ctx: MatchContext, s: Selector): boolean {
+  const { cache } = ctx;
+  if (!cache) return matchUncached(node, ctx, s);
+  let memo = cache.get(s);
+  if (!memo) {
+    memo = new Map();
+    cache.set(s, memo);
+  }
+  const known = memo.get(node.key);
+  if (known !== undefined) return known;
+  const result = matchUncached(node, ctx, s);
+  memo.set(node.key, result);
+  return result;
+}
+
+function matchUncached(node: DecoratedNode, ctx: MatchContext, s: Selector): boolean {
+  const tags = ctx.tagsOf(node.key);
   if (
     !inList(s.key, node.key) ||
     !inList(s.kind, node.kind) ||
@@ -94,8 +136,8 @@ export function matchSelector(
   for (const [path, matcher] of Object.entries(s.props ?? {})) {
     if (!matchProp(nodeField(node, `props.${path}`), matcher)) return false;
   }
-  if (s.not && matchSelector(node, tags, s.not)) return false;
-  if (s.all && !s.all.every((x) => matchSelector(node, tags, x))) return false;
-  if (s.any && !s.any.some((x) => matchSelector(node, tags, x))) return false;
-  return true;
+  if (s.not && matchSelector(node, ctx, s.not)) return false;
+  if (s.all && !s.all.every((x) => matchSelector(node, ctx, x))) return false;
+  if (s.any && !s.any.some((x) => matchSelector(node, ctx, x))) return false;
+  return matchStructure(node, ctx, s, matchSelector);
 }
