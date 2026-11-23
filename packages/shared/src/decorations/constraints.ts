@@ -85,10 +85,12 @@ export function checkConstraint(rule: Constraint, ctx: ConstraintContext): Place
 
     case 'noCycle':
       return cycles(matching(rule.among), adj).flatMap((cycle) => {
-        const f = finding(message(ctx, rule.message, cycle.nodes[0]), cycle.nodes);
+        // Each node's finding names that node; edges name the cycle's first node.
+        const onNode = (key: string) => finding(message(ctx, rule.message, key), cycle.nodes);
+        const onEdge = onNode(cycle.nodes[0]);
         return [
-          ...cycle.nodes.map((key): Placed => ({ type: 'node', key, finding: f })),
-          ...cycle.edges.map((key): Placed => ({ type: 'edge', key, finding: f })),
+          ...cycle.nodes.map((key): Placed => ({ type: 'node', key, finding: onNode(key) })),
+          ...cycle.edges.map((key): Placed => ({ type: 'edge', key, finding: onEdge })),
         ];
       });
   }

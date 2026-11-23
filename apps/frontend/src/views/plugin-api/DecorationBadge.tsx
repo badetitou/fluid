@@ -39,7 +39,7 @@ export function DecorationBadge({ decoration, type = 'decoration' }: { decoratio
         />
       )}
       {decoration.tags.map((tag) => (
-        <Tag key={tag} className={styles.tag} color={tagColor(tag, theme.series)} bordered={false}>
+        <Tag key={tag} className={styles.tag} color={tagColor(tag, theme.series)} variant="filled">
           {tag}
         </Tag>
       ))}

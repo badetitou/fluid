@@ -30,6 +30,8 @@ export interface Network {
   edges: NetworkEdge[];
   /** The group values, in order of appearance. */
   groups: string[];
+  /** Nodes linking to themselves: not drawn as edges, but decorators must see them. */
+  selfLoops?: string[];
 }
 
 export type NetworkOptions = Pick<
@@ -99,8 +101,13 @@ export function buildNetwork(nodesData: unknown, edgesData: unknown, opts: Netwo
   };
 
   const edges = new Map<string, NetworkEdge>();
+  const selfLoops = new Set<string>();
   const addEdge = (source: string | undefined, target: string | undefined) => {
-    if (source === undefined || target === undefined || source === target) return;
+    if (source === undefined || target === undefined) return;
+    if (source === target) {
+      selfLoops.add(source);
+      return;
+    }
     const key = `${source}→${target}`;
     if (!edges.has(key)) edges.set(key, { key, source, target });
   };
@@ -130,7 +137,7 @@ export function buildNetwork(nodesData: unknown, edgesData: unknown, opts: Netwo
 
   const list = [...nodes.values()];
   const groups = [...new Set(list.flatMap((n) => (n.group === undefined ? [] : [n.group])))];
-  return { nodes: list, edges: [...edges.values()], groups };
+  return { nodes: list, edges: [...edges.values()], groups, ...(selfLoops.size > 0 ? { selfLoops: [...selfLoops] } : {}) };
 }
 
 /** Why there is nothing to draw, or null when there is a network. */

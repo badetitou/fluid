@@ -110,6 +110,10 @@ describe('evaluateDecorators', () => {
     );
     const cycle = node(decorations, 'UserService')?.findings[0];
     expect(cycle?.related).toEqual(['UserRepo', 'UserService']);
+    expect(cycle?.message).toBe('UserService is on a dependency cycle');
+    expect(node(decorations, 'UserRepo')?.findings[0].message).toBe(
+      'UserRepo is on a dependency cycle',
+    );
     expect(
       decorations
         .filter((d) => d.target.type === 'edge')
