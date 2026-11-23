@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ApiOutlined, AppstoreOutlined, BgColorsOutlined, LayoutOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { ApiOutlined, AppstoreOutlined, BgColorsOutlined, ClusterOutlined, LayoutOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import type { PluginKind } from '../../entities/plugin';
 import styles from './PluginManager.module.css';
 
@@ -37,6 +37,12 @@ export const PLUGIN_KIND_META: Record<PluginKind, PluginKindMeta> = {
     help: 'Commands of the floating button of each Miller column: an effect on the page, or a panel docked under the column, such as the Pharo script.',
     icon: <ThunderboltOutlined />,
     accent: styles.accentPageAction,
+  },
+  graphDecorator: {
+    title: 'Graph decorators',
+    help: 'Declarative rules over the connected graph: tags, derived edges and constraints such as dependency cycles. Plain data, no code.',
+    icon: <ClusterOutlined />,
+    accent: styles.accentGraphDecorator,
   },
   theme: {
     title: 'Themes',

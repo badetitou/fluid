@@ -15,6 +15,10 @@
   --kind-accent: var(--fluid-series-4, var(--ant-orange-6));
 }
 
+.accentGraphDecorator {
+  --kind-accent: var(--fluid-series-5, var(--ant-red-6));
+}
+
 .accentTheme {
   --kind-accent: var(--fluid-series-1, var(--ant-magenta-6));
 }

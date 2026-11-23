@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { externalWidgetContractSchema } from '@fluid/shared';
+import { decoratorSpecSchema, externalWidgetContractSchema } from '@fluid/shared';
 import { themeDefinitionSchema } from '../../shared/theme';
 
-/** The five kinds of plugins; a plugin is of exactly one. */
-export const PLUGIN_KINDS = ['theme', 'widget', 'viewBuilder', 'sourceProvider', 'pageAction'] as const;
+/** The six kinds of plugins; a plugin is of exactly one. */
+export const PLUGIN_KINDS = ['theme', 'widget', 'viewBuilder', 'sourceProvider', 'pageAction', 'graphDecorator'] as const;
 export type PluginKind = (typeof PLUGIN_KINDS)[number];
 
 /** The serializable half of a view builder (its code is in the plugin's module). */
@@ -87,11 +87,12 @@ const CONTRIBUTION_OF_KIND = {
   viewBuilder: 'viewBuilders',
   sourceProvider: 'sourceProviders',
   pageAction: 'pageActions',
+  graphDecorator: 'graphDecorators',
 } as const;
 
-/** Plain data needs no module: themes, and source providers that list their sources. */
+/** Plain data needs no module: themes, graph decorators, and source providers that list their sources. */
 const needsModule = (kind: PluginKind, providers: SourceProviderContract[] = []): boolean =>
-  kind === 'sourceProvider' ? providers.some((p) => !p.sources) : kind !== 'theme';
+  kind === 'sourceProvider' ? providers.some((p) => !p.sources) : kind !== 'theme' && kind !== 'graphDecorator';
 
 /**
  * The manifest of an installable plugin (`manifest.json`). Themes are plain
@@ -117,6 +118,7 @@ export const pluginManifestSchema = z
       viewBuilders: z.array(viewBuilderContractSchema).optional(),
       sourceProviders: z.array(sourceProviderContractSchema).optional(),
       pageActions: z.array(pageActionContractSchema).optional(),
+      graphDecorators: z.array(decoratorSpecSchema).optional(),
     }),
   })
   .superRefine((m, ctx) => {
@@ -129,7 +131,7 @@ export const pluginManifestSchema = z
         path: ['contributes'],
         message: m.kind
           ? `A ${m.kind} plugin contributes ${CONTRIBUTION_OF_KIND[m.kind]}, and nothing else`
-          : 'A plugin contributes themes, widgets, viewBuilders, sourceProviders or pageActions (one kind only)',
+          : 'A plugin contributes themes, widgets, viewBuilders, sourceProviders, pageActions or graphDecorators (one kind only)',
       });
     }
     if (given.length === 1 && needsModule(given[0], m.contributes.sourceProviders) && !m.module) {
@@ -153,11 +155,12 @@ export function pluginKind(manifest: PluginManifest): PluginKind {
   if (manifest.contributes.widgets?.length) return 'widget';
   if (manifest.contributes.sourceProviders?.length) return 'sourceProvider';
   if (manifest.contributes.pageActions?.length) return 'pageAction';
+  if (manifest.contributes.graphDecorators?.length) return 'graphDecorator';
   return manifest.contributes.viewBuilders?.length ? 'viewBuilder' : 'theme';
 }
 
 /** What a plugin contributes, for display. */
 export function contributionLabel(manifest: PluginManifest): string {
-  const labels = { theme: 'themes', widget: 'widgets', viewBuilder: 'view builders', sourceProvider: 'sources', pageAction: 'page actions' };
+  const labels = { theme: 'themes', widget: 'widgets', viewBuilder: 'view builders', sourceProvider: 'sources', pageAction: 'page actions', graphDecorator: 'graph decorators' };
   return labels[pluginKind(manifest)];
 }

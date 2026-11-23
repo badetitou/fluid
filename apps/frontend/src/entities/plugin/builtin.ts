@@ -1,4 +1,4 @@
-import { BUILTIN_WIDGET_COLLECTIONS, BUILTIN_WIDGET_CONTRACTS } from '@fluid/shared';
+import { BUILTIN_WIDGET_COLLECTIONS, BUILTIN_WIDGET_CONTRACTS, noCyclesDecorator } from '@fluid/shared';
 import { BADETITOU_THEME, type ThemeDefinition } from '../../shared/theme';
 import { builtinRenderer } from '../../views/widgets/catalog';
 import { autoViewBuilder } from './builders/autoViews';
@@ -14,7 +14,7 @@ import type { PageAction } from './pageAction';
 import { staticSourceProvider } from './sourceProvider';
 import { DEMO_SOURCES } from './sources/demoSources';
 import { githubSourceProvider } from './sources/github/provider';
-import type { FluidPlugin, PageActionPlugin, SourceProviderPlugin, ThemePlugin, ViewBuilderPlugin, WidgetPlugin } from './types';
+import type { FluidPlugin, GraphDecoratorPlugin, PageActionPlugin, SourceProviderPlugin, ThemePlugin, ViewBuilderPlugin, WidgetPlugin } from './types';
 import type { ViewBuilder } from './viewBuilder';
 
 const VERSION = '1.0.0';
@@ -185,16 +185,37 @@ const pageActionPlugins: PageActionPlugin[] = [
   ),
 ];
 
+const cyclesDecorator = noCyclesDecorator({ id: 'dependency-cycles', label: 'Dependency cycles' });
+
+/** The built-in graph decorator: flags the dependency cycles of the connected graph. */
+const graphDecoratorPlugins: GraphDecoratorPlugin[] = [
+  {
+    ...BUILTIN,
+    kind: 'graphDecorator',
+    manifest: {
+      id: 'fluid-dependency-cycles',
+      name: 'Dependency cycles',
+      version: VERSION,
+      kind: 'graphDecorator',
+      description: 'Flags the cycles among the nodes of the connected graph.',
+      author: 'fluid',
+      contributes: { graphDecorators: [cyclesDecorator] },
+    },
+    decorators: [cyclesDecorator],
+  },
+];
+
 /** The id of the theme used when the chosen one is unavailable. */
 export const DEFAULT_THEME_ID = BADETITOU_THEME.id;
 
-/** Every plugin shipped with fluid: widget collections, view builders, sources, page actions, then themes. */
+/** Every plugin shipped with fluid: widget collections, view builders, sources, page actions, graph decorators, then themes. */
 export const BUILTIN_PLUGINS: FluidPlugin[] = [
   ...widgetPlugins,
   ...viewBuilderPlugins,
   demoSourcesPlugin,
   githubSourcesPlugin,
   ...pageActionPlugins,
+  ...graphDecoratorPlugins,
   themePlugin(BADETITOU_THEME, true),
   themePlugin(SOLARIZED_THEME),
   themePlugin(HIGH_CONTRAST_THEME),
