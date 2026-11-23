@@ -101,6 +101,39 @@ describe('sarifToFindings', () => {
     expect(r.findings[2].finding.message).toBe('L15: Short');
   });
 
+  it('cuts stripPrefix on a path-segment boundary, with or without a trailing slash', () => {
+    expect(normalizeArtifactPath('/repository/a.java', { stripPrefix: '/repo' })).toBe('/repository/a.java');
+    expect(normalizeArtifactPath('/repo/a.java', { stripPrefix: '/repo' })).toBe('a.java');
+    expect(normalizeArtifactPath('/repo/a.java', { stripPrefix: '/repo/' })).toBe('a.java');
+  });
+
+  it('handles a malformed %-escape and a Windows file URI', () => {
+    expect(normalizeArtifactPath('src/100%.java')).toBe('src/100%.java');
+    expect(normalizeArtifactPath('file:///C:/repo/src/A.java', { stripPrefix: 'C:/repo' })).toBe('src/A.java');
+  });
+
+  it('attaches a result without region to the FILE node, and counts one without location as unmatched', () => {
+    const noRegion = {
+      ruleId: 'r',
+      message: { text: 'File level' },
+      locations: [{ physicalLocation: { artifactLocation: { uri: 'src/A.java' } } }],
+    };
+    const r = sarifToFindings(log([noRegion, { ruleId: 'r', message: { text: 'Nowhere' } }]), nodes, opts);
+    expect(r.findings.map((f) => f.key)).toEqual(['f']);
+    expect(r.findings[0].finding.message).toBe('File level');
+    expect(r.unmatched).toBe(1);
+  });
+
+  it('falls back to the rule default for an unknown level, and lets a result level override it', () => {
+    const rules = [{ id: 'r0', defaultConfiguration: { level: 'error' } }];
+    const r = sarifToFindings(
+      log([res('src/A.java', 15, { level: 'weird', ruleIndex: 0 }), res('src/A.java', 15, { level: 'note', ruleIndex: 0 })], { rules }),
+      nodes,
+      opts,
+    );
+    expect(r.findings.map((f) => f.finding.severity)).toEqual(['error', 'info']);
+  });
+
   it('reads several runs', () => {
     const one = { tool: { driver: { name: 'a' } }, results: [res('src/A.java', 15)] };
     const l = sarifLogSchema.parse({ runs: [one, one] });
