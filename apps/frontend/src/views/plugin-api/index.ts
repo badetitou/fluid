@@ -12,3 +12,4 @@ export * from './rowPaging';
 export * from './decorationModel';
 export * from './decorations';
 export * from './DecorationBadge';
+export * from './resolveCssColor';

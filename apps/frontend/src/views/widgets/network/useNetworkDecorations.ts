@@ -15,7 +15,7 @@ export interface NetworkDecorations {
 
 /** The decorations of the network (evaluated on all of it) and how they apply to the drawn part. */
 export function useNetworkDecorations(network: Network, visible: Network, theme: WidgetTheme): NetworkDecorations {
-  const graph = useMemo(() => toDecoratedGraph(network.nodes, network.edges), [network]);
+  const graph = useMemo(() => toDecoratedGraph(network.nodes, network.edges, network.selfLoops), [network]);
   const index = useDecorations(graph);
   const overrides = useMemo(() => decorationOverrides(index, theme.status), [index, theme.status]);
   const decor = useMemo<GraphDecor>(

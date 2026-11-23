@@ -20,6 +20,13 @@ describe('toDecoratedGraph', () => {
   });
 });
 
+describe('toDecoratedGraph self-loops', () => {
+  it('hands self-loops to the decorators', () => {
+    const g = toDecoratedGraph([node('a', {})], [], ['a']);
+    expect(g.edges).toEqual([{ key: 'a→a', from: 'a', to: 'a', kind: '' }]);
+  });
+});
+
 describe('decorationOverrides', () => {
   it('is empty without decorations', () => {
     const o = decorationOverrides(EMPTY_DECORATION_INDEX, status);

@@ -8,7 +8,7 @@ import type { NetworkEdge, NetworkNode } from './networkModel';
 const str = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
 
 /** The graph decorators evaluate: one node per network node, one edge per link. */
-export function toDecoratedGraph(nodes: NetworkNode[], edges: NetworkEdge[]): DecoratedGraph {
+export function toDecoratedGraph(nodes: NetworkNode[], edges: NetworkEdge[], selfLoops: string[] = []): DecoratedGraph {
   return {
     nodes: nodes.map((n): DecoratedNode => {
       const tags = Array.isArray(n.row.tags) && n.row.tags.every((t) => typeof t === 'string') ? (n.row.tags as string[]) : undefined;
@@ -25,7 +25,10 @@ export function toDecoratedGraph(nodes: NetworkNode[], edges: NetworkEdge[]): De
       if (tags) node.tags = tags;
       return node;
     }),
-    edges: edges.map((e) => ({ key: e.key, from: e.source, to: e.target, kind: '' })),
+    edges: [
+      ...edges.map((e) => ({ key: e.key, from: e.source, to: e.target, kind: '' })),
+      ...selfLoops.map((k) => ({ key: `${k}→${k}`, from: k, to: k, kind: '' })),
+    ],
   };
 }
 

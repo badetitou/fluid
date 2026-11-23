@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { NetworkWidget } from '@fluid/shared';
 import { useElementWidth } from '../../../hooks/useElementWidth';
-import { useWidgetTheme } from '../../plugin-api/widgetTheme';
 import { decorationTags, nodesWithTag, withNodeOverrides } from './networkDecorations';
 import { networkGraph } from './networkGraph';
 import { missingLinksReason, type Network } from './networkModel';
@@ -12,6 +11,7 @@ import { NetworkTagLegend } from './NetworkTagLegend';
 import { NetworkToolbar } from './NetworkToolbar';
 import { NetworkTooltip } from './NetworkTooltip';
 import { useNetworkDecorations } from './useNetworkDecorations';
+import { useSigmaTheme } from './useSigmaTheme';
 import { useNetworkLayout } from './useNetworkLayout';
 import { useNetworkView } from './useNetworkView';
 import styles from './Network.module.css';
@@ -31,7 +31,7 @@ const LAYERED_DEFERRED_HINT = 'Too many nodes for layers: focus on a node to see
 
 /** The drawn network with its toolbar, hover card and legend. */
 export function NetworkExplorer({ widget, network, emit, height }: NetworkExplorerProps) {
-  const theme = useWidgetTheme(widget.type);
+  const theme = useSigmaTheme(widget.type);
   const palette = useMemo(() => networkPalette(theme), [theme]);
   const view = useNetworkView(widget, network, emit);
   const { visible } = view;
