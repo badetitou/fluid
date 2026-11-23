@@ -8,7 +8,7 @@ import type { MatchContext } from './selector';
 type Matcher = (node: DecoratedNode, ctx: MatchContext, s: Selector) => boolean;
 
 /** How far up the `child` chain `ancestor` looks. */
-const MAX_ANCESTOR_DEPTH = 1000;
+export const MAX_ANCESTOR_DEPTH = 1000;
 
 function neighbourCount(
   node: DecoratedNode,

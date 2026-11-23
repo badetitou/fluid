@@ -135,6 +135,60 @@ describe('private method never called', () => {
   });
 });
 
+describe('unreferenced details', () => {
+  const rule = (via?: string[]) => ({
+    id: 'd',
+    constraints: [{ id: 'unused', check: 'unreferenced', message: 'm', via, match: { kind: 'K' } }],
+  });
+  const nodes = [
+    { key: 'lonely', kind: 'K' },
+    { key: 'rec', kind: 'K' },
+    { key: 'target', kind: 'K' },
+  ];
+
+  it('counts an incoming edge of any kind when via is omitted', () => {
+    const graph = { nodes, edges: [{ from: 'lonely', to: 'target', kind: 'whatever' }] };
+    expect(flagged(graph, rule(), 'unused')).toEqual(['lonely', 'rec']);
+    expect(flagged(graph, rule(['calls']), 'unused')).toEqual(['lonely', 'rec', 'target']);
+  });
+
+  it('does not count a self-loop as a reference', () => {
+    const graph = { nodes, edges: [{ from: 'rec', to: 'rec', kind: 'calls' }] };
+    expect(flagged(graph, rule(['calls']), 'unused')).toEqual(['lonely', 'rec', 'target']);
+  });
+
+  it('keeps composite keys apart', () => {
+    const graph: DecoratedGraph = {
+      nodes: [
+        { key: 'x', kind: 'A', file: 'a', name: 'b c' },
+        { key: 'y', kind: 'B', file: 'a b', name: 'c' },
+      ],
+      edges: [],
+    };
+    const derived = {
+      id: 'd',
+      derived: [
+        {
+          id: 'j',
+          kind: 'k',
+          from: { kind: 'A' },
+          to: { kind: 'B' },
+          join: { from: ['file', 'name'], to: ['file', 'name'] },
+        },
+      ],
+    };
+    expect(run(derived, graph).derivedEdges).toEqual([]);
+  });
+
+  it('requires the same number of join fields on both sides', () => {
+    const join = (from: string | string[], to: string | string[]) =>
+      derivedEdgeSchema.safeParse({ id: 'j', kind: 'k', from: {}, to: {}, join: { from, to } });
+    expect(join(['a', 'b'], 'c').success).toBe(false);
+    expect(join(['a', 'b'], ['c', 'd']).success).toBe(true);
+    expect(join('a', ['b']).success).toBe(true);
+  });
+});
+
 describe('unreferenced as Cypher', () => {
   it('translates the check', () => {
     const c = constraintSchema.parse({
@@ -145,10 +199,10 @@ describe('unreferenced as Cypher', () => {
       match: { kind: 'Import' },
     });
     expect(constraintToCypher(c)).toBe(
-      "MATCH (n) WHERE n.kind = 'Import' AND NOT EXISTS { MATCH ()-[:`uses`]->(n) } RETURN n",
+      "MATCH (n) WHERE n.kind = 'Import' AND NOT EXISTS { MATCH (m)-[:`uses`]->(n) WHERE m <> n } RETURN n",
     );
     expect(constraintToCypher({ ...c, via: undefined })).toContain(
-      'NOT EXISTS { MATCH ()-[]->(n) }',
+      'NOT EXISTS { MATCH (m)-[]->(n) WHERE m <> n }',
     );
   });
 

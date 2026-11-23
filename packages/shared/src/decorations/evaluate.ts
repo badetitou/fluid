@@ -113,7 +113,8 @@ export function evaluateDecorators(
 
   const imports = importedFindings(specs, graph, options.imported ?? new Map());
   const placed = [...constraintPlaced, ...imports.placed];
-  const unmatched = Object.keys(imports.unmatched).length > 0 ? { unmatched: imports.unmatched } : {};
+  const unmatched =
+    Object.keys(imports.unmatched).length > 0 ? { unmatched: imports.unmatched } : {};
   return { decorations: mergeDecorations(added, placed), derivedEdges, ...unmatched };
 }
 

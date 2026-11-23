@@ -27,7 +27,7 @@ export function derivedToCypher(d: DerivedEdge): string {
   const froms = list(d.join.from);
   const tos = list(d.join.to);
   // A composite key: the fields agree pairwise, in order.
-  const equalities = froms.map((f, i) => `${value('a', f)} = ${value('b', tos[i] ?? f)}`);
+  const equalities = froms.map((f, i) => `${value('a', f)} = ${value('b', tos[i])}`);
   return (
     `MATCH (a), (b) WHERE ${selectorToCypher(d.from, 'a')} AND ${selectorToCypher(d.to, 'b')} ` +
     `AND a <> b AND ${equalities.join(' AND ')} MERGE (a)-[:${ident(d.kind)}]->(b)`
@@ -46,13 +46,13 @@ export function constraintToCypher(c: Constraint): string {
     case 'required':
       return `MATCH (a) WHERE ${selectorToCypher(c.from, 'a')} AND NOT EXISTS { MATCH (a)-[${rel}]->(b) WHERE ${selectorToCypher(c.to, 'b')} } RETURN a`;
     case 'unreferenced':
-      return `MATCH (n) WHERE ${selectorToCypher(c.match, 'n')} AND NOT EXISTS { MATCH ()-[${rel}]->(n) } RETURN n`;
+      return `MATCH (n) WHERE ${selectorToCypher(c.match, 'n')} AND NOT EXISTS { MATCH (m)-[${rel}]->(n) WHERE m <> n } RETURN n`;
     case 'noCycle':
       return `MATCH p = (a)-[${rel}*1..]->(a) WHERE all(n IN nodes(p) WHERE ${selectorToCypher(c.among, 'n')}) RETURN p`;
   }
 }
 
-/** Every rule of a decorator, in evaluation order. `imports` (analyser logs) have no Cypher form: skipped. */
+/** Every rule of a decorator, in evaluation order. */
 export function decoratorToCypher(spec: DecoratorSpec): string[] {
   return [
     ...spec.concepts.map(conceptToCypher),

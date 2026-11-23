@@ -8,8 +8,20 @@ import { decoratorSpecSchema } from './schema';
 
 const graph: DecoratedGraph = {
   nodes: [
-    { key: 'big', kind: 'CLASS', name: 'Big', file: 'src/A.java', props: { startLine: 1, endLine: 50 } },
-    { key: 'other', kind: 'CLASS', name: 'Other', file: 'src/B.java', props: { startLine: 1, endLine: 5 } },
+    {
+      key: 'big',
+      kind: 'CLASS',
+      name: 'Big',
+      file: 'src/A.java',
+      props: { startLine: 1, endLine: 50 },
+    },
+    {
+      key: 'other',
+      kind: 'CLASS',
+      name: 'Other',
+      file: 'src/B.java',
+      props: { startLine: 1, endLine: 5 },
+    },
   ],
   edges: [],
 };
@@ -23,14 +35,24 @@ const log = sarifLogSchema.parse({
           level: 'error',
           message: { text: 'Unused import' },
           locations: [
-            { physicalLocation: { artifactLocation: { uri: '/repo/src/A.java' }, region: { startLine: 3 } } },
+            {
+              physicalLocation: {
+                artifactLocation: { uri: '/repo/src/A.java' },
+                region: { startLine: 3 },
+              },
+            },
           ],
         },
         {
           ruleId: 'unused-import',
           message: { text: 'Elsewhere' },
           locations: [
-            { physicalLocation: { artifactLocation: { uri: '/repo/src/Z.java' }, region: { startLine: 1 } } },
+            {
+              physicalLocation: {
+                artifactLocation: { uri: '/repo/src/Z.java' },
+                region: { startLine: 1 },
+              },
+            },
           ],
         },
       ],
@@ -47,28 +69,54 @@ const spec = decoratorSpecSchema.parse({
 describe('decorator imports', () => {
   it('validate: the format is sarif, the URL is required, imports default to none', () => {
     expect(decoratorSpecSchema.parse({ id: 'x', label: 'x' }).imports).toEqual([]);
-    const bad = (imp: unknown) => decoratorSpecSchema.safeParse({ id: 'x', label: 'x', imports: [imp] }).success;
+    const bad = (imp: unknown) =>
+      decoratorSpecSchema.safeParse({ id: 'x', label: 'x', imports: [imp] }).success;
     expect(bad({ id: 'a', format: 'csv', url: 'u' })).toBe(false);
     expect(bad({ id: 'a', format: 'sarif', url: '' })).toBe(false);
     expect(bad({ id: 'a', format: 'sarif', url: 'u', extra: 1 })).toBe(false);
-    const dup = { id: 'x', label: 'x', imports: [1, 2].map(() => ({ id: 'a', format: 'sarif', url: 'u' })) };
+    const dup = {
+      id: 'x',
+      label: 'x',
+      imports: [1, 2].map(() => ({ id: 'a', format: 'sarif', url: 'u' })),
+    };
     expect(decoratorSpecSchema.safeParse(dup).success).toBe(false);
-    expect(bad({ id: 'a', format: 'sarif', url: 'u', stripPrefix: ['/a'], addPrefix: 'p', kinds: ['CLASS'] })).toBe(true);
+    expect(
+      bad({
+        id: 'a',
+        format: 'sarif',
+        url: 'u',
+        stripPrefix: ['/a'],
+        addPrefix: 'p',
+        kinds: ['CLASS'],
+      }),
+    ).toBe(true);
   });
 
   it('give findings next to the rule findings, and count the unmatched ones', () => {
-    const result = evaluateDecorators([spec], graph, { imported: new Map([['quality/lint', log]]) });
+    const result = evaluateDecorators([spec], graph, {
+      imported: new Map([['quality/lint', log]]),
+    });
     const big = result.decorations.find((d) => d.target.key === 'big');
     expect(big?.findings.map((f) => f.ruleId).sort()).toEqual(['is-big', 'unused-import']);
     const imported = big?.findings.find((f) => f.ruleId === 'unused-import');
-    expect(imported).toMatchObject({ decoratorId: 'quality', severity: 'error', message: 'L3: Unused import' });
+    expect(imported).toMatchObject({
+      decoratorId: 'quality',
+      severity: 'error',
+      message: 'L3: Unused import',
+    });
     expect(result.unmatched).toEqual({ 'quality/lint': 1 });
   });
 
   it('are ignored without their log', () => {
-    for (const options of [undefined, { imported: new Map() }, { imported: new Map([['quality/other', log]]) }]) {
+    for (const options of [
+      undefined,
+      { imported: new Map() },
+      { imported: new Map([['quality/other', log]]) },
+    ]) {
       const result = evaluateDecorators([spec], graph, options);
-      expect(result.decorations.flatMap((d) => d.findings.map((f) => f.ruleId))).toEqual(['is-big']);
+      expect(result.decorations.flatMap((d) => d.findings.map((f) => f.ruleId))).toEqual([
+        'is-big',
+      ]);
       expect(result.unmatched).toBeUndefined();
     }
   });
