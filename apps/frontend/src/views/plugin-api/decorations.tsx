@@ -14,7 +14,10 @@ export function DecorationsProvider({ decorators, children }: { decorators: Deco
   return <DecorationsContext.Provider value={value}>{children}</DecorationsContext.Provider>;
 }
 
-/** The decorations of a graph under the active decorators; empty without decorators or graph. */
+/**
+ * The decorations of a graph under the active decorators; empty without decorators or graph.
+ * The caller must memoize `graph`: a new object each render re-evaluates every decorator.
+ */
 export function useDecorations(graph: DecoratedGraph | undefined): DecorationIndex {
   const { decorators } = useContext(DecorationsContext);
   return useMemo(

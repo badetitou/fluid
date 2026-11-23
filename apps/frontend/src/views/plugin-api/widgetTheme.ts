@@ -38,7 +38,7 @@ export function useWidgetTheme(type: string): WidgetTheme {
       status: {
         error: tokens.status?.error ?? 'var(--ant-color-error)',
         warning: tokens.status?.warning ?? 'var(--ant-color-warning)',
-        info: 'var(--ant-color-info)',
+        info: tokens.status?.info ?? 'var(--ant-color-info)',
         success: tokens.status?.success ?? 'var(--ant-color-success)',
       },
       vars: tokens.widgets?.[type] ?? {},

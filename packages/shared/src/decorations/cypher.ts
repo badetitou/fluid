@@ -50,12 +50,15 @@ export function selectorToCypher(s: Selector, v: string): string {
   if (s.kind !== undefined) parts.push(inList(`${v}.kind`, s.kind));
   if (s.fineKind !== undefined) parts.push(inList(`${v}.fineKind`, s.fineKind));
   if (s.language !== undefined) parts.push(inList(`${v}.language`, s.language));
-  if (s.external !== undefined) parts.push(`${v}.external = ${s.external}`);
+  if (s.external !== undefined)
+    parts.push(s.external ? `${v}.external = true` : `coalesce(${v}.external, false) = false`);
   if (s.name !== undefined) parts.push(`${v}.name =~ ${quote(`.*(?:${s.name}).*`)}`);
   if (s.file !== undefined) parts.push(`${v}.file =~ ${quote(globToRegex(s.file).slice(1, -1))}`);
   if (s.tag !== undefined) {
     const labels = list(s.tag).map((t) => `${v}:${ident(t)}`);
-    parts.push(labels.length === 1 ? labels[0] : `(${labels.join(' OR ')})`);
+    parts.push(
+      labels.length === 0 ? 'false' : labels.length === 1 ? labels[0] : `(${labels.join(' OR ')})`,
+    );
   }
   for (const [path, m] of Object.entries(s.props ?? {}))
     parts.push(propCypher(`${v}.${ident(`props.${path}`)}`, m));
@@ -86,7 +89,7 @@ export function derivedToCypher(d: DerivedEdge): string {
       : `${v}.${ident(field)}`;
   return (
     `MATCH (a), (b) WHERE ${selectorToCypher(d.from, 'a')} AND ${selectorToCypher(d.to, 'b')} ` +
-    `AND ${value('a', d.join.from)} = ${value('b', d.join.to)} MERGE (a)-[:${ident(d.kind)}]->(b)`
+    `AND a <> b AND ${value('a', d.join.from)} = ${value('b', d.join.to)} MERGE (a)-[:${ident(d.kind)}]->(b)`
   );
 }
 
@@ -97,7 +100,7 @@ export function constraintToCypher(c: Constraint): string {
       return `MATCH (n) WHERE ${selectorToCypher(c.match, 'n')} RETURN n`;
     case 'forbidden':
       return c.reachable
-        ? `MATCH (a)-[${rel}*1..]->(b) WHERE ${selectorToCypher(c.from, 'a')} AND ${selectorToCypher(c.to, 'b')} RETURN DISTINCT a, b`
+        ? `MATCH (a)-[${rel}*1..]->(b) WHERE ${selectorToCypher(c.from, 'a')} AND ${selectorToCypher(c.to, 'b')} AND a <> b RETURN DISTINCT a, b`
         : `MATCH (a)-[r${rel}]->(b) WHERE ${selectorToCypher(c.from, 'a')} AND ${selectorToCypher(c.to, 'b')} RETURN a, r, b`;
     case 'required':
       return `MATCH (a) WHERE ${selectorToCypher(c.from, 'a')} AND NOT EXISTS { MATCH (a)-[${rel}]->(b) WHERE ${selectorToCypher(c.to, 'b')} } RETURN a`;

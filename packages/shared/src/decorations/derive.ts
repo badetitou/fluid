@@ -24,8 +24,15 @@ function joinValues(node: DecoratedNode, field: string, normalize: 'exact' | 'ur
   const values = Array.isArray(raw) ? raw : [raw];
   return values
     .filter((v): v is string | number => typeof v === 'string' || typeof v === 'number')
-    .map((v) => (normalize === 'url' ? normalizeUrl(String(v)) : String(v)));
+    .map((v) => String(v))
+    .filter((v) => v.trim().length > 0)
+    .map((v) => (normalize === 'url' ? { raw: v, value: normalizeUrl(v) } : { raw: v, value: v }))
+    .filter((v) => normalize !== 'url' || v.value !== '/' || v.raw.trim() === '/')
+    .map((v) => v.value);
 }
+
+/** At most this many edges derived by one rule, so a loose join cannot blow up the graph. */
+export const MAX_DERIVED_PER_RULE = 10000;
 
 export function deriveEdges(
   rule: DerivedEdge,
@@ -37,7 +44,9 @@ export function deriveEdges(
   for (const node of nodes) {
     if (!matchSelector(node, tagsOf(node.key), rule.to)) continue;
     for (const value of joinValues(node, rule.join.to, normalize)) {
-      targets.set(value, [...(targets.get(value) ?? []), node.key]);
+      const list = targets.get(value);
+      if (list) list.push(node.key);
+      else targets.set(value, [node.key]);
     }
   }
   const edges: DecoratedEdge[] = [];
@@ -46,6 +55,7 @@ export function deriveEdges(
     if (!matchSelector(node, tagsOf(node.key), rule.from)) continue;
     for (const value of joinValues(node, rule.join.from, normalize)) {
       for (const to of targets.get(value) ?? []) {
+        if (edges.length >= MAX_DERIVED_PER_RULE) return edges;
         const key = `${node.key}->${to}:${rule.kind}`;
         if (to === node.key || seen.has(key)) continue;
         seen.add(key);
