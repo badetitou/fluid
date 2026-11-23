@@ -15,12 +15,14 @@ Selector (all given fields must hold): { "key"?, "kind"?, "fineKind"?, "language
 Concepts tag nodes: { "id", "match": Selector, "tag": "ui" } or { "id", "match", "tagFrom": { "field": "file",
   "pattern": "^services/([^/]+)/", "prefix"?: "service:" } } (first capture group). Later concepts see earlier tags.
 Derived edges join nodes: { "id", "kind": "http", "from": Selector, "to": Selector,
-  "join": { "from": "props.url", "to": "props.route", "normalize"?: "exact" | "url" } }.
+  "join": { "from": "props.url", "to": "props.route", "normalize"?: "exact" | "url" } } ("from" / "to" may be a list
+  of fields that must all agree, e.g. ["file", "name"]; a node missing one of them is skipped).
 Constraints give findings, each with "id", "message" ({source}, {target} are node names),
   "severity"? (error | warning | info, default warning), "via"? (edge kinds followed, default all):
   { "check": "node", "match" } every matching node is a finding;
   { "check": "forbidden", "from", "to", "reachable"? } no edge (or no path) from a "from" node to a "to" node;
   { "check": "required", "from", "to" } every "from" node has an edge to a "to" node;
+  { "check": "unreferenced", "match" } every matching node with no incoming edge (of the "via" kinds; a self-loop does not count) is a finding;
   { "check": "noCycle", "among"? } no cycle among the matching nodes.`;
 
 function describeConstraint(c: Constraint): string {

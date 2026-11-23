@@ -1,4 +1,4 @@
-import { ident, quote, relTypes, selectorToCypher } from './cypherSelector';
+import { ident, list, quote, relTypes, selectorToCypher } from './cypherSelector';
 import type { Concept, Constraint, DecoratorSpec, DerivedEdge } from './schema';
 
 export { selectorToCypher };
@@ -24,9 +24,13 @@ export function derivedToCypher(d: DerivedEdge): string {
     d.join.normalize === 'url'
       ? `fluid.normalizeUrl(${v}.${ident(field)})`
       : `${v}.${ident(field)}`;
+  const froms = list(d.join.from);
+  const tos = list(d.join.to);
+  // A composite key: the fields agree pairwise, in order.
+  const equalities = froms.map((f, i) => `${value('a', f)} = ${value('b', tos[i])}`);
   return (
     `MATCH (a), (b) WHERE ${selectorToCypher(d.from, 'a')} AND ${selectorToCypher(d.to, 'b')} ` +
-    `AND a <> b AND ${value('a', d.join.from)} = ${value('b', d.join.to)} MERGE (a)-[:${ident(d.kind)}]->(b)`
+    `AND a <> b AND ${equalities.join(' AND ')} MERGE (a)-[:${ident(d.kind)}]->(b)`
   );
 }
 
@@ -41,6 +45,8 @@ export function constraintToCypher(c: Constraint): string {
         : `MATCH (a)-[r${rel}]->(b) WHERE ${selectorToCypher(c.from, 'a')} AND ${selectorToCypher(c.to, 'b')} RETURN a, r, b`;
     case 'required':
       return `MATCH (a) WHERE ${selectorToCypher(c.from, 'a')} AND NOT EXISTS { MATCH (a)-[${rel}]->(b) WHERE ${selectorToCypher(c.to, 'b')} } RETURN a`;
+    case 'unreferenced':
+      return `MATCH (n) WHERE ${selectorToCypher(c.match, 'n')} AND NOT EXISTS { MATCH (m)-[${rel}]->(n) WHERE m <> n } RETURN n`;
     case 'noCycle':
       return `MATCH p = (a)-[${rel}*1..]->(a) WHERE all(n IN nodes(p) WHERE ${selectorToCypher(c.among, 'n')}) RETURN p`;
   }
