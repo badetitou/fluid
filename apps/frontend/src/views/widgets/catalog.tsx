@@ -14,6 +14,7 @@ import { HistoryWidget } from './history/HistoryWidget';
 import { LazyCodeWidget } from './code/lazy';
 import { AccordionWidget } from './accordion/AccordionWidget';
 import { LazyNetworkWidget } from './network/lazy';
+import { LazyGraphExplorerWidget } from './graphExplorer/lazy';
 import { ClassDiagramWidget } from './classDiagram/ClassDiagramWidget';
 import { BoxesWidget } from './boxes/BoxesWidget';
 import { MatrixWidget } from './matrix/MatrixWidget';
@@ -60,6 +61,7 @@ export const WIDGET_RENDERERS: { [T in CoreWidgetType]: Renderer<T> } = {
     <AccordionWidget widget={widget} data={data} resolve={resolve} Nested={NestedWidget} />
   ),
   network: (props) => <LazyNetworkWidget {...props} />,
+  graphExplorer: (props) => <LazyGraphExplorerWidget {...props} />,
   classDiagram: ({ widget, data, resolve, emit, fitHeight }) => (
     <ClassDiagramWidget widget={widget} data={data} resolve={resolve} emit={emit} fitHeight={fitHeight} />
   ),
@@ -81,7 +83,7 @@ export const WIDGET_RENDERERS: { [T in CoreWidgetType]: Renderer<T> } = {
 };
 
 /** Widget types drawn as charts (or canvases): they size themselves to their cell instead of scrolling. */
-const CHART_TYPES: ReadonlySet<CoreWidgetType> = new Set(['line', 'bar', 'area', 'pie', 'scatter', 'sankey', 'network', 'classDiagram', 'boxes', 'matrix', 'blueprint', 'butterfly', 'model3d', 'scene3d']);
+const CHART_TYPES: ReadonlySet<CoreWidgetType> = new Set(['line', 'bar', 'area', 'pie', 'scatter', 'sankey', 'network', 'graphExplorer', 'classDiagram', 'boxes', 'matrix', 'blueprint', 'butterfly', 'model3d', 'scene3d']);
 
 /** The rendering definition of a built-in widget type. */
 export function builtinRenderer(type: CoreWidgetType): WidgetRendererDefinition {

@@ -7,6 +7,7 @@ import { classDiagramWidgetDoc } from '../widgets/classDiagram';
 import { butterflyWidgetDoc } from '../widgets/butterfly';
 import { codeWidgetDoc } from '../widgets/code';
 import { formWidgetDoc } from '../widgets/form';
+import { graphExplorerWidgetDoc } from '../widgets/graphExplorer';
 import { matrixWidgetDoc } from '../widgets/matrix';
 import {
   areaWidgetDoc,
@@ -128,6 +129,16 @@ export const BUILTIN_WIDGET_CONTRACTS: { [T in CoreWidgetType]: WidgetContract }
     inputs: [DATA_INPUT, port('edges', 'Edge rows (source → target), when the nodes do not list their links.')],
     outputs: [{ ...SELECTED_OUTPUT, description: 'The row of the node the user last clicked.' }],
   }),
+  graphExplorer: contract(
+    'graphExplorer',
+    'Graph explorer',
+    'A hierarchical graph of linked items, expandable to read their details in place.',
+    graphExplorerWidgetDoc,
+    {
+      inputs: [DATA_INPUT, port('edges', 'Edge rows (source → target), when the nodes do not list their links.')],
+      outputs: [{ ...SELECTED_OUTPUT, description: 'The row of the node the user last clicked.' }],
+    },
+  ),
   classDiagram: contract(
     'classDiagram',
     'Class diagram',

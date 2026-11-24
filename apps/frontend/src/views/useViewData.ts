@@ -50,6 +50,9 @@ export function useViewData(spec: ViewSpec): ViewData & ViewDataControls {
   const generation = useRef(0);
 
   const queriesKey = useMemo(() => JSON.stringify(spec.queries), [spec.queries]);
+  // Queries marked `lazy` are run on demand by the widget that needs them (e.g.
+  // the detail of an expanded node), not with the rest of the view.
+  const eager = useMemo(() => Object.entries(spec.queries).filter(([, q]) => !q.lazy), [spec.queries]);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,7 +60,7 @@ export function useViewData(spec: ViewSpec): ViewData & ViewDataControls {
     // Once loaded, keep the results on screen while the new ones arrive.
     setState((s) => (s.fetching ? s : { ...s, refreshing: true }));
 
-    runQueries(queryRunner(client, sources), Object.entries(spec.queries), paging)
+    runQueries(queryRunner(client, sources), eager, paging)
       .then(({ results, rows, error }) => {
         if (!cancelled) setState({ results, rows, fetching: false, refreshing: false, error });
       })
@@ -79,7 +82,7 @@ export function useViewData(spec: ViewSpec): ViewData & ViewDataControls {
 
   const refetch = useCallback<ViewDataControls['refetch']>(
     async (keys) => {
-      const entries = Object.entries(spec.queries).filter(([key]) => keys.includes(key));
+      const entries = Object.entries(spec.queries).filter(([key, q]) => keys.includes(key) && !q.lazy);
       if (entries.length === 0) return;
       const loaded = Object.fromEntries(Object.entries(latest.current.rows ?? {}).map(([key, r]) => [key, r.loaded]));
       const { results, rows, error } = await runQueries(queryRunner(client, sources, 'network-only'), entries, paging, loaded);

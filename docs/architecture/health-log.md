@@ -3,6 +3,38 @@
 Tenu par l'agent `practices-guardian` (`.claude/agents/practices-guardian.md`).
 Entrée la plus récente en haut ; les anciennes entrées ne sont jamais réécrites.
 
+## 2026-11-24 — explorateur de graphe extensible (widget `graphExplorer`)
+
+| Indicateur | Valeur | Δ |
+| --- | --- | --- |
+| Fichiers trop gros | 3 (0 dans le frontend) | = |
+| Objets style inline | 43 | ↑ 32 |
+| bffClient dans l'UI | 0 | = |
+| Violations de couche | 0 | = |
+| `any` explicites | 5 (BFF uniquement) | ↑ 1 |
+| Ratio de tests frontend | 0.34 | ↑ 0.18 |
+| typecheck / tests | ✅ / ✅ | |
+
+**Mécanisme ajouté**
+- `@fluid/shared` : contrat `graphExplorer`, presets (`code-dependencies`, `inheritance`, `calls`, `generic`) et
+  normaliseur pur d'une intention courte (`normalizeGraphExplorerIntent`). La doc LLM passe par `renderWidgetDocs`,
+  pas par une modification manuelle des prompts. Les requêtes `lazy` sont exclues du chargement initial de la vue.
+- `views/graphSession/` : état d'interaction **en mémoire uniquement** (nœuds ouverts, groupes repliés, focus),
+  partagé par les colonnes via un provider monté dans `PluginRuntime`. Rien n'est écrit dans le `ViewSpec`, ni dans
+  `localStorage`/`sessionStorage` ; une régénération par l'assistant conserve l'état si l'id du widget est stable.
+- `views/widgets/graphExplorer/` : rendu React Flow (`@xyflow/react`, chargé en lazy). Un nœud ouvert change de type
+  sans changer d'id : sa boîte est un vrai nœud du graphe, pas une carte au-dessus du canvas. Elle contient des widgets
+  fluid réels via `NestedWidget` et les resolvers `$node` / `$detail`. sigma reste inchangé pour `network` (grands graphes).
+- Les ids des widgets imbriqués sont préfixés par le nœud, pour éviter les collisions de ports entre boîtes ouvertes.
+- Les détails sont chargés à la demande par `useNodeDetail`, validés avec zod et mis en cache pour la session.
+
+**À améliorer**
+- React Flow garde un nœud DOM par élément visible : au-delà de quelques milliers de nœuds, préférer `network` (WebGL).
+- Les positions des nœuds ne sont pas sauvegardées (choix session-only), ni le zoom courant.
+- `graphExplorer.ts` et `view-spec.ts` restent dans la dette des fichiers > 250 lignes du package partagé.
+
+Voir `docs/architecture/GRAPH_EXPLORER.md` pour le contrat et les points d'extension.
+
 ## 2026-10-21 — refonte du frontend (mini composants + performances)
 
 | Indicateur | Valeur | Δ |

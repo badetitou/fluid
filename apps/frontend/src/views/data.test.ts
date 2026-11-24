@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { aggregate, applyTransform, getPath, resolveBinding } from './data';
+import { aggregate, applyTransform, getPath, resolveBinding, scopedResolver } from './data';
 
 const customers = [
   {
@@ -61,5 +61,30 @@ describe('derive', () => {
       limit: 1,
     });
     expect(rows).toEqual([expect.objectContaining({ id: 'c1', totalSpent: 35, txCount: 3 })]);
+  });
+});
+
+describe('scopedResolver', () => {
+  const parent = (binding: { query: string }) => `parent:${binding.query}`;
+
+  it('resolves a key of the bindings with the usual path and transform', () => {
+    const resolve = scopedResolver({ '$node': customers[0] }, parent);
+    expect(resolve({ query: '$node', path: 'fullName' })).toBe('Ada');
+    expect(resolve({ query: '$node', path: 'accounts.iban', transform: { limit: 1 } })).toEqual(['FR1']);
+  });
+
+  it('delegates every other query to the parent', () => {
+    expect(scopedResolver({ '$node': customers[0] }, parent)({ query: 'q' })).toBe('parent:q');
+  });
+
+  it('shadows an enclosing binding with the same key', () => {
+    const outer = scopedResolver({ '$node': customers[0] }, parent);
+    const inner = scopedResolver({ '$node': customers[1] }, outer);
+    expect(inner({ query: '$node', path: 'fullName' })).toBe('Alan');
+  });
+
+  it('ignores inherited object properties', () => {
+    const resolve = scopedResolver({}, parent);
+    expect(resolve({ query: 'toString' })).toBe('parent:toString');
   });
 });

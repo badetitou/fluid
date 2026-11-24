@@ -1,5 +1,5 @@
 import { ACCORDION_ITEM_QUERY, type AccordionWidget, type DataBinding } from '@fluid/shared';
-import { asRows, getPath, resolveBinding } from '../../data';
+import { asRows, getPath, scopedResolver } from '../../data';
 import { nodeLabel } from '../tree/treeModel';
 
 export type Row = Record<string, unknown>;
@@ -57,6 +57,5 @@ export function itemResolver(
   item: unknown,
   parent: (binding: DataBinding) => unknown,
 ): (binding: DataBinding) => unknown {
-  return (binding) =>
-    binding.query === ACCORDION_ITEM_QUERY ? resolveBinding(binding, { [ACCORDION_ITEM_QUERY]: item }) : parent(binding);
+  return scopedResolver({ [ACCORDION_ITEM_QUERY]: item }, parent);
 }

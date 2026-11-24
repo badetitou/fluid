@@ -5,6 +5,7 @@ import { boxesExample } from './widgets/boxes';
 import { butterflyExample } from './widgets/butterfly';
 import { classDiagramExample } from './widgets/classDiagram';
 import { methodSourceExample } from './widgets/code';
+import { graphExplorerExample } from './widgets/graphExplorer';
 import { characterEpisodesMatrixExample, classDependencyMatrixExample } from './widgets/matrixExample';
 import { characterEpisodesNetworkExample } from './widgets/network';
 import { todoEditExample, todoListExample } from './widgets/form';
@@ -267,7 +268,7 @@ export const EXAMPLE_VIEWS: Record<string, ViewSpec[]> = {
   Todo: [todoListExample, todoEditExample],
   Country: [countryScatterExample],
   Method: [methodSourceExample, butterflyExample],
-  Class: [classMethodsExample, classDiagramExample, boxesExample, blueprintExample, classDependencyMatrixExample],
+  Class: [classMethodsExample, classDiagramExample, graphExplorerExample, boxesExample, blueprintExample, classDependencyMatrixExample],
   Character: [characterEpisodesNetworkExample, characterFlowSankeyExample, characterEpisodesMatrixExample, characterInsightExample],
   IfcWallStandardCase: [wall3dExample],
   Package: [overviewPyramidExample],

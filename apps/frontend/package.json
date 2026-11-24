@@ -22,6 +22,7 @@
     "@fluid/shared": "workspace:*",
     "@mlc-ai/web-llm": "^0.2.89",
     "@urql/core": "^6.0.3",
+    "@xyflow/react": "13.0.3",
     "antd": "^6.6.7",
     "graphology": "0.26.0",
     "graphology-layout-forceatlas2": "0.10.1",

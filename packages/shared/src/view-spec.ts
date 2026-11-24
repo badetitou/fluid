@@ -9,6 +9,7 @@ import {
 import { actionSpecSchema } from './actions/schema';
 import { accordionWidgetFields } from './widgets/accordion';
 import { blueprintWidgetSchema } from './widgets/blueprint';
+import { graphExplorerFields, type GraphExplorerFields } from './widgets/graphExplorer';
 import { boxesWidgetDraftSchema, boxesWidgetSchema } from './widgets/boxes';
 import { classDiagramWidgetSchema } from './widgets/classDiagram';
 import { matrixWidgetSchema } from './widgets/matrix';
@@ -38,6 +39,7 @@ export * from './widgets/code';
 export * from './widgets/common';
 export * from './widgets/coreDocs';
 export * from './widgets/form';
+export * from './widgets/graphExplorer';
 export * from './widgets/history';
 export * from './widgets/insight';
 export * from './widgets/insightAnalysis';
@@ -85,6 +87,8 @@ export const querySpecSchema = z.object({
   query: z.string().min(1),
   /** Static variables passed to the query. */
   variables: z.record(z.string(), z.unknown()).optional(),
+  /** A query used for on-demand node detail, excluded from the initial eager load of a view. */
+  lazy: z.boolean().optional(),
   /**
    * The data source answering the query: absent for the GraphQL source, else
    * the id of a data source a view builder plugin provides (e.g. an Open Views provider).
@@ -202,6 +206,17 @@ export const accordionWidgetSchema = accordionShellSchema.extend({
 });
 export type AccordionWidget = z.infer<typeof accordionShellSchema> & { widgets: Widget[] };
 
+// The explorer nests widgets too, through the same lazy reference: the nested
+// widgets read the expanded node with `$node` and its detail with `$detail`.
+// Like the accordion, its type is written out: putting its recursive schema in
+// `leafWidgetSchemas` would make `CoreWidget` infer itself through `Widget[]`.
+const graphExplorerShellSchema = z.object({ type: z.literal('graphExplorer'), ...graphExplorerFields });
+export const graphExplorerWidgetSchema = graphExplorerShellSchema.extend({
+  // Optional in the input: a compact intent lets its preset supply the widgets.
+  widgets: nestedWidgetsSchema.default([]),
+});
+export type GraphExplorerWidget = GraphExplorerFields & { type: 'graphExplorer'; widgets: Widget[] };
+
 const leafWidgetSchemas = [
   tableWidgetSchema,
   statisticWidgetSchema,
@@ -231,9 +246,13 @@ const leafWidgetSchemas = [
 ] as const;
 
 /** A widget fluid ships; plugin widgets are typed `PluginWidget`. */
-export type CoreWidget = z.infer<(typeof leafWidgetSchemas)[number]> | AccordionWidget;
+export type CoreWidget = z.infer<(typeof leafWidgetSchemas)[number]> | AccordionWidget | GraphExplorerWidget;
 export type Widget = CoreWidget | PluginWidget;
-export const coreWidgetSchema = z.discriminatedUnion('type', [...leafWidgetSchemas, accordionWidgetSchema]);
+export const coreWidgetSchema = z.discriminatedUnion('type', [
+  ...leafWidgetSchemas,
+  accordionWidgetSchema,
+  graphExplorerWidgetSchema,
+]);
 /** Any widget: a built-in one, or a plugin's (`"<pluginId>/<name>"`, checked against the plugin catalog). */
 export const widgetSchema = z.union([coreWidgetSchema, pluginWidgetSchema]);
 export type CoreWidgetType = CoreWidget['type'];
@@ -259,6 +278,7 @@ export const WIDGET_TYPES = [
   'form',
   'accordion',
   'network',
+  'graphExplorer',
   'classDiagram',
   'boxes',
   'matrix',
@@ -366,6 +386,8 @@ const scatterWidgetDraftSchema = scatterWidgetSchema.omit({ id: true });
 const codeWidgetDraftSchema = codeWidgetSchema.omit({ id: true });
 const formWidgetDraftSchema = formWidgetSchema.omit({ id: true });
 const accordionWidgetDraftSchema = accordionWidgetSchema.omit({ id: true });
+/** The graph explorer as drafted by the LLM (no id); nested widgets stay full. */
+export const graphExplorerDraftSchema = graphExplorerWidgetSchema.omit({ id: true });
 const model3dWidgetDraftSchema = model3dWidgetSchema.omit({ id: true });
 const scene3dWidgetDraftSchema = scene3dWidgetSchema.omit({ id: true });
 const classDiagramWidgetDraftSchema = classDiagramWidgetSchema.omit({ id: true });
@@ -389,6 +411,7 @@ const coreWidgetDraftSchema = z.discriminatedUnion('type', [
   formWidgetDraftSchema,
   accordionWidgetDraftSchema,
   networkWidgetDraftSchema,
+  graphExplorerDraftSchema,
   classDiagramWidgetDraftSchema,
   boxesWidgetDraftSchema,
   matrixWidgetDraftSchema,
@@ -403,6 +426,37 @@ const coreWidgetDraftSchema = z.discriminatedUnion('type', [
 ]);
 export const widgetDraftSchema = z.union([coreWidgetDraftSchema, pluginWidgetDraftSchema]);
 export type WidgetDraft = z.infer<typeof widgetDraftSchema>;
+
+// The graph explorer's compact intent lives here, after `widgetDraftSchema`:
+// `graphExplorer.ts` only imports its type, which keeps the module cycle (widget
+// schema ↔ nested widgets) out of module initialisation.
+
+/** The small intent an LLM writes for a graph explorer: a preset and a few fields. */
+export const graphExplorerIntentSchema = z.object({
+  id: graphExplorerFields.id.optional(),
+  title: graphExplorerFields.title,
+  span: graphExplorerFields.span,
+  height: graphExplorerFields.height,
+  layout: graphExplorerFields.layout,
+  data: graphExplorerFields.data,
+  preset: graphExplorerFields.preset,
+  linksField: graphExplorerFields.linksField,
+  edges: graphExplorerFields.edges,
+  sourceField: graphExplorerFields.sourceField,
+  targetField: graphExplorerFields.targetField,
+  missingNodes: graphExplorerFields.missingNodes,
+  idField: graphExplorerFields.idField,
+  labelField: graphExplorerFields.labelField,
+  groupField: graphExplorerFields.groupField,
+  groupByField: graphExplorerFields.groupByField,
+  overview: graphExplorerFields.overview,
+  detailQuery: graphExplorerFields.detailQuery,
+  initialExpanded: graphExplorerFields.initialExpanded,
+  collapseAbove: graphExplorerFields.collapseAbove,
+  /** Overrides the preset's nested widgets; normally left to the preset. */
+  widgets: z.array(widgetDraftSchema).optional(),
+});
+export type GraphExplorerIntent = z.infer<typeof graphExplorerIntentSchema>;
 
 /** Parse an unknown value as a draft widget (returns a SafeParseReturnType). */
 export function safeParseWidgetDraft(input: unknown) {

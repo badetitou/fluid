@@ -103,6 +103,15 @@ export const WIDGET_DEFAULTS: { [T in CoreWidgetType]: Factory<T> } = {
     ...base(s),
     linksField: s.fields.all.find((p) => /(^|\.)(links|edges|dependencies|calls|callees|references|neighbou?rs)(\.|$)/i.test(p)) ?? 'links',
   }),
+  // Same link guess as a network, plus the nested detail widgets of an open node.
+  graphExplorer: (s) => ({
+    type: 'graphExplorer',
+    ...base(s),
+    linksField: s.fields.all.find((p) => /(^|\.)(links|edges|dependencies|calls|callees|references|neighbou?rs)(\.|$)/i.test(p)) ?? 'links',
+    overview: 'network',
+    graphLayout: 'force',
+    widgets: [],
+  }),
   // A class diagram needs the superclasses: the shortest path through a superclass-ish field, without its id.
   classDiagram: (s) => {
     const path = s.fields.all

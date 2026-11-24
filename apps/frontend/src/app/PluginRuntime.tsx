@@ -13,6 +13,7 @@ import {
 import { BUILTIN_NAV_PLUGINS } from './layout/builtinNavPlugins';
 import { buildAntdTheme, themeCssVariables, tokensFor } from '../shared/theme';
 import { usePreferences } from '../store';
+import { GraphSessionProvider } from '../views/graphSession';
 import {
   DataSourcesContext,
   DecorationsProvider,
@@ -68,7 +69,9 @@ function ActivePlugins({ children }: { children: ReactNode }) {
       <DataSourcesContext.Provider value={dataSources}>
         <WidgetThemeContext.Provider value={theme}>
           <DecorationsProvider decorators={decorators} imported={imported}>
-            <ConfigProvider theme={antdTheme}>{children}</ConfigProvider>
+            <ConfigProvider theme={antdTheme}>
+              <GraphSessionProvider>{children}</GraphSessionProvider>
+            </ConfigProvider>
           </DecorationsProvider>
         </WidgetThemeContext.Provider>
       </DataSourcesContext.Provider>

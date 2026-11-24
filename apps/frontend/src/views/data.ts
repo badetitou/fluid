@@ -176,6 +176,21 @@ export function resolveBinding(
   return applyTransform(picked, binding.transform);
 }
 
+/**
+ * Resolve bindings against a local set of values (e.g. `{ '$node': node }`),
+ * falling back to the enclosing resolver for every other query key.
+ * Path and transform keep their `resolveBinding` semantics.
+ */
+export function scopedResolver(
+  bindings: Record<string, unknown>,
+  parent: (binding: DataBinding) => unknown,
+): (binding: DataBinding) => unknown {
+  return (binding) =>
+    Object.prototype.hasOwnProperty.call(bindings, binding.query)
+      ? resolveBinding(binding, bindings)
+      : parent(binding);
+}
+
 /** Coerce a resolved binding into an array (widgets that iterate rows). */
 export function asRows(value: unknown): Record<string, unknown>[] {
   if (Array.isArray(value)) return value as Record<string, unknown>[];

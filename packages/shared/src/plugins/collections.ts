@@ -39,8 +39,8 @@ export const BUILTIN_WIDGET_COLLECTIONS: BuiltinWidgetCollection[] = [
   {
     id: 'fluid-graphs',
     name: 'Graphs',
-    description: 'Networks of linked items (dependencies, call graphs), drawn with WebGL, UML class diagrams of inheritance hierarchies and butterfly maps of what an element depends on and what depends on it, and dependency matrices (DSM, co-usage).',
-    types: ['network', 'classDiagram', 'butterfly', 'matrix'],
+    description: 'Networks of linked items, expandable graph explorers that reveal node details, UML class diagrams, butterfly maps and dependency matrices (DSM, co-usage).',
+    types: ['network', 'graphExplorer', 'classDiagram', 'butterfly', 'matrix'],
   },
   {
     id: 'fluid-editing',
