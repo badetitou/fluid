@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_FILTER_OPTIONS, compareRows, compareValues, filterOptions, matchesFilter } from './tableModel';
+import { MAX_FILTER_OPTIONS, clampPage, compareRows, compareValues, filterOptions, matchesFilter, pageSizeOptions } from './tableModel';
 
 describe('compareValues', () => {
   it('orders numbers numerically and text naturally', () => {
@@ -55,5 +55,25 @@ describe('matchesFilter', () => {
     expect(matchesFilter({ ok: true }, 'ok', 'true')).toBe(true);
     expect(matchesFilter({ s: null }, 's', '')).toBe(true);
     expect(matchesFilter({ tags: ['a', 'b'] }, 'tags', 'b')).toBe(true);
+  });
+});
+
+describe('pageSizeOptions', () => {
+  it('offers the standard sizes', () => {
+    expect(pageSizeOptions()).toEqual([8, 10, 20, 50, 100]);
+  });
+
+  it('adds a custom spec size in order, without duplicating a standard one', () => {
+    expect(pageSizeOptions(5)).toEqual([5, 8, 10, 20, 50, 100]);
+    expect(pageSizeOptions(20)).toEqual([8, 10, 20, 50, 100]);
+  });
+});
+
+describe('clampPage', () => {
+  it('keeps the page between 1 and the last page', () => {
+    expect(clampPage(3, 100, 20)).toBe(3);
+    expect(clampPage(9, 100, 20)).toBe(5);
+    expect(clampPage(0, 100, 20)).toBe(1);
+    expect(clampPage(4, 0, 20)).toBe(1);
   });
 });

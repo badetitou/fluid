@@ -8,6 +8,21 @@ export type Row = Record<string, unknown>;
 /** Above this many distinct values, a column offers no value filter (it would be unusable). */
 export const MAX_FILTER_OPTIONS = 100;
 
+/** Page sizes offered by a table's size changer. */
+export const PAGE_SIZE_OPTIONS: readonly number[] = [8, 10, 20, 50, 100];
+
+/** Options for the size changer: the spec's own size is always available. */
+export function pageSizeOptions(specPageSize?: number): number[] {
+  if (specPageSize == null || PAGE_SIZE_OPTIONS.includes(specPageSize)) return [...PAGE_SIZE_OPTIONS];
+  return [...PAGE_SIZE_OPTIONS, specPageSize].sort((a, b) => a - b);
+}
+
+/** Keep a controlled page number in range when the rows or the page size change. */
+export function clampPage(page: number, totalRows: number, pageSize: number): number {
+  const pages = Math.max(1, Math.ceil(totalRows / pageSize));
+  return Math.min(Math.max(1, page), pages);
+}
+
 // Formats whose values are categories worth picking from a list. Numbers, dates
 // and images are sorted, not filtered by value.
 const FILTERABLE_FORMATS: ReadonlySet<FormatKind> = new Set(['text', 'tag', 'boolean']);

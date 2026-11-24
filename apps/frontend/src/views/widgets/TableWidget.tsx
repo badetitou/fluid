@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Table } from 'antd';
 import type { TableColumnsType } from 'antd';
 import type { Column, TableWidget as TableWidgetSpec } from '@fluid/shared';
@@ -6,7 +6,7 @@ import type { InvokeAction } from '../plugin-api';
 import { RowActionButtons } from './RowActionButtons';
 import { useCellRenderer } from './useCellRenderer';
 import styles from './TableWidget.module.css';
-import { compareRows, filterOptions, humanize, inferColumns, matchesFilter, type Row } from './tableModel';
+import { clampPage, compareRows, filterOptions, humanize, inferColumns, matchesFilter, pageSizeOptions, PAGE_SIZE_OPTIONS, type Row } from './tableModel';
 
 const EMPTY_LABEL = '(empty)';
 
@@ -35,6 +35,16 @@ interface TableWidgetProps {
 export function TableWidget({ widget, rows, emit, invoke }: TableWidgetProps) {
   const renderCell = useCellRenderer();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+
+  // The spec gives the initial size; a user's choice is local UI state.
+  const specPageSize = widget.pageSize;
+  const initialPageSize = specPageSize ?? PAGE_SIZE_OPTIONS[0];
+  const [pageSize, setPageSize] = useState(initialPageSize);
+  const [page, setPage] = useState(1);
+  useEffect(() => {
+    setPageSize(initialPageSize);
+    setPage(1);
+  }, [initialPageSize]);
 
   const specs = widget.columns && widget.columns.length > 0 ? widget.columns : inferColumns(rows);
 
@@ -68,13 +78,27 @@ export function TableWidget({ widget, rows, emit, invoke }: TableWidgetProps) {
     emit?.('selected', rows[index] ?? record);
   };
 
+  const pagination = specPageSize
+    ? {
+        current: clampPage(page, rows.length, pageSize),
+        pageSize,
+        pageSizeOptions: pageSizeOptions(specPageSize),
+        showSizeChanger: true,
+        size: 'small' as const,
+        onChange: (nextPage: number, nextPageSize: number) => {
+          setPage(nextPage);
+          setPageSize(nextPageSize);
+        },
+      }
+    : false;
+
   return (
     <Table<Row>
       size="small"
       rowKey="__rowKey"
       columns={columns}
       dataSource={dataSource}
-      pagination={widget.pageSize ? { pageSize: widget.pageSize, size: 'small' } : false}
+      pagination={pagination}
       scroll={{ x: 'max-content' }}
       onRow={emit ? (record) => ({ onClick: () => select(record) }) : undefined}
       rowClassName={(record) => (String(record.__rowKey) === selectedKey ? styles.selected : styles.row)}
