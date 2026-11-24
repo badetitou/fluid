@@ -198,7 +198,7 @@ describe('view actions', () => {
     const { emit } = renderWidget(view('x'), () => ({ ref: { id: 'p1', type: 'Package' } }));
     fireEvent.click(screen.getByRole('button', { name: 'Open parent' }));
     await waitFor(() => expect(emit).toHaveBeenCalledWith('selected', { id: 'p1', type: 'Package' }));
-    expect(screen.getByTestId('location').textContent).toMatch(/p1/);
+    await waitFor(() => expect(screen.getByTestId('location').textContent).toMatch(/p1/));
   });
 
   it('disables the actions without a source to run them on', () => {

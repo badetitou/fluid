@@ -54,7 +54,7 @@ describe('McpViewer', () => {
     expect(init).toBeDefined();
     fromHost({ id: init!.id, result: { hostContext: { theme: 'dark' } } });
     await waitFor(() => expect(sent.some((m) => m.method === 'ui/notifications/initialized')).toBe(true));
-    expect(document.documentElement.dataset.theme).toBe('dark');
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('dark'));
 
     fromHost(toolResult);
     expect(await screen.findByText('Rick Sanchez')).toBeTruthy();

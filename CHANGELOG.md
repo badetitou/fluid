@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-24
+
+### Added
+- **Browser WebGPU provider**: generate views locally with WebLLM in a Web Worker, with no prompt or setting sent to a server. The LLM prompts, response parsing and view validation now live in `@fluid/shared` and are reused by the BFF and the browser.
+- **LLM quick setup**: presets for Gemini, Groq and OpenRouter free tiers and for local OpenAI-compatible servers (LM Studio, llama.cpp). Keys stay in the browser and are sent to the BFF per request.
+- Documentation for one-click browser analysis of a public repository and for code models built without a SCIP index (tree-sitter relations are best effort).
+
+### Changed
+- Table pagination keeps the current page in range when rows or page size change, and offers a page-size changer that always includes the spec's own size.
+- OpenAI-compatible endpoints that reject `response_format` are detected and retried once without it instead of wasting a request.
+
+### Fixed
+- Flaky frontend tests now wait for the MCP viewer theme and the Open Views navigation instead of racing asynchronous UI updates.
+
 ## [0.5.0] - 2026-11-23
 
 ### Added
