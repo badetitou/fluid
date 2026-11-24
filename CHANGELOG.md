@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - OpenAI-compatible endpoints that reject `response_format` are detected and retried once without it instead of wasting a request.
 
 ### Fixed
-- The MCP viewer test waits for the host theme to be applied rather than racing the handshake notification.
+- Flaky frontend tests now wait for the MCP viewer theme and the Open Views navigation instead of racing asynchronous UI updates.
 
 ## [0.5.0] - 2026-11-23
 
