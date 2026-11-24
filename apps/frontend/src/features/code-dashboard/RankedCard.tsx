@@ -21,6 +21,8 @@ export function RankedCard<T extends object>({ title, hint, rows, columns, rowKe
           dataSource={rows.slice(0, 10) as T[]}
           columns={columns}
           rowKey={rowKey}
+          // Long names stay on one line: in a narrow card the table scrolls sideways instead of crushing its columns.
+          scroll={{ x: 'max-content' }}
           pagination={rows.length > 10 ? { pageSize: 10, size: 'small', total: rows.length, showSizeChanger: false } : false}
         />
       )}
