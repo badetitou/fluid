@@ -82,7 +82,7 @@ const viewBuilderPlugins: ViewBuilderPlugin[] = [
       id: 'fluid-model-views',
       name: 'Model views',
       description:
-        'Code-model perspectives for sources serving badetitou/Model (recognised from their schema): the code tree, the members and inheritance of a type, the callers and callees of a method.',
+        'Code-model perspectives for sources serving badetitou/Model (recognised from their schema): the code tree, polymetric maps and dependency matrices of classes and packages, package flows pinned by layer, the members, inheritance and blueprint of a type, the callers and callees of a method.',
     },
     modelViewsBuilder,
     '#722ed1',

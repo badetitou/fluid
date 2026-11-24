@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { App as AntdApp } from 'antd';
 import { McpViewer } from './McpViewer';
 import { installFakeHost } from './testHost';
 
@@ -23,7 +24,12 @@ const shown = (writable: boolean) =>
 const calls = (method: string) => host.sent.filter((m) => m.method === method);
 
 async function showTodos(writable: boolean) {
-  render(<McpViewer />);
+  // Same wrapper as the viewer's entry point: antd's contextual modal is owned by the React tree.
+  render(
+    <AntdApp>
+      <McpViewer />
+    </AntdApp>,
+  );
   await host.handshake();
   host.fromHost({ method: 'ui/notifications/tool-result', params: shown(writable) });
   await screen.findByText('Buy milk');
@@ -46,7 +52,6 @@ describe('McpViewer actions', () => {
     await showTodos(true);
     fireEvent.click(screen.getAllByText('Delete')[0]);
     await screen.findAllByText(/cannot be undone/);
-    // The static modal of the test before may still be closing in the body: use the last one.
     fireEvent.click(screen.getAllByText('Cancel').at(-1)!);
     await new Promise((r) => setTimeout(r, 50));
     expect(calls('tools/call')).toHaveLength(0);

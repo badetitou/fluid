@@ -40,8 +40,10 @@ const sankeyWidgetShape = z.object({
   /** Nodes listed first, in this order, within their column (default: order of appearance). */
   nodeOrder: z.array(z.string().min(1)).max(200).optional(),
   /**
-   * Nodes pinned to columns, left to right (e.g. layers: [["UI"], ["Services"], ["Model"]]). Unlisted
-   * nodes are placed after their sources. Default: each node right after its farthest source.
+   * Nodes pinned to columns, left to right (e.g. layers: [["UI"], ["Services"], ["Model"]]). A name
+   * containing `*` matches node labels case-insensitively (e.g. ["*ui*", "*api*"] pins whole layers
+   * without knowing the package names). Unlisted nodes are placed after their sources. Default: each
+   * node right after its farthest source.
    */
   columns: z.array(z.array(z.string().min(1)).min(1)).max(20).optional(),
 });
