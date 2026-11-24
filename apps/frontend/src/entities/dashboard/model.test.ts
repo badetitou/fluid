@@ -68,7 +68,7 @@ describe('dashboard list', () => {
 
 describe('preselection', () => {
   it('round-trips through the navigation state and rejects anything else', () => {
-    expect(readPreselect(newGraphDashboardNavState())).toEqual({ path: GRAPH_PATH, assistant: true });
+    expect(readPreselect(newGraphDashboardNavState())).toEqual({ path: GRAPH_PATH, newView: true });
     expect(readPreselect(null)).toBeNull();
     expect(readPreselect({ preselect: { path: 3 } })).toBeNull();
   });

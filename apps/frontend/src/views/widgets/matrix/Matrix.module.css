@@ -19,7 +19,7 @@
 }
 
 .sort {
-  width: 150px;
+  width: min(150px, 100%);
 }
 
 .spacer {

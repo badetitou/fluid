@@ -27,6 +27,8 @@ Environment variables honoured:
   LLM_PROVIDER              openai | ollama | claude-code | mock
   OPENAI_API_KEY            key for the openai provider
   OLLAMA_*                  Ollama settings
+  Free tiers (Gemini, Groq, OpenRouter) and local LM Studio/llama.cpp: use the
+                            UI's "Quick setup" preset with your own API key
   CLAUDE_CODE_BIN/MODEL/TIMEOUT_MS   claude-code provider settings
   FLUID_DEFAULT_GRAPHQL_URL default GraphQL endpoint
   FLUID_IMAGE_HOSTS         comma-separated allowed image hosts

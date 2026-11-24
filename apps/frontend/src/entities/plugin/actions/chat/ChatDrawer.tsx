@@ -1,4 +1,5 @@
 import { Drawer } from 'antd';
+import { useIsMobile } from '../../../../hooks/useIsMobile';
 import type { Concept } from '../../../concept';
 import type { PageActionColumn } from '../../pageAction';
 import { BuildViewButton } from './BuildViewButton';
@@ -18,12 +19,13 @@ interface ChatDrawerProps {
 /** The chat about the graph or the column's view, in a drawer on the right. */
 export function ChatDrawer({ concept, column, onClose }: ChatDrawerProps) {
   const { view, itemId } = column;
+  const isMobile = useIsMobile();
   const session = useChatSession({ concept, view, itemId });
   const { canBuild, build } = useBuildView(session.turns, column, onClose);
   return (
     <Drawer
       open
-      size={520}
+      size={isMobile ? '100%' : 520}
       onClose={onClose}
       destroyOnHidden
       title={

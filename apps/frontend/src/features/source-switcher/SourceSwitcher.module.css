@@ -10,8 +10,18 @@
 }
 
 .popup {
-  min-width: 420px;
-  max-width: min(640px, 95vw);
+  min-width: min(420px, calc(100vw - 24px));
+  max-width: min(640px, calc(100vw - 24px));
+}
+
+@media (max-width: 767px) {
+  .addForm :global(.ant-flex) {
+    flex-wrap: wrap;
+  }
+
+  .addName {
+    flex: 1 1 100%;
+  }
 }
 
 .option {

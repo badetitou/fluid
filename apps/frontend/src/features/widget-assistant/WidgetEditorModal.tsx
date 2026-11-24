@@ -38,7 +38,7 @@ export function WidgetEditorModal({ target, onClose, onSaved }: WidgetEditorModa
       title={`Modify widget: ${widget.title || widget.type}`}
       open
       onCancel={onClose}
-      width={900}
+      width="min(900px, calc(100vw - 24px))"
       footer={[
         <Button key="cancel" onClick={onClose}>
           Close

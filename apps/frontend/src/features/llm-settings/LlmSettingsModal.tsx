@@ -9,6 +9,7 @@ export function LlmSettingsModal({ onClose }: { onClose: () => void }) {
       open
       footer={null}
       onCancel={onClose}
+      width="min(720px, calc(100vw - 24px))"
     >
       <LlmSettingsForm onCancel={onClose} onSaved={onClose} />
     </Modal>

@@ -28,18 +28,18 @@ export function dashboardHref(dashboard: Pick<Dashboard, 'id'>): string {
 }
 
 /**
- * What a link asks the column at `path` to do once opened: open the assistant
- * to create a perspective. Carried in the router's navigation state, so it is
- * validated when read back.
+ * What a link asks the column at `path` to do once opened: start a new view,
+ * leaving the choice of editor (AI, manual or JSON) to the blank page.
+ * Carried in the router's navigation state, so it is validated when read back.
  */
-const preselectSchema = z.object({ path: z.string(), assistant: z.boolean().optional() });
+const preselectSchema = z.object({ path: z.string(), newView: z.boolean().optional() });
 export type Preselect = z.infer<typeof preselectSchema>;
 
 const navStateSchema = z.object({ preselect: preselectSchema });
 
-/** Router navigation state that opens the graph column with the assistant ready. */
+/** Router navigation state that opens the graph column on the new-view choices. */
 export function newGraphDashboardNavState() {
-  return { preselect: { path: GRAPH_PATH, assistant: true } };
+  return { preselect: { path: GRAPH_PATH, newView: true } };
 }
 
 /** The preselection carried by a location's state, if any. */

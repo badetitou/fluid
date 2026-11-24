@@ -43,6 +43,21 @@
   }
 }
 
+@media (max-width: 767px) {
+  .pager {
+    max-width: calc(100% - 16px);
+  }
+
+  .boxes {
+    max-width: 45vw;
+  }
+
+  .box {
+    width: 12px;
+    height: 16px;
+  }
+}
+
 .divided {
   border-right: 1px solid var(--ant-color-border-secondary);
 }

@@ -3,6 +3,7 @@ import {
   CompressOutlined,
   ExpandOutlined,
   MenuFoldOutlined,
+  MenuOutlined,
   MenuUnfoldOutlined,
   MoonOutlined,
   SettingOutlined,
@@ -14,8 +15,13 @@ import { getChrome } from '../../theme';
 import { useSettingsToggle } from './useSettingsToggle';
 import styles from './AppLayout.module.css';
 
+interface AppHeaderProps {
+  /** When provided, mobile nav uses a drawer opened by this callback. */
+  onOpenNav?: () => void;
+}
+
 /** Top bar: the source switcher and quick toggles (density, theme, settings, sider). */
-export function AppHeader() {
+export function AppHeader({ onOpenNav }: AppHeaderProps) {
   const navbarSide = usePreferences((s) => s.navbarSide);
   const collapsed = usePreferences((s) => s.navbarCollapsed);
   const toggleCollapsed = usePreferences((s) => s.toggleNavbarCollapsed);
@@ -28,7 +34,9 @@ export function AppHeader() {
   const chrome = getChrome(density);
   const size = compact ? 'small' : 'middle';
 
-  const toggleSider = (
+  const toggleSider = onOpenNav ? (
+    <Button type="text" aria-label="Open navigation" size={size} icon={<MenuOutlined />} onClick={onOpenNav} />
+  ) : (
     <Button
       type="text"
       aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
@@ -48,14 +56,16 @@ export function AppHeader() {
         <SourceSwitcher size={size} />
       </div>
       <div className={styles.tools}>
-        <Tooltip placement="bottomRight" title={compact ? 'Comfortable density' : 'Compact density'}>
-          <Button
-            aria-label="Toggle density"
-            size={size}
-            icon={compact ? <ExpandOutlined /> : <CompressOutlined />}
-            onClick={toggleDensity}
-          />
-        </Tooltip>
+        {!onOpenNav && (
+          <Tooltip placement="bottomRight" title={compact ? 'Comfortable density' : 'Compact density'}>
+            <Button
+              aria-label="Toggle density"
+              size={size}
+              icon={compact ? <ExpandOutlined /> : <CompressOutlined />}
+              onClick={toggleDensity}
+            />
+          </Tooltip>
+        )}
         <Tooltip placement="bottomRight" title={themeMode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}>
           <Button
             aria-label="Toggle theme"

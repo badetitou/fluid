@@ -9,6 +9,28 @@
   background: var(--ant-color-bg-layout);
 }
 
+@media (max-width: 767px) {
+  .content {
+    padding: 12px;
+  }
+
+  .header {
+    gap: 8px;
+    padding-inline: 10px !important;
+  }
+
+  .source {
+    gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .tools {
+    gap: 4px;
+    flex-shrink: 0;
+  }
+}
+
 .sider {
   border-inline-end: 1px solid var(--border);
   background: var(--fluid-navigation-background, var(--surface));

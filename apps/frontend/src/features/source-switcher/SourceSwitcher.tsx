@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type MouseEvent } from 'react';
 import { Button, Divider, Flex, Select, type RefSelectProps } from 'antd';
 import { ApiOutlined, SettingOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { AddSourceForm } from './AddSourceForm';
 import { ProviderSourceForm } from './ProviderSourceForm';
 import { SourceOptionLabel } from './SourceOptionLabel';
@@ -17,6 +18,7 @@ const keepClosed = (e: MouseEvent) => e.preventDefault();
  */
 export function SourceSwitcher({ size }: { size: 'small' | 'middle' }) {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { current, currentName, groups, adders, switchTo } = useSourceSwitcher();
   const select = useRef<RefSelectProps>(null);
   const [open, setOpen] = useState(false);
@@ -56,7 +58,7 @@ export function SourceSwitcher({ size }: { size: 'small' | 'middle' }) {
       value={current ?? undefined}
       options={options}
       onChange={(url: string) => pick(url)}
-      labelRender={({ value }) => <SourceOptionLabel url={String(value)} name={currentName} />}
+      labelRender={({ value }) => <SourceOptionLabel url={String(value)} name={currentName} compact={isMobile} />}
       optionRender={({ value }) => {
         const option = byUrl.get(String(value));
         return <SourceOptionLabel url={String(value)} name={option?.name} pending={option?.pending} />;

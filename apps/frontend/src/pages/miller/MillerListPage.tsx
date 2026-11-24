@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Alert } from 'antd';
 import { useDashboards } from '../../entities/dashboard';
+import { ModelResolutionAlert } from '../../features/model-completeness';
 import { parseDashboardSplat, splatFromPathname } from '../../navigation/millerPath';
 import { buildColumns, resolveRoot, reuseColumns, type ColumnConfig } from './model';
 import { MillerListView } from './MillerListView';
@@ -34,7 +35,10 @@ export function MillerListPage() {
 
   return (
     <div className={styles.page}>
-      <MillerListView columns={columns} />
+      <ModelResolutionAlert className={styles.modelWarning} />
+      <div className={styles.modelView}>
+        <MillerListView columns={columns} />
+      </div>
     </div>
   );
 }

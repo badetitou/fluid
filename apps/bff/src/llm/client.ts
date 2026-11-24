@@ -1,46 +1,16 @@
 import type { ChatMessage, LlmConfig } from './types';
 import { LlmError } from './errors';
+import { isJsonModeRejection, supportsJsonMode } from './modelCapabilities';
 
-/**
- * Extract reasoning steps from an LLM response that starts with "THINKING:"
- * Returns { reasoning: string[], content: string } where content is the remainder
- */
-export function extractReasoning(text: string): { reasoning: string[]; content: string } {
-  const lines = text.split('\n');
-  const reasoning: string[] = [];
-  let thinkingStart = -1;
-
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].trim().startsWith('THINKING:')) {
-      thinkingStart = i;
-      break;
-    }
-  }
-
-  if (thinkingStart === -1) {
-    return { reasoning: [], content: text };
-  }
-
-  let contentStart = thinkingStart + 1;
-  for (let i = thinkingStart + 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (line.startsWith('- ')) {
-      reasoning.push(line.slice(2).trim());
-    } else if (line.length > 0 && !line.startsWith('-')) {
-      contentStart = i;
-      break;
-    }
-  }
-
-  const content = lines.slice(contentStart).join('\n');
-  return { reasoning, content };
-}
+// Pure response parsing lives in @fluid/shared so the browser runtime can reuse it.
+export { extractJson, extractReasoning } from '@fluid/shared';
 
 /**
  * Minimal client for the OpenAI-compatible Chat Completions API. Works for both
  * OpenAI (api.openai.com) and Ollama (localhost:11434/v1) since both expose the
- * same `/chat/completions` shape with a JSON response mode. `timeoutMs` bounds
- * the whole call (no bound by default).
+ * same `/chat/completions` shape. Endpoints without a JSON response mode are
+ * detected, and a rejected `response_format` triggers one retry without it.
+ * `timeoutMs` bounds the whole call (no bound by default).
  */
 export async function chatCompletion(
   config: LlmConfig,
@@ -50,30 +20,42 @@ export async function chatCompletion(
   const url = `${config.baseUrl.replace(/\/$/, '')}/chat/completions`;
   const signal = timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined;
 
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        ...(config.apiKey ? { authorization: `Bearer ${config.apiKey}` } : {}),
-      },
-      body: JSON.stringify({
-        model: config.model,
-        messages,
-        temperature: 0.2,
-        response_format: { type: 'json_object' },
-      }),
-      signal,
-    });
-  } catch (err) {
-    if (signal?.aborted) throw new LlmError(`The LLM at ${url} did not answer within ${timeoutMs! / 1000}s`);
-    throw new LlmError(`Could not reach the LLM at ${url}: ${(err as Error).message}`);
-  }
+  const send = async (jsonMode: boolean): Promise<Response> => {
+    try {
+      return await fetch(url, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(config.apiKey ? { authorization: `Bearer ${config.apiKey}` } : {}),
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages,
+          temperature: 0.2,
+          ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+        }),
+        signal,
+      });
+    } catch (err) {
+      if (signal?.aborted) throw new LlmError(`The LLM at ${url} did not answer within ${timeoutMs! / 1000}s`);
+      throw new LlmError(`Could not reach the LLM at ${url}: ${(err as Error).message}`);
+    }
+  };
 
+  let res = await send(supportsJsonMode(config));
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new LlmError(`LLM returned HTTP ${res.status}: ${body.slice(0, 500)}`);
+    if (!isJsonModeRejection(res.status, body)) {
+      throw new LlmError(`LLM returned HTTP ${res.status}: ${body.slice(0, 500)}`);
+    }
+    // Some compatible APIs reject the flag but still follow the JSON prompt.
+    res = await send(false);
+    if (!res.ok) {
+      const retryBody = await res.text().catch(() => '');
+      throw new LlmError(
+        `LLM returned HTTP ${res.status} after retrying without JSON mode: ${retryBody.slice(0, 500)}`,
+      );
+    }
   }
 
   const json = (await res.json().catch(() => null)) as
@@ -84,33 +66,4 @@ export async function chatCompletion(
     throw new LlmError('LLM response did not include any message content');
   }
   return content;
-}
-
-/**
- * Extract a JSON object from a model response that may be wrapped in prose or
- * ```json fences despite the JSON response mode.
- */
-export function extractJson(text: string): unknown {
-  const trimmed = text.trim();
-  try {
-    return JSON.parse(trimmed);
-  } catch {
-    /* fall through to fence / brace extraction */
-  }
-
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fenced) {
-    try {
-      return JSON.parse(fenced[1].trim());
-    } catch {
-      /* fall through */
-    }
-  }
-
-  const first = trimmed.indexOf('{');
-  const last = trimmed.lastIndexOf('}');
-  if (first !== -1 && last > first) {
-    return JSON.parse(trimmed.slice(first, last + 1));
-  }
-  throw new LlmError('LLM response was not valid JSON');
 }

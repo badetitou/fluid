@@ -1,5 +1,6 @@
 export { useEffectiveProvider, useLlmCapabilities, useLlmGenerate, useLlmInsightAnalyzer } from './useLlm';
 export { useLlmChat } from './useLlmChat';
+export { useBrowserLlmStatus } from './useBrowserLlmStatus';
 export { useChatEntry } from './chatStore';
 export {
   addUserTurn,

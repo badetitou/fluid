@@ -1,4 +1,5 @@
 import { Alert, Progress, Typography } from 'antd';
+import { ModelResolutionAlert } from '../model-completeness';
 import { ArchitectureSection } from './ArchitectureSection';
 import { RankedCard } from './RankedCard';
 import { KpiRow } from './KpiRow';
@@ -15,6 +16,7 @@ export function CodeDashboardPage() {
   return (
     <div className={styles.page}>
       <Typography.Title level={3}>Code analysis dashboard</Typography.Title>
+      <ModelResolutionAlert />
       {error && <Alert type="error" showIcon message="Could not read the code model" description={error} />}
       {loading && (
         <Progress

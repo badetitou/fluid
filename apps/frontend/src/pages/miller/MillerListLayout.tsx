@@ -1,6 +1,7 @@
 import { Children, isValidElement, useState, type ReactNode } from 'react';
 import { Empty, Flex } from 'antd';
 import { ErrorBoundary } from '../../shared/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { ColumnPager } from './ColumnPager';
 import type { ColumnWindow } from './columnWindow';
 import { useVisibleColumns } from './useVisibleColumns';
@@ -25,9 +26,10 @@ interface MillerListLayoutProps {
  */
 export function MillerListLayout({ children, labels }: MillerListLayoutProps) {
   const [visibleCount, setVisibleCount] = useVisibleColumns();
+  const isMobile = useIsMobile();
   const columns = Children.toArray(children);
   const count = columns.length;
-  const windowSize = Math.max(1, Math.min(visibleCount, count));
+  const windowSize = Math.max(1, Math.min(isMobile ? 1 : visibleCount, count));
   const maxStart = Math.max(0, count - windowSize);
 
   const [start, setStart] = useState(maxStart);
@@ -41,7 +43,7 @@ export function MillerListLayout({ children, labels }: MillerListLayoutProps) {
   const last = first + windowSize - 1;
   const resize = ({ first: nextFirst, last: nextLast }: ColumnWindow) => {
     setStart(nextFirst);
-    setVisibleCount(nextLast - nextFirst + 1);
+    if (!isMobile) setVisibleCount(nextLast - nextFirst + 1);
   };
 
   if (count === 0) {
@@ -78,6 +80,7 @@ export function MillerListLayout({ children, labels }: MillerListLayoutProps) {
           first={first}
           last={last}
           labels={labels}
+          compact={isMobile}
           onStartChange={setStart}
           onResize={resize}
         />

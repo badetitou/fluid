@@ -21,6 +21,7 @@ vi.mock('./MillerListView', () => ({
     </div>
   ),
 }));
+vi.mock('../../features/model-completeness', () => ({ ModelResolutionAlert: () => null }));
 
 import { MillerListPage } from './MillerListPage';
 

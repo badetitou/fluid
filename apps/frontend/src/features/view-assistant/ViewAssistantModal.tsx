@@ -4,6 +4,7 @@ import { RobotOutlined, SettingOutlined } from '@ant-design/icons';
 import { conceptLabel, type ViewSpec } from '@fluid/shared';
 import type { ViewSeed } from '../../entities/llm';
 import { preserveLayouts, useSaveView, type SavedView } from '../../entities/view';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { AssistantChat } from './AssistantChat';
 import { AssistantPreview } from './AssistantPreview';
 import { useAssistantSession, type AssistantTarget } from './useAssistantSession';
@@ -36,6 +37,7 @@ export function ViewAssistantModal(props: ViewAssistantModalProps) {
   const { target, source = {}, onClose, onSaved, onOpenJson, onOpenSettings } = props;
   const { editing, from, seed } = source;
   const { message } = AntdApp.useApp();
+  const isMobile = useIsMobile();
   const base = from ?? editing?.spec;
   const session = useAssistantSession(target, editing?.id, base, seed);
   const { saving, error, setError, save } = useSaveView();
@@ -80,7 +82,7 @@ export function ViewAssistantModal(props: ViewAssistantModalProps) {
       }
       open
       onCancel={onClose}
-      width="min(1440px, 96vw)"
+      width="min(1440px, calc(100vw - 16px))"
       centered
       footer={[
         <Button key="settings" icon={<SettingOutlined />} onClick={onOpenSettings}>
@@ -101,11 +103,11 @@ export function ViewAssistantModal(props: ViewAssistantModalProps) {
         </Button>,
       ]}
     >
-      <Splitter className={styles.splitter}>
-        <Splitter.Panel defaultSize="38%" min={320}>
+      <Splitter className={styles.splitter} orientation={isMobile ? 'vertical' : 'horizontal'}>
+        <Splitter.Panel defaultSize={isMobile ? '45%' : '38%'} min={isMobile ? 220 : 320}>
           <AssistantChat session={session} intro={intro} onSend={send} />
         </Splitter.Panel>
-        <Splitter.Panel min={360}>
+        <Splitter.Panel min={isMobile ? 220 : 360}>
           <AssistantPreview
             session={session}
             target={target}

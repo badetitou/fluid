@@ -13,3 +13,11 @@
 .float:focus-within {
   opacity: 1;
 }
+
+@media (max-width: 767px) {
+  .float {
+    inset-inline-end: 12px;
+    inset-block-end: calc(var(--column-overlay-inset, 0px) + 12px);
+    opacity: 0.9;
+  }
+}

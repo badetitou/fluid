@@ -1,7 +1,10 @@
-import { Alert, Input, Select, Tag } from 'antd';
+import { Alert, Input, Select, Tag, Typography } from 'antd';
 import type { LlmCapabilities } from '../../bff/client';
+import type { LlmPreset } from '../../llm/llmPresets';
 import { Field } from './Field';
 import type { LlmSettingsDraft } from './useLlmSettingsDraft';
+import { BrowserLlmStatus } from './BrowserLlmStatus';
+import { BROWSER_DEFAULT_MODEL } from '../../llm/browser/browserEngine';
 
 const CLAUDE_MODEL_OPTIONS = [
   { value: 'sonnet', label: 'Sonnet — fast, recommended' },
@@ -14,10 +17,20 @@ interface ProviderFieldsProps {
   onChange: (patch: Partial<LlmSettingsDraft>) => void;
   /** What the BFF reports; null when unknown (defaults are shown as placeholders). */
   caps: LlmCapabilities | null;
+  /** Quick setup chosen by the user, for quota / privacy hints. */
+  preset: LlmPreset | null;
 }
 
 /** The settings specific to the selected provider. */
-export function ProviderFields({ draft, onChange, caps }: ProviderFieldsProps) {
+export function ProviderFields({ draft, onChange, caps, preset }: ProviderFieldsProps) {
+  const note = preset?.note && (
+    <Alert type={preset.noteTone ?? 'info'} showIcon title={preset.label} description={preset.note} />
+  );
+  const keyHelp = preset?.keyHelpUrl && (
+    <Typography.Link href={preset.keyHelpUrl} target="_blank" rel="noopener noreferrer">
+      Get a key from {preset.keyHelpLabel ?? preset.label}
+    </Typography.Link>
+  );
   const model = (placeholder: string) => (
     <Field label="Model">
       <Input value={draft.model} onChange={(e) => onChange({ model: e.target.value })} placeholder={placeholder} />
@@ -32,17 +45,21 @@ export function ProviderFields({ draft, onChange, caps }: ProviderFieldsProps) {
   switch (draft.provider) {
     case 'mock':
       return (
-        <Alert
-          type="info"
-          showIcon
-          title="The mock provider needs no configuration"
-          description="It returns a deterministic dashboard built from the concept's schema — handy offline and for demos."
-        />
+        <>
+          {note}
+          <Alert
+            type="info"
+            showIcon
+            title="The mock provider needs no configuration"
+            description="It returns a deterministic dashboard built from the concept's schema — handy offline and for demos."
+          />
+        </>
       );
     case 'claude-code': {
       const claude = caps?.providers['claude-code'];
       return (
         <>
+          {note}
           {claude?.available ? (
             <Alert
               type="success"
@@ -73,26 +90,43 @@ export function ProviderFields({ draft, onChange, caps }: ProviderFieldsProps) {
     case 'openai':
       return (
         <>
-          {caps?.providers.openai.configured && (
+          {note}
+          {(!preset || preset.id === 'openai') && caps?.providers.openai.configured && (
             <Tag color="green">A server-side key is configured — leave the key blank to use it.</Tag>
           )}
-          {model(caps?.providers.openai.model ?? 'gpt-4o-mini')}
+          {model(preset?.model || caps?.providers.openai.model || 'gpt-4o-mini')}
           <Field label="API key">
             <Input.Password
               value={draft.apiKey}
               onChange={(e) => onChange({ apiKey: e.target.value })}
-              placeholder="sk-…"
+              placeholder={preset?.keyPlaceholder ?? 'sk-…'}
               autoComplete="off"
             />
           </Field>
-          {baseUrl(caps?.providers.openai.baseUrl ?? 'https://api.openai.com/v1')}
+          {keyHelp}
+          {baseUrl(preset?.baseUrl || caps?.providers.openai.baseUrl || 'https://api.openai.com/v1')}
+        </>
+      );
+    case 'browser':
+      return (
+        <>
+          {note}
+          <BrowserLlmStatus />
+          <Field label="WebLLM model">
+            <Input
+              value={draft.model}
+              onChange={(e) => onChange({ model: e.target.value })}
+              placeholder={BROWSER_DEFAULT_MODEL}
+            />
+          </Field>
         </>
       );
     case 'ollama':
       return (
         <>
-          {model(caps?.providers.ollama.model ?? 'llama3.1')}
-          {baseUrl(caps?.providers.ollama.baseUrl ?? 'http://localhost:11434/v1')}
+          {note}
+          {model(preset?.model || caps?.providers.ollama.model || 'llama3.1')}
+          {baseUrl(preset?.baseUrl || caps?.providers.ollama.baseUrl || 'http://localhost:11434/v1')}
         </>
       );
   }

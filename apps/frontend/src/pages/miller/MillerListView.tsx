@@ -29,7 +29,7 @@ interface MillerListViewProps {
  */
 export function MillerListView({ columns }: MillerListViewProps) {
   const navigate = useNavigate();
-  // "New dashboard" asks the column it opens to start the assistant.
+  // "New dashboard" asks the column it opens to start a new view.
   const { state } = useLocation();
   const preselect = useMemo(() => readPreselect(state), [state]);
   const [fullscreenSlot, setFullscreenSlot] = useState<string | null>(null);

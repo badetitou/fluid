@@ -1,6 +1,10 @@
 import { SUPERCLASS_FIELD_NAMES, type MutationInfo } from '@fluid/shared';
 import type { Concept, ConceptMutation, ConceptMutations, ConceptQueries, InputField } from '../graphql/introspection';
-import type { ConceptSchemaPayload, EntryPointPayload, LlmProvider, RelationPathPayload } from '../bff/client';
+import type { ConceptSchemaPayload, EntryPointPayload, RelationPathPayload } from '../bff/client';
+import type { LlmProvider } from '../store';
+
+/** Providers the BFF can receive; the WebGPU browser provider is handled locally. */
+type BffLlmProvider = Exclude<LlmProvider, 'browser'>;
 
 /** How many relation hops below the concept the LLM is told about. */
 export const RELATION_PATH_DEPTH = 3;
@@ -165,13 +169,13 @@ export function buildEntryPoints(
 
 /** Trim empty override fields so the BFF falls back to its env defaults. */
 export function toConfigOverrides(settings: {
-  provider: LlmProvider;
+  provider: BffLlmProvider;
   model?: string;
   apiKey?: string;
   baseUrl?: string;
 }) {
   const overrides: {
-    provider: LlmProvider;
+    provider: BffLlmProvider;
     model?: string;
     apiKey?: string;
     baseUrl?: string;

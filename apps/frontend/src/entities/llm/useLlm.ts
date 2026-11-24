@@ -9,6 +9,8 @@ import {
   type LlmDelta,
 } from '../../bff/client';
 import { effectiveProvider } from '../../llm/effectiveProvider';
+import { analyzeViewBrowser, generateViewBrowser, generateWidgetBrowser } from '../../llm/browser/browserFlows';
+import { browserModel } from '../../llm/browser/browserEngine';
 import { useLlmSettings, type LlmProvider } from '../../store';
 import { currentCatalogRequest } from '../plugin';
 import { analyzeView } from './analyzeView';
@@ -17,27 +19,38 @@ import { currentConfig } from './currentConfig';
 type WithoutConfig<T> = Omit<T, 'config' | 'widgets'>;
 
 /**
- * LLM generation through the BFF, with the user's provider settings and the
- * widgets of the enabled plugins applied. Both are read when a request starts,
- * so the callbacks stay stable.
+ * LLM generation, through the BFF or in the browser for the WebGPU provider.
+ * Settings are read when a request starts, so the callbacks stay stable.
  */
 export function useLlmGenerate() {
   const generateView = useCallback(
-    async (payload: WithoutConfig<GenerateViewPayload>, onDelta: (d: LlmDelta) => void, signal?: AbortSignal) =>
-      bffClient.generateViewStream(
-        { ...payload, widgets: currentCatalogRequest(), config: await currentConfig() },
+    async (payload: WithoutConfig<GenerateViewPayload>, onDelta: (d: LlmDelta) => void, signal?: AbortSignal) => {
+      const settings = useLlmSettings.getState();
+      const widgets = currentCatalogRequest();
+      if (settings.provider === 'browser') {
+        return generateViewBrowser(payload, widgets, browserModel(settings.model), onDelta, signal);
+      }
+      return bffClient.generateViewStream(
+        { ...payload, widgets, config: await currentConfig() },
         onDelta,
         signal,
-      ),
+      );
+    },
     [],
   );
   const generateWidget = useCallback(
-    async (payload: WithoutConfig<GenerateWidgetPayload>) =>
-      bffClient.generateWidget({
+    async (payload: WithoutConfig<GenerateWidgetPayload>) => {
+      const settings = useLlmSettings.getState();
+      const widgets = currentCatalogRequest();
+      if (settings.provider === 'browser') {
+        return generateWidgetBrowser(payload, widgets, browserModel(settings.model));
+      }
+      return bffClient.generateWidget({
         ...payload,
-        widgets: currentCatalogRequest(),
+        widgets,
         config: await currentConfig(),
-      }),
+      });
+    },
     [],
   );
   return { generateView, generateWidget };
@@ -53,7 +66,10 @@ export function useLlmInsightAnalyzer() {
     useShallow((s) => [s.provider, s.providerChosen, s.model, s.baseUrl, s.apiKey] as const),
   );
   return useCallback(
-    async (request: AnalyzeViewRequest, signal?: AbortSignal) => analyzeView(request, await currentConfig(), signal),
+    async (request: AnalyzeViewRequest, signal?: AbortSignal) => {
+      if (settings[0] === 'browser') return analyzeViewBrowser(request, browserModel(settings[2]), signal);
+      return analyzeView(request, await currentConfig(), signal);
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the settings are read in currentConfig.
     settings,
   );

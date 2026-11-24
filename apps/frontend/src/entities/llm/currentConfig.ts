@@ -7,5 +7,9 @@ import { useLlmSettings } from '../../store';
 export async function currentConfig() {
   const settings = useLlmSettings.getState();
   const caps = settings.providerChosen ? null : await bffClient.getLlmConfig().catch(() => null);
-  return toConfigOverrides({ ...settings, provider: effectiveProvider(settings, caps?.defaultProvider) });
+  const provider = effectiveProvider(settings, caps?.defaultProvider);
+  // Guard rail: the WebGPU provider runs entirely in the tab. Never let its
+  // settings (a WebLLM model id that the BFF does not know) reach the server.
+  if (provider === 'browser') throw new Error('The browser provider runs locally and cannot be sent to the BFF');
+  return toConfigOverrides({ ...settings, provider });
 }

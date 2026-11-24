@@ -77,6 +77,13 @@ files…) and open the **Code analysis** dashboard. (Describing views with an as
   [guide](docs/guides/browser-analysis.md).
 - On your own machine, `npx @badetitou/fluid` does the same with the [GitHub source](docs/guides/github-source.md) (server side, bigger repositories).
 
+#### Semantic resolution (SCIP)
+
+Both the browser and the GitHub source build Model without a SCIP index: relations (calls, references,
+types) come from tree-sitter and are best effort. fluid flags these models as incomplete in the
+code-model pages. For compiler-grade resolution, build a model with an indexer (Java, TypeScript…)
+and serve it to fluid as a GraphQL source; see [Model's on-demand guide](https://github.com/badetitou/Model/blob/main/docs/on-demand.md).
+
 ## ✨ What is fluid?
 
 fluid is an experiment in **interface-less web apps**. Instead of shipping pre-built screens, it
@@ -290,12 +297,43 @@ later), a full example draft and troubleshooting, read the
 | **OpenAI** (or any compatible API) | `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL` |
 | **Ollama** | `OLLAMA_BASE_URL`, `OLLAMA_MODEL` |
 | **Claude** via your local Claude Code login | `claude` installed and logged in, see below |
+| **Browser WebGPU** | Recent Chrome/Edge on HTTPS; no BFF, no key |
 
 > This is fluid's built-in assistant calling Claude. The other way round, Claude Code driving fluid,
 > is [`fluid mcp`](#-use-fluid-from-an-ai-assistant-mcp).
 
 Pick the default with `LLM_PROVIDER` (`openai | ollama | claude-code | mock`); users can override it in
 **Settings → Configure LLM**.
+
+### Free hosted tiers and local models
+
+**Settings → Configure LLM → Quick setup** fills in the endpoint and model for you. Paste a key from
+the provider's own console; no server configuration is needed.
+
+| Preset | Endpoint / default model | Free quota (Nov 2026) |
+| --- | --- | --- |
+| Gemini free | `…googleapis.com/v1beta/openai` · `gemini-3.8-flash` | Per project, shown in AI Studio |
+| Groq free | `api.groq.com/openai/v1` · `openai/gpt-oss-120b` | ~30 req/min, 1 000/day, 200k tokens/day |
+| OpenRouter free | `openrouter.ai/api/v1` · a `:free` model | 20 req/min, 50/day (1 000/day after 10 credits) |
+| Ollama local | `localhost:11434/v1` · `llama3.1` | No key, no data leaves the BFF host |
+| LM Studio / llama.cpp | `localhost:1234/v1` · `local-model` | No key, no data leaves the BFF host |
+
+Free tiers are rate-limited and their model list changes; Google's free tier may use submitted
+content to improve its products outside the EEA/UK/CH. Local endpoints must be reachable **from the
+BFF**, not just from your browser. Keys stay in your browser and are sent to the BFF per request —
+they are never stored server-side. Endpoints that reject `response_format` are detected automatically
+(and retried once without it), so free-tier quotas are not wasted on doomed requests.
+
+### Fully local in the browser (WebGPU)
+
+Pick **Browser WebGPU** in **Settings → Configure LLM**. A small WebLLM model
+(`Llama-3.2-1B-Instruct-q4f16_1-MLC` by default, ~900 MB of VRAM) runs in a Web Worker in your tab:
+prompts, validation and repair use the same shared modules as the BFF, and **no prompt or setting is
+sent to a server**. The first request downloads the model (progress is shown in the settings form),
+then it stays cached in the browser. Requirements: a recent Chromium browser, a secure origin (HTTPS
+or localhost), and enough GPU memory; a larger WebLLM model id can be entered in the settings. The
+model is loaded lazily, so other providers do not download the WebLLM bundle. This mode is for the
+web app only — the MCP viewer's CSP forbids workers.
 
 <details>
 <summary><b>Generating views with your Claude subscription</b></summary>

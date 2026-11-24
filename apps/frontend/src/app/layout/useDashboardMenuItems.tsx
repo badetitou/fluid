@@ -13,7 +13,7 @@ import { RemovableEntry } from './RemovableEntry';
 /**
  * The user's dashboards: promoted columns and whole-graph dashboards, each
  * opening as a page on its perspective, then the entry creating a new
- * whole-graph dashboard with the assistant. Clicking an icon changes it.
+ * whole-graph dashboard (AI, manual editor or JSON). Clicking an icon changes it.
  */
 export function useDashboardMenuItems() {
   const { dashboards, remove, rename, setIcon } = useDashboards();

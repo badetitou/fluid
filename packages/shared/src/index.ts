@@ -8,3 +8,4 @@ export * from './openViews';
 export * from './chat';
 export * from './github-repos';
 export * from './decorations';
+export * from './llm';

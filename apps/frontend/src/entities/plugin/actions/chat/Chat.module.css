@@ -76,11 +76,26 @@
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--ant-color-border-secondary);
+  max-width: min(360px, 100%);
 }
 
 .answerActions {
   display: flex;
   justify-content: flex-end;
+}
+
+@media (max-width: 767px) {
+  .headerRow {
+    flex-wrap: wrap;
+  }
+
+  .title {
+    flex-basis: 100%;
+  }
+
+  .build {
+    width: min(300px, 100%);
+  }
 }
 
 .hint {

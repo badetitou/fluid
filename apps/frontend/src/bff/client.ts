@@ -1,6 +1,9 @@
 import type { MutationInfo, ViewScope, ViewSpec, ViewWidgetInfo, Widget, WidgetCatalogRequest } from '@fluid/shared';
 import { BASE, request } from './http';
+import { parseLlmCapabilities } from './llmCapabilities';
 import { sourcesApi } from './sourcesApi';
+
+export type { LlmCapabilities } from './llmCapabilities';
 
 // Thin fetch wrapper around the Fluid BFF REST API (view persistence + prefs).
 // Every call is resilient at the call site: the UI treats a rejected promise as
@@ -23,6 +26,7 @@ export interface UpdateViewPatch {
   isDefault?: boolean;
 }
 
+/** Providers the BFF accepts. `browser` (WebLLM) is frontend-only and never sent here. */
 export type LlmProvider = 'openai' | 'ollama' | 'claude-code' | 'mock';
 
 export interface LlmConfigOverrides {
@@ -30,16 +34,6 @@ export interface LlmConfigOverrides {
   model?: string;
   baseUrl?: string;
   apiKey?: string;
-}
-
-export interface LlmCapabilities {
-  defaultProvider: LlmProvider;
-  providers: {
-    openai: { configured: boolean; model: string; baseUrl: string };
-    ollama: { model: string; baseUrl: string };
-    'claude-code'?: { available: boolean; version: string | null; model: string };
-    mock: { available: boolean };
-  };
 }
 
 export interface ConceptSchemaPayload {
@@ -113,7 +107,7 @@ export interface GenerateViewPayload {
 
 export interface GenerateViewResponse {
   spec: ViewSpec;
-  provider: LlmProvider;
+  provider: string;
   model: string;
   reasoning?: string[];
 }
@@ -136,7 +130,7 @@ export interface GenerateWidgetPayload {
 export interface GenerateWidgetResponse {
   /** Unvalidated: parse it with `widgetSchema` before use. */
   widget: unknown;
-  provider: LlmProvider;
+  provider: string;
   model: string;
   reasoning?: string[];
 }
@@ -221,7 +215,7 @@ export const bffClient = {
       method: 'PUT',
       body: JSON.stringify(prefs),
     }),
-  getLlmConfig: () => request<LlmCapabilities>('/api/llm/config'),
+  getLlmConfig: () => request<unknown>('/api/llm/config').then(parseLlmCapabilities),
   generateView: (payload: GenerateViewPayload) =>
     request<GenerateViewResponse>('/api/llm/generate-view', {
       method: 'POST',

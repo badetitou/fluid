@@ -1,6 +1,5 @@
-import { z } from 'zod';
-import { insightAnalysisSchema, type InsightAnalysis } from '@fluid/shared';
-import { chatCompletion, extractJson } from './client';
+import { parseInsight, type InsightAnalysis } from '@fluid/shared';
+import { chatCompletion } from './client';
 import { claudeCodeCompletion } from './claudeCode';
 import { resolveLlmConfig } from './config';
 import { LlmValidationError } from './errors';
@@ -11,22 +10,7 @@ import type { AnalyzeViewInput, AnalyzeViewResult, ChatMessage, LlmConfig } from
 /** How long an OpenAI-compatible server may take per answer (Claude Code has its own limit). */
 export const INSIGHT_TIMEOUT_MS = 120_000;
 
-type Parsed = { ok: true; analysis: InsightAnalysis } | { ok: false; errorText: string };
-
-/** Reads the model's answer as an analysis: a JSON object, checked against the shared schema. */
-export function parseInsight(answer: string): Parsed {
-  let json: unknown;
-  try {
-    json = extractJson(answer);
-  } catch (err) {
-    return { ok: false, errorText: (err as Error).message };
-  }
-  const parsed = insightAnalysisSchema.safeParse(json);
-  if (!parsed.success) return { ok: false, errorText: z.prettifyError(parsed.error) };
-  // The findings decide: shown whenever there are some, whatever verdict the model wrote.
-  const analysis = parsed.data;
-  return { ok: true, analysis: { ...analysis, verdict: analysis.findings.length > 0 ? 'insights' : 'nothing' } };
-}
+export { parseInsight } from '@fluid/shared';
 
 const complete = (config: LlmConfig, messages: ChatMessage[]) =>
   config.provider === 'claude-code'

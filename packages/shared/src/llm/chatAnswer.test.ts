@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveWidgetCatalog } from '@fluid/shared';
+import { resolveWidgetCatalog } from '..';
 import { validateChatAnswer } from './chatAnswer';
 
 const catalog = resolveWidgetCatalog(undefined);

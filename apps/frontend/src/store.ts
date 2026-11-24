@@ -143,7 +143,8 @@ export const usePreferences = create<PreferencesState>()(
   ),
 );
 
-export type LlmProvider = 'openai' | 'ollama' | 'claude-code' | 'mock';
+/** `browser` runs a WebGPU model in the tab; it is never sent to the BFF. */
+export type LlmProvider = 'openai' | 'ollama' | 'claude-code' | 'mock' | 'browser';
 
 interface LlmSettingsState {
   provider: LlmProvider;

@@ -20,6 +20,7 @@
     "@ant-design/plots": "^2.6.8",
     "@dagrejs/dagre": "3.1.1",
     "@fluid/shared": "workspace:*",
+    "@mlc-ai/web-llm": "^0.2.89",
     "@urql/core": "^6.0.3",
     "antd": "^6.6.7",
     "graphology": "0.26.0",

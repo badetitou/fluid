@@ -10,6 +10,8 @@ interface ColumnPagerProps {
   first: number;
   last: number;
   labels?: string[];
+  /** Mobile: one column at a time, no drag-to-resize window. */
+  compact?: boolean;
   /** Moves the window so it starts at the given column. */
   onStartChange: (start: number) => void;
   /** Shows another range of columns, from dragging the overlay or its edges. */
@@ -22,7 +24,7 @@ interface ColumnPagerProps {
  * highlighted boxes is dragged to pick the columns, its edges to show more or
  * fewer of them side by side.
  */
-export function ColumnPager({ count, first, last, labels, onStartChange, onResize }: ColumnPagerProps) {
+export function ColumnPager({ count, first, last, labels, compact, onStartChange, onResize }: ColumnPagerProps) {
   const size = last - first + 1;
   /** Slides the window the minimum amount needed to bring `index` into view. */
   const reveal = (index: number) => {
@@ -55,7 +57,7 @@ export function ColumnPager({ count, first, last, labels, onStartChange, onResiz
             </Tooltip>
           );
         })}
-        <PagerWindow range={{ first, last }} count={count} onResize={onResize} />
+        {!compact && <PagerWindow range={{ first, last }} count={count} onResize={onResize} />}
       </div>
       <Button
         type="text"

@@ -22,6 +22,7 @@ export function LoadAllDialog({ open, loaded, paged, onConfirm, onCancel }: Load
       onOk={() => onConfirm(dontAsk)}
       onCancel={onCancel}
       destroyOnHidden
+      width="min(560px, calc(100vw - 24px))"
     >
       <Typography.Paragraph>
         Only the first {loaded.toLocaleString()} rows are loaded. This list may hold many more: loading them all can

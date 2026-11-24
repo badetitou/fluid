@@ -41,7 +41,7 @@ export function ViewEditorModal({ concept, draft, onClose, onSaved }: ViewEditor
       onCancel={onClose}
       okText={editing ? 'Save changes' : 'Create view'}
       confirmLoading={saving}
-      width={720}
+      width="min(720px, calc(100vw - 24px))"
     >
       <div className={styles.form}>
         <Typography.Text type="secondary">

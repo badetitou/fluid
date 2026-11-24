@@ -1,5 +1,16 @@
 .page {
+  display: flex;
   height: 100%;
+  flex-direction: column;
+}
+
+.modelWarning {
+  margin: 8px 8px 0;
+}
+
+.modelView {
+  flex: 1;
+  min-height: 0;
 }
 
 .padded {
@@ -80,6 +91,20 @@
   flex: 1;
   display: flex;
   min-height: 0;
+}
+
+@media (max-width: 767px) {
+  .padded {
+    padding: 8px;
+  }
+
+  .compactTitle {
+    max-width: 55%;
+  }
+
+  .editing {
+    flex-direction: column;
+  }
 }
 
 .empty {

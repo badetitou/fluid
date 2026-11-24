@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { App as AntdApp } from 'antd';
 import type { ViewSpec, Widget } from '@fluid/shared';
 import { useConceptSchema, useRootConcepts, type Concept } from '../../entities/concept';
-import { useColumnPreselect } from '../../entities/dashboard';
+import { useColumnPreselect, type Preselect } from '../../entities/dashboard';
 import { rootFieldsOf } from '../../entities/plugin';
 import {
   newViewDraft,
@@ -60,12 +60,14 @@ export function useColumnController(concept: Concept, { path, slot, itemId, pers
   const rename = usePillRename((entry, title) => entry.saved && mutations.rename(entry.saved.id, title));
   const dashboards = useColumnDashboards({ path, concept: concept.name, itemId, selected, entries: perspectives.entries });
 
-  // "New dashboard" opens this column with the assistant ready.
+  // "New dashboard" opens this column on the blank page offering AI / manual / JSON.
   const preselect = useColumnPreselect(path);
-  const { openAssistant } = dialogs;
+  const startedFor = useRef<Preselect | null>(null);
   useEffect(() => {
-    if (preselect?.assistant) openAssistant();
-  }, [preselect, openAssistant]);
+    if (!preselect?.newView || startedFor.current === preselect) return;
+    startedFor.current = preselect;
+    newView.start();
+  }, [preselect, newView.start]);
 
   // Editing a curated/auto perspective's layout saves the arrangement as a new saved perspective.
   const saveLayout = async (widgets: Widget[], title: string, additions: SpecAdditions) => {
