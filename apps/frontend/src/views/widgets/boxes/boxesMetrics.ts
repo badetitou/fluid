@@ -12,7 +12,15 @@ export interface BoxMetric {
   value: string;
 }
 
-const fieldName = (field: string) => humanize(field.split('.').pop() ?? field);
+const GENERIC_COUNT = new Set(['count', 'totalCount']);
+
+/** A short label for a metric path: the alias before a generic count, else the last segment. */
+export function metricLabel(field: string): string {
+  const parts = field.split('.');
+  const last = parts[parts.length - 1] ?? field;
+  const name = GENERIC_COUNT.has(last) && parts.length > 1 ? parts[parts.length - 2] : last;
+  return humanize(name ?? field);
+}
 
 const show = (value: number | string | undefined) =>
   value === undefined ? '—' : typeof value === 'number' ? value.toLocaleString('en-US', { maximumFractionDigits: 2 }) : value;
@@ -25,5 +33,5 @@ export function boxMetrics(item: BoxItem, widget: Pick<BoxesWidget, 'widthField'
     [widget.sizeField, 'size', item.size],
     [widget.colorField, 'color', item.color],
   ];
-  return entries.flatMap(([field, role, value]) => (field ? [{ name: fieldName(field), role, value: show(value) }] : []));
+  return entries.flatMap(([field, role, value]) => (field ? [{ name: metricLabel(field), role, value: show(value) }] : []));
 }

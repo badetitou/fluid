@@ -1,11 +1,10 @@
-import { humanize } from '../../fieldHeuristics';
 import type { ColorScale } from './boxesModel';
+import { metricLabel } from './boxesMetrics';
 import { categoryColor, type BoxesPalette } from './boxesStyle';
 import styles from './Boxes.module.css';
 
 const MAX_CATEGORIES = 12;
 
-const fieldName = (field: string) => humanize(field.split('.').pop() ?? field);
 const show = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 2 });
 
 /** The color legend: min → max of a metric, or the categories and their colors. */
@@ -14,7 +13,7 @@ export function BoxesLegend({ scale, palette }: { scale: ColorScale; palette: Bo
   if (scale.kind === 'sequential') {
     return (
       <div className={styles.legend} aria-label="Color legend">
-        <span className={styles.legendField}>{fieldName(scale.field)}</span>
+        <span className={styles.legendField}>{metricLabel(scale.field)}</span>
         <span>{show(scale.min)}</span>
         <span className={styles.gradient} style={{ background: `linear-gradient(to right, ${palette.low}, ${palette.high})` }} />
         <span>{show(scale.max)}</span>
@@ -25,7 +24,7 @@ export function BoxesLegend({ scale, palette }: { scale: ColorScale; palette: Bo
   const more = scale.categories.length - shown.length;
   return (
     <div className={styles.legend} aria-label="Color legend">
-      <span className={styles.legendField}>{fieldName(scale.field)}</span>
+      <span className={styles.legendField}>{metricLabel(scale.field)}</span>
       {shown.map((c) => (
         <span key={c} className={styles.category}>
           <span className={styles.swatch} style={{ background: categoryColor(palette, scale.categories, c) }} />

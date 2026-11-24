@@ -34,6 +34,18 @@ describe('sankey columns', () => {
     expect(columnsOf(graph, [['UI'], [], ['Kernel'], ['Model']])).toEqual({ UI: 0, Kernel: 1, Model: 2 });
   });
 
+  it('pins whole layers with wildcard patterns', () => {
+    const graph = graphOf([
+      ['app.entry.Web', 'app.domain.Order'],
+      ['app.domain.Order', 'app.persistence.Mapper'],
+    ]);
+    expect(columnsOf(graph, [['*entry*'], ['*domain*'], ['*persistence*']])).toEqual({
+      'app.entry.Web': 0,
+      'app.domain.Order': 1,
+      'app.persistence.Mapper': 2,
+    });
+  });
+
   it('orders nodes by nodeOrder first, then by appearance', () => {
     expect([...nodePriority(graphOf([['A', 'B'], ['C', 'D']]), ['D', 'X', 'C']).keys()]).toEqual(['D', 'C', 'A', 'B']);
   });

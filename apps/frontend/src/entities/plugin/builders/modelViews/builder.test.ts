@@ -29,8 +29,10 @@ describe('Model views builder', () => {
   });
 
   it('proposes the code tree on namespace lists, a contents view on namespace details', () => {
-    const [tree] = modelPerspectives(context('Namespace', 'list'));
+    const [tree, packages, flows] = modelPerspectives(context('Namespace', 'list'));
     expect(tree).toMatchObject({ origin: 'curated', defaultFor: 'list', title: 'Code tree' });
+    expect(packages.title).toBe('Package dependencies');
+    expect(flows.title).toBe('Architecture flows');
     expect(widget(tree.spec, 'tree')).toMatchObject({ type: 'tree', keyField: 'key', childrenField: 'children.nodes', linkTo: { concept: 'Entity', idField: 'key' } });
     expect(tree.spec.queries.model.query).toContain('entities(roots: true, external: false');
     expect(modelPerspectives(context('Namespace', 'detail')).map((p) => p.title)).toEqual(['Contents']);
@@ -38,7 +40,7 @@ describe('Model views builder', () => {
   });
 
   it('shows a class with its methods, fields and inheritance', () => {
-    const [overview, contents] = specsOf(context('Class', 'detail'));
+    const [overview, , contents] = specsOf(context('Class', 'detail'));
     expect(overview.queries.type.query).toMatch(/classByKey\(key: \$id\)/);
     expect(overview.queries.type.query).toMatch(/\$id: String!/);
     expect(overview.queries.type.query).toContain('supertypes: outgoing(kind: "inherits"');
@@ -46,6 +48,90 @@ describe('Model views builder', () => {
     expect(widget(overview, 'fields')).toMatchObject({ type: 'table', data: { path: 'classByKey.fields.nodes' } });
     expect(widget(overview, 'hierarchy')).toMatchObject({ incomingField: 'subtypes.nodes.from', outgoingField: 'supertypes.nodes.to', idField: 'key' });
     expect(contents.title).toBe('Contents');
+  });
+
+  it('shows a blueprint of a type, from its calls and references to fields', () => {
+    const specs = specsOf(context('Class', 'detail'));
+    const blueprint = specs[1];
+    expect(blueprint.title).toBe('Blueprint');
+    expect(blueprint.queries.entity.query).toContain('classByKey(key: $id)');
+    expect(blueprint.queries.entity.query).toContain('calls: outgoing(kind: "calls"');
+    expect(blueprint.queries.entity.query).toContain('callers: incoming(kind: "calls"');
+    expect(blueprint.queries.entity.query).toContain('accesses: outgoing(kind: "references"');
+    expect(blueprint.queries.entity.query).toContain('attributes: children(kind: FIELD');
+    expect(widget(blueprint, 'blueprint')).toMatchObject({
+      type: 'blueprint',
+      methodsField: 'methods',
+      attributesField: 'attributes.nodes',
+      idField: 'key',
+      callsField: 'calls.nodes.to.key',
+      callersField: 'callers.nodes.from.key',
+      accessesField: 'accesses.nodes.to.key',
+      linkTo: { concept: 'Entity', idField: 'key' },
+    });
+    expect(specs[2].title).toBe('Contents');
+  });
+
+  it('proposes a polymetric map of classes on class lists', () => {
+    const perspectives = modelPerspectives(context('Class', 'list'));
+    expect(perspectives.map((p) => p.title)).toEqual(['System complexity', 'Dependency matrix']);
+    const spec = perspectives[0].spec;
+    expect(spec.queries.classes.query).toContain('classes(first:');
+    expect(spec.queries.classes.query).toContain('methods: children(kind: METHOD, first: 0)');
+    for (const counter of ['callees', 'references', 'subclasses'])
+      expect(spec.queries.classes.query).toContain(`${counter}: `);
+    expect(widget(spec, 'complexity')).toMatchObject({
+      type: 'boxes',
+      boxLayout: 'tree',
+      widthField: 'fields.totalCount',
+      heightField: 'methods.totalCount',
+      sizeField: 'methods.totalCount',
+      colorField: 'callers.totalCount',
+      groupField: 'parent.name',
+      parentField: 'supertypes.nodes.to.key',
+    });
+  });
+
+  it('builds dependency matrices of calls and references between classes', () => {
+    const spec = modelPerspectives(context('Class', 'list'))[1].spec;
+    expect(spec.queries.model.query).toContain('classes(first: 300)');
+    expect(spec.queries.model.query).toContain('calls: outgoing(kind: "calls"');
+    expect(spec.widgets.map((w) => w.id)).toEqual(['calls', 'references']);
+    expect(widget(spec, 'calls')).toMatchObject({
+      type: 'matrix',
+      columns: 'same',
+      targetsField: 'calls.nodes.to',
+      targetIdField: 'key',
+      groupField: 'parent.name',
+    });
+    expect(widget(spec, 'references')).toMatchObject({ targetsField: 'references.nodes.to' });
+  });
+
+  it('builds a package DSM from the calls between the classes of each namespace', () => {
+    const spec = modelPerspectives(context('Namespace', 'list'))[1].spec;
+    expect(spec.queries.model.query).toContain('namespaces(first: 300)');
+    expect(spec.queries.model.query).toContain('classes: children(kind: CLASS');
+    expect(widget(spec, 'calls')).toMatchObject({
+      type: 'matrix',
+      targetsField: 'classes.nodes.calls.nodes.to.parent',
+      targetIdField: 'key',
+      columns: 'same',
+    });
+  });
+
+  it('folds calls into layered flows between packages', () => {
+    const spec = modelPerspectives(context('Namespace', 'list'))[2].spec;
+    expect(spec.title).toBe('Architecture flows');
+    expect(spec.queries.model.query).toContain('classes(first: 300)');
+    expect(spec.queries.model.query).toContain('calls: outgoing(kind: "calls"');
+    expect(widget(spec, 'flows')).toMatchObject({
+      type: 'sankey',
+      data: { query: 'model', path: 'classes.nodes' },
+      groupField: 'parent.name',
+      targetsField: 'calls.nodes.to',
+      targetGroupField: 'parent.name',
+      columns: expect.arrayContaining([expect.arrayContaining(['*persistence*'])]),
+    });
   });
 
   it('shows the callers and callees of a method, with their site counts', () => {
@@ -71,6 +157,7 @@ describe('Model views builder', () => {
     const specs = [
       ...specsOf(context('Namespace', 'list')),
       ...specsOf(context('Namespace', 'detail')),
+      ...specsOf(context('Class', 'list')),
       ...specsOf(context('Class', 'detail')),
       ...specsOf(context('Interface', 'detail')),
       ...specsOf(context('Method', 'detail')),
@@ -82,7 +169,7 @@ describe('Model views builder', () => {
 
   it('treats the finer concepts of Model 0.4.0 by archetype: records and annotation types as types', () => {
     for (const [concept, lookup] of [['Record', 'recordByKey'], ['AnnotationType', 'annotationTypeByKey']]) {
-      const [overview, contents] = specsOf(context(concept, 'detail'));
+      const [overview, , contents] = specsOf(context(concept, 'detail'));
       expect(overview.title).toBe(`${concept} overview`);
       expect(overview.queries.type.query).toContain(`${lookup}(key: $id)`);
       expect(contents.title).toBe('Contents');

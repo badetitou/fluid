@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **Model views**: a class blueprint for types (methods, calls, references to fields), a polymetric "System complexity" map of the classes with reader-configurable metrics, dependency matrices of classes and packages (calls and references, cycles highlighted), and layered architecture flows between packages, all curated from Model's schema and drawn by the existing widgets.
+- **Sankey layer pins**: `columns` now accepts `*` name patterns, so a curated view can pin whole layers (e.g. `*persistence*`) without knowing the exact package names.
+
 ## [0.8.0] - 2026-11-24
 
 ### Added

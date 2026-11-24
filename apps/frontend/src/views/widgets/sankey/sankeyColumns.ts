@@ -38,10 +38,26 @@ export function cycleLinks(graph: FlowGraph, priority: ReadonlyMap<string, numbe
   return back;
 }
 
+/** An exact name, or a `*` pattern matching node labels case-insensitively. */
+function matches(pattern: string, key: string): boolean {
+  if (!pattern.includes('*')) return pattern === key;
+  const source = pattern
+    .split('*')
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('.*');
+  return new RegExp(`^${source}$`, 'i').test(key);
+}
+
 /** The pinned column of each listed node (first listing wins). */
-function pinnedColumns(columns: readonly (readonly string[])[] = []): Map<string, number> {
+function pinnedColumns(columns: readonly (readonly string[])[], nodes: readonly { key: string }[]): Map<string, number> {
   const pinned = new Map<string, number>();
-  columns.forEach((keys, col) => keys.forEach((k) => pinned.has(k) || pinned.set(k, col)));
+  columns.forEach((patterns, col) =>
+    patterns.forEach((pattern) =>
+      nodes.forEach((node) => {
+        if (!pinned.has(node.key) && matches(pattern, node.key)) pinned.set(node.key, col);
+      }),
+    ),
+  );
   return pinned;
 }
 
@@ -51,7 +67,7 @@ export function assignColumns(
   priority: ReadonlyMap<string, number>,
   columns?: readonly (readonly string[])[],
 ): Map<string, number> {
-  const pinned = pinnedColumns(columns);
+  const pinned = pinnedColumns(columns ?? [], graph.nodes);
   const back = cycleLinks(graph, priority);
   const forward = graph.links.filter((l) => !back.has(l));
   const inputs = new Map<string, string[]>();

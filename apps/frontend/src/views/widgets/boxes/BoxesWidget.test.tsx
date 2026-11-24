@@ -3,11 +3,44 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { Provider, type Client } from 'urql';
 import { boxesExample, type BoxesWidget as BoxesWidgetSpec } from '@fluid/shared';
+import { complexitySpec } from '../../../entities/plugin/builders/modelViews/complexitySpec';
 import { ViewRenderer } from '../../ViewRenderer';
 import { BoxesWidget } from './BoxesWidget';
 import { boxClasses } from './boxesFixture';
 
 const spec = boxesExample.widgets[0] as BoxesWidgetSpec;
+const modelSpec = complexitySpec('Class').widgets[0] as BoxesWidgetSpec;
+// The rows `model-graphql` answers to the curated System complexity query.
+const modelClasses = [
+  {
+    __typename: 'Class',
+    key: 'c1',
+    name: 'Animal',
+    kind: 'CLASS',
+    parent: { name: 'Foo.ts' },
+    methods: { totalCount: 1 },
+    fields: { totalCount: 1 },
+    callers: { totalCount: 0 },
+    callees: { totalCount: 0 },
+    references: { totalCount: 0 },
+    subclasses: { totalCount: 1 },
+    supertypes: { nodes: [] },
+  },
+  {
+    __typename: 'Class',
+    key: 'c2',
+    name: 'Dog',
+    kind: 'CLASS',
+    parent: { name: 'Foo.ts' },
+    methods: { totalCount: 2 },
+    fields: { totalCount: 2 },
+    callers: { totalCount: 1 },
+    callees: { totalCount: 1 },
+    references: { totalCount: 0 },
+    subclasses: { totalCount: 0 },
+    supertypes: { nodes: [{ to: { key: 'c1' } }] },
+  },
+];
 
 function Location() {
   return <output data-testid="location">{useLocation().pathname}</output>;
@@ -69,6 +102,22 @@ describe('BoxesWidget', () => {
     expect(screen.getByTestId('location').textContent).toContain('3');
     fireEvent.keyDown(screen.getByLabelText('Bag'), { key: 'Enter' });
     expect(emit).toHaveBeenLastCalledWith('selected', expect.objectContaining({ id: '4' }));
+  });
+
+  it('names Model\'s nested counts by their alias in the metric pickers', () => {
+    renderWidget(modelSpec, modelClasses);
+    fireEvent.mouseDown(screen.getAllByRole('combobox')[0]);
+    const labels = [...document.querySelectorAll('.ant-select-item-option-content')].map((node) => node.textContent);
+    expect(labels).toEqual([
+      'None',
+      'Callees',
+      'Callers',
+      'Fields',
+      'Methods',
+      'References',
+      'Subclasses',
+    ]);
+    expect(screen.getByLabelText('Color legend').textContent).toContain('Callers');
   });
 
   it('explains why there is nothing to draw', () => {
