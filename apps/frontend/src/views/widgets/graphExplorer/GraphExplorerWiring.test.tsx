@@ -44,7 +44,21 @@ vi.mock('sigma', () => {
       this.graph = graph;
     }
     getCamera() {
-      return { setState: (state: Partial<Record<string, number>>) => Object.assign(this.camera, state) };
+      return {
+        getState: () => ({ ...this.camera }),
+        setState: (state: Partial<Record<string, number>>) => Object.assign(this.camera, state),
+      };
+    }
+    getBBox() {
+      const extent = { x: [Infinity, -Infinity], y: [Infinity, -Infinity] } as { x: [number, number]; y: [number, number] };
+      const graph = this.graph as unknown as { forEachNode(fn: (key: string, attrs: { x: number; y: number }) => void): void };
+      graph.forEachNode((_key, attrs) => {
+        extent.x[0] = Math.min(extent.x[0], attrs.x);
+        extent.x[1] = Math.max(extent.x[1], attrs.x);
+        extent.y[0] = Math.min(extent.y[0], attrs.y);
+        extent.y[1] = Math.max(extent.y[1], attrs.y);
+      });
+      return extent;
     }
     getGraphToViewportRatio() {
       return 1;
@@ -173,7 +187,9 @@ describe('graph explorer wiring', () => {
 
     await waitFor(() => expect(sigmas).toHaveLength(1));
     expect(sigmas[0].graph.order).toBe(3); // root box + two leaves
-    expect(sigmas[0].settings.autoRescale).toBe(false);
+    // Sigma's camera lives in normalized [0, 1] space, never in graph units.
+    expect(sigmas[0].camera.x).toBeGreaterThanOrEqual(0);
+    expect(sigmas[0].camera.x).toBeLessThanOrEqual(1);
     expect(calls.some((query) => query.includes('FluidExplorerDetail'))).toBe(false);
 
     hover('1');

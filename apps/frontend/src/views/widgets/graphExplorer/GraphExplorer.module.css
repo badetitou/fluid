@@ -36,6 +36,8 @@
 .canvas {
   position: absolute;
   inset: 0;
+  /* Sigma's WebGL nodes stay above the canvas-drawn boxes. */
+  z-index: 1;
 }
 
 .boxLayer,
@@ -43,6 +45,14 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
+}
+
+.boxLayer {
+  z-index: 0;
+}
+
+.cardLayerRoot {
+  z-index: 2;
 }
 
 .cardLayer {
