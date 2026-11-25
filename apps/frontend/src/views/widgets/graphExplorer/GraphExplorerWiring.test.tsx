@@ -1,67 +1,66 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ComponentType, ReactNode } from 'react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Provider, type Client } from 'urql';
 import { GRAPH_DETAIL_QUERY, GRAPH_NODE_QUERY, type ViewSpec } from '@fluid/shared';
 import { GraphSessionProvider } from '../../graphSession';
 import { ViewRenderer } from '../../ViewRenderer';
 
-// React Flow is mocked with the part the explorer relies on: it hands its nodes
-// to the registered node components. The expansion is therefore checked where
-// it matters — the drawn node list, not a floating overlay.
-interface MockFlowNode {
-  id: string;
-  type?: string;
-  data: Record<string, unknown>;
-  selected?: boolean;
-  sourcePosition?: unknown;
-  targetPosition?: unknown;
+// WebGL does not exist in jsdom: sigma is replaced by a fake that records its
+// graph and lets the test fire its events. No DOM node is created per graph node.
+interface FakeSigma {
+  graph: { order: number; size: number };
+  settings: Record<string, unknown>;
+  camera: Record<string, number>;
+  fire: (event: string, payload?: unknown) => void;
 }
-type MockNodeComponent = ComponentType<MockFlowNode>;
-interface MockFlowProps {
-  nodes: MockFlowNode[];
-  nodeTypes: Record<string, MockNodeComponent>;
-  onNodeClick?: (event: unknown, node: MockFlowNode) => void;
-  onNodeDoubleClick?: (event: unknown, node: MockFlowNode) => void;
-  children?: ReactNode;
-}
-
-const flow = vi.hoisted(() => {
-  const state = { nodes: [] as MockFlowNode[] };
-  (globalThis as unknown as { __graphExplorerFlow: typeof state }).__graphExplorerFlow = state;
-  return state;
-});
-vi.mock('@xyflow/react', async () => {
-  const React = await import('react');
-  const ReactFlow = ({ nodes, nodeTypes, onNodeClick, onNodeDoubleClick, children }: MockFlowProps) => {
-    (globalThis as unknown as { __graphExplorerFlow: { nodes: MockFlowNode[] } }).__graphExplorerFlow.nodes = nodes;
-    return React.createElement(
-      'div',
-      { 'data-testid': 'flow' },
-      nodes.map((node) => {
-        const Node = nodeTypes[node.type ?? 'graphNode'];
-        return React.createElement(
-          'div',
-          {
-            key: node.id,
-            onClick: () => onNodeClick?.(undefined, node),
-            onDoubleClick: () => onNodeDoubleClick?.(undefined, node),
-          },
-          React.createElement(Node, node),
-        );
-      }),
-      children,
-    );
-  };
-  return {
-    ReactFlow,
-    Background: () => null,
-    Controls: () => null,
-    Handle: () => null,
-    Position: { Left: 'left', Right: 'right', Top: 'top', Bottom: 'bottom' },
-    MarkerType: { ArrowClosed: 'arrowclosed' },
-  };
+const sigmas = vi.hoisted(() => [] as FakeSigma[]);
+vi.mock('sigma', () => {
+  class Sigma {
+    handlers = new Map<string, (payload: unknown) => void>();
+    camera: Record<string, number> = { x: 0, y: 0, ratio: 1 };
+    constructor(
+      public graph: { order: number; size: number },
+      _container: HTMLElement,
+      public settings: Record<string, unknown>,
+    ) {
+      sigmas.push(this as unknown as FakeSigma);
+    }
+    on(event: string, handler: (payload: unknown) => void) {
+      this.handlers.set(event, handler);
+      return this;
+    }
+    fire(event: string, payload?: unknown) {
+      this.handlers.get(event)?.(payload);
+    }
+    setSettings(settings: Record<string, unknown>) {
+      Object.assign(this.settings, settings);
+      return this;
+    }
+    getGraph() {
+      return this.graph;
+    }
+    setGraph(graph: { order: number; size: number }) {
+      this.graph = graph;
+    }
+    getCamera() {
+      return { setState: (state: Partial<Record<string, number>>) => Object.assign(this.camera, state) };
+    }
+    getGraphToViewportRatio() {
+      return 1;
+    }
+    graphToViewport(point: { x: number; y: number }) {
+      return point;
+    }
+    resize() {
+      return this;
+    }
+    refresh() {
+      return this;
+    }
+    kill() {}
+  }
+  return { default: Sigma, Sigma };
 });
 
 const classes = [
@@ -100,7 +99,6 @@ const spec: ViewSpec = {
       span: 24,
       data: { query: 'classes', path: 'classes' },
       linksField: 'dependencies',
-      graphLayout: 'layered',
       detailQuery: 'detail',
       detailPath: 'class',
       widgets: [
@@ -130,6 +128,15 @@ beforeAll(() => {
     disconnect() {}
   } as unknown as typeof ResizeObserver;
   HTMLElement.prototype.getBoundingClientRect = () => ({ width: 1000, height: 600 }) as DOMRect;
+  HTMLCanvasElement.prototype.getContext = () =>
+    ({
+      clearRect: () => {},
+      fillRect: () => {},
+      strokeRect: () => {},
+      fillText: () => {},
+      measureText: () => ({ width: 10 }),
+      setTransform: () => {},
+    }) as unknown as CanvasRenderingContext2D;
   window.matchMedia ??= ((query: string) => ({
     matches: false,
     media: query,
@@ -144,10 +151,16 @@ beforeAll(() => {
 afterEach(() => {
   cleanup();
   calls.length = 0;
+  sigmas.length = 0;
 });
 
+const hover = (key: string) => {
+  const sigma = sigmas.at(-1);
+  act(() => sigma?.fire('enterNode', { node: key, event: { x: 200, y: 120 } }));
+};
+
 describe('graph explorer wiring', () => {
-  it('opens a node as a box in the graph and runs its lazy detail only then', async () => {
+  it('opens a node as a box in the WebGL graph and runs its lazy detail only then', async () => {
     render(
       <MemoryRouter>
         <Provider value={client}>
@@ -158,21 +171,23 @@ describe('graph explorer wiring', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('button', { name: 'Expand Alpha' })).toBeTruthy();
-    await waitFor(() => expect(flow.nodes.some((node) => node.id === '1' && node.type === 'graphNode')).toBe(true));
+    await waitFor(() => expect(sigmas).toHaveLength(1));
+    expect(sigmas[0].graph.order).toBe(3); // root box + two leaves
+    expect(sigmas[0].settings.autoRescale).toBe(false);
     expect(calls.some((query) => query.includes('FluidExplorerDetail'))).toBe(false);
 
+    hover('1');
+    expect(await screen.findByRole('button', { name: 'Expand Alpha' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Expand Alpha' }));
 
-    expect(await screen.findByRole('button', { name: 'Collapse Alpha' })).toBeTruthy();
+    const [collapse] = await screen.findAllByRole('button', { name: 'Collapse Alpha' });
+    expect(collapse).toBeTruthy();
     expect(await screen.findByText('ping')).toBeTruthy();
     expect(screen.getAllByText('Alpha').length).toBeGreaterThan(1);
-    expect(flow.nodes.find((node) => node.id === '1')?.type).toBe('expandedNode');
     expect(calls.some((query) => query.includes('FluidExplorerDetail'))).toBe(true);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse Alpha' }));
-    await waitFor(() => expect(flow.nodes.find((node) => node.id === '1')?.type).toBe('graphNode'));
-    expect(screen.queryByText('ping')).toBeNull();
+    fireEvent.click(collapse);
+    await waitFor(() => expect(screen.queryByText('ping')).toBeNull());
     expect(spec.widgets[0]).not.toHaveProperty('initialExpanded');
   });
 });

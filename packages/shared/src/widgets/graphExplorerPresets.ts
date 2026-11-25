@@ -42,6 +42,7 @@ export const GRAPH_EXPLORER_PRESETS: Record<GraphExplorerPresetName, GraphExplor
       graphLayout: 'layered',
       direction: 'TB',
       groupByField: 'parentPackage.name',
+      hierarchyFields: ['parentPackage.name'],
       collapseAbove: 40,
       focusDepth: 2,
       focusDirection: 'both',
@@ -74,6 +75,7 @@ export const GRAPH_EXPLORER_PRESETS: Record<GraphExplorerPresetName, GraphExplor
       direction: 'TB',
       linksField: 'superInheritances.superclass',
       groupByField: 'parentPackage.name',
+      hierarchyFields: ['parentPackage.name'],
       collapseAbove: 30,
     },
     widgets: [
@@ -104,6 +106,7 @@ export const GRAPH_EXPLORER_PRESETS: Record<GraphExplorerPresetName, GraphExplor
       graphLayout: 'layered',
       direction: 'LR',
       groupByField: 'parentType.name',
+      hierarchyFields: ['parentType.name'],
       collapseAbove: 60,
       focusDepth: 2,
       focusDirection: 'both',

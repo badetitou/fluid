@@ -449,6 +449,7 @@ export const graphExplorerIntentSchema = z.object({
   labelField: graphExplorerFields.labelField,
   groupField: graphExplorerFields.groupField,
   groupByField: graphExplorerFields.groupByField,
+  hierarchyFields: graphExplorerFields.hierarchyFields,
   overview: graphExplorerFields.overview,
   detailQuery: graphExplorerFields.detailQuery,
   initialExpanded: graphExplorerFields.initialExpanded,

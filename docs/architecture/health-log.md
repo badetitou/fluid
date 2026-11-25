@@ -3,6 +3,38 @@
 Tenu par l'agent `practices-guardian` (`.claude/agents/practices-guardian.md`).
 Entrée la plus récente en haut ; les anciennes entrées ne sont jamais réécrites.
 
+## 2026-11-25 — explorateur de graphe : passage à une échelle milliers de nœuds
+
+| Indicateur | Valeur | Δ |
+| --- | --- | --- |
+| Fichiers trop gros | 3 (0 dans le frontend) | = |
+| Objets style inline | 47 | ↑ 4 |
+| bffClient dans l'UI | 0 | = |
+| Violations de couche | 0 | = |
+| `any` explicites | 5 (BFF uniquement) | = |
+| Ratio de tests frontend | 0.34 | = |
+| typecheck / tests | ✅ / ✅ | |
+
+**Changement de moteur**
+- `@xyflow/react` retiré : un DOM par nœud plafonnait l'explorateur à quelques centaines d'éléments utiles.
+- sigma/graphology dessine désormais les nœuds et arêtes en WebGL, comme `network`. La caméra est ajustée au
+  graphe complet (aucun culling à 300) ; pan/zoom/hit-testing restent gérés par sigma.
+- `hierarchyModel.ts` implémente le modèle HNode : containment hiérarchique, liens agrégés vers l'ancêtre visible,
+  placement déterministe en boîtes imbriquées (`hierarchyLayout.ts`). Les deux modules ont leurs tests.
+- Un seul canvas 2D (`hierarchyCanvas.ts`) dessine les cadres et en-têtes de toutes les boîtes. Seules les boîtes
+  ouvertes ont du DOM (`ExpandedNodeBox.tsx`), ancrées et mises à l'échelle avec la caméra ; `MAX_EXPANDED = 6`
+  ne limite plus que ces cartes de widgets, pas le graphe.
+- L'action d'ouverture passe par une carte unique (`ExplorerNodeCard.tsx`) pour le nœud survolé/sélectionné, plus les
+  boutons du bandeau. Aucun bouton n'est créé par nœud.
+- Le contrat partagé gagne `hierarchyFields` (niveaux ordonnés) ; `groupByField` reste l'alias à un niveau.
+- Session-only conservé : ni expansion, ni repli, ni focus, ni caméra ne sont écrits dans le `ViewSpec` ou un stockage.
+
+**À améliorer**
+- Le drag & drop des nœuds n'est pas encore disponible ; le placement des boîtes est déterministe.
+- `graphExplorer.ts`, `view-spec.ts` et `examples.ts` restent dans la dette des fichiers > 250 lignes du package partagé.
+
+Voir `docs/architecture/GRAPH_EXPLORER.md` pour le contrat et le moteur.
+
 ## 2026-11-24 — explorateur de graphe extensible (widget `graphExplorer`)
 
 | Indicateur | Valeur | Δ |

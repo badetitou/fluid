@@ -21,8 +21,9 @@ export {
 export type { GraphExplorerPreset, GraphExplorerPresetName };
 
 /**
- * A hierarchical, expandable graph: `groupByField` folds nodes into composite
- * boxes; expanding a node reveals its nested `widgets` (a card, its source…).
+ * A hierarchical, expandable graph: `hierarchyFields` (or the single-level
+ * `groupByField`) builds nested containment boxes; opening a leaf reveals its
+ * nested `widgets` (a card, its source…).
  * Interaction state is session-only: the view keeps only its defaults
  * (`initialExpanded`, `collapseAbove`). Links and node fields keep the `network`
  * semantics; `groupField` only colors nodes. `detailQuery` names a lazy view
@@ -53,8 +54,10 @@ export const graphExplorerFields = {
   sizeField: z.string().min(1).optional(),
   /** Lines shown under the label on hover (default: the group). */
   tooltipFields: z.array(columnSchema).optional(),
-  /** Dot path used to fold nodes into composite group boxes. */
+  /** Dot path used to fold nodes into composite group boxes (single-level shorthand). */
   groupByField: z.string().min(1).optional(),
+  /** Ordered dot paths of the containment levels, outermost first (package → class → …). */
+  hierarchyFields: z.array(z.string().min(1)).optional(),
   /** First overview of the graph: a node-link map or a folded hierarchy. */
   overview: z.enum(['network', 'tree']).optional(),
   /** Node placement: `force` (default) or `layered`. */
@@ -105,7 +108,7 @@ export const graphExplorerWidgetDoc = `- { "id": string, "type": "graphExplorer"
     "height"?: number, "data": { "query": ..., "path"?: ... },
     "preset"?: "code-dependencies"|"inheritance"|"calls"|"generic",
     "linksField"?: string, "edges"?: DataBinding, "sourceField"?: string, "targetField"?: string,
-    "groupByField"?: string, "overview"?: "network"|"tree", "detailQuery"?: string,
+    "groupByField"?: string, "hierarchyFields"?: [ string, ... ], "overview"?: "network"|"tree", "detailQuery"?: string,
     "initialExpanded"?: [ "<node id>", ... ], "collapseAbove"?: number }
     WRITE A SMALL INTENT: pick a "preset" and a few field names, not a whole graph. Presets:
     "code-dependencies" (packages/classes and what they depend on, layered top-down), "inheritance"
@@ -117,8 +120,10 @@ export const graphExplorerWidgetDoc = `- { "id": string, "type": "graphExplorer"
     "butterfly" which shows the neighbourhood of ONE element, not the whole graph; over "matrix"
     when the graph is sparse enough to read arrows and worth exploring node by node.
     The bound rows are the NODES; "linksField"/"edges" keep the network semantics. "groupByField"
-    is a dot path folding nodes into composite group boxes (e.g. "parentPackage.name"); "groupField"
-    only colors nodes. "overview" picks the first impression ("network" or "tree"),
+    is a dot path folding nodes into group boxes; "hierarchyFields" lists the containment levels,
+    outermost first (e.g. ["parentPackage.name"] is the same hierarchy as "groupByField"). Deeper
+    levels become boxes drawn inside their parent box. "groupField" only colors nodes.
+    "overview" picks the first impression ("network" or "tree"),
     "collapseAbove" folds large groups, "initialExpanded" names nodes open at first render.
     "detailQuery" is the NAME of a query in "queries": set that query's "lazy": true so it is only run
     when a node is expanded. It must declare the GraphQL variable "$${

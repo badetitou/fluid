@@ -26,60 +26,55 @@
   max-width: 220px;
 }
 
-.canvas {
+.canvasWrap {
+  position: relative;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
-.loading {
+.canvas {
   position: absolute;
-  inset: 36px 0 0;
-  z-index: 5;
-  display: grid;
-  place-items: center;
-  background: color-mix(in srgb, var(--surface-card) 80%, transparent);
+  inset: 0;
 }
 
-.node,
+.boxLayer,
+.cardLayerRoot {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cardLayer {
+  position: absolute;
+  pointer-events: auto;
+}
+
 .expanded {
-  position: relative;
-  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--fluid-radius, 8px);
   background: var(--surface-card);
   color: var(--ink);
   font-size: 12px;
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 12%, transparent);
-  cursor: pointer;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--ink) 16%, transparent);
 }
 
-.node {
-  min-width: 92px;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.nodeSelected,
 .expandedSelected {
   outline: 2px solid var(--fluid-primary);
   outline-offset: 1px;
 }
 
-.expanded {
-  width: 380px;
-  max-width: 70vw;
-  padding: 0;
-  cursor: default;
-}
-
 .header {
   display: flex;
+  flex: 0 0 30px;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
+  padding: 0 6px;
   border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface);
 }
 
 .title {
@@ -102,20 +97,44 @@
   background: var(--surface);
 }
 
+.loading {
+  position: absolute;
+  inset: 30px 0 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--surface-card) 85%, transparent);
+}
+
 .error {
   padding: 8px;
   color: var(--ant-color-error);
   font-size: 12px;
 }
 
-.edge {
-  stroke: var(--ink-muted);
-  stroke-width: 1.2;
+.nodeCard {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 220px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--fluid-radius, 8px);
+  background: var(--surface-elevated);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--ink) 18%, transparent);
+  pointer-events: auto;
 }
 
-:global(.react-flow__handle) {
-  width: 5px;
-  height: 5px;
-  border: none;
-  background: var(--ink-muted);
+.nodeCardTitle {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nodeCardKind {
+  align-self: flex-start;
 }
